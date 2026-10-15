@@ -10,6 +10,7 @@
 #include <gb/cgb.h>
 #include <string.h>
 #include "play.h"
+#include "boss_api.h" /* B2 bosses */
 
 #define BOSS_HP 44u
 #define HOVER_Y 92u
@@ -101,6 +102,10 @@ static void fan(enemy_t *b, uint8_t wide) {
 void boss_update(uint8_t k) BANKED {
   enemy_t *b = &en[k];
   uint8_t bx = (uint8_t)(b->x >> 4), by = (uint8_t)(b->y >> 4), phase2 = (uint8_t)(b->hp <= BOSS_HP / 2u);
+  if (bs_kind) { /* B2 bosses (src/boss_core.c) */
+    boss_update_all();
+    return;
+  }
   switch (b->st) {
     case ES_FLOAT: {
       /* drift after the player's column; hang at the hover line */

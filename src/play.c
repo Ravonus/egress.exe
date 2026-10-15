@@ -13,6 +13,7 @@
 #include "heir.h"
 #include "gen/eg_seeds.h"
 #include "look.h"
+#include "boss_api.h" /* B2 bosses */
 
 uint8_t tokens, keys_held, door_open, board_busy, cam_x, cam_y;
 uint8_t freeze, shake, hud_dirty, grav_t, boss_floor;
@@ -26,7 +27,8 @@ static void people_colours(void) { /* B1: the heir's palettes (heir.c), rolled f
 
 static void floor_build(void) {
   uint8_t i;
-  boss_floor = (uint8_t)(floor_no >= RUN_FLOORS);
+  /* B2 bosses: the slot (boss_api.h); b2-stages chooses which floors hold one */
+  boss_floor = dbg_boss ? dbg_boss : (floor_no >= RUN_FLOORS ? BOSS_BIOME : (floor_no == RUN_MID_FLOOR ? BOSS_MID : 0u));
   memset(&acts, 0, sizeof acts);
   memset(cracked, 0, sizeof cracked);
   memset(orbs, 0, sizeof orbs);
@@ -34,7 +36,7 @@ static void floor_build(void) {
   if (boss_floor) {
     floor_tier = 5u;
     floor_seed = 0;
-    boss_build();
+    boss_setup(boss_floor, BIOME_OFFICE); /* B2 bosses */
   } else {
     /* B1: the run planner chose floor_seed and floor_tier (puzzle_plan_floor); a reset regenerates the same room */
     if (!eg_generate(&room, floor_seed, floor_tier))
@@ -70,6 +72,11 @@ static void floor_build(void) {
 
 static void camera(uint8_t snap) {
   int16_t tx = (int16_t)pl_x - 80, ty = (int16_t)pl_y - 64, dx, dy;
+  if (boss_floor) { /* B2 bosses: the arena is one screen, held still */
+    cam_x = BOSS_CAM_X;
+    cam_y = BOSS_CAM_Y;
+    return;
+  }
   if (tx < 0) tx = 0;
   if (tx > 96) tx = 96;
   if (ty < 0) ty = 0;
@@ -105,6 +112,7 @@ static void floor_show(void) {
   camera(1);
   look_assemble(room.start);
   for (i = 0; i != (uint8_t)EG_N; i++) draw_cell(i);
+  if (boss_floor) boss_show(); /* B2 bosses */
   hud_init();
   scroll();
   sprites_reset();
@@ -182,6 +190,7 @@ static uint8_t floor_play(void) {
   else hud_msg("ANOTHER FLOOR");
   while (1) {
     frame_wait();
+    if (boss_floor) boss_vblank(); /* B2 bosses: in VBlank, before the look's writes */
     look_tick();
     flush_cells(8);
     scroll();

@@ -4,6 +4,7 @@
 #include <gb/gb.h>
 #include <gb/cgb.h>
 #include "play.h"
+#include "boss_api.h" /* B2 bosses */
 #include "heir.h"
 
 static uint8_t oam_n, oam_last;
@@ -78,6 +79,10 @@ static const int8_t bob[8] = {0, 0, -1, -1, 0, 0, 1, 1};
 void draw_sprites(void) BANKED {
   uint8_t k, base, fr, flip, pal;
   int16_t x, y;
+  if (boss_floor) { /* B2 bosses: the arena's own drawer, 10 a line (src/boss_oam.c) */
+    boss_draw_sprites();
+    return;
+  }
   oam_n = 0;
   /* the player: the heir (heir.c), BODY layer over WEAR layer, its box 16x22 with the feet at pl_y + 6 */
   heir_tick();

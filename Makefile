@@ -18,6 +18,8 @@ SRC := src/main.c src/screens.c src/play.c src/grid.c src/hud.c src/player.c src
 	src/gen/look_art.c src/look.c src/gen/eg_seeds.c src/puzzle.c \
 	src/core/eg_input.c src/core/eg_move.c src/core/eg_idle.c src/heir.c src/gen/heir_tab.c src/gen/heir_banks.c \
 	$(sort $(wildcard src/gen/heir_data_*.c))
+# B2 bosses (src/boss_api.h)
+SRC += src/boss_core.c src/boss_tenant.c src/boss_fax.c src/boss_art.c src/boss_oam.c
 MAPPER_SRC := src/run.c src/clock.c src/heir_draw.c
 # the title (src/title3d, docs/redesign.md 15): its C, its art (committed), the baked walk (generated into build/)
 SRC += src/title3d/title3d.c src/title3d/t3d_core.c
@@ -127,6 +129,10 @@ src/gen/art.c src/gen/art_pics.c src/gen/art.h: tools/bake_art.py
 # the floor's look: the office cards, the biome palettes (tools/bake_look.py borrows bake_art.py's helpers)
 src/gen/look_art.c src/gen/look_art.h: tools/bake_look.py tools/bake_art.py
 	$(PY) tools/bake_look.py src/gen --sheet docs/shots/b1_look_tiles.png --fragile docs/shots/b1_fragile_tiles.png --items docs/shots/b1_items_tiles.png
+
+# B2 bosses: THE TENANT and LAST FAX (tools/bake_boss.py borrows mobgen's shading)
+src/gen/boss_art.h src/gen/boss_art_data.h: tools/bake_boss.py tools/mock/mobgen.py
+	$(PY) tools/bake_boss.py src/gen --sheet docs/shots/b2_boss_art.png
 
 src/gen/music_data.h: tools/compose.py
 	$(PY) tools/compose.py $@

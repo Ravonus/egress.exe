@@ -401,7 +401,7 @@ void puzzle_tick(void) BANKED {
       }
   if (puzzle_dirty) { /* (re)start the dead-room check; it runs a slice a frame so walking never drops a frame */
     puzzle_dirty = 0;
-    if (!dead_t) {
+    if (!dead_t && !boss_floor) { /* B2 bosses: an arena is never a dead room */
       eg_dead_begin(c);
       dead_run = 1u;
     }

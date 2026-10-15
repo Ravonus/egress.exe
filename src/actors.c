@@ -8,6 +8,7 @@
 #include <gb/gb.h>
 #include <gb/cgb.h>
 #include "play.h"
+#include "boss_api.h" /* B2 bosses */
 #include "heir.h"
 
 enemy_t en[MAXE];
@@ -75,6 +76,10 @@ void enemy_kill(uint8_t k, uint8_t crushed) BANKED {
 void enemy_hit(uint8_t k, uint8_t dmg, uint8_t fromx, uint8_t fromy) BANKED {
   enemy_t *e = &en[k];
   uint8_t ex = (uint8_t)(e->x >> 4), ey = (uint8_t)(e->y >> 4);
+  if (e->kind == SPAWN_BOSS && bs_kind) { /* B2 bosses: they keep their own count */
+    boss_hit(dmg, fromx, fromy);
+    return;
+  }
   e->flash = 8u;
   freeze = dmg >= 3u ? 5u : 3u;
   sfx(SFX_HIT);
@@ -338,6 +343,10 @@ void actors_crush(void) BANKED {
     if (e->st == ES_DEAD) continue;
     x = (uint8_t)(e->x >> 4);
     y = (uint8_t)(e->y >> 4);
+    if (e->kind == SPAWN_BOSS && bs_kind) { /* B2 bosses */
+      boss_crush();
+      continue;
+    }
     if (e->kind == SPAWN_BOSS) {
       /* the boss is 2x2 cells: any falling CRT landing in its top cells */
       uint8_t i;
