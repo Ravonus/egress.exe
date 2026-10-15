@@ -12,6 +12,14 @@
 	.globl _f_lx, _f_ly, _f_ux, _f_uy, _f_cx8, _f_cy8, _f_minfv
 	.globl __current_bank
 	.globl _map, _cam_a
+.if OBJ_ON
+	.globl _vis_fill_asm, _vf_j0, _vf_n, _vf_d, _vpad, _ray_d
+	.globl _bb_col, _bbe_y8, _bbe_nr, _bbe_ox, _bbe_attr, _obj_oam, _obj_on, _obj_stage_n
+.endif
+	.globl _bbc_src, _bbc_mask, _bbc_bank
+.if OBJ_ON
+	.globl _oam_dma
+.endif
 _map = 0xD800
 
 	.area _DATA
@@ -23,6 +31,16 @@ _f_uy:	.ds 1
 _f_cx8:	.ds 2
 _f_cy8:	.ds 2
 _f_minfv:	.ds 1
+_bbc_src:	.ds 2
+_bbc_mask:	.ds 1
+_bbc_bank:	.ds 1
+_bbe_y8:	.ds 1
+_vf_j0:	.ds 1
+_vf_n:	.ds 1
+_vf_d:	.ds 2
+_bbe_nr:	.ds 1
+_bbe_ox:	.ds 1
+_bbe_attr:	.ds 1
 
 ; HRAM scratch (GBDK uses 0xFF80-0xFF92)
 HPAT = 0xA0		; 4 pattern bytes 0xFFA0-0xFFA3 (cycled with inc c / res 2, c)
@@ -70,14 +88,23 @@ F_B0 = 0xFFC7
 FMIN = 0xC8		; HRAM 0xFFC8: per tile column, first row with any floor (C fills it)
 CMAX = 0xD8		; HRAM 0xFFD8: per tile column, first row with all floor + ceiling visible
 F_B1 = 0xFFE8
-PF0 = 0xFFE9
-PF1 = 0xFFEA
-PF2 = 0xFFEB
-PF3 = 0xFFEC
-PC0 = 0xFFED
-PC1 = 0xFFEE
-PC2 = 0xFFEF
-PC3 = 0xFFF0
+PF0 = 0xFF93
+PF1 = 0xFF94
+PF2 = 0xFF95
+PF3 = 0xFF96
+PC0 = 0xFF9B
+PC1 = 0xFF9C
+PC2 = 0xFF9D
+PC3 = 0xFF9E
+; PF0-7 / PC0-7: floor / ceiling row fog patterns, 0xFF93-0xFFA2 (HPAT's bytes, free during floors)
+PF4 = 0xFF97
+PF5 = 0xFF98
+PF6 = 0xFF99
+PF7 = 0xFF9A
+PC4 = 0xFF9F
+PC5 = 0xFFA0
+PC6 = 0xFFA1
+PC7 = 0xFFA2
 NOFOG = 0xFFF1
 P_FL = 0xFFF2		; partial path: floor lo, hi, ceiling lo, hi
 P_CL = 0xFFF4
@@ -946,10 +973,34 @@ l4:
 	ldh	(PF2), a
 	and	a, b
 	ld	b, a
+.ifeq fr - 4
 	ld	a, (hl)
 	ldh	(PF3), a
 	and	a, b
 	ld	b, a
+.endif
+.ifeq fr - 8
+	ld	a, (hl+)
+	ldh	(PF3), a
+	and	a, b
+	ld	b, a
+	ld	a, (hl+)
+	ldh	(PF4), a
+	and	a, b
+	ld	b, a
+	ld	a, (hl+)
+	ldh	(PF5), a
+	and	a, b
+	ld	b, a
+	ld	a, (hl+)
+	ldh	(PF6), a
+	and	a, b
+	ld	b, a
+	ld	a, (hl)
+	ldh	(PF7), a
+	and	a, b
+	ld	b, a
+.endif
 .endif
 	ldh	a, (F_Y0)
 	cpl
@@ -968,10 +1019,34 @@ l4:
 	ldh	(PC2), a
 	and	a, b
 	ld	b, a
+.ifeq fr - 4
 	ld	a, (hl)
 	ldh	(PC3), a
 	and	a, b
 	ld	b, a
+.endif
+.ifeq fr - 8
+	ld	a, (hl-)
+	ldh	(PC3), a
+	and	a, b
+	ld	b, a
+	ld	a, (hl-)
+	ldh	(PC4), a
+	and	a, b
+	ld	b, a
+	ld	a, (hl-)
+	ldh	(PC5), a
+	and	a, b
+	ld	b, a
+	ld	a, (hl-)
+	ldh	(PC6), a
+	and	a, b
+	ld	b, a
+	ld	a, (hl)
+	ldh	(PC7), a
+	and	a, b
+	ld	b, a
+.endif
 .endif
 	ld	a, b
 	ldh	(NOFOG), a
@@ -1038,7 +1113,7 @@ f310:
 	ld	l, a
 	ldh	a, (F_YL)
 	cp	a, l
-	jr	nc, f320
+	jp	nc, f320
 	STEP	F_S2XL, F_S2XH, F_S2YL, F_S2YH
 	jp	f380
 f320:
@@ -1083,7 +1158,7 @@ f320:
 	ld	h, a
 	ldh	a, (NOFOG)
 	inc	a
-	jr	nz, f330
+	jp	nz, f330
 	; no fog: plain stores
 	.rept	fr
 	ld	a, d
@@ -1107,7 +1182,7 @@ f320:
 	ld	a, c
 	ld	(hl+), a
 	.endm
-	jr	f340
+	jp	f340
 f330:
 	ldh	a, (PF0)
 	and	a, d
@@ -1134,6 +1209,32 @@ f330:
 	ldh	a, (PF3)
 	and	a, e
 	ld	(hl+), a
+.ifeq fr - 8
+	ldh	a, (PF4)
+	and	a, d
+	ld	(hl+), a
+	ldh	a, (PF4)
+	and	a, e
+	ld	(hl+), a
+	ldh	a, (PF5)
+	and	a, d
+	ld	(hl+), a
+	ldh	a, (PF5)
+	and	a, e
+	ld	(hl+), a
+	ldh	a, (PF6)
+	and	a, d
+	ld	(hl+), a
+	ldh	a, (PF6)
+	and	a, e
+	ld	(hl+), a
+	ldh	a, (PF7)
+	and	a, d
+	ld	(hl+), a
+	ldh	a, (PF7)
+	and	a, e
+	ld	(hl+), a
+.endif
 .endif
 	; ceiling rows H-FR-y0 .. H-1-y0 (top to bottom: PC(FR-1) .. PC0)
 	ldh	a, (F_Y0)
@@ -1146,6 +1247,32 @@ f330:
 	ld	l, a
 	ldh	a, (F_STH)
 	ld	h, a
+.ifeq fr - 8
+	ldh	a, (PC7)
+	and	a, b
+	ld	(hl+), a
+	ldh	a, (PC7)
+	and	a, c
+	ld	(hl+), a
+	ldh	a, (PC6)
+	and	a, b
+	ld	(hl+), a
+	ldh	a, (PC6)
+	and	a, c
+	ld	(hl+), a
+	ldh	a, (PC5)
+	and	a, b
+	ld	(hl+), a
+	ldh	a, (PC5)
+	and	a, c
+	ld	(hl+), a
+	ldh	a, (PC4)
+	and	a, b
+	ld	(hl+), a
+	ldh	a, (PC4)
+	and	a, c
+	ld	(hl+), a
+.endif
 .if fr - 2
 	ldh	a, (PC3)
 	and	a, b
@@ -1198,7 +1325,7 @@ f350:
 	ld	l, a
 	ldh	a, (F_YL)
 	cp	a, l
-	jr	c, f351
+	jp	c, f351
 	SAMPLE	FTEX
 	ldh	(F_B0), a
 f351:
@@ -1207,7 +1334,7 @@ f351:
 	ld	l, a
 	ldh	a, (F_YL)
 	cp	a, l
-	jr	c, f352
+	jp	c, f352
 	SAMPLE	FTEX1
 	ldh	(F_B1), a
 f352:
@@ -1371,9 +1498,13 @@ _floors_asm::
 	ldh	a, (F_N)
 	cp	a, #4
 	jp	z, 3004$
+	cp	a, #8
+	jp	z, 3008$
 	FROWS	2
 3004$:
 	FROWS	4
+3008$:
+	FROWS	8
 390$:
 	ldh	a, (F_J)
 	inc	a
@@ -1384,3 +1515,209 @@ _floors_asm::
 	ldh	(__current_bank), a
 	ld	(0x2000), a
 	ret
+
+.if OBJ_ON
+; oam_dma(page): the HRAM OAM DMA routine GBDK installs at 0xFF84 (A = source page)
+_oam_dma::
+	jp	0xFF84
+
+; ---------------------------------------------------------------------------------------------------------------
+; bb_col: one billboard column (bbe_nr 8x16 sprites from bbc_src in bank bbc_bank) into the staging area and OAM:
+; rows clipped to the view (bbe_y8 = top + 64), ANDed with the column mask bbc_mask (4 px occlusion)
+BC_Y8 = 0xFFA4
+BC_N = 0xFFA5
+BC_SL = 0xFFA6
+BC_SH = 0xFFA7
+BC_R0 = 0xFFA8
+BC_R1 = 0xFFA9
+STAGE_MAX = 24
+_bb_col::
+	ld	a, (_bbc_bank)
+	ldh	(__current_bank), a
+	ld	(0x2000), a
+	ld	a, (_bbe_y8)
+	ldh	(BC_Y8), a
+	ld	a, (_bbe_nr)
+	ldh	(BC_N), a
+	ld	a, (_bbc_src)
+	ldh	(BC_SL), a
+	ld	a, (_bbc_src + 1)
+	ldh	(BC_SH), a
+10$:
+	ldh	a, (BC_Y8)
+	cp	a, #49
+	jp	c, 30$
+	cp	a, #128
+	jp	nc, 40$
+	ld	a, (_obj_stage_n)
+	cp	a, #STAGE_MAX
+	jp	nc, 40$
+	ld	a, (_obj_on)
+	cp	a, #40
+	jp	nc, 40$
+	; r0 = max(64 - y8, 0), r1 = min(128 - y8, 16)
+	ldh	a, (BC_Y8)
+	cp	a, #64
+	jr	nc, 11$
+	ld	c, a
+	ld	a, #64
+	sub	a, c
+	jr	12$
+11$:
+	xor	a, a
+12$:
+	ldh	(BC_R0), a
+	ldh	a, (BC_Y8)
+	cp	a, #113
+	jr	c, 13$
+	ld	c, a
+	ld	a, #128
+	sub	a, c
+	jr	14$
+13$:
+	ld	a, #16
+14$:
+	ldh	(BC_R1), a
+	; hl = STAGE + stage_n * 32
+	ld	a, (_obj_stage_n)
+	ld	c, a
+	and	a, #7
+	rrca
+	rrca
+	rrca
+	ld	l, a
+	ld	a, c
+	srl	a
+	srl	a
+	srl	a
+	add	a, #0xC8
+	ld	h, a
+	; de = src + r0 * 2
+	ldh	a, (BC_R0)
+	add	a, a
+	ld	c, a
+	ldh	a, (BC_SL)
+	add	a, c
+	ld	e, a
+	ldh	a, (BC_SH)
+	adc	a, #0
+	ld	d, a
+	ldh	a, (BC_R0)
+	or	a, a
+	jr	z, 16$
+	ld	b, a
+	xor	a, a
+15$:
+	ld	(hl+), a
+	ld	(hl+), a
+	dec	b
+	jr	nz, 15$
+16$:
+	ldh	a, (BC_R0)
+	ld	b, a
+	ldh	a, (BC_R1)
+	sub	a, b
+	jr	z, 18$
+	ld	b, a
+	ld	a, (_bbc_mask)
+	ld	c, a
+17$:
+	ld	a, (de)
+	inc	de
+	and	a, c
+	ld	(hl+), a
+	ld	a, (de)
+	inc	de
+	and	a, c
+	ld	(hl+), a
+	dec	b
+	jr	nz, 17$
+18$:
+	ldh	a, (BC_R1)
+	ld	c, a
+	ld	a, #16
+	sub	a, c
+	jr	z, 20$
+	ld	b, a
+	xor	a, a
+19$:
+	ld	(hl+), a
+	ld	(hl+), a
+	dec	b
+	jr	nz, 19$
+20$:
+	; OAM: y = y8 - 8 (view at y 40), x, tile 96 + 2 n, attr
+	ld	hl, #_obj_oam
+	ld	a, (hl+)
+	ld	h, (hl)
+	ld	l, a
+	ldh	a, (BC_Y8)
+	sub	a, #8
+	ld	(hl+), a
+	ld	a, (_bbe_ox)
+	ld	(hl+), a
+	ld	a, (_obj_stage_n)
+	add	a, a
+	add	a, #96
+	ld	(hl+), a
+	ld	a, (_bbe_attr)
+	ld	(hl+), a
+	ld	a, l
+	ld	(_obj_oam), a
+	ld	a, h
+	ld	(_obj_oam + 1), a
+	ld	hl, #_obj_stage_n
+	inc	(hl)
+	ld	hl, #_obj_on
+	inc	(hl)
+30$:
+	ldh	a, (BC_SL)
+	add	a, #32
+	ldh	(BC_SL), a
+	ldh	a, (BC_SH)
+	adc	a, #0
+	ldh	(BC_SH), a
+	ldh	a, (BC_Y8)
+	add	a, #16
+	ldh	(BC_Y8), a
+	ldh	a, (BC_N)
+	dec	a
+	ldh	(BC_N), a
+	jp	nz, 10$
+40$:
+	ld	a, #1
+	ldh	(__current_bank), a
+	ld	(0x2000), a
+	ret
+
+; vis_fill: vpad[j0 + 2 + i] = vf_d < ray_d[j0 + i] ? 0x0F : 0, i < vf_n (the billboard's per-ray visibility)
+_vis_fill_asm::
+	ld	a, (_vf_j0)
+	ld	c, a
+	ld	b, #0
+	ld	hl, #_vpad + 2
+	add	hl, bc
+	ld	e, l
+	ld	d, h
+	ld	hl, #_ray_d
+	add	hl, bc
+	add	hl, bc
+	ld	a, (_vf_n)
+	ld	b, a
+	ld	a, (_vf_d)
+	ld	c, a
+1$:
+	ld	a, c
+	sub	a, (hl)
+	inc	hl
+	ld	a, (_vf_d + 1)
+	sbc	a, (hl)
+	inc	hl
+	sbc	a, a
+	and	a, #0x0F
+	ld	(de), a
+	inc	de
+	dec	b
+	jr	nz, 1$
+	ret
+.endif

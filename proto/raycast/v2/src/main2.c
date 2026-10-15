@@ -8,6 +8,9 @@
 #include "ray2.h"
 #include "tex_ids.h"
 #include "obj2.h"
+#if OBJ_ON
+#include "bb_data.h"
+#endif
 
 #ifndef SCENE
 #define SCENE 0 /* 0 walk (v1 views), 1 combat, 2 puzzle, 3 biome blend, 4 title walk */
@@ -39,7 +42,10 @@ uint16_t pal_cur[32];
 
 #define LOGN 64
 uint16_t log_flip[LOGN];
-uint16_t log_upd[LOGN], log_ray[LOGN], log_fill[LOGN], log_flr[LOGN], log_spr[LOGN], log_wait[LOGN];
+/* per-phase lines, one byte each (saturated): WRAM is full once the billboard staging area is in */
+uint8_t log_upd[LOGN], log_ray[LOGN], log_fill[LOGN], log_flr[LOGN], log_spr[LOGN], log_wait[LOGN];
+const uint8_t log_u8 = 1;
+#define LSAT(v) ((v) > 255u ? 255u : (uint8_t)(v))
 uint16_t nviews, nflips, copy_lines, copy_calls;
 
 void dma_pad(void) __naked {
@@ -71,6 +77,17 @@ static void gdma(uint16_t src, uint16_t dst, uint8_t blocks) {
 #endif
 }
 
+/* BG palettes straight to the registers: library code above 0x4000 must not run from the ISR (a data bank may be
+   mapped there while the fill asm runs) */
+static void bkpal_write(void) {
+  uint8_t i;
+  BCPS_REG = 0x80u;
+  for (i = 0; i < 32u; i++) {
+    BCPD_REG = (uint8_t)pal_cur[i];
+    BCPD_REG = (uint8_t)(pal_cur[i] >> 8);
+  }
+}
+
 void vbl_isr(void) {
   uint8_t l0;
   vbl++;
@@ -84,7 +101,7 @@ void vbl_isr(void) {
   }
   if (!pend) {
     if (pal_dirty) {
-      set_bkg_palette(0, 8, pal_cur);
+      bkpal_write();
       pal_dirty = 0;
     }
     return;
@@ -117,7 +134,7 @@ void vbl_isr(void) {
   obj_vbl_flip();
 #endif
   if (pal_dirty) {
-    set_bkg_palette(0, 8, pal_cur);
+    bkpal_write();
     pal_dirty = 0;
   }
   log_flip[pend_view & (LOGN - 1)] = vbl;
@@ -531,18 +548,18 @@ void main(void) {
 #endif
 
     t3 = now();
-    obj_build(cur);
-    t4 = now();
-    while (pend) {
+    while (pend) { /* the staging area and OAM buffer are free once the previous view is up */
     }
+    t4 = now();
+    obj_build(cur);
     t5 = now();
     slot = (uint8_t)(nviews & (LOGN - 1));
-    log_upd[slot] = t1 - t0;
-    log_ray[slot] = t2 - t1;
-    log_fill[slot] = t2b - t2;
-    log_flr[slot] = t3 - t2b;
-    log_spr[slot] = t4 - t3;
-    log_wait[slot] = t5 - t4;
+    log_upd[slot] = LSAT((uint16_t)(t1 - t0));
+    log_ray[slot] = LSAT((uint16_t)(t2 - t1));
+    log_fill[slot] = LSAT((uint16_t)(t2b - t2));
+    log_flr[slot] = LSAT((uint16_t)(t3 - t2b));
+    log_spr[slot] = LSAT((uint16_t)(t5 - t4));
+    log_wait[slot] = LSAT((uint16_t)(t4 - t3));
     pend_src = buf[cur];
     pend_view = nviews;
     pend = 1;

@@ -86,10 +86,12 @@ def main() -> int:
         while read_upto < nflips:
             k = read_upto
             s = k % LOGN
-            views.append({"id": k, "flip": u16("log_flip", 2 * s), "upd": u16("log_upd", 2 * s),
-                          "ray": u16("log_ray", 2 * s), "fill": u16("log_fill", 2 * s),
-                          "spr": u16("log_spr", 2 * s), "wait": u16("log_wait", 2 * s),
-                          "flr": u16("log_flr", 2 * s) if "_log_flr" in sym else 0})
+            if "_log_u8" in sym:  # one byte per phase entry
+                ph = {n: u8("log_" + n, s) for n in ("upd", "ray", "fill", "spr", "wait", "flr")}
+            else:
+                ph = {n: u16("log_" + n, 2 * s) if "_log_" + n in sym else 0
+                      for n in ("upd", "ray", "fill", "spr", "wait", "flr")}
+            views.append({"id": k, "flip": u16("log_flip", 2 * s), **ph})
             read_upto += 1
 
     total = a.warmup + a.frames

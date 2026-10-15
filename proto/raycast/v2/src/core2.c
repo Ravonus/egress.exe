@@ -22,12 +22,14 @@ int16_t scos(uint16_t a) {
   return (a & 1023u) < 256u || (a & 1023u) >= 768u ? v : (int16_t)-v;
 }
 
+#if !(defined(__SDCC) && defined(CAST_ASM)) /* the cartridge uses cast2.s's quarter-square version */
 int16_t smulhi(int16_t r, int16_t c) {
   uint16_t ar = r < 0 ? (uint16_t)-r : (uint16_t)r;
   uint8_t ac = (uint8_t)(c < 0 ? -c : c);
   int16_t v = (int16_t)mulhi(ar, ac);
   return ((r < 0) != (c < 0)) ? (int16_t)-v : v;
 }
+#endif
 
 #ifdef CAST_ASM
 void cast_asm(void);

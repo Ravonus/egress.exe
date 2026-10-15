@@ -78,10 +78,11 @@ PALS = ["office", "vents", "dark"]
 
 
 def fogk(d: float) -> int:
-    return max(0, min(16, round((d - FOG_NEAR) * 16 / (FOG_FAR - FOG_NEAR))))
+    return max(0, min(16, round((d - FOG_NEAR) * 16 / (FOGFAR[0] - FOG_NEAR))))
 
 
 MIPH = 32
+FOGFAR = [FOG_FAR]
 
 
 def runs_of(col):
@@ -100,8 +101,10 @@ def main() -> None:
     ap.add_argument("--fr", type=int, default=2)
     ap.add_argument("--frfar", type=int, default=4)
     ap.add_argument("--split", type=int, default=32)
+    ap.add_argument("--fogfar", type=float, default=FOG_FAR, help="cells where the fog is total (rows past it are skipped)")
     ap.add_argument("--sidek", type=int, default=4)
     a = ap.parse_args()
+    FOGFAR[0] = a.fogfar
     a.out.mkdir(parents=True, exist_ok=True)
     W, H, FR = a.w, a.h, a.fr
     n = W // 4

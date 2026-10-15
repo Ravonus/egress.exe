@@ -1,5 +1,5 @@
 ; cast_asm: every ray's DDA (v1's, with 16 texel columns per face: u = frac >> 4)
-	.globl _cast_init
+	.globl _cast_init, _smulhi
 	.globl _cast_asm, _cam_x, _cam_y, _cam_a, _map, _ray_d, _T_COLOFF, _T_COLCOS, _T_DELTA, _T_COSABS
 	.globl _T_HEIGHT
 
@@ -167,6 +167,43 @@ l1:
 	inc	h
 l1:
 	.endm
+
+; int16_t smulhi(int16_t r /* de */, int16_t c /* bc, |c| <= 255 */) -> bc = (r * c) >> 8, rounded toward zero like
+; core2.c's C version (magnitudes multiplied, sign applied after)
+_smulhi::
+	ld	a, d
+	xor	a, b
+	push	af
+	bit	7, d
+	jr	z, 1$
+	xor	a, a
+	sub	a, e
+	ld	e, a
+	ld	a, #0
+	sbc	a, d
+	ld	d, a
+1$:
+	bit	7, b
+	ld	a, c
+	jr	z, 2$
+	cpl
+	inc	a
+2$:
+	ld	b, a
+	MULHI
+	pop	af
+	bit	7, a
+	jr	z, 3$
+	xor	a, a
+	sub	a, l
+	ld	l, a
+	ld	a, #0
+	sbc	a, h
+	ld	h, a
+3$:
+	ld	b, h
+	ld	c, l
+	ret
 
 _cast_init::
 	ld	hl, #dda_tpl
