@@ -8,6 +8,7 @@
 #include <gb/gb.h>
 #include <gb/cgb.h>
 #include "play.h"
+#include "heir.h"
 
 enemy_t en[MAXE];
 uint8_t nen;
@@ -322,7 +323,7 @@ void orbs_update(void) BANKED {
           break;
         }
       }
-    } else if (overlap(ox, oy, pl_x, pl_y, 6u, 6u) && !(pl_state == PS_ROLL && pl_t > 4u) && !pl_inv) {
+    } else if (overlap(ox, oy, pl_x, pl_y, 6u, 6u) && !pl_iframe && !pl_inv) {
       o->live = 0;
       player_hurt(1u, ox, oy);
     }
