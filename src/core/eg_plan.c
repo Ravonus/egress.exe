@@ -3,6 +3,7 @@
 #pragma bank 255
 #endif
 #include "eg_plan.h"
+#include "eg_stage.h" /* B2: the deck */
 
 const uint8_t eg_plan_order[MK_COUNT - 2u] = {MK_BURN, MK_COLD, MK_GLASS, MK_STEPS, MK_SHORT, MK_WEIGHT, MK_RHYTHM};
 
@@ -228,39 +229,13 @@ typedef struct {
   uint8_t prev_type, prev_rare, prev_lvl, rare_biome, sky_left, floor;
   uint32_t prev_set;      /* the last stage slot's mechanics */
   int16_t press;          /* generation, cycle and lineage on top of the depth */
+  eg_deck deck;           /* B2: the stage types dealt and the tricks played (eg_stage.h) */
 } bstate;
 
+/* B2: the weighted deck of section 4 (src/core/eg_stage.c), with its seen history */
 static uint8_t pick_type(bstate *b, uint8_t cstage, uint8_t m, uint8_t p, uint8_t salt) {
-  /* weights per SG_PUZZLE .. SG_HEIST for this slot */
-  uint8_t w[SG_3D], t, tot = 0u, x;
-  for (t = 0u; t != SG_3D; t++) w[t] = 0u;
-  if (cstage == ST_INTRO) return SG_PUZZLE;
-  if (cstage == ST_DEVELOP) {
-    if (m != 255u && MK_OBSTACLE(m)) {
-      w[SG_PUZZLE] = 5u, w[SG_HOLDOUT] = 2u;
-      if (p >= 1u) w[SG_CHASE] = 2u;
-      if (p >= 2u) w[SG_ESCORT] = 1u;
-    } else if (m == MK_DARK) {
-      w[SG_PUZZLE] = 3u, w[SG_DARK] = 3u;
-    } else {
-      w[SG_PUZZLE] = 6u;
-      if (p >= 2u) w[SG_MIXP] = 2u;
-    }
-  } else {
-    w[SG_PUZZLE] = 5u, w[SG_HOLDOUT] = 2u;
-    if (p >= 1u) w[SG_CHASE] = 2u, w[SG_HUNT] = 2u;
-    if (p >= 2u) w[SG_ESCORT] = 1u, w[SG_MIXP] = 2u;
-    if ((b->devel & (1ul << MK_DARK)) && b->r->band[MK_DARK] <= p) w[SG_DARK] = 2u;
-    if (p >= 3u && cstage != ST_TEST) w[SG_HEIST] = 1u;
-  }
-  if (b->prev_type != SG_PUZZLE && b->prev_type < SG_3D) w[b->prev_type] = 0u; /* never the same type twice running */
-  for (t = 0u; t != SG_3D; t++) tot = (uint8_t)(tot + w[t]);
-  x = (uint8_t)(mix3(b->in->run_seed, (uint16_t)(b->floor * 13u + salt), 7u) % tot);
-  for (t = 0u; t != SG_3D; t++) {
-    if (x < w[t]) return t;
-    x = (uint8_t)(x - w[t]);
-  }
-  return SG_PUZZLE;
+  return eg_deck_deal(&b->deck, p, cstage, m, (uint8_t)((b->devel & (1ul << MK_DARK)) && b->r->band[MK_DARK] <= p),
+                      mix3(b->in->run_seed, (uint16_t)(b->floor * 13u + salt), 7u));
 }
 
 /* 2 or 3 developed mechanics open at this depth, weighted toward the biome's own; never the last slot's set */
@@ -431,6 +406,7 @@ static void biome_block(bstate *b, uint8_t p, uint8_t biome, uint8_t S, int16_t 
     b->prev_rare = SG_RARE(s->stype);
     if (b->prev_rare) b->rare_biome = p;
     b->prev_type = s->stype;
+    eg_deck_note(&b->deck, s->stype, s->m[0]); /* B2 */
     b->prev_lvl = s->target;
     b->prev_set = set_of(s->m);
   }
@@ -456,6 +432,7 @@ void eg_run_build(eg_run *r, const eg_run_in *in) EG_BANKED {
   b.rare_biome = 255u;
   b.sky_left = in->sky;
   b.prev_set = 0u;
+  eg_deck_reset(&b.deck); /* B2 */
   b.press = (int16_t)((in->generation > 24u ? 24u : in->generation) / 6u) + (int16_t)in->lineage +
             (int16_t)(in->cycle > 1u ? 2u * (in->cycle - 1u) : 0u);
   b.floor = 0u;
