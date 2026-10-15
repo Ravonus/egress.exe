@@ -1,110 +1,112 @@
 #ifndef T3D_H
 #define T3D_H
-/* The PRESS START title: a slow, seeded backrooms walk drawn by the v2 raycaster (proto/raycast/v2, docs/redesign.md
- * 15 and 15.1) at 96x72, with the EGRESS.EXE logo above and PRESS START below.
+/* The PRESS START title (docs/redesign.md 15 and 15.1): a fullscreen backrooms walk at 30 fps, pre-baked. The walk is
+ * rendered offline by the v2 renderer (tools/title3d/bake.py, 160x104 through proto/raycast/v2/src/core2.c) and stored
+ * in ROM as per-frame records: the tiles that change (as indices into the loop's dictionary of unique tiles), the map
+ * cells that change. The cartridge does no rendering and no decoding: main copies a record's map runs into a shadow
+ * map and its tiles out of the dictionary into WRAM, HBlank DMA puts both into VRAM, the VBlank flips the BG map. The EGRESS.EXE logo sits on a dark band
+ * above the view (static BG rows), PRESS START floats over the view (sprites), the info row (clock / prompt / seed) is
+ * the window along the bottom. Nothing over the view is ever redrawn by the walk.
+ *
+ * Documented CGB features only (Pan Docs): double speed, HBlank DMA (HDMA) for every VRAM write of the walk (it
+ * writes only in HBlank, mode 0, where VRAM is free), palette writes and the map flip (LCDC bit 3) in VBlank, SCX
+ * writes for the logo's glitch slices after a STAT wait for HBlank, the window, sprites. No mid-frame palette swaps,
+ * no GDMA, nothing timing-tight: the same on a GBC, a ModRetro Chromatic, SameBoy and PyBoy.
+ *
+ * Per shown frame (30 fps, two VBlanks): main copies the record's map runs into the shadow and its tiles into
+ * staging (~25 scanlines), then feeds HDMA job by job: ~13 tiles and the 26 blocks of map ids, a block per visible
+ * line (~45 lines); the VBlank flips once that is all in and the pace allows, and uploads the palettes. Verified in
+ * SameBoy (cycle-accurate: tools/title3d/sameboy_check.py) and PyBoy (test/harness/title3d.py). Before: an LZ4-style
+ * stream decoded in C took ~270 scanlines a frame (13-25 fps), then GDMA in VBlank ran out of VBlank on big frames.
  *
  * Memory while the title runs (nothing of it is live once title3d_run() returns):
  *
- *   WRAM banks 2 and 3 (SVBK), the same layout in both:
- *     0xD000-0xD3FF  the 32x32 map (1 KB aligned: the floor asm builds cell addresses from bits)   copy in both
- *     0xD400-0xDABF  a framebuffer, 12 strips of 144 bytes (bank 2: buffer A, bank 3: buffer B)
- *     0xDB00-0xDB2F  REC, the floor pass's per-tile-column scratch (page aligned)                  per bank
- *     0xDB80-0xDBFF  dead-end bits of the maze (the walker avoids them)                            copy in both
- *     0xDC00-0xDE4F  the generator's scratch: carve stack x, y; dressing zones (init only)         bank 2
- *     0xDF00-0xDF68  HRAM 0xFF93-0xFFFB saved on entry, restored on exit                           bank 2
- *   The main loop renders a view with SVBK on that view's bank; the VBlank ISR maps the other bank only around its
- *   GDMA. So the CPU stack cannot be in 0xD000-0xDFFF (GBDK's stack is at 0xDFFF down): the title runs on its own
- *   stack, t3d_stack in WRAM0, switched in and out by t3d_on_stack(). Every game global must stay below 0xD000 (the
- *   Makefile checks the link): the ISRs and the sound driver read them while bank 2 or 3 is mapped.
- *   WRAM0: the title's own C data (~0.5 KB, t3d_core.c / title3d.c / the asm's _DATA) and t3d_stack.
+ *   WRAM bank 2 (SVBK = 2 for the whole title; game data stays below 0xD000, the Makefile checks the link):
+ *     0xD000-0xD7FF  staging: a frame's tiles (up to 128), the HDMA source
+ *     0xD800-0xD88F  the frame's upload jobs (VRAM address, tiles; up to 48)
+ *     0xD900-0xDA7F  the frame's dictionary runs (first tile, tiles; up to 128)
+ *     0xDC00-0xDD9F  the shadow BG map: 13 view rows x 32 tile ids (the HDMA source of the hidden map)
+ *     the rest free
+ *   GBDK's stack is at 0xDFFF down, inside the bank: the title runs on its own stack, t3d_stack in WRAM0.
+ *   WRAM0: the title's C data (~0.2 KiB) and t3d_stack (192 B).
  *
- *   HRAM 0xFF93-0xFFFB: the asm's scratch (GBDK owns 0xFF80-0xFF92), saved and restored around the title.
+ *   ROM: the loops' records and dictionaries (TB_NLOOPS loops, ~470 KB in autobanked chunks of up to 16 KiB,
+ *   build/t3d_bake/gen/ledger.txt);
+ *   the chunk and loop tables, the record player and the ISRs in ROM0 (they switch banks); the title's C banked.
  *
- *   ROM: three autobanked 16 KB blobs (t3d_bank_w0, t3d_bank_fl, t3d_bank_w1: each fills its bank, so it starts at
- *   0x4000 where the asm expects its tables); the asm and the ISRs in ROM0 (they map the blobs); the title's C in an
- *   autobanked bank.
- *
- *   VRAM: tiles 0-107 of both banks are the double-buffered framebuffer (bank 0 for BG map 0x9800, bank 1 for 0x9C00;
- *   the BG flips between the maps). Bank 0 tiles 108+ the logo and 160+ the frame, bank 1 tiles 108+ and 160+ the font in two inks.
- *   Both BG maps hold the same logo, frame and text. BG palettes: 0-7 are the view's per-tile-row gradient (9 rows:
- *   palette 0 serves rows 0 and 8); palette 7 shows the logo above the view and palette 0 the text below it, swapped
- *   by two LYC interrupts (lines T3D_SWAP_LINE and T3D_SWAP2_LINE).
- *   No sprites.
+ *   VRAM (BG tile data at 0x8800, signed ids): bank 0 ids 0-255 are the stream's tile slots (all of them: so the
+ *   view's BG attributes are fixed, each row's palette band in bank 0, and only map ids ever move); bank 1 ids
+ *   152-255 the static tiles (blank, logo, font), bank 1 ids 0-151 unused. OBJ tiles 0-5 at 0x8000 (bank 0, outside the BG's
+ *   range): PRESS START's letters. BG maps 0x9800 and 0x9C00 both hold the logo band (rows 14-17) and a view (rows
+ *   18-30); SCY = 112 shows rows 14-31. The hidden map gets the next frame's view by HBlank DMA, then LCDC flips the maps.
+ *   The window (map 0x9C00, row 0, never inside the BG's rows) is the info row from line 136.
+ *   Palettes: BG 0-5 the view's bands, 6 the text, 7 the logo; OBJ 0 PRESS START.
  */
 #include <gb/gb.h>
 #include <stdint.h>
 
-#define T3D_WBANK_A 2u
-#define T3D_WBANK_B 3u
-#define T3D_MAP ((uint8_t *)0xD000u)
-#define T3D_FB 0xD400u
-#define T3D_DEAD ((uint8_t *)0xDB80u)
-#define T3D_STK ((uint8_t *)0xDC00u)
-#define T3D_HSAVE ((uint8_t *)0xDF00u)
-#define T3D_HRAM_LO 0x93u
-#define T3D_HRAM_N (0xFCu - 0x93u)
+#define T3D_WBANK 2u
+#define T3D_STAGE ((uint8_t *)0xD000u)
+#define T3D_JOBS ((uint8_t *)0xD800u)
+#define T3D_RANGES ((uint8_t *)0xD900u)
+#define T3D_SHADOW ((uint8_t *)0xDC00u)
 
-#define T3D_VW 96u
-#define T3D_VH 72u
-#define T3D_NRAYS 24u
-#define T3D_TW 12u
-#define T3D_TH 9u
-#define T3D_BUFSZ (T3D_TW * T3D_VH * 2u)
-#define T3D_VX 4u /* view tile column */
-#define T3D_VY 5u /* view tile row */
-#define T3D_MAPW 32u
+#define T3D_SCY 112u      /* BG rows 14-31 on screen */
+#define T3D_ROW_LOGO 14u  /* the dark band: row 14 blank, the logo's three rows 15-17 */
+#define T3D_ROW_VIEW 18u  /* the view: rows 18-30, lines 32-135 */
+#define T3D_WY 136u       /* the window: the info row */
+#define T3D_SPR_Y 116u    /* PRESS START over the view (screen line) */
 
-#define T3D_SWAP_LINE 64u /* palette 7 changes from the logo to view row 7, palette 0 from view row 0 to row 8 */
-#define T3D_SWAP2_LINE 111u /* palette 0 changes from view row 8 to the text (the bar under the view, line 112) */
-#define T3D_TEXT_Y (T3D_VY + T3D_TH + 1u) /* PRESS START; a blank row, then the cycling info row (clock / prompt / seed) */
-/* t3d_palx: the view rows' colours, then the logo's, then the text's */
-#define T3D_PX_VIEW (T3D_TH * 4u)
-#define T3D_PX_LOGO T3D_PX_VIEW
-#define T3D_PX_TEXT (T3D_PX_VIEW + 4u)
-#define T3D_PX_N (T3D_PX_VIEW + 8u)
-#define T3D_STACK 192u /* t3d_core.c hard-codes it in the stack switch */
+#define T3D_STATIC 152u /* bank 1 BG ids from here: static (TB_STATIC) */
+#define T3D_T_BLANK 152u
+#define T3D_T_LOGO 153u
+#define T3D_T_FONT 205u
 
-/* VRAM tiles */
-#define T3D_T_LOGO 108u  /* bank 0, after the framebuffer's 108 tiles */
-#define T3D_T_FRAME 160u /* bank 0, after the logo (<= 52 logo tiles) */
-#define T3D_T_FONT1 108u /* bank 1, ink colour 1 (48 glyphs) */
-#define T3D_T_FONT2 160u /* bank 1, ink colour 2 */
+#define T3D_PAL_TEXT 6u
+#define T3D_PAL_LOGO 7u
+
+#define T3D_STACK 192u     /* t3d_core.c hard-codes it in the stack switch */
+#define T3D_VBL_LAST 152u  /* the palettes go up only if the VBlank has from here 2 lines left */
+#define T3D_JOB_MAX 24u    /* tiles per upload job (the bake splits runs) */
+#define T3D_STAGE_TILES 128u
+#define T3D_MAX_JOBS 48u
+#define T3D_MAX_RANGES 128u /* dictionary runs a record stages */
+#define T3D_DICT_TILES 1024u
 
 enum { T3D_START = 1, T3D_SELECT = 2 };
 
-/* ---- t3d_core.c (ROM0): renderer glue, the ISRs, the stack switch ---- */
-extern uint16_t t3d_cx, t3d_cy, t3d_ca; /* 8.8 cells, angle 0..1023 */
-extern uint8_t t3d_ray_h[T3D_NRAYS], t3d_ray_u[T3D_NRAYS], t3d_ray_t[T3D_NRAYS];
-extern uint16_t t3d_ray_d[T3D_NRAYS];
-extern uint8_t t3d_ray_fv[T3D_NRAYS], t3d_ray_cv[T3D_NRAYS];
-
-extern volatile uint16_t t3d_vbl;      /* VBlanks while the title runs */
-extern volatile uint8_t t3d_pend;      /* a finished view waits for its VBlank copy */
-extern uint8_t t3d_pend_bank;          /* its WRAM bank */
-extern volatile uint8_t t3d_wbank;     /* the WRAM bank the main loop has mapped */
-extern uint16_t t3d_palx[T3D_PX_N];    /* view rows 0-8, logo, text: written to the hardware by the VBlank / LYC ISRs */
-extern volatile uint8_t t3d_pal_dirty; /* the view rows changed */
-extern uint8_t t3d_scx[4];             /* logo slice scroll (glitch) for lines 0-11, 12-17, 18-23, 24-31 */
-extern uint8_t t3d_glitch;             /* nonzero: run the slice chain */
-extern volatile uint8_t t3d_sound;     /* the VBlank ISR ticks the sound driver */
-extern volatile uint8_t t3d_buzz;      /* the VBlank ISR plays the fluorescent buzz once */
-extern volatile uint8_t t3d_keys;      /* new presses latched by the VBlank ISR (so none is lost while the world builds) */
-extern uint16_t t3d_nviews, t3d_nflips;
+/* ---- t3d_core.c (ROM0): the record player, the VBlank / LYC ISRs, the stack switch ---- */
+extern volatile uint16_t t3d_vbl;     /* VBlanks while the title runs */
+extern volatile uint8_t t3d_map_ready; /* the next frame is in VRAM (its tiles, the hidden map): flip it */
+extern uint8_t t3d_map_pace;          /* VBlanks between flips (2: 30 fps) */
+extern uint16_t t3d_palx[36];         /* BG palettes 0-7 and OBJ palette 0: written in VBlank when dirty */
+extern volatile uint8_t t3d_pal_dirty;
+extern uint8_t t3d_scx[4];            /* logo slice scroll (glitch) for lines 0-11, 12-17, 18-23, 24-29 */
+extern uint8_t t3d_glitch;            /* nonzero: run the slice chain */
+extern volatile uint8_t t3d_sound;    /* the VBlank ISR ticks the sound driver */
+extern volatile uint8_t t3d_buzz;     /* the VBlank ISR plays the fluorescent buzz once */
+extern volatile uint8_t t3d_keys;     /* new presses latched by the VBlank ISR */
+extern volatile uint16_t t3d_nflips;  /* frames shown */
+extern volatile uint16_t t3d_cyc_tiles, t3d_cyc_pal; /* harness: tiles uploaded, palette bytes, this title */
 extern uint8_t t3d_stack[T3D_STACK];
+extern uint8_t t3d_flip_late, t3d_flip_line_max; /* flips that missed a VBlank (must stay 0); latest flip line - 144 */
 
-void t3d_render(void) NONBANKED;          /* cast + walls + floors into T3D_FB of the mapped WRAM bank */
-uint8_t t3d_cosabs(uint16_t a) NONBANKED; /* |cos| table (floors blob) */
+void tb_open(uint8_t loop) NONBANKED;   /* the loop from its keyframe record */
+void tb_frame1(uint8_t loop) NONBANKED; /* the loop's frame 1 record (after the wrap record W) */
+void tb_play(void) NONBANKED;           /* the next record into VRAM by HBlank DMA, then marked ready to flip */
+uint16_t tb_frames(uint8_t loop) NONBANKED;
 void t3d_isr_on(void) NONBANKED;
 void t3d_isr_off(void) NONBANKED;
-void t3d_on_stack(void) NONBANKED;        /* runs title3d_main() on t3d_stack */
-void t3d_cast_init(void);
+void t3d_on_stack(void) NONBANKED; /* runs title3d_main() on t3d_stack */
 
 /* ---- title3d.c (banked) ---- */
-extern uint16_t t3d_seed;       /* this title's walk */
-extern uint16_t t3d_seed_force; /* harness hook: nonzero forces the walk's seed */
+extern uint16_t t3d_seed;       /* this title's seed: picks the loop and the palette */
+extern uint16_t t3d_seed_force; /* harness hook: nonzero forces the seed */
+extern uint8_t t3d_loop, t3d_var;
+extern uint16_t t3d_frame;      /* the frame on screen (harness) */
 extern uint8_t t3d_result;
-extern volatile uint8_t t3d_freeze, t3d_frozen; /* harness hook: hold the loop after a view (host diff) */
-void title3d_main(void) BANKED;  /* on t3d_stack, WRAM banked: the whole title */
+extern volatile uint8_t t3d_freeze, t3d_frozen; /* harness hook: hold the walk after a flip (VRAM check) */
+void title3d_main(void) BANKED;  /* on t3d_stack, WRAM bank 2: the whole title */
 uint8_t title3d_run(void) BANKED; /* T3D_START or T3D_SELECT; returns with every palette black, LCD on */
 
 #endif

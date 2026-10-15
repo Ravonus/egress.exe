@@ -26,8 +26,11 @@ void input_poll(void) {
   joy_pressed = (uint8_t)(joy & (uint8_t)~joy_prev);
 }
 
-/* sprites switch off at hud_line (the HUD window starts there) and back on in VBlank */
-static void lcd_isr(void) NONBANKED { LCDC_REG &= (uint8_t)~LCDCF_OBJON; }
+/* sprites switch off at hud_line (the HUD window starts there) and back on in VBlank. Only that one split: other
+ * screens' LYC lines (the title's logo slices at 11-29 and its 144) are theirs, and leave the sprites alone. */
+static void lcd_isr(void) NONBANKED {
+  if (hud_line < 144u && LYC_REG == hud_line) LCDC_REG &= (uint8_t)~LCDCF_OBJON;
+}
 static void vbl_isr(void) NONBANKED {
   LCDC_REG |= LCDCF_OBJON;
   LYC_REG = hud_line;

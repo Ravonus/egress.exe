@@ -387,6 +387,16 @@ BIOMES = {
         "floor": [(34, 74, 92), (54, 104, 116), (80, 140, 140), (110, 176, 164)],
         "light": (206, 248, 220), "mid": (92, 174, 178), "dark": (22, 58, 82),
     },
+    "dusk": {
+        "ceil": [(236, 186, 196), (214, 160, 182), (190, 136, 168), (164, 112, 154)],
+        "floor": [(132, 86, 128), (152, 98, 134), (172, 110, 140), (192, 122, 146)],
+        "light": (255, 226, 214), "mid": (226, 160, 186), "dark": (84, 48, 98),
+    },
+    "rose": {
+        "ceil": [(228, 196, 236), (204, 170, 222), (180, 146, 206), (154, 120, 188)],
+        "floor": [(110, 86, 150), (128, 98, 160), (146, 110, 168), (164, 122, 176)],
+        "light": (250, 236, 250), "mid": (206, 170, 230), "dark": (62, 50, 122),
+    },
     "dark": {  # office with its lights out (a GLOWS item lights a cone): same textures, low palette
         "ceil": [(98, 80, 140), (78, 62, 120), (60, 46, 100), (42, 30, 78)],
         "floor": [(40, 28, 74), (56, 40, 92), (72, 52, 108), (90, 66, 124)],
@@ -501,3 +511,35 @@ def title_ceiling(lit: bool = True) -> list[list[int]]:
     rect(t, 9, 10, 15, 14, 2)             # one fluorescent panel per 2x2 cells: a mid rim, a light tube
     rect(t, 10, 11, 14, 13, 1 if lit else 2)
     return t
+
+
+# the baked title's view: 13 tile rows in 6 palette bands (the 7th and 8th BG palettes are the text's and the logo's)
+VARIANTS = ["office", "vents", "dusk", "rose"]
+NBAND = 6
+BAND_OF_ROW = [0, 0, 1, 1, 2, 2, 2, 3, 3, 4, 4, 5, 5]
+
+
+def band_palettes(name: str) -> list[list[tuple]]:
+    """colour 0 of each band is the mean of its rows' ceiling/floor gradient (the horizon in row 6); 1/2/3 are the
+    walls' light, mid and dark with a gentle top-lit falloff"""
+    b = BIOMES[name]
+    rows = []
+    for r in range(13):
+        if r < 6:
+            t = r / 5
+            i = min(2, int(t * 3))
+            rows.append(lerp(b["ceil"][i], b["ceil"][i + 1], t * 3 - i))
+        elif r == 6:
+            rows.append(lerp(b["ceil"][3], b["floor"][0], 0.5))
+        else:
+            t = (r - 7) / 5
+            i = min(2, int(t * 3))
+            rows.append(lerp(b["floor"][i], b["floor"][i + 1], t * 3 - i))
+    out = []
+    for band in range(NBAND):
+        rs = [r for r in range(13) if BAND_OF_ROW[r] == band]
+        c0 = tuple(sum(rows[r][j] for r in rs) / len(rs) for j in range(3))
+        shade = 0.88 + 0.12 * (1 - band / (NBAND - 1))
+        out.append([c0, lerp((0, 0, 0), b["light"], shade), lerp((0, 0, 0), b["mid"], shade),
+                    lerp((0, 0, 0), b["dark"], 1.0)])
+    return out
