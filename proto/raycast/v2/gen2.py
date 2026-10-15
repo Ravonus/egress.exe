@@ -217,7 +217,9 @@ def main() -> None:
     s.append("#endif")
     s.append(arr("T_LK", "int8_t", lk))
     s.append(arr("T_BPAL", "uint16_t", bpal))
+    s.append("#if !defined(__SDCC) || !FS /* fullscreen: the cartridge copies them from bank 3 (HUDTILES_ADDR) */")
     s.append(arr("T_HUDTILES", "uint8_t", tiles))
+    s.append("#endif")
     s.append("#ifndef __SDCC")
     s.append(arr("T_HV2", "uint8_t", [v for row in hv2 for v in row]))
     s.append("#endif")
@@ -344,7 +346,7 @@ def main() -> None:
                                 ("NLO", ftex_end + 0x100, lo16), ("NHI", ftex_end + 0x110, hi16),
                                 ("NIB", ftex_end + 0x120, nib), ("FTEX1", ftex_end + 0x200, ftex1),
                                 ("FLUT", ftex_end + 0x200 + len(ftex1), lut),
-                                ("LKT", 0x6000, lkt_flat)], "bank3_floors")
+                                ("LKT", 0x6000, lkt_flat), ("HUDTILES", 0x7000, tiles)], "bank3_floors")
     inc = [f"{k} = 0x{v:04X}" for k, v in {**lay2, **lay3}.items()]
     inc += [f"NFROW = {len(fd)}", f"FR = {FR}", f"MIPH = {MIPH}", "MIPOFF = 0", f"SIDEK = {a.sidek}"]
     # rows y0..: the leading d = 0 sample rows (the horizon band) are left to the walls' zeroing
@@ -366,7 +368,7 @@ def main() -> None:
         hdr.append(f"#define {name} {i}u")
     for i, p in enumerate(PALS):
         hdr.append(f"#define PAL_{p.upper()} {i}u")
-    hdr.append("extern const uint16_t T_BPAL[];\nextern const uint8_t T_HUDTILES[];")
+    hdr.append("extern const uint16_t T_BPAL[];\nextern const uint8_t T_HUDTILES[];\n#define HUDTILES_ADDR 0x7000u /* bank 3 */")
     hdr.append("#endif")
     (a.out / "tex_ids.h").write_text("\n".join(hdr) + "\n")
     print(f"tables: rays={n} proj={proj:.1f} walls={len(WALLS)} runs={len(wruns)}B sets={len(SETS)} lk={lk} fd={fd}")

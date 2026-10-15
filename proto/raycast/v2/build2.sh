@@ -9,6 +9,7 @@ PY=../../../.venv/bin/python
 TAG=${W}x${H}_s${S}${SUFFIX:-}
 B=build/$TAG
 mkdir -p "$B"
+rm -f "$B"/bank*_wb.s "$B"/bank*_wb.o "$B"/wbt.*
 OBJ=0; [ "$S" != 0 ] && [ "$S" != 4 ] && OBJ=1
 [ -n "$OBJFORCE" ] && OBJ=$OBJFORCE
 # gameplay stages (billboards on): the floor rows below mid-depth sample once per 8 rows instead of 4 (-32 lines)
@@ -36,9 +37,20 @@ if [ "$OBJ" = 1 ]; then
   for f in "$B"/bank*_bb.s; do n=$(basename "$f" .s); $LCC -c -o "$B/$n.o" "$f"; OBJB="$OBJB $B/$n.o"; done
   OBJA="$B/obj2.o"
 fi
-{ echo "OBJ_ON = $OBJ"; echo "MAPADDR = $MAPADDR"; echo "STAGEADDR = $STAGEADDR"; echo "STAGEMAX = $STAGEMAX";
+# fullscreen: short walls (h < HB) baked from the C walls into ROM banks from 16 (pack_wb.py)
+HB=${HB:-0}; [ "$FS" = 1 ] && [ -z "${HBSET+x}" ] && HB=${HB_FS:-16}
+OBJW=""; RB=16
+if [ "$HB" != 0 ]; then
+  cc -O2 -std=c99 -Isrc -I$B $DEFS -o "$B/bake2" src/bake2.c src/core2.c "$B/tables2.c"
+  "$B/bake2" "$HB" > "$B/wb.bin"
+  NWB=$($PY pack_wb.py "$B" --bin "$B/wb.bin" --hb "$HB" --wb0 16 --tables "$B/tables2.c" --h "$H" | tail -1)
+  rm -f "$B/wb.bin"
+  for f in "$B"/bank*_wb.s; do n=$(basename "$f" .s); $LCC -c -o "$B/$n.o" "$f"; [ -f "$B/$n.o" ] || exit 1; OBJW="$OBJW $B/$n.o"; done
+  RB=16; while [ $RB -lt $((16 + NWB)) ]; do RB=$((RB * 2)); done
+fi
+{ echo "OBJ_ON = $OBJ"; echo "HB = $HB"; echo "MAPADDR = $MAPADDR"; echo "STAGEADDR = $STAGEADDR"; echo "STAGEMAX = $STAGEMAX";
   echo "VSH = $VSH"; echo "VY0 = $VY0"; echo "OBJT0 = $OBJT0"; echo "FS = $FS"; echo "VOFF = $((255 - (H + 255) / 2))"; echo "VEND = $((255 - (H + 255) / 2 + H))"; echo "STRIP = $((H * 2))";
-  echo "NRAYS = $((W / 4))"; echo "VIEW_H = $H"; echo "TW = $((W / 8))"; cat "$B/layout.inc" src/fill2.s; } > "$B/fill2.s"
+  echo "NRAYS = $((W / 4))"; echo "VIEW_H = $H"; echo "TW = $((W / 8))"; cat "$B/layout.inc" src/fill2.s; [ "$HB" != 0 ] && cat "$B/wbt.inc"; true; } > "$B/fill2.s"
 $LCC -c -o "$B/fill2.o" "$B/fill2.s"; [ -f "$B/fill2.o" ] || exit 1
 { echo "NRAYS = $((W / 4))"; case "$*" in *-DNOMID*) echo "NOMID = 1";; esac; echo "	.area _CODE"; cat src/cast2.s; } > "$B/cast2.s"
 $LCC -c -o "$B/cast2.o" "$B/cast2.s"
@@ -48,10 +60,10 @@ if [ "$FS" = 1 ]; then { echo "VIEW_H = $H"; echo "TW = $((W / 8))"; echo "TH = 
 $LCC -c -o "$B/bank2.o" "$B/bank2_walls.s"
 $LCC -c -o "$B/bank3.o" "$B/bank3_floors.s"
 $LCC -c -o "$B/bank4.o" "$B/bank4_walls1.s"
-OBJS="$LCDO $B/main2.o $OBJA $B/fill2.o $B/cast2.o $B/core2.o $OBJB $B/tables2.o $B/tables2_abs.o $B/bank2.o $B/bank3.o $B/bank4.o"
+OBJS="$LCDO $B/main2.o $OBJA $B/fill2.o $B/cast2.o $B/core2.o $OBJB $B/tables2.o $B/tables2_abs.o $B/bank2.o $B/bank3.o $B/bank4.o$OBJW"
 LF=""; [ "$FS" = 1 ] && LF="-Wl-g.STACK=0xCB00"
 CART="-Wm-yt0x19"; [ "$FS" = 1 ] && CART="-Wm-yt0x1B -Wm-ya1"  # fullscreen: MBC5 + 8 KB SRAM (stats for SameBoy)
-$LCC -Wm-yC $CART -Wm-yo${ROMBANKS:-16} -Wm-yn"RAYCAST2" -Wl-j -Wl-m $LF -o "build/r2_$TAG.gbc" $OBJS
+$LCC -Wm-yC $CART -Wm-yo${ROMBANKS:-$RB} -Wm-yn"RAYCAST2" -Wl-j -Wl-m $LF -o "build/r2_$TAG.gbc" $OBJS
 cc -O2 -std=c99 -Wall -Wextra -Isrc -I$B $DEFS ${HOSTDEFS:-} -o "build/host2_$TAG" src/host2.c src/core2.c "$B/tables2.c"
 ls -l "build/r2_$TAG.gbc" | awk '{print $5, $9}'
 # WRAM guard: C data must end below the fixed areas (billboard staging at 0xC800, or REC at 0xCB00 without OBJ)
@@ -59,3 +71,6 @@ END=$(grep -oE '[0-9A-F]{8}  s__HEAP\b' "build/r2_$TAG.map" | cut -c1-8)
 LIM=CB00; [ "$OBJ" = 1 ] && LIM=C800
 [ "$FS" = 1 ] && LIM=C980  # leaves 384 bytes of stack under REC
 [ $((0x$END)) -lt $((0x$LIM)) ] || { echo "WRAM overflow: data ends at 0x$END, limit 0x$LIM" >&2; exit 1; }
+# fill2 (walls, floors, bb_col, WBT) runs or is read with other ROM banks mapped: it must sit in ROM0
+if [ "$HB" != 0 ]; then FE=$(grep -oE '[0-9A-F]{8}  _fill2_end' "build/r2_$TAG.map" | cut -c1-8)
+  [ $((0x$FE)) -le $((0x4000)) ] || { echo "fill2 ends at 0x$FE, past ROM0" >&2; exit 1; }; fi

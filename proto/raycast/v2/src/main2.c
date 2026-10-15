@@ -494,8 +494,15 @@ static void video_init(void) {
     memset((void *)0x8000u, 0, 216u * 16u);
   }
   VBK_REG = 0;
-  memcpy((void *)(0x8000u + HUDT * 16u), T_HUDTILES, 20u * 16u);
-  memcpy((void *)(0x8000u + (HUDT + 20u) * 16u), T_HUDTILES + (20u + 2u) * 16u, 16u);
+  { /* glyphs 0-19 and the 'b' frame tile (22) from bank 3 (ROM0 + bank 1 are full) */
+    const uint8_t *s = (const uint8_t *)HUDTILES_ADDR;
+    uint8_t *d = (uint8_t *)(0x8000u + HUDT * 16u);
+    uint16_t n;
+    SWITCH_ROM(3);
+    for (n = 0; n < 20u * 16u; n++) d[n] = s[n];
+    for (n = 0; n < 16u; n++) d[20u * 16u + n] = s[22u * 16u + n];
+    SWITCH_ROM(1);
+  }
   for (y = 0; y < 32u; y++)
     for (x = 0; x < 32u; x++) {
       uint16_t o = (uint16_t)y * 32u + x;

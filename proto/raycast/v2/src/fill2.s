@@ -68,6 +68,8 @@ W_E1 = 0xFFF8
 W_CTK1 = 0xFFF9
 W_BOT = 0xFFFA
 F_N = 0xFFFB
+W_BK = 0xFFFC		; baked walls: bank, address high byte
+W_AH = 0xFFFD
 
 F_J = 0xFFB8
 F_Y0 = 0xFFB9
@@ -465,6 +467,10 @@ wcol:
 	add	hl, bc
 	ld	a, (hl)
 	ldh	(W_H), a
+.if HB
+	cp	a, #HB
+	jp	c, wfast
+.endif
 	cp	a, #MIPH
 	ld	a, #2
 	jr	nc, 1011$
@@ -545,6 +551,7 @@ wcol:
 	ld	hl, #_ray_fv
 	add	hl, bc
 	ld	(hl), a
+wz0:
 	; slot 0 zeroes only the rows where ray i + 1 shows wall and ray i does not (floors OR into those; they store
 	; the rest): [a1, min(vt, b1)) and [max(bot, a1), b1), a1 = max(vt1, VOFF), b1 = min(vt1 + h1, VEND)
 	ldh	a, (W_SLOT)
@@ -626,6 +633,11 @@ wcol:
 	ld	h, a
 	call	ws_zero
 110$:
+.if HB
+	ldh	a, (W_H)
+	cp	a, #HB
+	jp	c, wbake
+.endif
 	; colour table key = (side * 6 + kclass) * 16, cached per slot
 	ldh	a, (W_K)
 	add	a, #<KCLASS
@@ -738,6 +750,143 @@ wl0:
 	jp	wdone
 wl1:
 	RUNLOOP	1, ws_or, wd_or, wp_or
+.if HB
+	jp	wdone
+; baked short wall (h < HB): its 2h slot-0 bytes from the pack_wb.py banks, stored (slot 0) or swapped and ORed
+; (slot 1) by an unrolled copy entered at WBT's entry for h. The colour / pattern caches stay valid.
+wfast:
+	; h < HB: everything per height from WBT (h << 4), bank 2 for the zeroing's VTOP
+	swap	a
+	ld	l, a
+	ld	h, #0
+	ld	de, #_WBT
+	add	hl, de
+	ld	a, #2
+	ldh	(__current_bank), a
+	ld	(0x2000), a
+	ld	a, (hl+)
+	ldh	(W_BK), a
+	ld	a, (hl+)
+	ldh	(W_AH), a
+	ld	a, (hl+)
+	ldh	(W_C), a
+	ld	a, (hl+)
+	ldh	(W_ROW), a
+	push	hl
+	ld	a, (hl+)
+	ld	hl, #_ray_cv
+	add	hl, bc
+	ld	(hl), a
+	pop	hl
+	inc	hl
+	ld	a, (hl+)
+	push	hl
+	ld	hl, #_ray_fv
+	add	hl, bc
+	ld	(hl), a
+	pop	hl
+	ld	a, (hl+)
+	ld	d, a
+	ld	a, (hl+)
+	ld	e, a
+	ld	a, l
+	ldh	(W_RNL), a
+	ld	a, h
+	ldh	(W_RNH), a
+	ld	hl, #_ray_t
+	add	hl, bc
+	ld	a, (hl)
+	ldh	(W_T), a
+	jp	wz0
+wbake:
+	; the stored copy (slot 0) or swap + OR (slot 1) of the 2h baked bytes; the colour / pattern caches stay valid
+	ldh	a, (W_C)
+	or	a, a
+	jp	z, wdone
+	ld	b, a
+	ldh	a, (W_RNL)
+	ld	l, a
+	ldh	a, (W_RNH)
+	ld	h, a
+	ldh	a, (W_SLOT)
+	or	a, a
+	jr	z, 1$
+	inc	hl
+	inc	hl
+1$:
+	ld	a, (hl+)
+	ld	h, (hl)
+	ld	l, a
+	ld	de, #wdone
+	push	de			; the copy's ret goes to wdone
+	push	hl			; the ret below enters the copy
+	; source = ((t << 4 | u) << shift): bank W_BK + (src >> 14), address W_AH + (src & 0x3FFF)
+	ldh	a, (W_I)
+	add	a, #<_ray_u
+	ld	l, a
+	ld	a, #0
+	adc	a, #>_ray_u
+	ld	h, a
+	ld	c, (hl)
+	ldh	a, (W_T)
+	ld	l, a
+	ld	h, #0
+	add	hl, hl
+	add	hl, hl
+	add	hl, hl
+	add	hl, hl
+	ld	a, l
+	or	a, c
+	ld	l, a
+2$:
+	add	hl, hl
+	dec	b
+	jr	nz, 2$
+	ld	a, h
+	rlca
+	rlca
+	and	a, #3
+	ld	c, a
+	ldh	a, (W_BK)
+	add	a, c
+	ldh	(__current_bank), a
+	ld	(0x2000), a
+	ld	a, h
+	and	a, #0x3F
+	ld	c, a
+	ldh	a, (W_AH)
+	add	a, c
+	ld	d, a
+	ld	e, l
+	; dest = strip + (vt - VOFF) * 2
+	ldh	a, (W_ROW)
+	ld	c, a
+	ldh	a, (W_STL)
+	add	a, c
+	ld	l, a
+	ldh	a, (W_STH)
+	ld	h, a
+	ret
+; the unrolled copies: 2 (HB - 1) bytes, entered 2h bytes before the end
+wcp0:
+	.rept	2 * (HB - 1)
+	ld	a, (de)
+	inc	e
+	ld	(hl+), a
+	.endm
+wcp0_end::
+	ret
+wcp1:
+	.rept	2 * (HB - 1)
+	ld	a, (de)
+	inc	e
+	swap	a
+	or	a, (hl)
+	ld	(hl+), a
+	.endm
+wcp1_end::
+	ret
+.endif
 wdone:
 	ldh	a, (W_I)
 	inc	a
