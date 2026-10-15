@@ -42,6 +42,7 @@ def main() -> int:
     ap.add_argument("--pose-frames", default="")
     ap.add_argument("--poses", type=Path)
     ap.add_argument("--stills-dir", type=Path)
+    ap.add_argument("--save-snaps", type=Path, help="keep the host-check inputs (map + camera) here")
     ap.add_argument("--shots", default="", help="frame:path,frame:path screenshots during the run")
     a = ap.parse_args()
 
@@ -168,6 +169,9 @@ def main() -> int:
                 for n in ("cam_x", "cam_y", "cam_a"):
                     blob += bytes([u8(n), u8(n, 1)])
                 inp.write_bytes(blob)
+                if a.save_snaps:
+                    a.save_snaps.mkdir(parents=True, exist_ok=True)
+                    (a.save_snaps / f"snap{k}.bin").write_bytes(blob)
                 subprocess.run([str(host), str(inp), str(out)], check=True)
                 ref = out.read_bytes()
             lb = u8("last_buf")

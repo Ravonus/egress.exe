@@ -1893,7 +1893,24 @@ _bb_col::
 	ld	d, a
 	ldh	a, (BC_R0)
 	or	a, a
-	jr	z, 16$
+	jp	nz, 1405$
+	; whole tile (r0 0, r1 16, 32-byte aligned source): unrolled masked copy, the source steps with inc e
+	ldh	a, (BC_R1)
+	cp	a, #16
+	jp	nz, 16$
+	ld	a, e
+	and	a, #31
+	jp	nz, 16$
+	ld	a, (_bbc_mask)
+	ld	c, a
+	.rept	32
+	ld	a, (de)
+	inc	e
+	and	a, c
+	ld	(hl+), a
+	.endm
+	jp	20$
+1405$:
 	ld	b, a
 	xor	a, a
 15$:

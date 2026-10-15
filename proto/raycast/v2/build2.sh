@@ -9,7 +9,7 @@ PY=../../../.venv/bin/python
 TAG=${W}x${H}_s${S}${SUFFIX:-}
 B=build/$TAG
 mkdir -p "$B"
-rm -f "$B"/bank*_wb.s "$B"/bank*_wb.o "$B"/wbt.*
+rm -f "$B"/bank*_wb.s "$B"/*.o "$B"/wbt.*
 OBJ=0; [ "$S" != 0 ] && [ "$S" != 4 ] && OBJ=1
 [ -n "$OBJFORCE" ] && OBJ=$OBJFORCE
 # gameplay stages (billboards on): the floor rows below mid-depth sample once per 8 rows instead of 4 (-32 lines)
@@ -60,7 +60,7 @@ if [ "$FS" = 1 ]; then { echo "VIEW_H = $H"; echo "TW = $((W / 8))"; echo "TH = 
 $LCC -c -o "$B/bank2.o" "$B/bank2_walls.s"
 $LCC -c -o "$B/bank3.o" "$B/bank3_floors.s"
 $LCC -c -o "$B/bank4.o" "$B/bank4_walls1.s"
-OBJS="$LCDO $B/main2.o $OBJA $B/fill2.o $B/cast2.o $B/core2.o $OBJB $B/tables2.o $B/tables2_abs.o $B/bank2.o $B/bank3.o $B/bank4.o$OBJW"
+OBJS="$LCDO $B/main2.o $B/fill2.o $OBJA $B/cast2.o $B/core2.o $OBJB $B/tables2.o $B/tables2_abs.o $B/bank2.o $B/bank3.o $B/bank4.o$OBJW"
 LF=""; [ "$FS" = 1 ] && LF="-Wl-g.STACK=0xCB00"
 CART="-Wm-yt0x19"; [ "$FS" = 1 ] && CART="-Wm-yt0x1B -Wm-ya1"  # fullscreen: MBC5 + 8 KB SRAM (stats for SameBoy)
 $LCC -Wm-yC $CART -Wm-yo${ROMBANKS:-$RB} -Wm-yn"RAYCAST2" -Wl-j -Wl-m $LF -o "build/r2_$TAG.gbc" $OBJS
@@ -72,5 +72,5 @@ LIM=CB00; [ "$OBJ" = 1 ] && LIM=C800
 [ "$FS" = 1 ] && LIM=C980  # leaves 384 bytes of stack under REC
 [ $((0x$END)) -lt $((0x$LIM)) ] || { echo "WRAM overflow: data ends at 0x$END, limit 0x$LIM" >&2; exit 1; }
 # fill2 (walls, floors, bb_col, WBT) runs or is read with other ROM banks mapped: it must sit in ROM0
-if [ "$HB" != 0 ]; then FE=$(grep -oE '[0-9A-F]{8}  _fill2_end' "build/r2_$TAG.map" | cut -c1-8)
-  [ $((0x$FE)) -le $((0x4000)) ] || { echo "fill2 ends at 0x$FE, past ROM0" >&2; exit 1; }; fi
+if [ "$HB" != 0 ]; then FE=$(grep -oE 'DEF _fill2_end 0x[0-9A-Fa-f]+' "build/r2_$TAG.noi" | awk '{print $3}')
+  [ -n "$FE" ] && [ $((FE)) -le $((0x4000)) ] || { echo "fill2 ends at $FE, past ROM0" >&2; exit 1; }; fi
