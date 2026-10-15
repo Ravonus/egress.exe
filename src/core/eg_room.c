@@ -29,6 +29,57 @@ static void mark(uint8_t i) {
   if (eg_ndirty != 255u) eg_ndirty++;
 }
 
+#if defined(__SDCC) && defined(__PORT_sm83)
+/* The cartridge's two hot loops in SM83 (each ~25-30 scan lines as SDCC C, every GRAVITY_FRAMES): the scan for the
+ * next CRT that may move, and the F_MOVED clear. The host builds the same C as before. */
+static const uint8_t *scan_p;
+static uint8_t scan_n;
+static uint8_t scan_rock(void) __naked { /* cells skipped from scan_p before one with (v & 0x4f) == T_ROCK; scan_n if none */
+  __asm
+    ld hl, #_scan_p
+    ld a, (hl+)
+    ld h, (hl)
+    ld l, a
+    ld a, (#_scan_n)
+    ld c, a
+    ld b, #0
+  1$:
+    ld a, b
+    cp a, c
+    ret z
+    ld a, (hl+)
+    and a, #0x4f
+    cp a, #0x04
+    jr z, 2$
+    inc b
+    jr 1$
+  2$:
+    ld a, b
+    ret
+  __endasm;
+}
+static void clear_moved(void) __naked { /* EG_N cells from scan_p: F_MOVED off */
+  __asm
+    ld hl, #_scan_p
+    ld a, (hl+)
+    ld h, (hl)
+    ld l, a
+    ld c, #224
+  1$:
+    ld a, (hl)
+    and a, #0xbf
+    ld (hl+), a
+    dec c
+    jr nz, 1$
+    ret
+  __endasm;
+}
+#if EG_N != 224u || F_MOVED != 0x40u || T_MASK != 0x0fu /* and T_ROCK == 4 (an enum: checked by eye) */
+#error "eg_gravity: the SM83 loops hard-code EG_N, F_MOVED, T_MASK and T_ROCK"
+#endif
+#define EG_GRAV_ASM 1
+#endif
+
 uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) {
   uint8_t *c = r->c;
   uint8_t res = 0u, y, x, i, v, b, s;
@@ -36,22 +87,31 @@ uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) {
   /* bottom-up, so a stack of CRTs falls together; F_MOVED keeps a CRT from moving twice in one step */
   for (y = (uint8_t)(EG_H - 2u); y != 0u; y--) {
     i = EG_IDX(1u, y);
-    for (x = 1u; x != (uint8_t)(EG_W - 1u); x++, i++) {
+    x = (uint8_t)(EG_W - 2u);
+    while (x) {
+#ifdef EG_GRAV_ASM
+      scan_p = &c[i];
+      scan_n = x;
+      v = scan_rock();
+      i = (uint8_t)(i + v);
+      x = (uint8_t)(x - v);
+      if (!x) break;
+#endif
       v = c[i];
-      if ((uint8_t)(v & (T_MASK | F_MOVED)) != T_ROCK) continue;
+      if ((uint8_t)(v & (T_MASK | F_MOVED)) != T_ROCK) goto next;
       b = (uint8_t)(i + EG_W);
       if (c[b] == T_EMPTY) {
         if (is_occ(b, occ, nocc)) {
           if (v & F_FALL) res |= EG_G_HIT | EG_G_CHANGED;
           c[i] = T_ROCK;
-          continue;
+          goto next;
         }
         c[b] = T_ROCK | F_FALL | F_MOVED;
         c[i] = T_EMPTY;
         mark(i);
         mark(b);
         res |= EG_G_CHANGED | EG_G_FALLING;
-        continue;
+        goto next;
       }
       if (c[b] == T_ROCK) { /* resting on a resting CRT: roll left, else right */
         s = (uint8_t)(i - 1u);
@@ -68,16 +128,24 @@ uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) {
           mark(i);
           mark(s);
           res |= EG_G_CHANGED | EG_G_FALLING;
-          continue;
+          goto next;
         }
       }
       if (v & F_FALL) { /* landed */
         c[i] = T_ROCK;
         res |= EG_G_CHANGED;
       }
+    next:
+      i++;
+      x--;
     }
   }
+#ifdef EG_GRAV_ASM
+  scan_p = c;
+  clear_moved();
+#else
   for (i = 0u; i != (uint8_t)EG_N; i++) c[i] &= (uint8_t)~F_MOVED;
+#endif
   return res;
 }
 
