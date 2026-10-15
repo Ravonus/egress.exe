@@ -2989,13 +2989,12 @@ about 150 frames.
 | WRAM, in play | **109 B** (9.8.4) | - |
 | The toast | 1 extra HUD tile (the star glyph), 4 OBJ tiles (the 16x16 star), the particle palette, no new BG palette | the toast row fits the HUD palette |
 
-#### 9.8.8 Open questions
+#### 9.8.8 Settled (owner, 2026-10-15: the recommended defaults)
 
-1. **The fastest biome clear: one record or eight?** One per biome would cost 13 more bytes. The lifetime share
-   has 4 spare, so another field would have to shrink first.
-2. **Favourite counts.** DECAY values aren't counts, so the screen shows the favourite's name only. Is that enough?
-3. **Four line slots.** Enough, or should closed lines keep only a 16-byte summary so 6 fit?
-4. **Play time** counts unpaused play only (menus and pause don't count). Is that right?
+1. **Fastest biome clear: one record**, not eight. The lifetime share keeps its 4 spare bytes.
+2. **Favourites show the name only.** DECAY values aren't counts, so no number is shown.
+3. **Four line slots**, each a full 32-byte summary. When a fifth line starts, it reuses the oldest closed line's slot.
+4. **Play time counts unpaused play only.** Menus and pause don't count.
 
 ---
 
