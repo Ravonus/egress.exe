@@ -13,7 +13,7 @@
   "keys_held_at_end": 0,
   "combat_started": true,
   "enemies_at_start": 2,
-  "combat_strikes": 8,
+  "combat_strikes": 6,
   "enemies_killed": 2,
   "enemy_hp_removed": 5,
   "tokens_gained": 3,
@@ -47,7 +47,7 @@
     "wins": 0,
     "best_floor": 1,
     "unlocked": 7,
-    "seen": 2,
+    "seen": 0,
     "trace": [
       0,
       0,
@@ -98,10 +98,10 @@
     ]
   ],
   "landing_reached_floor4": true,
-  "boss_strikes": 43,
+  "boss_strikes": 34,
   "boss_dead": true,
   "boss_hp_left": 0,
-  "boss_frames": 1978,
+  "boss_frames": 1799,
   "boss_shots": {
     "tell": true,
     "orbs": true,

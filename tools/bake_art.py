@@ -628,6 +628,14 @@ def small_key() -> np.ndarray:
     return np.array([[int(c) for c in r] for r in m], np.uint8)
 
 
+def rim() -> np.ndarray:
+    """the HUD's rim line (the floor's HUD palette): a dotted white line over a pink one, level with the charge bar"""
+    t = np.zeros((8, 8), np.uint8)
+    t[3, ::2] = 3
+    t[4, :] = 1
+    return t
+
+
 def bar(n: int) -> np.ndarray:
     """charge bar segment, n of 8 columns lit (CRT palette: cyan = lit)"""
     t = np.zeros((8, 8), np.uint8)
@@ -944,6 +952,8 @@ def build_vram() -> tuple[list[bytes], list[bytes], dict[str, int]]:
     fixed.append(encode(small_key()))
     named["BAR"] = BG_FIXED_BASE + len(fixed)
     fixed += [encode(bar(n)) for n in range(9)]
+    named["RIM"] = BG_FIXED_BASE + len(fixed)
+    fixed.append(encode(rim()))
     if len(low) > BG_FIXED_BASE or BG_FIXED_BASE + len(fixed) > 256:
         raise SystemExit(f"bank 1 layout: faces end {len(low)}, fixed block ends {BG_FIXED_BASE + len(fixed)}")
     return low, fixed, named

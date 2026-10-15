@@ -12,6 +12,7 @@
 #define BT_ICON_TOKEN 241u
 #define BT_ICON_KEY 242u
 #define BT_BAR 243u
+#define BT_RIM 252u
 #define BT_FONT_ORDER " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.,:!?-+/'>x"
 #define ST_P_DOWN 0u
 #define ST_P_UP 32u

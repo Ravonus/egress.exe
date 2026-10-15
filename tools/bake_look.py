@@ -52,7 +52,7 @@ def biome(floor: list[str], foam: list[str], wall: list[str], void: list[str], a
         [hx(x) for x in void],
         [hx(react_a[0]), b, hx(react_a[1]), hx(react_a[2])],
         [hx("#140e2e"), hx("#ff6cc4"), hx(accent), hx("#faf6ff")],  # HUD + door: ink, pink, accent, white
-        [s, b, hx(accent_hi), l],  # objects: the CRTs' screens, tokens, keycards, props
+        [s, b, hx(accent_hi), c],  # objects: the terminals' glow, tokens, keycards, props (3: the slab highlight)
         [hx(react_b[0]), b, hx(react_b[1]), hx(react_b[2])],
     ]
 
@@ -61,9 +61,11 @@ WET = ["#18245c", "#5094ec", "#d6f0ff"]
 FIRE = ["#601630", "#ff7830", "#ffe468"]
 BIOMES = {
     # name: palettes, ambient animation (src/look.c look_ambient)
-    "OFFICE": biome(["#46224a", "#e4968c", "#f6c4ae", "#ffeedc"], ["#14404f", "#48a0a8", "#b4ecd2"],
-                    ["#1c123c", "#583c96", "#9676d0", "#e8daff"], ["#0c081e", "#1e1442", "#50348c", "#e6c4ff"],
-                    "#ffde5c", "#f4ac38", WET, FIRE),
+    # the office: lavender carpet slabs (docs/shots/mock_room.png), muted mint acoustic foam, deep violet walls,
+    # the indigo void, fluorescent-yellow accent, warm gold for tokens and the terminals' text
+    "OFFICE": biome(["#543484", "#b28cde", "#d6bef6", "#faf2ff"], ["#404878", "#94ccb8", "#dcf6e6"],
+                    ["#281c54", "#60429e", "#9674d2", "#e6d6ff"], ["#0e0a22", "#221446", "#4c3284", "#ecc8ff"],
+                    "#ffe060", "#ffc850", WET, FIRE),
     "VENTS": biome(["#123844", "#4a9ca4", "#8cd2cc", "#e4fff6"], ["#2c2440", "#7c6ca4", "#d8ccf4"],
                    ["#0c1c24", "#2c4c5c", "#5c8494", "#cce8f0"], ["#04080c", "#0c1820", "#24404c", "#9cf0ff"],
                    "#40e0f8", "#40e0f8", WET, FIRE),
@@ -132,7 +134,7 @@ def slab(seed: int, kind: str = "plain") -> np.ndarray:
     v = slab_shade(seed)
     idx = dither(bevel(v))
     # carpet flecks: a few seeded dark and bright specks
-    for k, (px, py) in enumerate(rng_points(seed, 4, 3, 12)):
+    for k, (px, py) in enumerate(rng_points(seed, 2, 3, 12)):
         idx[py, px] = 0 if k % 2 == 0 else 3
     if kind == "scuff":  # a dragged-chair scuff, faint
         for t in range(5):
@@ -209,7 +211,7 @@ def foam(seed: int, n_: int = 3, shift: int = 0) -> np.ndarray:
 def wall_top_shade(seed: int, h: int = 16) -> np.ndarray:
     x, y = grid()
     n = vnoise(16, 4, seed) - 0.5
-    return 1.2 + 0.9 * np.clip(1.0 - (x + y * 16 / h) / 24.0, 0, 1) + n * 0.3
+    return 0.95 + 0.85 * np.clip(1.0 - (x + y * 16 / h) / 24.0, 0, 1) + n * 0.3
 
 
 def wall_top(seed: int) -> np.ndarray:
@@ -350,17 +352,18 @@ def door(open_: bool) -> np.ndarray:
 
 # --- objects (OBJ: 0 shadow / outline, 1 slab base, 2 accent (amber), 3 light) ---------------------------------------
 def floor_under(seed: int, light3: bool = True) -> np.ndarray:
-    """the slab under an object, in the object palette: base with the light's dither and the bevel"""
+    """the slab under an object, in a palette that has the slab's base (1) and highlight (3) but not its light: the
+    base with a sparse highlight dither toward the lit corner, and the bevel"""
     x, y = grid()
-    v = 1.0 + 1.6 * np.clip(0.85 - (x + y) / 26.0, 0, 1) + (vnoise(16, 4, seed) - 0.5) * 0.3
-    v = np.clip(v, 1.0, 1.9)  # base and light only (index 3 is the slab light here)
-    idx = dither(v - 0.0, 1, 2)
-    idx = np.where(idx == 2, 3 if light3 else 1, idx)
+    xi, yi = x.astype(int), y.astype(int)
+    thr = np.tile(BA.BAYER, (4, 4))
+    lit = np.clip(0.55 - (x + y) / 26.0, 0, 1) * 0.35
+    idx = np.where(thr < lit, 3 if light3 else 1, 1).astype(np.uint8)
     idx[0, :] = 3 if light3 else 1
     idx[:, 0] = 3 if light3 else 1
     idx[15, :] = 0
     idx[:, 15] = 0
-    return idx.astype(np.uint8)
+    return idx
 
 
 CRT = """
@@ -374,55 +377,54 @@ CRT = """
 .03022222220110.
 .03022222220110.
 .03000000000110.
-.03333333332110.
-.01111111111110.
+.01111111112110.
 .00000000000000.
-....01111110....
+.00000000000000.
+....00000000....
 ....00000000....
 ................"""
 
 
 def crt(seed: int, screen: str) -> np.ndarray:
-    """an amber-phosphor office terminal: a beige case lit from the upper left, a dark bezel, a glowing screen"""
+    """an amber-phosphor office terminal: a dark slate case (ink dithered with the slab base, lit along the top), a
+    glowing amber screen with dark text, a foot"""
     idx = from_template(CRT, seed)
-    # the case's dithered light: light peach fading to base toward the lower right
-    for yy in range(2, 11):
-        for xx in range(2, 13):
-            if idx[yy, xx] == 3 and (xx + yy) > 14 and (xx + yy) % 2 == 0:
-                idx[yy, xx] = 1
-    for yy in range(4, 9):  # scanlines
-        for xx in range(4, 11):
-            if yy % 2 == 1 and (xx + yy) % 4 == 0:
+    for yy in range(2, 12):  # the case: slate, ink and base in a checker, darker toward the lower right
+        for xx in range(2, 14):
+            if idx[yy, xx] == 1 and not (yy == 10 and xx < 12) and (xx + yy) % 2 == 0 and xx + yy > 12:
                 idx[yy, xx] = 0
+    for xx in range(4, 11):  # one bright scanline rolling down the glass
+        if xx % 2 == 0:
+            idx[6, xx] = 3
     if screen == "cursor":
-        idx[5, 5:9] = 3
-        idx[7, 5:7] = 3
-        idx[7, 8] = 3
+        idx[5, 5:10] = [0, 0, 2, 0, 0]
+        idx[8, 5:8] = 0
+        idx[8, 9] = 0
     else:  # a face in the static
         idx[5, 6] = 0
         idx[5, 8] = 0
         idx[7, 6:9] = 0
-        idx[6, 5] = 3
     idx[4, 4] = 3  # glare
+    idx[4, 5] = 3
+    idx[13, 5:11] = 1  # the foot's lit edge
     return idx.astype(np.uint8)
 
 
 def token(seed: int) -> np.ndarray:
-    """a brass arcade token: a lit rim, a darker face with a stamped slot, a glint"""
+    """a gold arcade token: a disc with a bright rim on the lit side, a white diamond stamped in the middle"""
     x, y = grid()
     xi, yi = x.astype(int), y.astype(int)
     d = np.hypot(x - 8, y - 7.5)
     idx = floor_under(seed)
-    coin = d <= 5.4
-    rim = coin & (d > 3.9)
-    light = (x - 8) + (y - 7.5)  # < 0 toward the upper left
+    coin = d <= 5.2
+    light = (x - 8) + (y - 7.5)
     idx = np.where(coin, 2, idx)
-    idx = np.where(rim & (light < -1.5), 3, idx)
-    idx = np.where(rim & (light > 2.5) & ((xi + yi) % 2 == 0), 0, idx)
-    idx = np.where(~rim & coin & (xi >= 7) & (xi <= 8) & (yi >= 5) & (yi <= 10), 0, idx)  # the slot
-    idx = np.where(~rim & coin & (xi == 6) & (yi >= 6) & (yi <= 9), 3, idx)
+    idx = np.where(coin & (d > 3.8) & (light < -2.0), 3, idx)
+    idx = np.where(coin & (d > 3.6) & (light > 3.0) & ((xi + yi) % 2 == 0), 0, idx)
+    dia = (np.abs(x - 8) + np.abs(y - 7.5)) <= 2.2
+    idx = np.where(dia, 3, idx)
     idx = np.where(outline(coin), 0, idx)
-    sh = (np.hypot(x - 9.5, (y - 14.3) * 2.4) < 4.8) & ~coin & ~outline(coin)
+    sh = (np.hypot(x - 9.5, (y - 14.3) * 2.4) < 4.6) & ~coin & ~outline(coin)
     idx = np.where(sh & ((xi + yi) % 2 == 0), 0, idx)
     return idx.astype(np.uint8)
 
@@ -634,8 +636,8 @@ METAS: list[tuple[str, int, object]] = [
     ("CRUMBLE", PAL_FLOOR, lambda: slab(5, "crumble")),
     ("PLATE", PAL_FLOOR, lambda: slab(6, "plate")),
     ("GATE_OPEN", PAL_FLOOR, lambda: slab(7, "gate_open")),
-    ("FOAM_A", PAL_FOAM, lambda: foam(8)),
-    ("FOAM_B", PAL_FOAM, lambda: foam(9, 2, 0)),
+    ("FOAM_A", PAL_FOAM, lambda: foam(8, 2, 0)),
+    ("FOAM_B", PAL_FOAM, lambda: foam(9, 2, 3)),
     ("WALL_TOP", PAL_WALL, lambda: wall_top(10)),
     ("WALL_FRONT", PAL_WALL, lambda: wall_front(11)),
     ("WALL_VENT", PAL_WALL, lambda: wall_front(12, "vent")),
@@ -795,6 +797,7 @@ def sheet(path: Path) -> None:
 
 
 VOID_RING = True
+THIN_FOAM = True
 
 
 def preview(path: Path, seed: int, tier: int, egtool: Path, cam: tuple[int, int] = (0, 0), absent: set | None = None):
@@ -803,6 +806,8 @@ def preview(path: Path, seed: int, tier: int, egtool: Path, cam: tuple[int, int]
     rows = [r for r in txt.splitlines() if len(r) == 16][:14]
     ch = {"#": 2, ":": 1, ".": 0, "O": 4, "$": 5, "k": 6, "D": 7, "=": 3, "@": 0, "M": 0, "E": 0}
     cells = [[ch.get(c, 0) for c in r] for r in rows]
+    if THIN_FOAM:  # what the puzzle workstream's rooms will look like: foam in a few deliberate patches
+        cells = [[(0 if t == 1 and ((x // 3) + (y // 2)) % 4 else t) for x, t in enumerate(r)] for y, r in enumerate(cells)]
     cores, cpals, reacts, rpals = build()
     ms = cores + reacts
     ps = cpals + rpals
@@ -824,7 +829,8 @@ def preview(path: Path, seed: int, tier: int, egtool: Path, cam: tuple[int, int]
             return name[["VOID_A", "VOID_B", "VOID_C", "VOID_C"][h & 3]]
         t = cells[y][x]
         if t == 0:
-            return name["SLAB_A"] if h % 5 < 2 else name[["SLAB_B", "SLAB_C", "SLAB_D"][h % 3]]
+            k = h % 20
+            return name["SLAB_A" if k < 10 else ("SLAB_B" if k < 14 else ("SLAB_C" if k < 17 else "SLAB_D"))]
         if t == 1:
             return name["FOAM_A"] if (h & 2) else name["FOAM_B"]
         if t == 2:

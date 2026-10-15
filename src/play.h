@@ -109,6 +109,7 @@ void hud_draw(void) NONBANKED;
 void hud_charge(void) NONBANKED;
 void hud_msg(const char *s) NONBANKED;
 void hud_tick(void) NONBANKED;
+void hud_init(void) NONBANKED; /* a floor's HUD, no toast: the window at 128 */
 /* --- boss.c --- */
 void boss_build(void) BANKED;
 void boss_update(uint8_t k) BANKED;

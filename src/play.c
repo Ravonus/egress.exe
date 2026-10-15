@@ -106,11 +106,7 @@ static void floor_show(void) {
   camera(1);
   look_assemble(room.start);
   for (i = 0; i != (uint8_t)EG_N; i++) draw_cell(i);
-  clear_map(1, LOOK_PAL_HUD);
-  hud_draw();
-  hud_charge();
-  move_win(7, 128);
-  hud_line = 128u;
+  hud_init();
   scroll();
   sprites_reset();
   draw_sprites();

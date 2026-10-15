@@ -23,6 +23,7 @@ static uint16_t saved_bg[32];
 static uint16_t obj_pal[4][4]; /* 0 floor card, 1 wall card, 2 falling, 3 falling deeper */
 static uint16_t amber[4];
 static uint16_t dim0[4];
+static uint16_t hum[2]; /* the open door's pulse: the HUD/door palette's accent, and brighter */
 static uint16_t lk_rs;
 static uint8_t flick_next, flick_t;
 
@@ -72,6 +73,8 @@ void look_load(uint8_t biome) BANKED {
   amber[0] = amber[2] = pal_bg[b];
   amber[1] = mix(pal_bg[b], RGB(31, 31, 28), 5u);
   amber[3] = mix(pal_bg[b], pal_bg[LOOK_PAL_OBJ * 4u], 3u);
+  hum[0] = pal_bg[LOOK_PAL_HUD * 4u + 2u];
+  hum[1] = mix(hum[0], RGB(31, 31, 31), 9u);
   memset(look_present, 0xff, sizeof look_present);
   memset(queued, 0, sizeof queued);
   memset(c_kind, 0, sizeof c_kind);
@@ -375,10 +378,19 @@ static void step_card(uint8_t k) {
   c_t[k]++;
 }
 
-/* --- ambient palette life (office: the light buzz; every biome: the screens' and tokens' shimmer) --- */
+/* --- ambient palette life (office: the light buzz; every biome: the screens' and tokens' shimmer, and the open
+ * door's pulse: its light breathes with the HUD's accent, so the HUD's token and charge glints pulse with it) --- */
+static uint8_t hum_on;
 static void ambient(void) {
   uint8_t f = (uint8_t)frame_count;
   if ((f & 15u) == 0u) set_bkg_palette_entry(LOOK_PAL_OBJ, 2, amber[(f >> 4) & 3u]);
+  if (door_open && (f & 7u) == 0u) {
+    hum_on ^= 1u;
+    set_bkg_palette_entry(LOOK_PAL_HUD, 2, hum[hum_on]);
+  } else if (!door_open && hum_on) {
+    hum_on = 0;
+    set_bkg_palette_entry(LOOK_PAL_HUD, 2, hum[0]);
+  }
   if (look_ambient_kind[biome_now] != 1u) return;
   if (flick_t) {
     if (!--flick_t) set_bkg_palette(LOOK_PAL_FLOOR, 1, &pal_bg[LOOK_PAL_FLOOR * 4u]);

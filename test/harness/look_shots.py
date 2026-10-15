@@ -3,8 +3,11 @@
     python test/harness/look_shots.py build/egress.gbc docs/shots
 
 Writes, from power-on on a blank save, headless and deterministic:
-  b1_look_floor.png        a floor once it has assembled (1x and 3x side by side), plus b1_look_floor2.png (another
-                           seed, lower in the room)
+  b1_look_floor.png        a floor once it has assembled (1x and 3x side by side), with the foam thinned to a few
+                           deliberate patches as the puzzle workstream's rooms will have it (the harness rewrites the
+                           cells on screen while they are still in the air; nothing is played on that floor)
+  b1_look_vs_mock.png      that floor at 4x beside docs/shots/mock_room.png
+  b1_look_floor2.png       another seed as the current generator makes it (foam-heavy)
   b1_look_assemble.gif     the floor assembling around the player, a beat of play, then the exit collapse (2x)
   b1_look_death.gif        the world letting go around a body (2x): the death collapse keeps the 8 neighbours
 and checks: the room assembles (look_busy_n reaches 0, the game reaches MODE_PLAY), every cell on screen is back in
@@ -60,7 +63,15 @@ def main() -> int:
     rep: dict = {}
     # 1. assembly, a floor, the exit collapse
     g = H.Game(rom)
-    ok = start(g, 0x5EED, enemies=True)
+    ok = start(g, 0x5EED, enemies=False)
+    a = g.addr("room")
+    thinned = 0
+    for c in range(224):
+        x, y = c % 16, c // 16
+        if g.pb.memory[a + c] & 0x0F == 1 and ((x // 3) + (y // 2)) % 4:
+            g.pb.memory[a + c] = 0
+            thinned += 1
+    rep["foam_thinned"] = thinned
     frames: list[Image.Image] = []
     n = 0
     while g.peek("game_mode") != H.MODE_PLAY and n < 600:
@@ -79,6 +90,11 @@ def main() -> int:
     pair.paste(shot, (0, 0))
     pair.paste(shot.resize((480, 432), Image.NEAREST), (168, 0))
     pair.save(out / "b1_look_floor.png")
+    mock = Image.open(out / "mock_room.png").convert("RGB")
+    vs = Image.new("RGB", (640 * 2 + 16, 576), (24, 22, 32))
+    vs.paste(shot.resize((640, 576), Image.NEAREST), (0, 0))
+    vs.paste(mock.resize((640, 576), Image.NEAREST), (656, 0))
+    vs.save(out / "b1_look_vs_mock.png")
     g.poke("pl_state", PS_EXIT)  # out through the door (as if): the floor falls apart behind
     for _ in range(130):
         g.tick()
