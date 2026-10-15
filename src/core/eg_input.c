@@ -1,4 +1,7 @@
 /* EGRESS two-button move resolver (see eg_input.h, proto/input/FRAMES.md). */
+#ifdef __SDCC
+#pragma bank 255
+#endif
 #include "eg_input.h"
 
 /*                                   startup active recovery open close */
@@ -22,17 +25,21 @@ const eg_frames_t eg_dodge_fd[EG_DODGE_COUNT] = {
     {1u, 12u, 7u, 3u, 16u},  /* SLIDE: 20 frames, cancel 3..16 */
 };
 
+void eg_input_fd_get(uint8_t move, eg_frames_t *out) EG_BANKED { *out = eg_input_fd[move]; }
+
 static uint8_t sat_inc(uint8_t v) { return v == 255u ? v : (uint8_t)(v + 1u); }
 
-const eg_frames_t *eg_input_frames(const eg_input_t *s, uint8_t move) {
+/* near versions for the step itself (on the cartridge the public ones are banked calls) */
+static const eg_frames_t *frames_of(const eg_input_t *s, uint8_t move) {
   if (move == EG_MV_DODGE) return &eg_dodge_fd[s->style];
   return &eg_input_fd[move];
 }
-
-uint8_t eg_input_total(const eg_input_t *s, uint8_t move) {
-  const eg_frames_t *f = eg_input_frames(s, move);
+static uint8_t total_of(const eg_input_t *s, uint8_t move) {
+  const eg_frames_t *f = frames_of(s, move);
   return (uint8_t)(f->startup + f->active + f->recovery);
 }
+const eg_frames_t *eg_input_frames(const eg_input_t *s, uint8_t move) EG_BANKED { return frames_of(s, move); }
+uint8_t eg_input_total(const eg_input_t *s, uint8_t move) EG_BANKED { return total_of(s, move); }
 
 static uint8_t is_loop(uint8_t mv) { return (uint8_t)(mv == EG_MV_SPRINT || mv == EG_MV_CHARGE); }
 
@@ -40,7 +47,7 @@ static uint8_t phase_of(const eg_input_t *s) {
   const eg_frames_t *f;
   if (s->move == EG_MV_IDLE) return EG_PH_NONE;
   if (is_loop(s->move)) return EG_PH_LOOP;
-  f = eg_input_frames(s, s->move);
+  f = frames_of(s, s->move);
   if (s->frame < f->startup) return EG_PH_STARTUP;
   if (s->frame < (uint8_t)(f->startup + f->active)) return EG_PH_ACTIVE;
   return EG_PH_RECOVERY;
@@ -48,7 +55,7 @@ static uint8_t phase_of(const eg_input_t *s) {
 
 static void refresh(eg_input_t *s) {
   uint8_t ph = phase_of(s), fl = 0u, mv = s->move;
-  const eg_frames_t *f = eg_input_frames(s, mv);
+  const eg_frames_t *f = frames_of(s, mv);
   if (mv == EG_MV_DODGE || mv == EG_MV_SPRINT || mv == EG_MV_LUNGE) fl |= EG_FL_MOMENTUM;
   if (ph == EG_PH_ACTIVE) {
     if (mv == EG_MV_DODGE) fl |= EG_FL_IFRAME;
@@ -69,7 +76,7 @@ static void start(eg_input_t *s, uint8_t mv) {
   refresh(s);
 }
 
-void eg_input_init(eg_input_t *s, uint8_t style) {
+void eg_input_init(eg_input_t *s, uint8_t style) EG_BANKED {
   s->style = style < EG_DODGE_COUNT ? style : EG_DODGE_ROLL;
   s->prev = 0u;
   s->move = EG_MV_IDLE;
@@ -87,7 +94,7 @@ void eg_input_init(eg_input_t *s, uint8_t style) {
 /* The move a buffered intent starts in the current state, or EG_NO_MOVE to keep waiting. */
 static uint8_t resolve(const eg_input_t *s, uint8_t intent) {
   uint8_t mv = s->move, ph = s->phase, fr = s->frame;
-  const eg_frames_t *f = eg_input_frames(s, mv);
+  const eg_frames_t *f = frames_of(s, mv);
   if (intent == EG_INT_A) {
     switch (mv) {
       case EG_MV_IDLE:
@@ -129,7 +136,7 @@ static uint8_t resolve(const eg_input_t *s, uint8_t intent) {
   return EG_NO_MOVE;
 }
 
-uint8_t eg_input_step(eg_input_t *s, uint8_t held) {
+uint8_t eg_input_step(eg_input_t *s, uint8_t held) EG_BANKED {
   uint8_t pa = (uint8_t)(held & (uint8_t)~s->prev & EG_IN_A);
   uint8_t pb = (uint8_t)(held & (uint8_t)~s->prev & EG_IN_B);
   uint8_t a_rel = s->a_hold; /* frames A was held before this frame */
@@ -166,7 +173,7 @@ uint8_t eg_input_step(eg_input_t *s, uint8_t held) {
         s->level = a_rel >= EG_CHARGE_L3 ? 3u : (a_rel >= EG_CHARGE_L2 ? 2u : 1u);
         started = EG_MV_CHARGED;
       }
-    } else if (s->frame >= eg_input_total(s, s->move)) {
+    } else if (s->frame >= total_of(s, s->move)) {
       s->move = EG_MV_IDLE;
       s->frame = 0u;
       s->chain = 0u;
@@ -201,7 +208,7 @@ uint8_t eg_input_step(eg_input_t *s, uint8_t held) {
   return started;
 }
 
-uint8_t eg_input_parry(const eg_input_t *s) {
+uint8_t eg_input_parry(const eg_input_t *s) EG_BANKED {
   if (s->flags & EG_FL_PERFECT) return 2u;
   if (s->flags & EG_FL_GUARD) return 1u;
   return 0u;

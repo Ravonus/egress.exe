@@ -24,7 +24,7 @@ uint8_t pl_iframe; /* dodge i-frames this frame */
 uint8_t pl_arc;    /* the lead's arc to draw: 0 none, 1 a strike toward pl_face, 2 the spin */
 uint8_t pl_level;  /* the last charged attack's level, 1..3 */
 static uint8_t pmap[256], map_door = 0xffu;
-static const eg_grid_t pg = {room.c, EG_W, EG_H, 4u, pmap};
+static eg_grid_t pg; /* WRAM: eg_move (banked) reads it; set in player_floor_start */
 static uint8_t dodge_dp, ov_state, ov_t, fight_t, moved_last, last_face;
 
 /* 8-way facing (EG_FACE_*: N NE E SE S SW W NW) as vectors and d-pad bits */
@@ -395,6 +395,11 @@ static void walk(uint8_t speed, uint8_t anim) {
 
 void player_floor_start(void) BANKED {
   grid_map(); /* here, not on the first step: 256 entries cost most of a frame */
+  pg.cells = room.c;
+  pg.w = EG_W;
+  pg.h = EG_H;
+  pg.wshift = 4u;
+  pg.map = pmap;
   eg_input_init(&pin, heir.dodge);
   eg_move_init(&pmv, (int16_t)psx - 96, (int16_t)psy - 96, EG_MODE_8WAY);
   pl_face = F_DOWN;
@@ -411,6 +416,7 @@ void player_floor_start(void) BANKED {
 
 void player_update(void) BANKED {
   uint8_t st, mv, prev = pin.move, ph, dmg;
+  eg_frames_t fd;
   if (pl_inv) pl_inv--;
   if (fight_t) fight_t--;
   if (ov_t) ov_t--;
@@ -497,13 +503,14 @@ void player_update(void) BANKED {
     case EG_MV_HIT2:
     case EG_MV_HIT3:
       pl_state = PS_LASH;
+      eg_input_fd_get(mv, &fd);
       if (pin.frame == 2u) mstep(f8dp[pmv.facing], 24u, 1); /* step into it */
       if (ph == EG_PH_ACTIVE) {
         dmg = mv == EG_MV_HIT3 ? ((mods & MOD_SURGE) ? 3u : 2u) : 1u;
         strike(0, dmg);
-        if (pin.frame == eg_input_fd[mv].startup) break_brick(front_cell(), (uint8_t)(mv == EG_MV_HIT3));
+        if (pin.frame == fd.startup) break_brick(front_cell(), (uint8_t)(mv == EG_MV_HIT3));
       }
-      if (pin.frame >= 2u && pin.frame < (uint8_t)(eg_input_fd[mv].startup + eg_input_fd[mv].active + 3u)) pl_arc = 1;
+      if (pin.frame >= 2u && pin.frame < (uint8_t)(fd.startup + fd.active + 3u)) pl_arc = 1;
       break;
     case EG_MV_CHARGED:
       if (pl_level >= 2u) {

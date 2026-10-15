@@ -1,11 +1,14 @@
-/* Bank 0: grid helpers every floor module calls many times a frame, the changed-cell render queue, puffs. */
+/* Grid helpers, the changed-cell render queue, which card a cell shows, puffs. Banked (B2: ROM0 is for interrupts
+ * and hot paths); the helpers every floor module calls many times a frame stay NONBANKED, in bank 0. fdx/fdy are in
+ * main.c: data other banks read can't live in a switched bank. */
 #include <gb/gb.h>
 #include <gb/cgb.h>
 #include "play.h"
 #include "look.h"
 #include "puzzle.h"
 
-const int8_t fdx[4] = {0, 0, -1, 1}, fdy[4] = {-1, 1, 0, 0};
+#pragma bank 255
+
 uint8_t meta_tile[M_COUNT][4], meta_pal[M_COUNT];
 uint16_t people[ART_SKINS + ART_HAIRS + ART_HOODIES + ART_TROUSERS];
 uint8_t cracked[EG_N / 8u];
@@ -19,7 +22,7 @@ uint16_t cell_sub(uint8_t c) NONBANKED { return (uint16_t)(((uint16_t)c << 8) | 
 
 uint8_t is_cracked(uint8_t i) NONBANKED { return (uint8_t)(cracked[i >> 3] & (uint8_t)(1u << (i & 7u))); }
 
-static uint8_t solid_player(uint8_t i) {
+static uint8_t solid_player(uint8_t i) NONBANKED {
   uint8_t t = cell_type(i);
   return (uint8_t)(t == T_DOOR ? !door_open : !EG_PASSABLE(t)); /* B1: water, shutters, paper, sockets, pits too */
 }
@@ -33,7 +36,7 @@ uint8_t mite_free(uint8_t x, uint8_t y) NONBANKED {
   return (uint8_t)(room.c[cell_at(l, t)] == T_EMPTY && room.c[cell_at(r, t)] == T_EMPTY &&
                    room.c[cell_at(l, b)] == T_EMPTY && room.c[cell_at(r, b)] == T_EMPTY);
 }
-static uint8_t eye_block(uint8_t i) {
+static uint8_t eye_block(uint8_t i) NONBANKED {
   uint8_t t = cell_type(i);
   return (uint8_t)(t == T_WALL || t == T_DOOR);
 }
@@ -55,8 +58,8 @@ uint8_t enemy_in_cell(uint8_t c) NONBANKED {
 }
 
 /* --- the changed-cell queue, drawn a few cells a frame --- */
-static uint8_t cq[64], cq_head, cq_tail;
-void cells_reset(void) NONBANKED { cq_head = cq_tail = 0; }
+static uint8_t cq[64], cq_head, cq_tail; /* queue_cell (hot) stays in bank 0 */
+void cells_reset(void) BANKED { cq_head = cq_tail = 0; }
 void queue_cell(uint8_t i) NONBANKED {
   cq[cq_head & 63u] = i;
   cq_head++;
@@ -65,11 +68,13 @@ void queue_cell(uint8_t i) NONBANKED {
 
 /* --- the look (src/look.h): which card a cell shows --- */
 /* the room's outer ring of wall is the void the floor floats in */
-uint8_t look_void_cell(uint8_t i) NONBANKED {
+/* (near helpers inside this bank: a BANKED call per drawn cell would cost scan lines every frame) */
+static uint8_t void_ring(uint8_t i) {
   uint8_t x = EG_X(i), y = EG_Y(i);
   return (uint8_t)(cell_type(i) == T_WALL && (x == 0u || x == EG_W - 1u || y == EG_H - 1u));
 }
-static uint8_t solid_ground(uint8_t i) { return (uint8_t)(look_here(i) && !look_void_cell(i)); }
+uint8_t look_void_cell(uint8_t i) BANKED { return void_ring(i); }
+static uint8_t solid_ground(uint8_t i) { return (uint8_t)(look_here(i) && !void_ring(i)); }
 
 static uint8_t meta_for(uint8_t i) {
   uint8_t t = cell_type(i), x = EG_X(i), y = EG_Y(i), b;
@@ -90,7 +95,7 @@ static uint8_t meta_for(uint8_t i) {
     case T_WALL:
       if (y < EG_H - 1u) {
         b = (uint8_t)(i + EG_W);
-        if ((cell_type(b) != T_WALL && cell_type(b) != T_DOOR) || look_void_cell(b)) {
+        if ((cell_type(b) != T_WALL && cell_type(b) != T_DOOR) || void_ring(b)) {
           h = (uint8_t)(h % 9u);
           return h == 2u ? M_WALL_VENT : (h == 5u ? M_WALL_NOTE : (h == 7u ? M_WALL_SWITCH : M_WALL_FRONT));
         }
@@ -108,9 +113,9 @@ static uint8_t meta_for(uint8_t i) {
       return door_open ? M_DOOR_OPEN : M_DOOR_SHUT;
   }
 }
-uint8_t cell_meta(uint8_t i) NONBANKED { return meta_for(i); }
+uint8_t cell_meta(uint8_t i) BANKED { return meta_for(i); }
 
-void draw_meta(uint8_t i, uint8_t m) NONBANKED {
+static void meta_draw(uint8_t i, uint8_t m) {
   uint8_t a[4];
   uint8_t p = meta_pal[m];
   /* the attribute: the palette, and VRAM bank 1 unless the card lives in bank 0 (the fragile floors, the flying cards) */
@@ -121,16 +126,19 @@ void draw_meta(uint8_t i, uint8_t m) NONBANKED {
   set_bkg_tiles((uint8_t)(EG_X(i) << 1), (uint8_t)(EG_Y(i) << 1), 2, 2, meta_tile[m]);
 }
 
-void draw_cell(uint8_t i) NONBANKED { draw_meta(i, meta_for(i)); }
+void draw_meta(uint8_t i, uint8_t m) BANKED { meta_draw(i, m); }
+void draw_cell(uint8_t i) BANKED { meta_draw(i, meta_for(i)); }
 
-void flush_cells(uint8_t max) NONBANKED {
+void flush_cells(uint8_t max) BANKED {
+  uint8_t i;
   while (cq_tail != cq_head && max--) {
-    draw_cell(cq[cq_tail & 63u]);
+    i = cq[cq_tail & 63u];
+    meta_draw(i, meta_for(i));
     cq_tail++;
   }
 }
 
-void puff(uint8_t x, uint8_t y, uint8_t pal, uint8_t tile) NONBANKED {
+void puff(uint8_t x, uint8_t y, uint8_t pal, uint8_t tile) BANKED {
   uint8_t i;
   for (i = 0; i != MAXP; i++)
     if (!puffs[i].t) {

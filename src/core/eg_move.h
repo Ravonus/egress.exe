@@ -8,6 +8,14 @@
  * ignored). All state is in eg_mover_t; the step is a pure function of state, input, speed and the grid.
  * Portable C for SDCC (SM83) and host compilers: no floats, no allocation, no globals. */
 #include <stdint.h>
+#ifndef EG_BANKED /* banked on the cartridge (B2: ROM0 is for interrupts and hot paths); also in eg_room.h */
+#ifdef __SDCC
+#include <gb/gb.h>
+#define EG_BANKED BANKED
+#else
+#define EG_BANKED
+#endif
+#endif
 
 #define EG_DP_RIGHT 0x01u
 #define EG_DP_LEFT 0x02u
@@ -30,7 +38,7 @@ enum { EG_C_FREE = 0, EG_C_WALL = 1, EG_C_BLOCK = 2 }; /* grid cells: nonzero is
 #define EG_BLK_Y 0x02u
 
 typedef struct {
-  const uint8_t *cells; /* row-major, w*h; outside the grid counts as wall */
+  const uint8_t *cells; /* (on the cartridge the grid, its cells and map are in WRAM: eg_move is banked) row-major, w*h; outside the grid counts as wall */
   uint8_t w, h;
   uint8_t wshift; /* nonzero: w == 1 << wshift, rows are indexed by a shift (no multiply on the SM83) */
   const uint8_t *map; /* nonzero: cells are the game's own bytes and map[byte] is the EG_C_* cell (no copy per step) */
@@ -51,8 +59,8 @@ typedef struct {
   uint8_t req_cx, req_cy, req_dir; /* the cell to push and the direction bit */
 } eg_mover_t;
 
-void eg_move_init(eg_mover_t *m, int16_t x, int16_t y, uint8_t mode);
-void eg_move_step(eg_mover_t *m, uint8_t dpad, uint8_t speed, const eg_grid_t *g);
-uint8_t eg_grid_cell(const eg_grid_t *g, int16_t cx, int16_t cy); /* EG_C_WALL outside the grid */
+void eg_move_init(eg_mover_t *m, int16_t x, int16_t y, uint8_t mode) EG_BANKED;
+void eg_move_step(eg_mover_t *m, uint8_t dpad, uint8_t speed, const eg_grid_t *g) EG_BANKED;
+uint8_t eg_grid_cell(const eg_grid_t *g, int16_t cx, int16_t cy) EG_BANKED; /* EG_C_WALL outside the grid */
 
 #endif

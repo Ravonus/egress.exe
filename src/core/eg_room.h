@@ -110,7 +110,7 @@ uint8_t eg_generate(eg_room *r, uint16_t seed, uint8_t tier) EG_BANKED;
 #define EG_G_HIT 2u
 #define EG_G_FALLING 4u /* some CRT is still falling or rolling */
 #define EG_G_BROKE 8u   /* a falling CRT broke through fragile floor (run eg_dead) */
-uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc);
+uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) EG_BANKED;
 /* The cartridge runs eg_gravity's shutter pass (plates -> gates) only when a plate's load may have changed: set by
  * room generation, any eg_apply (a brick), and a CRT coming onto or off a plate (eg_push, falls, rolls, breaks); kept
  * set while a shutter waits for the player to leave its cell. The host always runs the pass. */
@@ -122,8 +122,8 @@ extern uint8_t eg_ndirty; /* > EG_DIRTY_MAX: overflowed, redraw everything */
 
 /* xorshift16, the game's own stream */
 extern uint16_t eg_rs;
-uint8_t eg_rnd(void);
-uint8_t eg_rndn(uint8_t n); /* 0..n-1 */
+uint8_t eg_rnd(void) EG_BANKED;
+uint8_t eg_rndn(uint8_t n) EG_BANKED; /* 0..n-1 */
 
 /* Cell kinds a body may stand in */
 #define EG_PASSABLE(t)                                                                                              \
@@ -137,13 +137,13 @@ uint8_t eg_rndn(uint8_t n); /* 0..n-1 */
 
 /* Push the resting CRT at `rock` into `to` (a neighbour): into open floor or a pit (which it fills). Returns 0 if
  * `to` can't take it. */
-uint8_t eg_push(eg_room *r, uint8_t rock, uint8_t to);
+uint8_t eg_push(eg_room *r, uint8_t rock, uint8_t to) EG_BANKED;
 /* The player stepped off `cell`: rotten carpet gives way. Returns 1 if a pit opened. */
-uint8_t eg_leave(eg_room *r, uint8_t cell);
+uint8_t eg_leave(eg_room *r, uint8_t cell) EG_BANKED;
 /* how many shutters / plates the room has (the generator places at most a few) */
-uint8_t eg_count(const eg_room *r, uint8_t type);
+uint8_t eg_count(const eg_room *r, uint8_t type) EG_BANKED;
 /* the piece lying at `cell` (0 if none) */
-uint8_t eg_item_at(const eg_room *r, uint8_t cell);
+uint8_t eg_item_at(const eg_room *r, uint8_t cell) EG_BANKED;
 
 /* --- fragile floor (docs/redesign.md 3.4): a data-driven family. Each kind: its first cell id (stage 0), steps to
  * break (0: steps don't wear it), a reset mode, what may break it, and look flags. The crack stage lives in the cell
@@ -163,14 +163,15 @@ enum { FR_NONE = 0, FR_TIMED, FR_ROOM }; /* reset: never, after `reset_ticks` x 
 typedef struct {
   uint8_t base, steps, reset, reset_ticks, breakby, flags;
 } eg_frag_kind;
-extern const eg_frag_kind eg_frag[FK_COUNT];
-uint8_t eg_frag_kind_of(uint8_t type); /* FK_* or FK_NONE */
+extern const eg_frag_kind eg_frag[FK_COUNT]; /* banked on the cartridge: read it there through eg_frag_ticks */
+uint8_t eg_frag_ticks(uint8_t k) EG_BANKED;   /* a timed kind's reset in 8-frame ticks, else 0 */
+uint8_t eg_frag_kind_of(uint8_t type) EG_BANKED; /* FK_* or FK_NONE */
 /* A body of kind `who` (BB_*) stepped off `cell`, `weight` steps' worth (a player 1, HEAVY 2; a blink calls
  * nothing). Returns 1 when the cell broke (it is a pit now). eg_leave is this for the player. */
-uint8_t eg_step_off(eg_room *r, uint8_t cell, uint8_t who, uint8_t weight);
+uint8_t eg_step_off(eg_room *r, uint8_t cell, uint8_t who, uint8_t weight) EG_BANKED;
 /* Anything else breaking a fragile cell outright (a mob, a falling CRT, the boss): refused on protected cells and
  * for kinds `who` can't break. Returns 1 when it broke. The B2 mob interface. */
-uint8_t eg_frag_hit(eg_room *r, uint8_t cell, uint8_t who);
+uint8_t eg_frag_hit(eg_room *r, uint8_t cell, uint8_t who) EG_BANKED;
 /* the glitch beat: 128-frame period, floor for the first EG_BEAT_ON frames of it */
 #define EG_BEAT_LEN 128u
 #define EG_BEAT_ON 80u
@@ -184,11 +185,11 @@ uint8_t eg_frag_hit(eg_room *r, uint8_t cell, uint8_t who);
 #define EG_DEAD_DOOR 1u
 #define EG_DEAD_KEY 2u
 #define EG_DEAD_ITEM 3u
-uint8_t eg_dead(const eg_room *r, uint8_t from, const uint8_t *pocket, uint8_t npocket);
+uint8_t eg_dead(const eg_room *r, uint8_t from, const uint8_t *pocket, uint8_t npocket) EG_BANKED;
 /* the same check in slices: begin, then step with a budget (queue pops / key-scan chunks) until it stops returning
  * EG_DEAD_BUSY. One check at a time (static state); the cartridge restarts it whenever the room changes again. */
 #define EG_DEAD_BUSY 255u
-void eg_dead_begin(uint8_t from);
-uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, uint8_t budget);
+void eg_dead_begin(uint8_t from) EG_BANKED;
+uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, uint8_t budget) EG_BANKED;
 
 #endif

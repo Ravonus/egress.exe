@@ -21,6 +21,7 @@ uint8_t dbg_ftier;
 uint8_t hud_line = 144u;
 uint16_t pal_bg[32], pal_sp[32];
 uint8_t pal_dirty;
+const int8_t fdx[4] = {0, 0, -1, 1}, fdy[4] = {-1, 1, 0, 0}; /* play.h: here, not in banked grid.c, so any bank reads them */
 
 void input_poll(void) {
   joy_prev = joy;

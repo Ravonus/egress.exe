@@ -326,13 +326,13 @@ void puzzle_reset_cost(void) BANKED {
 
 /* B2's mobs (and anything else) break fragile floor through here: protected cells refuse, timed kinds come back */
 uint8_t puzzle_frag_hit(uint8_t cell, uint8_t who) BANKED {
-  uint8_t k = eg_frag_kind_of(cell_type(cell)), j;
+  uint8_t k = eg_frag_kind_of(cell_type(cell)), j, ticks = eg_frag_ticks(k);
   if (!eg_frag_hit(&room, cell, who)) return 0u;
-  if (eg_frag[k].reset == FR_TIMED)
+  if (ticks)
     for (j = 0; j != 4u; j++)
       if (!frag_t[j][1]) {
         frag_t[j][0] = cell;
-        frag_t[j][1] = eg_frag[k].reset_ticks;
+        frag_t[j][1] = ticks;
         break;
       }
   puzzle_break_fx(cell, k);
@@ -396,7 +396,7 @@ void puzzle_tick(void) BANKED {
   if (!(frame_count & 7u))
     for (j = 0; j != 4u; j++)
       if (frag_t[j][1] && !--frag_t[j][1] && cell_type(frag_t[j][0]) == T_PIT) {
-        room.c[frag_t[j][0]] = eg_frag[FK_GLITCH].base;
+        room.c[frag_t[j][0]] = T_GLITCH; /* the timed kind (eg_frag) */
         queue_cell(frag_t[j][0]);
       }
   if (puzzle_dirty) { /* (re)start the dead-room check; it runs a slice a frame so walking never drops a frame */

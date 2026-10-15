@@ -10,6 +10,14 @@
  * Portable C for SDCC (SM83) and host compilers: 8-bit arithmetic, no floats, no allocation, no globals but the
  * const frame tables. */
 #include <stdint.h>
+#ifndef EG_BANKED /* banked on the cartridge (B2: ROM0 is for interrupts and hot paths); also in eg_room.h */
+#ifdef __SDCC
+#include <gb/gb.h>
+#define EG_BANKED BANKED
+#else
+#define EG_BANKED
+#endif
+#endif
 
 #define EG_IN_A 0x10u
 #define EG_IN_B 0x20u
@@ -57,6 +65,8 @@ typedef struct {
 
 extern const eg_frames_t eg_input_fd[EG_MV_COUNT]; /* the EG_MV_DODGE row is unused: see eg_dodge_fd */
 extern const eg_frames_t eg_dodge_fd[EG_DODGE_COUNT];
+/* the tables (and eg_input_frames' pointer) are in eg_input's bank on the cartridge: other banks copy a row out */
+void eg_input_fd_get(uint8_t move, eg_frames_t *out) EG_BANKED;
 
 typedef struct {
   uint8_t style;  /* EG_DODGE_* */
@@ -72,11 +82,11 @@ typedef struct {
   uint8_t buf, buf_age; /* one-slot input buffer: EG_INT_*, newest press wins */
 } eg_input_t;
 
-void eg_input_init(eg_input_t *s, uint8_t style);
+void eg_input_init(eg_input_t *s, uint8_t style) EG_BANKED;
 /* Advance one frame. Returns the EG_MV_* started this frame (at most one), or EG_NO_MOVE. */
-uint8_t eg_input_step(eg_input_t *s, uint8_t held);
-const eg_frames_t *eg_input_frames(const eg_input_t *s, uint8_t move);
-uint8_t eg_input_total(const eg_input_t *s, uint8_t move); /* 0 for idle and loop moves */
-uint8_t eg_input_parry(const eg_input_t *s);               /* 0 none, 1 guard, 2 perfect */
+uint8_t eg_input_step(eg_input_t *s, uint8_t held) EG_BANKED;
+const eg_frames_t *eg_input_frames(const eg_input_t *s, uint8_t move) EG_BANKED;
+uint8_t eg_input_total(const eg_input_t *s, uint8_t move) EG_BANKED; /* 0 for idle and loop moves */
+uint8_t eg_input_parry(const eg_input_t *s) EG_BANKED;               /* 0 none, 1 guard, 2 perfect */
 
 #endif
