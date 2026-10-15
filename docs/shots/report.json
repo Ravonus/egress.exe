@@ -1,7 +1,35 @@
 {
   "rom": "build/egress.gbc",
-  "size": 65536,
+  "size": 147456,
   "boot_mode_at_150": 0,
+  "title_view_colours": 22,
+  "title_view_pixels_changed_1_5s": 3605,
+  "title_seed": "50A8",
+  "title_fps": 24.4,
+  "title_host_diff": [
+    {
+      "bank": 3,
+      "match": true,
+      "bytes_differ": 0
+    },
+    {
+      "bank": 3,
+      "match": true,
+      "bytes_differ": 0
+    },
+    {
+      "bank": 3,
+      "match": true,
+      "bytes_differ": 0
+    },
+    {
+      "bank": 2,
+      "match": true,
+      "bytes_differ": 0
+    }
+  ],
+  "title_stack_high_water": 90,
+  "title_ok": true,
   "solve_started": true,
   "floor_seed": 40,
   "floor_tier": 0,
@@ -21,6 +49,9 @@
   "death_took_damage": true,
   "death_reached_screen": true,
   "death_back_to_title": true,
+  "title_return_views": 41,
+  "title_return_seed": "C9FC",
+  "title_return_plays": true,
   "save_after_death": {
     "gen": 1,
     "runs": 1,
@@ -98,18 +129,16 @@
     ]
   ],
   "landing_reached_floor4": true,
-  "boss_strikes": 49,
+  "boss_strikes": 38,
   "boss_dead": true,
   "boss_hp_left": 0,
-  "boss_frames": 1935,
+  "boss_frames": 1756,
   "boss_shots": {
     "tell": true,
     "orbs": true,
     "stun": true
   },
-  "boss_log": [
-    "stuck moving U from cell 87 toward 71 at (119, 85)"
-  ],
+  "boss_log": [],
   "ending_back_to_title": true,
   "save_after_win": {
     "gen": 1,
@@ -133,6 +162,7 @@
   },
   "results": {
     "boot": true,
+    "title3d": true,
     "solve": true,
     "combat": true,
     "death": true,

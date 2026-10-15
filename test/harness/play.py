@@ -416,17 +416,18 @@ def run_death(g: Game, out: Path, report: dict) -> bool:
         report["death_back_to_title"] = g.wait_mode(MODE_TITLE, 600)
         if report["death_back_to_title"] and out is not None:
             # the 3D title again after a run: it re-inits its memory, walks a new seed, and START plays again
-            v0 = g.peek16("t3d_nviews")
-            g.tick(150)
+            g.tick(150)  # the title zeroes its counters on entry: measure once it walks
             g.shot(out / "b1_title_return.png")
-            report["title_return_views"] = (g.peek16("t3d_nviews") - v0) & 0xFFFF
+            v0 = g.peek16("t3d_nviews")
+            g.tick(120)
+            report["title_return_views"] = (g.peek16("t3d_nviews") - v0) & 0xFFFF  # ~48 at 24 fps
             report["title_return_seed"] = f"{g.peek16('t3d_seed'):04X}"
             for _ in range(40):
                 g.press("start")
                 if g.wait_mode(MODE_PLAY, 20):
                     break
             report["title_return_plays"] = g.peek("game_mode") == MODE_PLAY
-            took = took and report["title_return_views"] > 40 and report["title_return_plays"]
+            took = took and 36 < report["title_return_views"] < 80 and report["title_return_plays"]
     return took
 
 
@@ -616,9 +617,8 @@ def main() -> int:
         g.shot(a.out / "01_boot_keel.png")
         report["boot_mode_at_150"] = g.peek("game_mode")
         results["boot"] = g.wait_mode(MODE_TITLE, 1500)
-        g.tick(60)
-        g.shot(a.out / "02_title.png")
         results["title3d"] = title3d.title_pass(g, a.out, report, a.t3d_host)
+        g.shot(a.out / "02_title.png")  # the walk, well under way
         if a.audio:
             g.audio.clear()
             g.tick(60 * 20)

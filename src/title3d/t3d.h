@@ -80,6 +80,7 @@ extern uint8_t t3d_scx[4];             /* logo slice scroll (glitch) for lines 0
 extern uint8_t t3d_glitch;             /* nonzero: run the slice chain */
 extern volatile uint8_t t3d_sound;     /* the VBlank ISR ticks the sound driver */
 extern volatile uint8_t t3d_buzz;      /* the VBlank ISR plays the fluorescent buzz once */
+extern volatile uint8_t t3d_keys;      /* new presses latched by the VBlank ISR (so none is lost while the world builds) */
 extern uint16_t t3d_nviews, t3d_nflips;
 extern uint8_t t3d_stack[T3D_STACK];
 

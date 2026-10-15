@@ -26,6 +26,8 @@ uint8_t t3d_scx[4];
 uint8_t t3d_glitch;
 volatile uint8_t t3d_sound;
 volatile uint8_t t3d_buzz;
+volatile uint8_t t3d_keys; /* START, A, SELECT pressed (edges) since the main loop last took them */
+static uint8_t keys_prev;
 uint16_t t3d_nviews, t3d_nflips;
 uint8_t t3d_stack[T3D_STACK];
 uint16_t t3d_saved_sp;
@@ -118,6 +120,11 @@ static void t3d_vbl_isr(void) NONBANKED {
     t3d_pend = 0;
   }
   VBK_REG = vbk;
+  {
+    uint8_t j = joypad();
+    t3d_keys |= (uint8_t)(j & (uint8_t)~keys_prev & (J_START | J_A | J_SELECT));
+    keys_prev = j;
+  }
   if (t3d_sound) sound_tick();
   if (t3d_buzz) {
     /* the fluorescent buzz: a short, quiet, low 7-bit noise tone on channel 4 (the music takes it back at its next
@@ -197,6 +204,8 @@ static void t3d_lcd_isr(void) NONBANKED {
 
 void t3d_isr_on(void) NONBANKED {
   front = (LCDC_REG & LCDCF_BG9C00) ? 1u : 0u;
+  keys_prev = joypad(); /* a button still held from the last screen is not a press */
+  t3d_keys = 0;
   CRITICAL {
     add_VBL(t3d_vbl_isr);
     add_LCD(t3d_lcd_isr);

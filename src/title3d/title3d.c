@@ -633,11 +633,12 @@ void title3d_main(void) BANKED {
     }
     /* START (or A) plays; SELECT opens SETUP; both fade out over the walk */
     if (!out) {
-      uint8_t j = joypad();
-      if (vlevel >= 16u && (j & (J_START | J_A))) {
+      uint8_t j = vlevel >= 16u ? t3d_keys : 0u; /* a press while the world builds waits for the view */
+      if (j) t3d_keys = 0;
+      if (j & (J_START | J_A)) {
         out = T3D_START;
         sound_call(1);
-      } else if (vlevel >= 16u && (j & J_SELECT)) {
+      } else if (j & J_SELECT) {
         out = T3D_SELECT;
         sound_call(2);
       }
