@@ -1,0 +1,268 @@
+TAP version 13
+# Subtest: capture discovery exposes labelled Chromatic devices only
+ok 1 - capture discovery exposes labelled Chromatic devices only
+  ---
+  duration_ms: 0.790958
+  type: 'test'
+  ...
+# Subtest: permission discovery closes all temporary default tracks before listing
+ok 2 - permission discovery closes all temporary default tracks before listing
+  ---
+  duration_ms: 0.574958
+  type: 'test'
+  ...
+# Subtest: capture uses exact ids, disables audio processing and releases every track
+ok 3 - capture uses exact ids, disables audio processing and releases every track
+  ---
+  duration_ms: 1.06775
+  type: 'test'
+  ...
+# Subtest: capture refuses default/non-Chromatic tracks and never falls back to another camera
+ok 4 - capture refuses default/non-Chromatic tracks and never falls back to another camera
+  ---
+  duration_ms: 0.328084
+  type: 'test'
+  ...
+# Subtest: cancel closes a stream even if the permission resolves later
+ok 5 - cancel closes a stream even if the permission resolves later
+  ---
+  duration_ms: 2.328583
+  type: 'test'
+  ...
+# Subtest: capture timeout does not retain a late stream and unplug closes sibling audio
+ok 6 - capture timeout does not retain a late stream and unplug closes sibling audio
+  ---
+  duration_ms: 7.686875
+  type: 'test'
+  ...
+# Subtest: selects the best fitting release dynamically, independent of input order
+ok 7 - selects the best fitting release dynamically, independent of input order
+  ---
+  duration_ms: 1.420291
+  type: 'test'
+  ...
+# Subtest: unknown, inferred and malformed physical capabilities never select
+ok 8 - unknown, inferred and malformed physical capabilities never select
+  ---
+  duration_ms: 0.833125
+  type: 'test'
+  ...
+# Subtest: save memory, mapper, peripheral and validation can select a smaller edition
+ok 9 - save memory, mapper, peripheral and validation can select a smaller edition
+  ---
+  duration_ms: 0.162416
+  type: 'test'
+  ...
+# Subtest: board writer limit is separate from the selected game and never authorizes a write
+ok 10 - board writer limit is separate from the selected game and never authorizes a write
+  ---
+  duration_ms: 0.100875
+  type: 'test'
+  ...
+# Subtest: protected bytes require proof for this exact release and connection
+ok 11 - protected bytes require proof for this exact release and connection
+  ---
+  duration_ms: 0.17025
+  type: 'test'
+  ...
+# Subtest: overlapping or missing write ranges cannot silently cover a ROM
+ok 12 - overlapping or missing write ranges cannot silently cover a ROM
+  ---
+  duration_ms: 0.077375
+  type: 'test'
+  ...
+# Subtest: a ROM header describes requirements, never cartridge capacity
+ok 13 - a ROM header describes requirements, never cartridge capacity
+  ---
+  duration_ms: 3.707584
+  type: 'test'
+  ...
+# Subtest: choosers immediately call the real browser API with correct hardware filters
+ok 14 - choosers immediately call the real browser API with correct hardware filters
+  ---
+  duration_ms: 1.076834
+  type: 'test'
+  ...
+# Subtest: grants list excludes unrelated hardware and does not open devices
+ok 15 - grants list excludes unrelated hardware and does not open devices
+  ---
+  duration_ms: 0.604667
+  type: 'test'
+  ...
+# Subtest: decoder handles every frame split boundary and interleaved console lines
+ok 16 - decoder handles every frame split boundary and interleaved console lines
+  ---
+  duration_ms: 0.796875
+  type: 'test'
+  ...
+# Subtest: decoder rejects corrupt CRC, oversized frame and unbounded line
+ok 17 - decoder rejects corrupt CRC, oversized frame and unbounded line
+  ---
+  duration_ms: 0.50775
+  type: 'test'
+  ...
+# Subtest: actual session opens at 115200, holds reset pins low, reads health and redacts secrets
+ok 18 - actual session opens at 115200, holds reset pins low, reads health and redacts secrets
+  ---
+  duration_ms: 714.434708
+  type: 'test'
+  ...
+# Subtest: stock unsupported Wi-Fi command preserves real firmware and open connection
+ok 19 - stock unsupported Wi-Fi command preserves real firmware and open connection
+  ---
+  duration_ms: 507.883375
+  type: 'test'
+  ...
+# Subtest: only read commands are permitted, including preventing staged flash writes
+ok 20 - only read commands are permitted, including preventing staged flash writes
+  ---
+  duration_ms: 0.450292
+  type: 'test'
+  ...
+# Subtest: unplug rejects an active request and releases the port
+ok 21 - unplug rejects an active request and releases the port
+  ---
+  duration_ms: 213.250792
+  type: 'test'
+  ...
+# Subtest: timeout closes session rather than accepting late responses
+ok 22 - timeout closes session rather than accepting late responses
+  ---
+  duration_ms: 20.847833
+  type: 'test'
+  ...
+# Subtest: cartridge geometry uses measured flash response and rejects malformed geometry
+ok 23 - cartridge geometry uses measured flash response and rejects malformed geometry
+  ---
+  duration_ms: 0.630125
+  type: 'test'
+  ...
+# Subtest: busy or unfinished jobs are never canceled or overwritten
+ok 24 - busy or unfinished jobs are never canceled or overwritten
+  ---
+  duration_ms: 305.2
+  type: 'test'
+  ...
+# Subtest: verified backup performs two full reads for ROM and save and reconstructs blank banks
+ok 25 - verified backup performs two full reads for ROM and save and reconstructs blank banks
+  ---
+  duration_ms: 1324.102
+  type: 'test'
+  ...
+# Subtest: whole-read CRC and missing coverage fail closed
+ok 26 - whole-read CRC and missing coverage fail closed
+  ---
+  duration_ms: 608.939292
+  type: 'test'
+  ...
+# Subtest: two valid CRC reads with different bytes are not a verified backup
+ok 27 - two valid CRC reads with different bytes are not a verified backup
+  ---
+  duration_ms: 516.774584
+  type: 'test'
+  ...
+# Subtest: USB bridge checks endpoints then reads IDCODE without configuration/erase opcodes
+ok 28 - USB bridge checks endpoints then reads IDCODE without configuration/erase opcodes
+  ---
+  duration_ms: 0.594209
+  type: 'test'
+  ...
+# Subtest: a console still booting receives another read-only wake within the same deadline
+ok 29 - a console still booting receives another read-only wake within the same deadline
+  ---
+  duration_ms: 1805.055375
+  type: 'test'
+  ...
+# Subtest: input lease blocks reads and only sends a finite 80ms game tap with a console response check
+ok 30 - input lease blocks reads and only sends a finite 80ms game tap with a console response check
+  ---
+  duration_ms: 515.647333
+  type: 'test'
+  ...
+# Subtest: input rejects overlap and release during wake prevents the button command
+ok 31 - input rejects overlap and release during wake prevents the button command
+  ---
+  duration_ms: 202.574042
+  type: 'test'
+  ...
+# Subtest: disconnect invalidates input lease and does not retry a button press
+ok 32 - disconnect invalidates input lease and does not retry a button press
+  ---
+  duration_ms: 231.478083
+  type: 'test'
+  ...
+# Subtest: portable metadata is bound to exact ROM bytes and rejects active URLs
+ok 33 - portable metadata is bound to exact ROM bytes and rejects active URLs
+  ---
+  duration_ms: 0.781042
+  type: 'test'
+  ...
+# Subtest: refresh restores the view but marks running jobs interrupted
+ok 34 - refresh restores the view but marks running jobs interrupted
+  ---
+  duration_ms: 0.44675
+  type: 'test'
+  ...
+# Subtest: streamed download checks size/hash and reuses only verified cache data
+ok 35 - streamed download checks size/hash and reuses only verified cache data
+  ---
+  duration_ms: 19.25675
+  type: 'test'
+  ...
+# Subtest: SRAM parser reverses wire bytes and computes configuration checksum excluding row trailer
+ok 36 - SRAM parser reverses wire bytes and computes configuration checksum excluding row trailer
+  ---
+  duration_ms: 1.227459
+  type: 'test'
+  ...
+# Subtest: wrong official engine bytes cannot pass the pinned digest gate
+ok 37 - wrong official engine bytes cannot pass the pinned digest gate
+  ---
+  duration_ms: 3.309458
+  type: 'test'
+  ...
+# Subtest: SRAM loader uses volatile configuration only, exits final bit, and checks DONE
+ok 38 - SRAM loader uses volatile configuration only, exits final bit, and checks DONE
+  ---
+  duration_ms: 3.862208
+  type: 'test'
+  ...
+# Subtest: wrong hardware ID aborts before any configuration instruction
+ok 39 - wrong hardware ID aborts before any configuration instruction
+  ---
+  duration_ms: 0.187625
+  type: 'test'
+  ...
+# Subtest: load without DONE is rejected
+ok 40 - load without DONE is rejected
+  ---
+  duration_ms: 1.184958
+  type: 'test'
+  ...
+# Subtest: preparation waits for physical disconnect/reconnect then verifies engine identity
+ok 41 - preparation waits for physical disconnect/reconnect then verifies engine identity
+  ---
+  duration_ms: 513.124583
+  type: 'test'
+  ...
+# Subtest: an unfinished operation stops preparation before download or FPGA changes
+ok 42 - an unfinished operation stops preparation before download or FPGA changes
+  ---
+  duration_ms: 0.173917
+  type: 'test'
+  ...
+# Subtest: missing console loss, missing return and unconfirmed engine never succeed
+ok 43 - missing console loss, missing return and unconfirmed engine never succeed
+  ---
+  duration_ms: 518.414292
+  type: 'test'
+  ...
+1..43
+# tests 43
+# suites 0
+# pass 43
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6069.734958

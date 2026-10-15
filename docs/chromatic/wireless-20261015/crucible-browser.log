@@ -1,0 +1,73 @@
+[WebServer] (node:72765) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 18 tests using 1 worker
+
+(node:72768) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [desktop] › browser-tests/chromatic.spec.ts:34:1 › connection buttons request real browser grants in their click and health uses transport responses (1.5s)
+  ✓   2 [desktop] › browser-tests/chromatic.spec.ts:43:1 › canceling permission never marks the console connected (344ms)
+  ✓   3 [desktop] › browser-tests/chromatic.spec.ts:44:1 › unsupported browser explains missing APIs and keeps the local library usable (964ms)
+  ✓   4 [desktop] › browser-tests/chromatic.spec.ts:45:1 › CBU1 backup reads actual bytes twice, persists them and exports verified file content (6.4s)
+  ✓   5 [desktop] › browser-tests/chromatic.spec.ts:51:1 › a corrupt device read never creates a verified backup (5.1s)
+  ✓   6 [desktop] › browser-tests/chromatic.spec.ts:52:1 › local imports deduplicate, export identical bytes, persist and delete (1.4s)
+  ✓   7 [desktop] › browser-tests/chromatic.spec.ts:56:1 › On glass opens the preview in another tab and keeps the existing room (1.6s)
+  ✓   8 [desktop] › browser-tests/chromatic.spec.ts:69:1 › leaving Play offers Chromatic in the action strip without changing its controls (5.7s)
+  ✓   9 [desktop] › browser-tests/chromatic.spec.ts:82:1 › library metadata uses the same release as the homepage (1.3s)
+  ✓  10 [desktop] › browser-tests/chromatic.spec.ts:93:1 › shared native theme, pointers, header access and responsive layout remain intact (2.7s)
+  ✓  11 [desktop] › browser-tests/chromatic.spec.ts:99:1 › previously granted devices reconnect without asking for permission again (583ms)
+  ✓  12 [desktop] › browser-tests/chromatic.spec.ts:102:1 › current site release is hashed before real local storage and persists across reload (562ms)
+  ✓  13 [desktop] › browser-tests/chromatic.spec.ts:106:1 › permission without a firmware response never marks a console connected (8.6s)
+  ✓  14 [desktop] › browser-tests/chromatic.spec.ts:109:1 › identity stays disabled until both connections respond and never sends users to the cart site (549ms)
+  ✘  15 [desktop] › browser-tests/chromatic.spec.ts:112:1 › a rejected engine download never changes FPGA configuration or sends cart info (16.6s)
+(node:73428) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  16 [desktop] › browser-tests/chromatic.spec.ts:116:1 › refresh restores the selected section and reports an interrupted device operation (495ms)
+  ✓  17 [desktop] › browser-tests/chromatic.spec.ts:119:1 › homebrew metadata persists separately and exports bound to the ROM hash (2.2s)
+  ✓  18 [desktop] › browser-tests/wifi.spec.ts:17:1 › HTTPS page reaches the native helper and UDP peer; honest timeout and cancellation (6.4s)
+
+
+  1) [desktop] › browser-tests/chromatic.spec.ts:112:1 › a rejected engine download never changes FPGA configuration or sends cart info 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('status')
+    Expected substring: "SHA-256 did not match"
+    Received string:    "Download size did not match the pinned release."
+    Timeout: 15000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 15000ms
+      - waiting for getByRole('status')
+        4 × locator resolved to <div role="status" aria-live="polite" class="chromatic-status">…</div>
+          - unexpected value "Reading cartridge identity… 0sChecking for an unfinished cartridge operation"
+        30 × locator resolved to <div role="status" aria-live="polite" class="chromatic-status">Download size did not match the pinned release.</div>
+           - unexpected value "Download size did not match the pinned release."
+
+
+      111 | });
+      112 | test('a rejected engine download never changes FPGA configuration or sends cart info',async({page})=>{
+    > 113 |  await hardware(page);await page.route('https://install.shinyrelay.com/cart/engine.fs',route=>route.fulfill({body:'wrong engine'}));await page.goto('/chromatic/');await page.getByRole('button',{name:'Choose console',exact:true}).click();await expect(page.getByRole('button',{name:'Disconnect console',exact:true})).toBeEnabled();await page.getByRole('button',{name:'Choose USB bridge',exact:true}).click();await expect(page.getByRole('button',{name:'Disconnect USB bridge',exact:true})).toBeEnabled();await page.getByRole('button',{name:'Cartridge',exact:true}).click();await page.getByRole('button',{name:'Read cartridge identity',exact:true}).click();await expect(page.getByRole('status')).toContainText('SHA-256 did not match');const state=await page.evaluate(()=>(window as unknown as {__chromatic:{commands:string[];jtag:number[]}}).__chromatic);expect(state.commands).not.toContain('cart usb info');expect(state.jtag).toEqual([0x11]);await expect(page.getByRole('button',{name:'Back up cartridge',exact:true})).toBeDisabled();
+          |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     ^
+      114 | });
+      115 |
+      116 | test('refresh restores the selected section and reports an interrupted device operation',async({page})=>{
+        at /private/tmp/chromatic-release/crucible/browser-tests/chromatic.spec.ts:113:693
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/chromatic-a-rejected-engin-56806-guration-or-sends-cart-info-desktop/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/chromatic-a-rejected-engin-56806-guration-or-sends-cart-info-desktop/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/chromatic-a-rejected-engin-56806-guration-or-sends-cart-info-desktop/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/chromatic-a-rejected-engin-56806-guration-or-sends-cart-info-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [desktop] › browser-tests/chromatic.spec.ts:112:1 › a rejected engine download never changes FPGA configuration or sends cart info 
+  17 passed (1.1m)

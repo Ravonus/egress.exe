@@ -1,0 +1,82 @@
+TAP version 13
+# Subtest: helper readiness never implies device response
+ok 1 - helper readiness never implies device response
+  ---
+  duration_ms: 0.8395
+  type: 'test'
+  ...
+# Subtest: probe succeeds only on a real HELLO packet and closes transport
+ok 2 - probe succeeds only on a real HELLO packet and closes transport
+  ---
+  duration_ms: 1.707291
+  type: 'test'
+  ...
+# Subtest: cancel closes helper and rejects rather than leaving an operation stuck
+ok 3 - cancel closes helper and rejects rather than leaving an operation stuck
+  ---
+  duration_ms: 0.199041
+  type: 'test'
+  ...
+# Subtest: public helper URLs and invalid credentials are refused before socket creation
+ok 4 - public helper URLs and invalid credentials are refused before socket creation
+  ---
+  duration_ms: 8.556583
+  type: 'test'
+  ...
+# Subtest: canonical peers exchange a byte only after the slave accepts it
+ok 5 - canonical peers exchange a byte only after the slave accepts it
+  ---
+  duration_ms: 5.573334
+  type: 'test'
+  ...
+# Subtest: lost ACK retransmits without duplicating the accepted byte
+ok 6 - lost ACK retransmits without duplicating the accepted byte
+  ---
+  duration_ms: 2.388541
+  type: 'test'
+  ...
+# Subtest: refused transfer cancels with no accepted exchange
+ok 7 - refused transfer cancels with no accepted exchange
+  ---
+  duration_ms: 1.945834
+  type: 'test'
+  ...
+# Subtest: peer liveness expires and closed state cannot be used
+ok 8 - peer liveness expires and closed state cannot be used
+  ---
+  duration_ms: 0.738375
+  type: 'test'
+  ...
+# Subtest: reject malformed packets and byte arguments
+ok 9 - reject malformed packets and byte arguments
+  ---
+  duration_ms: 1.822209
+  type: 'test'
+  ...
+# Subtest: native cartridge bytes reach service once; service bytes return on cartridge clock
+ok 10 - native cartridge bytes reach service once; service bytes return on cartridge clock
+  ---
+  duration_ms: 3.416375
+  type: 'test'
+  ...
+# Subtest: service overflow closes readiness and clears queued bytes
+ok 11 - service overflow closes readiness and clears queued bytes
+  ---
+  duration_ms: 1.731791
+  type: 'test'
+  ...
+# Subtest: closing from a protocol callback stops draining safely
+ok 12 - closing from a protocol callback stops draining safely
+  ---
+  duration_ms: 1.050375
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 56.134667

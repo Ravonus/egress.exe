@@ -1,0 +1,124 @@
+TAP version 13
+# Subtest: choosers immediately call the real browser API with correct hardware filters
+ok 1 - choosers immediately call the real browser API with correct hardware filters
+  ---
+  duration_ms: 0.978042
+  type: 'test'
+  ...
+# Subtest: grants list excludes unrelated hardware and does not open devices
+ok 2 - grants list excludes unrelated hardware and does not open devices
+  ---
+  duration_ms: 0.745709
+  type: 'test'
+  ...
+# Subtest: decoder handles every frame split boundary and interleaved console lines
+ok 3 - decoder handles every frame split boundary and interleaved console lines
+  ---
+  duration_ms: 0.822959
+  type: 'test'
+  ...
+# Subtest: decoder rejects corrupt CRC, oversized frame and unbounded line
+ok 4 - decoder rejects corrupt CRC, oversized frame and unbounded line
+  ---
+  duration_ms: 0.502875
+  type: 'test'
+  ...
+# Subtest: actual session opens at 115200, holds reset pins low, reads health and redacts secrets
+ok 5 - actual session opens at 115200, holds reset pins low, reads health and redacts secrets
+  ---
+  duration_ms: 714.175542
+  type: 'test'
+  ...
+# Subtest: stock unsupported Wi-Fi command preserves real firmware and open connection
+ok 6 - stock unsupported Wi-Fi command preserves real firmware and open connection
+  ---
+  duration_ms: 508.002209
+  type: 'test'
+  ...
+# Subtest: only read commands are permitted, including preventing staged flash writes
+ok 7 - only read commands are permitted, including preventing staged flash writes
+  ---
+  duration_ms: 0.412833
+  type: 'test'
+  ...
+# Subtest: unplug rejects an active request and releases the port
+ok 8 - unplug rejects an active request and releases the port
+  ---
+  duration_ms: 213.233458
+  type: 'test'
+  ...
+# Subtest: timeout closes session rather than accepting late responses
+ok 9 - timeout closes session rather than accepting late responses
+  ---
+  duration_ms: 21.848916
+  type: 'test'
+  ...
+# Subtest: cartridge geometry uses measured flash response and rejects malformed geometry
+ok 10 - cartridge geometry uses measured flash response and rejects malformed geometry
+  ---
+  duration_ms: 0.613583
+  type: 'test'
+  ...
+# Subtest: busy or unfinished jobs are never canceled or overwritten
+ok 11 - busy or unfinished jobs are never canceled or overwritten
+  ---
+  duration_ms: 304.312667
+  type: 'test'
+  ...
+# Subtest: verified backup performs two full reads for ROM and save and reconstructs blank banks
+ok 12 - verified backup performs two full reads for ROM and save and reconstructs blank banks
+  ---
+  duration_ms: 1325.155667
+  type: 'test'
+  ...
+# Subtest: whole-read CRC and missing coverage fail closed
+ok 13 - whole-read CRC and missing coverage fail closed
+  ---
+  duration_ms: 608.971333
+  type: 'test'
+  ...
+# Subtest: two valid CRC reads with different bytes are not a verified backup
+ok 14 - two valid CRC reads with different bytes are not a verified backup
+  ---
+  duration_ms: 513.468125
+  type: 'test'
+  ...
+# Subtest: USB bridge checks endpoints then reads IDCODE without configuration/erase opcodes
+ok 15 - USB bridge checks endpoints then reads IDCODE without configuration/erase opcodes
+  ---
+  duration_ms: 0.585708
+  type: 'test'
+  ...
+# Subtest: a console still booting receives another read-only wake within the same deadline
+ok 16 - a console still booting receives another read-only wake within the same deadline
+  ---
+  duration_ms: 1804.832125
+  type: 'test'
+  ...
+# Subtest: input lease blocks reads and only sends a finite 80ms game tap with a console response check
+ok 17 - input lease blocks reads and only sends a finite 80ms game tap with a console response check
+  ---
+  duration_ms: 512.560042
+  type: 'test'
+  ...
+# Subtest: input rejects overlap and release during wake prevents the button command
+ok 18 - input rejects overlap and release during wake prevents the button command
+  ---
+  duration_ms: 202.605583
+  type: 'test'
+  ...
+# Subtest: disconnect invalidates input lease and does not retry a button press
+ok 19 - disconnect invalidates input lease and does not retry a button press
+  ---
+  duration_ms: 231.469416
+  type: 'test'
+  ...
+1..19
+# tests 19
+# suites 0
+# pass 19
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6055.980917

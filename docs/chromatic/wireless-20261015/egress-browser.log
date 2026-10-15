@@ -1,0 +1,27 @@
+[WebServer] (node:74026) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 18 tests using 1 worker
+
+(node:74028) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [desktop] › browser-tests/chromatic.spec.ts:34:1 › connection buttons request real browser grants in their click and health uses transport responses (1.4s)
+  ✓   2 [desktop] › browser-tests/chromatic.spec.ts:43:1 › canceling permission never marks the console connected (353ms)
+  ✓   3 [desktop] › browser-tests/chromatic.spec.ts:44:1 › unsupported browser explains missing APIs and keeps the local library usable (989ms)
+  ✓   4 [desktop] › browser-tests/chromatic.spec.ts:45:1 › CBU1 backup reads actual bytes twice, persists them and exports verified file content (5.5s)
+  ✓   5 [desktop] › browser-tests/chromatic.spec.ts:51:1 › a corrupt device read never creates a verified backup (5.0s)
+  ✓   6 [desktop] › browser-tests/chromatic.spec.ts:52:1 › local imports deduplicate, export identical bytes, persist and delete (2.4s)
+  ✓   7 [desktop] › browser-tests/chromatic.spec.ts:56:1 › On glass opens the preview in another tab and keeps the existing room (1.3s)
+  ✓   8 [desktop] › browser-tests/chromatic.spec.ts:69:1 › leaving Play offers Chromatic in the action strip without changing its controls (6.3s)
+  ✓   9 [desktop] › browser-tests/chromatic.spec.ts:82:1 › library metadata uses the same release as the homepage (1.2s)
+  ✓  10 [desktop] › browser-tests/chromatic.spec.ts:93:1 › shared native theme, pointers, header access and responsive layout remain intact (2.2s)
+  ✓  11 [desktop] › browser-tests/chromatic.spec.ts:99:1 › previously granted devices reconnect without asking for permission again (589ms)
+  ✓  12 [desktop] › browser-tests/chromatic.spec.ts:102:1 › current site release is hashed before real local storage and persists across reload (455ms)
+  ✓  13 [desktop] › browser-tests/chromatic.spec.ts:106:1 › permission without a firmware response never marks a console connected (8.7s)
+  ✓  14 [desktop] › browser-tests/chromatic.spec.ts:109:1 › identity stays disabled until both connections respond and never sends users to the cart site (541ms)
+  ✓  15 [desktop] › browser-tests/chromatic.spec.ts:112:1 › a rejected engine download never changes FPGA configuration or sends cart info (1.6s)
+  ✓  16 [desktop] › browser-tests/chromatic.spec.ts:116:1 › refresh restores the selected section and reports an interrupted device operation (280ms)
+  ✓  17 [desktop] › browser-tests/chromatic.spec.ts:119:1 › homebrew metadata persists separately and exports bound to the ROM hash (2.8s)
+  ✓  18 [desktop] › browser-tests/wifi.spec.ts:17:1 › HTTPS page reaches the native helper and UDP peer; honest timeout and cancellation (5.8s)
+
+  18 passed (48.1s)

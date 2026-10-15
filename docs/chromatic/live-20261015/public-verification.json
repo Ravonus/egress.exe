@@ -1,0 +1,254 @@
+[
+  {
+    "path": "egress/chromatic/index.html",
+    "match": true
+  },
+  {
+    "path": "egress/chromatic/index.txt",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/css/f1fca8a167ff50d8.css",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/css/0a0fdc0039501fc2.css",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/css/5e11cdff6662b569.css",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/c716a14a-cd7e7838dbbb0f95.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/main-840f2d02c36513ef.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/341-8e6b1733c99811db.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/main-app-029d3e4adc7b71e8.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/963-7a2d294d63782a5a.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/framework-9f962dfb3bbbfb65.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/381-4fb62918b40fe167.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/webpack-7dbc549e571bb3db.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/944.42c9ae730babebff.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/polyfills-42372ed130431b0a.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/361.953068e62bc73a06.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/G9hEUozpRr4vUTIvJS2Zi/_ssgManifest.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/G9hEUozpRr4vUTIvJS2Zi/_buildManifest.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/app/not-found-42222ae394ec1f70.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/app/layout-255e851c5430cd7f.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/app/page-58ff7d155fdced96.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/pages/_app-2bbcce7e15e6da59.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/pages/_error-bccd34dfdba57e29.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/app/chromatic/page-f76ea9d6ed874e6d.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/app/how-it-works/page-91a94a20b1dcfd0f.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/app/trailer/page-8ad1ee584db484b1.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/app/sitemap.xml/route-c137cf29a566c632.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/app/_not-found/page-c137cf29a566c632.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/app/robots.txt/route-c137cf29a566c632.js",
+    "match": true
+  },
+  {
+    "path": "egress/_next/static/chunks/app/manifest.webmanifest/route-c137cf29a566c632.js",
+    "match": true
+  },
+  {
+    "path": "crucible/chromatic/index.html",
+    "match": true
+  },
+  {
+    "path": "crucible/chromatic/index.txt",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/0LPHn1RO2IUHJO_AG5Lgt/_ssgManifest.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/0LPHn1RO2IUHJO_AG5Lgt/_buildManifest.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/css/b9c80ff9e849f791.css",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/css/6721b231500defea.css",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/css/f1fca8a167ff50d8.css",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/css/5e11cdff6662b569.css",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/172-702239c3a2fff9e1.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/webpack-73619a38217bffa6.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/773-636a756f882c681e.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/716.d562abc5f1bdaf3e.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/framework-90bf918b660d4c43.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/571.719767b220833035.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/981-cf812377c93fc318.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/main-c96a55a90dfb26a6.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/491-5cc810fa0ce4412a.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/280d0483-0ae6f23f9ac570fe.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/main-app-a2616b00767e2323.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/polyfills-42372ed130431b0a.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/not-found-4c4d0692f7f74c60.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/layout-73309ae8a192b9ef.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/page-10dfae1e7d458449.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/pages/_error-cbb449beb7d427ec.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/pages/_app-d67a4e37ddbc5e04.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/join/page-b4cf56ef370fb698.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/chromatic/page-036008d2ede15c0e.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/how-it-works/page-5206d476f7f71c92.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/trailer/page-64fda9877949065a.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/sitemap.xml/route-b59faaf5c206f64c.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/_not-found/page-b59faaf5c206f64c.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/robots.txt/route-b59faaf5c206f64c.js",
+    "match": true
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/manifest.webmanifest/route-b59faaf5c206f64c.js",
+    "match": true
+  }
+]
