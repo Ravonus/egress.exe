@@ -20,7 +20,10 @@ OBJ=0; [ "$S" != 0 ] && [ "$S" != 4 ] && OBJ=1
 FS=0; [ "$W" -ge 160 ] && FS=1
 if [ "$FS" = 1 ]; then MAPADDR=0xCC00; STAGEADDR=0xDA00; STAGEMAX=28; VSH=$((H * 2)); VY0=0; OBJT0=160; VS=2
 else MAPADDR=0xD800; STAGEADDR=0xC800; STAGEMAX=24; VSH=$H; VY0=40; OBJT0=96; VS=1; fi
-$PY gen2.py "$B" --w "$W" --h "$H" --vs $VS ${FRFLAG:-} >/dev/null
+# fullscreen: banded floors (baked pattern rows in ROM bank 15) unless FLAT=0
+FLATB=0; [ "$FS" = 1 ] && [ "${FLAT:-1}" != 0 ] && FLATB=15
+rm -f "$B"/bank*_flat.s
+$PY gen2.py "$B" --w "$W" --h "$H" --vs $VS --flat $FLATB ${FRFLAG:-} >/dev/null
 [ "$OBJ" = 1 ] && $PY gen_bb.py "$B" --fs $FS >/dev/null
 DEFS="-DVIEW_W=$W -DVIEW_H=$H -DSCENE=$S -DOBJ_ON=$OBJ -DFS=$FS"
 CF="-c -DCAST_ASM -DWALLS_ASM -DFLOORS_ASM -Isrc -I$B -Wf--disable-warning -Wf110 -Wf--disable-warning -Wf126 -Wf--max-allocs-per-node50000 $DEFS $*"
@@ -60,6 +63,7 @@ if [ "$FS" = 1 ]; then { echo "VIEW_H = $H"; echo "TW = $((W / 8))"; echo "TH = 
 $LCC -c -o "$B/bank2.o" "$B/bank2_walls.s"
 $LCC -c -o "$B/bank3.o" "$B/bank3_floors.s"
 $LCC -c -o "$B/bank4.o" "$B/bank4_walls1.s"
+for f in "$B"/bank*_flat.s; do [ -f "$f" ] || continue; $LCC -c -o "$B/flat.o" "$f"; OBJW="$OBJW $B/flat.o"; done
 OBJS="$LCDO $B/main2.o $B/fill2.o $OBJA $B/cast2.o $B/core2.o $OBJB $B/tables2.o $B/tables2_abs.o $B/bank2.o $B/bank3.o $B/bank4.o$OBJW"
 LF=""; [ "$FS" = 1 ] && LF="-Wl-g.STACK=0xCB00"
 CART="-Wm-yt0x19"; [ "$FS" = 1 ] && CART="-Wm-yt0x1B -Wm-ya1"  # fullscreen: MBC5 + 8 KB SRAM (stats for SameBoy)

@@ -236,7 +236,90 @@ void walls_all(uint8_t *buf) {
 }
 #endif
 
+#if defined(FLAT)
+/* Banded floors. Every floor/ceiling row is one baked 2bpp tile row (gen2.py --flat: the texture rows its distance
+   span covers, as the strongest colour's coverage, Bayer-dithered and fogged like the walls), the same across the
+   view, so a tile column's floor below both rays' walls is a straight copy of the row image f_img. The image is
+   built per view from the band sets (the floor set of the open cell straight ahead at each band's distance) and
+   the forward phase f_ph (16 per 2-cell texture period; forward motion scrolls the bands toward the camera). */
+uint8_t f_ph, f_bset[NFB];
+uint16_t f_pos;
+#ifndef __SDCC
+uint8_t f_img[VIEW_H * 2];
+#endif
+
+/* forward motion (8.8 cells): f_pos counts it, f_ph = its 1/16 texture period (32 units = 1 texel) */
+void flat_move(int16_t dx, int16_t dy) {
+  int16_t cs = scos(cam_a), sn = scos((uint16_t)(cam_a - 256u));
+  f_pos = (uint16_t)(f_pos + smulhi(dx, cs) + smulhi(dy, sn));
+  f_ph = (uint8_t)((f_pos >> 5) & 15u);
+}
+
+void flat_bands(void) {
+  int16_t cs = scos(cam_a), sn = scos((uint16_t)(cam_a - 256u));
+  uint8_t b = NFB, set = map[(((cam_y >> 8) & 31u) << 5) | ((cam_x >> 8) & 31u)] & 7u;
+  while (b--) { /* near band first: a band whose point is in a wall keeps the nearer band's set */
+    int16_t d = (int16_t)((uint16_t)T_FBD[b] << 5); /* 1/8 cells -> 8.8 */
+    uint16_t px = (uint16_t)(cam_x + (uint16_t)smulhi(d, cs));
+    uint16_t py = (uint16_t)(cam_y + (uint16_t)smulhi(d, sn));
+    uint8_t c = map[(((py >> 8) & 31u) << 5) | ((px >> 8) & 31u)];
+    if (c >= 0x80u) set = c & 7u;
+    f_bset[b] = set;
+  }
+}
+
 #ifdef FLOORS_ASM
+extern uint8_t *w_buf;
+void floors_flat(void);
+void floors_all(uint8_t *buf) {
+  flat_bands();
+  w_buf = buf;
+  floors_flat();
+}
+#else
+void floors_all(uint8_t *buf) {
+  uint8_t b, t, y;
+  flat_bands();
+  for (b = 0; b < NFB; b++) {
+    const uint8_t *src = &T_FLATPAT[((uint16_t)f_bset[b] * NPH + f_ph) * (VIEW_H * 2u)];
+    uint8_t o;
+    for (o = T_FBO[b]; o < T_FBO[b + 1u]; o++) {
+      uint8_t yf = (uint8_t)(VIEW_H / 2 + o), yc = (uint8_t)(VIEW_H / 2 - 1 - o);
+      f_img[2u * yf] = src[2u * yf];
+      f_img[2u * yf + 1u] = src[2u * yf + 1u];
+      f_img[2u * yc] = src[2u * yc];
+      f_img[2u * yc + 1u] = src[2u * yc + 1u];
+    }
+  }
+  for (t = 0; t < TW; t++) {
+    uint8_t *col = buf + (uint16_t)t * STRIP;
+    uint8_t f0 = ray_fv[2u * t], f1 = ray_fv[2u * t + 1u], c0 = ray_cv[2u * t], c1 = ray_cv[2u * t + 1u];
+    uint8_t lo = f0 < f1 ? f0 : f1, hi = f0 < f1 ? f1 : f0, m = f0 < f1 ? 0xF0u : 0x0Fu;
+    /* floor: rows both rays see stored outright, rows only one sees under that slot's nibble mask */
+    for (y = hi; y < VIEW_H; y++) {
+      col[2u * y] = f_img[2u * y];
+      col[2u * y + 1u] = f_img[2u * y + 1u];
+    }
+    for (y = lo; y < hi; y++) { /* (the asm ORs: its walls cleared this nibble) */
+      col[2u * y] = (uint8_t)((col[2u * y] & (uint8_t)~m) | (f_img[2u * y] & m));
+      col[2u * y + 1u] = (uint8_t)((col[2u * y + 1u] & (uint8_t)~m) | (f_img[2u * y + 1u] & m));
+    }
+    /* ceiling: rows 0 .. H - 1 - cv (mirrored) */
+    lo = c0 < c1 ? c0 : c1;
+    hi = c0 < c1 ? c1 : c0;
+    m = c0 < c1 ? 0xF0u : 0x0Fu;
+    for (y = 0; y < (uint8_t)(VIEW_H - hi); y++) {
+      col[2u * y] = f_img[2u * y];
+      col[2u * y + 1u] = f_img[2u * y + 1u];
+    }
+    for (; y < (uint8_t)(VIEW_H - lo); y++) {
+      col[2u * y] = (uint8_t)((col[2u * y] & (uint8_t)~m) | (f_img[2u * y] & m));
+      col[2u * y + 1u] = (uint8_t)((col[2u * y + 1u] & (uint8_t)~m) | (f_img[2u * y + 1u] & m));
+    }
+  }
+}
+#endif
+#elif defined(FLOORS_ASM)
 extern uint8_t *w_buf;
 extern int8_t f_lx, f_ly, f_ux, f_uy;
 extern uint16_t f_cx8, f_cy8;

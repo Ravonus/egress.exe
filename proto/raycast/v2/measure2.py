@@ -175,6 +175,8 @@ def main() -> int:
                 blob = bytes(mem[sym["_map"] + i] for i in range(1024))
                 for n in ("cam_x", "cam_y", "cam_a"):
                     blob += bytes([u8(n), u8(n, 1)])
+                if "_f_ph" in sym:  # banded floors: the forward phase
+                    blob += bytes([u8("f_ph")])
                 inp.write_bytes(blob)
                 if a.save_snaps:
                     a.save_snaps.mkdir(parents=True, exist_ok=True)

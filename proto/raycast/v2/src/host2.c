@@ -1,6 +1,7 @@
 /* Host build of the v2 core: reads a cartridge snapshot (map, camera), writes rays + framebuffer. */
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "ray2.h"
 
 static uint8_t fb[BUFSZ];
@@ -22,6 +23,9 @@ int main(int argc, char **argv) {
   cam_x = rd16(f);
   cam_y = rd16(f);
   cam_a = rd16(f);
+#ifdef FLAT
+  { int c = fgetc(f); f_ph = (uint8_t)(c < 0 ? 0 : c); }
+#endif
   fclose(f);
   memset(fb, 0x5A, sizeof fb);
   cast_all();
@@ -35,6 +39,9 @@ int main(int argc, char **argv) {
 #ifdef STATS
   { extern unsigned st_mid; fprintf(stderr, "mid rays %u\n", st_mid); }
   fprintf(stderr, "floor tiles skip %u fast %u part %u\n", st_fskip, st_ffast, st_fpart);
+#endif
+#ifdef FLAT
+  if (getenv("HOSTDBG")) fprintf(stderr, "bset %u %u %u %u ph %u", f_bset[0], f_bset[1], f_bset[2], NFB > 3 ? f_bset[3] : 0, f_ph);
 #endif
   o = fopen(argv[2], "wb");
   fwrite(ray_h, 1, NRAYS, o);
