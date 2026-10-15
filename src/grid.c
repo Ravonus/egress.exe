@@ -2,6 +2,7 @@
 #include <gb/gb.h>
 #include <gb/cgb.h>
 #include "play.h"
+#include "look.h"
 
 const int8_t fdx[4] = {0, 0, -1, 1}, fdy[4] = {-1, 1, 0, 0};
 uint8_t meta_tile[M_COUNT][4], meta_pal[M_COUNT];
@@ -61,23 +62,42 @@ void queue_cell(uint8_t i) NONBANKED {
   if ((uint8_t)(cq_head - cq_tail) > 64u) cq_tail = (uint8_t)(cq_head - 64u);
 }
 
+/* --- the look (src/look.h): which card a cell shows --- */
+/* the room's outer ring of wall is the void the floor floats in */
+uint8_t look_void_cell(uint8_t i) NONBANKED {
+  uint8_t x = EG_X(i), y = EG_Y(i);
+  return (uint8_t)(cell_type(i) == T_WALL && (x == 0u || x == EG_W - 1u || y == EG_H - 1u));
+}
+static uint8_t solid_ground(uint8_t i) { return (uint8_t)(look_here(i) && !look_void_cell(i)); }
+
 static uint8_t meta_for(uint8_t i) {
-  uint8_t t = cell_type(i), x = EG_X(i), y = EG_Y(i), h = (uint8_t)(x * 7u + y * 13u + (x ^ y));
+  uint8_t t = cell_type(i), x = EG_X(i), y = EG_Y(i), b;
+  uint8_t h = (uint8_t)(x * 7u + y * 13u + (x ^ y) + (uint8_t)floor_seed);
+  if (!solid_ground(i)) {
+    /* the void; under ground it shows the slab's dithered underside */
+    if (y && solid_ground((uint8_t)(i - EG_W))) return M_VOID_UNDER;
+    return (h & 2u) ? M_VOID_C : ((h & 1u) ? M_VOID_B : M_VOID_A);
+  }
   switch (t) {
     case T_EMPTY:
-      return (h % 11u) == 0u ? M_CARPET_C : ((h & 1u) ? M_CARPET_B : M_CARPET_A);
+      if ((uint8_t)(h % 5u) < 2u) return M_SLAB_A;
+      h = (uint8_t)((h >> 2) % 3u);
+      return h == 0u ? M_SLAB_B : (h == 1u ? M_SLAB_C : M_SLAB_D);
     case T_DIRT:
-      return (h & 2u) ? M_FOAM_B : M_FOAM_A;
+      return (h & 2u) ? M_FOAM_A : M_FOAM_B;
     case T_WALL:
       if (y < EG_H - 1u) {
-        uint8_t b = cell_type((uint8_t)(i + EG_W));
-        if (b != T_WALL && b != T_DOOR) return (h % 7u) == 3u ? M_WALL_VENT : M_WALL_FRONT;
+        b = (uint8_t)(i + EG_W);
+        if ((cell_type(b) != T_WALL && cell_type(b) != T_DOOR) || look_void_cell(b)) {
+          h = (uint8_t)(h % 9u);
+          return h == 2u ? M_WALL_VENT : (h == 5u ? M_WALL_NOTE : (h == 7u ? M_WALL_SWITCH : M_WALL_FRONT));
+        }
       }
-      return M_WALL_CAP;
+      return M_WALL_TOP;
     case T_BRICK:
-      return is_cracked(i) ? M_BRICK_CRACK : M_BRICK;
+      return is_cracked(i) ? M_DRY_CRACK : M_DRY;
     case T_ROCK:
-      return (x & 1u) ? M_CRT_B : M_CRT_A;
+      return (x & 1u) ? M_CRT_A : M_CRT_B;
     case T_TOKEN:
       return M_TOKEN;
     case T_KEY:
@@ -86,15 +106,18 @@ static uint8_t meta_for(uint8_t i) {
       return door_open ? M_DOOR_OPEN : M_DOOR_SHUT;
   }
 }
+uint8_t cell_meta(uint8_t i) NONBANKED { return meta_for(i); }
 
-void draw_cell(uint8_t i) NONBANKED {
-  uint8_t m = meta_for(i), a[4];
+void draw_meta(uint8_t i, uint8_t m) NONBANKED {
+  uint8_t a[4];
   a[0] = a[1] = a[2] = a[3] = (uint8_t)(meta_pal[m] | 0x08u);
   VBK_REG = 1;
   set_bkg_tiles((uint8_t)(EG_X(i) << 1), (uint8_t)(EG_Y(i) << 1), 2, 2, a);
   VBK_REG = 0;
   set_bkg_tiles((uint8_t)(EG_X(i) << 1), (uint8_t)(EG_Y(i) << 1), 2, 2, meta_tile[m]);
 }
+
+void draw_cell(uint8_t i) NONBANKED { draw_meta(i, meta_for(i)); }
 
 void flush_cells(uint8_t max) NONBANKED {
   while (cq_tail != cq_head && max--) {

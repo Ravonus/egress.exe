@@ -10,6 +10,7 @@
 #include "play.h"
 #include "run.h"
 #include "gen/eg_seeds.h"
+#include "look.h"
 
 uint8_t tokens, keys_held, door_open, board_busy, cam_x, cam_y;
 uint8_t freeze, shake, hud_dirty, grav_t, boss_floor;
@@ -100,13 +101,16 @@ static void floor_show(void) {
   DISPLAY_OFF;
   HIDE_SPRITES;
   art_load_game();
+  /* look: the office's cards and palettes; the room on screen will assemble around the player */
+  look_load(BIOME_OFFICE);
+  camera(1);
+  look_assemble(room.start);
   for (i = 0; i != (uint8_t)EG_N; i++) draw_cell(i);
-  clear_map(1, 4);
+  clear_map(1, LOOK_PAL_HUD);
   hud_draw();
   hud_charge();
   move_win(7, 128);
   hud_line = 128u;
-  camera(1);
   scroll();
   sprites_reset();
   draw_sprites();
@@ -115,26 +119,6 @@ static void floor_show(void) {
   SHOW_SPRITES;
   pal_commit(0);
   DISPLAY_ON;
-}
-
-static const uint16_t token_glint[4][2] = {
-    {RGB8(224, 168, 48), RGB8(255, 240, 176)},
-    {RGB8(248, 200, 88), RGB8(255, 255, 232)},
-    {RGB8(224, 168, 48), RGB8(255, 240, 176)},
-    {RGB8(200, 144, 40), RGB8(240, 216, 144)},
-};
-
-/* palette life: tokens glint, the CRTs' screens flicker now and then, the open door's sign breathes */
-static void palette_life(void) {
-  uint8_t f = (uint8_t)frame_count;
-  if ((f & 15u) == 0u) {
-    uint8_t s = (uint8_t)((f >> 4) & 3u);
-    set_bkg_palette_entry(5, 2, token_glint[s][0]);
-    set_bkg_palette_entry(5, 3, token_glint[s][1]);
-  }
-  if (f == 37u || f == 151u) set_bkg_palette_entry(4, 2, RGB8(120, 240, 224));
-  if (f == 40u || f == 154u) set_bkg_palette_entry(4, 2, pal_bg[4 * 4 + 2]);
-  if (door_open && (f & 7u) == 0u) set_bkg_palette_entry(7, 2, (f & 8u) ? RGB8(64, 255, 120) : pal_bg[7 * 4 + 2]);
 }
 
 static void gravity_tick(void) {
@@ -167,40 +151,67 @@ static void gravity_tick(void) {
   actors_crush();
 }
 
+/* look: the room falls into place around the player; nothing moves until it has (the floor's enemies glitch in
+ * once it is whole) */
+static void assemble_wait(void) {
+  uint8_t keep = nen, inv = pl_inv, k;
+  nen = 0;
+  pl_inv = 0; /* no blinking while the world arrives */
+  while (look_busy()) {
+    frame_wait();
+    look_tick();
+    sound_tick();
+    input_poll();
+    draw_sprites();
+  }
+  nen = keep;
+  pl_inv = inv;
+  for (k = 0; k != nen; k++) puff((uint8_t)(en[k].x >> 4), (uint8_t)(en[k].y >> 4), 4u, ST_PUFF);
+}
+
 /* 1: through the door, 0: dead */
 static uint8_t floor_play(void) {
   uint8_t end_t = 0;
   floor_tokens0 = tokens;
   floor_build();
   floor_show();
-  game_mode = MODE_PLAY;
   music_play(boss_floor ? SONG_BOSS : SONG_FLOOR);
   music_fade(0);
   fade_to(0, 8);
+  assemble_wait();
+  game_mode = MODE_PLAY;
   if (boss_floor) hud_msg("IT SEES YOU.");
   else if (floor_no == 1u) hud_msg("FIND THE DOOR");
   else hud_msg("ANOTHER FLOOR");
   while (1) {
     frame_wait();
+    look_tick();
     flush_cells(8);
     scroll();
-    palette_life();
     sound_tick();
     input_poll();
     hud_tick();
     if (pl_state == PS_EXIT) {
-      if (++end_t == 20u) {
+      /* look: the floor falls apart behind you, from the edges in to the door */
+      if (++end_t == 2u) look_collapse(cell_at(pl_x, pl_y), 1u);
+      if (end_t >= 20u && (!look_busy() || end_t >= 110u)) {
+        look_freeze();
         music_fade(1);
         fade_to(8, 0);
+        look_end();
         game_mode = MODE_CLEAR;
         return 1;
       }
       continue;
     }
     if (pl_hp == 0u) {
-      if (++end_t == 60u) {
+      /* look: the world lets go around the body, leaving it on one tile and its neighbours (B3 owns the rest) */
+      if (++end_t == 20u) look_collapse(cell_at(pl_x, pl_y), 2u);
+      if (end_t >= 60u && (!look_busy() || end_t >= 150u)) {
+        look_freeze();
         music_fade(1);
         fade_to(8, 0);
+        look_end();
         return 0;
       }
       draw_sprites();
@@ -218,10 +229,12 @@ static uint8_t floor_play(void) {
         sel_t = 0;
         tokens = floor_tokens0;
         if (pl_hp > 1u) pl_hp--;
+        look_freeze();
         fade_to(8, 0);
         floor_build();
         floor_show();
         fade_to(0, 8);
+        assemble_wait();
         hud_msg("IT RESETS.");
         continue;
       }

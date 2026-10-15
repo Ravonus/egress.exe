@@ -1,5 +1,5 @@
-/* Bank 0: the HUD in the window's two rows (hearts, tokens, keycards, floor; the charge bar and a message line).
- * Bank 0 so hud_msg can take a string literal from whichever bank calls it. */
+/* Bank 0: the HUD in the window's two rows (hearts, tokens, keycards, floor; the charge bar and a message line), in
+ * the floor's HUD palette (LOOK_PAL_HUD). Bank 0 so hud_msg can take a string literal from whichever bank calls it. */
 #include <gb/gb.h>
 #include <gb/cgb.h>
 #include "play.h"
@@ -15,13 +15,13 @@ static void hud_tile(uint8_t x, uint8_t y, uint8_t t, uint8_t pal) {
 }
 
 void hud_msg(const char *s) NONBANKED {
-  text_at(1, 6, 1, "              ", 4);
-  text_at(1, 6, 1, s, 4);
+  text_at(1, 6, 1, "              ", LOOK_PAL_HUD);
+  text_at(1, 6, 1, s, LOOK_PAL_HUD);
   msg_t = 150u;
 }
 
 void hud_tick(void) NONBANKED {
-  if (msg_t && !--msg_t) text_at(1, 6, 1, "              ", 4);
+  if (msg_t && !--msg_t) text_at(1, 6, 1, "              ", LOOK_PAL_HUD);
   if (hud_dirty) hud_draw();
 }
 
@@ -29,20 +29,20 @@ void hud_draw(void) NONBANKED {
   uint8_t i, h;
   for (i = 0; i != (uint8_t)(pl_hp_max >> 1); i++) {
     h = pl_hp > (uint8_t)(i * 2u + 1u) ? 2u : (pl_hp > (uint8_t)(i * 2u) ? 1u : 0u);
-    hud_tile(i, 0, (uint8_t)(h == 2u ? BT_HEART2 : (h == 1u ? BT_HEART1 : BT_HEART0)), 6);
+    hud_tile(i, 0, (uint8_t)(h == 2u ? BT_HEART2 : (h == 1u ? BT_HEART1 : BT_HEART0)), LOOK_PAL_HUD);
   }
-  hud_tile(5, 0, BT_ICON_TOKEN, 5);
-  num_at(1, 6, 0, tokens, 3, 4);
+  hud_tile(5, 0, BT_ICON_TOKEN, LOOK_PAL_HUD);
+  num_at(1, 6, 0, tokens, 3, LOOK_PAL_HUD);
   if (boss_floor) {
-    text_at(1, 10, 0, "   ", 4);
+    text_at(1, 10, 0, "   ", LOOK_PAL_HUD);
   } else {
-    hud_tile(10, 0, BT_ICON_KEY, 6);
-    num_at(1, 11, 0, keys_held, 1, 4);
-    text_at(1, 12, 0, "/", 4);
-    num_at(1, 13, 0, room.keys, 1, 4);
+    hud_tile(10, 0, BT_ICON_KEY, LOOK_PAL_HUD);
+    num_at(1, 11, 0, keys_held, 1, LOOK_PAL_HUD);
+    text_at(1, 12, 0, "/", LOOK_PAL_HUD);
+    num_at(1, 13, 0, room.keys, 1, LOOK_PAL_HUD);
   }
-  text_at(1, 16, 0, "F", 4);
-  num_at(1, 17, 0, floor_no, 2, 4);
+  text_at(1, 16, 0, "F", LOOK_PAL_HUD);
+  num_at(1, 17, 0, floor_no, 2, LOOK_PAL_HUD);
   hud_dirty = 0;
 }
 
@@ -51,7 +51,7 @@ void hud_charge(void) NONBANKED {
   uint8_t lit = pl_charge >= full ? 40u : (uint8_t)((uint16_t)pl_charge * 40u / full);
   for (i = 0; i != 5u; i++) {
     uint8_t n = lit > 8u ? 8u : lit;
-    hud_tile(i, 1, (uint8_t)(BT_BAR + n), 4);
+    hud_tile(i, 1, (uint8_t)(BT_BAR + n), LOOK_PAL_HUD);
     lit = (uint8_t)(lit - n);
   }
 }

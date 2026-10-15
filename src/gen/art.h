@@ -3,31 +3,15 @@
 #define EG_ART_H
 #include <gb/gb.h>
 #include <stdint.h>
-#define M_CARPET_A 0u
-#define M_CARPET_B 1u
-#define M_CARPET_C 2u
-#define M_FOAM_A 3u
-#define M_FOAM_B 4u
-#define M_WALL_CAP 5u
-#define M_WALL_FRONT 6u
-#define M_WALL_VENT 7u
-#define M_BRICK 8u
-#define M_BRICK_CRACK 9u
-#define M_CRT_A 10u
-#define M_CRT_B 11u
-#define M_TOKEN 12u
-#define M_KEY 13u
-#define M_DOOR_SHUT 14u
-#define M_DOOR_OPEN 15u
-#define M_COUNT 16u
-#define BT_FONT 64u
-#define BT_HEART0 112u
-#define BT_HEART1 113u
-#define BT_HEART2 114u
-#define BT_ICON_TOKEN 115u
-#define BT_ICON_KEY 116u
-#define BT_BAR 117u
-#define BT_FACE 126u
+#include "look_art.h" /* the floor's cards (M_*, M_COUNT): tools/bake_look.py */
+#define BT_FACE 2u
+#define BT_FONT 190u
+#define BT_HEART0 238u
+#define BT_HEART1 239u
+#define BT_HEART2 240u
+#define BT_ICON_TOKEN 241u
+#define BT_ICON_KEY 242u
+#define BT_BAR 243u
 #define BT_FONT_ORDER " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.,:!?-+/'>x"
 #define ST_P_DOWN 0u
 #define ST_P_UP 32u
@@ -49,8 +33,6 @@
 #define ART_FACES 6u
 extern const uint16_t art_face_pal[][8]; /* palette A then B per talker */
 extern const uint8_t art_face_human[];
-extern const uint8_t art_meta_tile[][4];
-extern const uint8_t art_meta_pal[];
 extern const uint16_t art_bg_pal[32];
 extern const uint16_t art_spr_pal[32];
 extern const uint16_t art_skins[], art_hairs[], art_hoodies[], art_trousers[];
