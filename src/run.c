@@ -10,6 +10,8 @@
 #include <string.h>
 #include "play.h"
 #include "run.h"
+#include "mapper.h"
+#include "clock.h"
 
 uint8_t mods;
 int8_t standing[FAC_COUNT];
@@ -66,11 +68,10 @@ static uint8_t record_ok(const record_t *r) {
 void save_load(void) BANKED {
   record_t a, b;
   uint8_t oka, okb;
-  ENABLE_RAM;
-  SWITCH_RAM(0);
+  EG_SRAM_OPEN();
   memcpy(&a, (const uint8_t *)0xa000u, sizeof a);
   memcpy(&b, (const uint8_t *)(0xa000u + SLOT_SIZE), sizeof b);
-  DISABLE_RAM;
+  EG_SRAM_CLOSE();
   oka = record_ok(&a);
   okb = record_ok(&b);
   if (oka && (!okb || (int8_t)(a.gen - b.gen) >= 0)) {
@@ -99,10 +100,10 @@ void save_write(void) BANKED {
   r.gen = save_gen;
   r.m = meta;
   r.crc = crc16((const uint8_t *)&r, (uint8_t)(sizeof(record_t) - 2u));
-  ENABLE_RAM;
-  SWITCH_RAM(0);
+  EG_SRAM_OPEN();
   memcpy((uint8_t *)(0xa000u + ((save_gen & 1u) ? SLOT_SIZE : 0u)), &r, sizeof r);
-  DISABLE_RAM;
+  EG_SRAM_CLOSE();
+  clock_save(); /* the kept clock rides along with every meta save */
 }
 
 /* --- the run --- */
