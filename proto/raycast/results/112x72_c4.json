@@ -1,0 +1,31 @@
+{
+ "rom": "ray_112x72_c4.gbc",
+ "view": "112x72",
+ "colw": 4,
+ "rays": 28,
+ "bufsz": 2016,
+ "views": 350,
+ "frames": 762,
+ "fps_avg": 27.43,
+ "fps_min": 19.91,
+ "fps_max": 29.86,
+ "fpv_hist": {
+  "2": 288,
+  "3": 62
+ },
+ "upd_lines_avg": 6.1,
+ "upd_lines_max": 15,
+ "ray_lines_avg": 131.9,
+ "ray_lines_max": 138,
+ "fill_lines_avg": 160.3,
+ "fill_lines_max": 182,
+ "spr_lines_avg": 25.0,
+ "spr_lines_max": 48,
+ "wait_lines_avg": 0.4,
+ "wait_lines_max": 2,
+ "copy_lines_per_chunk": 5.0,
+ "copy_chunks_per_view": 2.0,
+ "rom_bytes": 32768,
+ "host_checks": 8,
+ "host_match": true
+}

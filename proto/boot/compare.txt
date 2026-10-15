@@ -1,0 +1,14 @@
+KEEL start-up: CRUCIBLE (crucible.onkeel.io boot.ts at Game Boy frame times) vs EGRESS (egress.gbc, PyBoy)
+boot length 150 frames; chime at boot frame 90; EGRESS shows boot frame 0 at PyBoy frame 72
+colours compared as the CGB shows them (8-bit -> 5-bit per channel, PyBoy's c<<3); under the dither: black
+
+frames pixel-identical: 150/150
+frames 150..164 (done: the game's frame, EGRESS's title loading at fade level 0): all black; the title's fade-in starts at boot frame 165 (PyBoy frame 237)
+crucible.gbc in PyBoy for the same 420 frames: no start-up of its own (blank while it boots; title at PyBoy frame >420, ~933 on a blank save)
+
+audio: PyBoy 48000 Hz, 801.0 samples per frame
+EGRESS chime: sound from boot frame 89.95 to 122.55 (reference: 90 to 139, 5 + 44 frames)
+note 1 pitch: EGRESS 1051.9 Hz, site 1048.6 Hz, register 1923 -> 1048.6 Hz
+note 2 pitch: EGRESS 1992.6 Hz, site 1986.0 Hz, register 1982 -> 1985.9 Hz
+loudness envelope (1/120 s RMS) correlation EGRESS vs site: 0.945
+note 2 audible until: EGRESS 550 ms after the chime, site 808 ms (the site ramps NRx2 0xa3 linearly over the note; the APU steps the volume down every 3/64 s and is silent at 10 steps)
