@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
-const char *const eg_trick_name[TRICK_COUNT] = {"burn", "cold", "short", "weight"};
+const char *const eg_trick_name[TRICK_COUNT] = {"burn", "cold", "short", "weight", "glass", "rhythm"};
 
 enum { ACT_ENTER = 0, ACT_COMBINE = 1, ACT_USE = 2 };
 
@@ -22,7 +22,20 @@ typedef struct {
   uint8_t nc, comb[3][2];            /* a use: the bench recipes made just before it */
   int g;
   int meaningful; /* meaningful acts available here (pushes, breaks, bench, uses), counted on expansion */
+  /* B2 hook: living obstacles (position, direction, phase, awake bits), part of the state and its hash. Empty in B1;
+   * world_tick advances them after every act. */
+  uint8_t nent, ent[EG_MAX_ENT][4];
 } node;
+
+/* B2 hook: one world step after a player act, in the tick order player move -> tile cracks/pushes (eg_step_off,
+ * eg_push, eg_gravity: done by the act) -> mobs (here) -> reactions. Returns 0 if the step kills the player. B1 has
+ * no mobs: nothing moves. */
+static int world_tick(eg_room *r, node *s, uint8_t p) {
+  (void)r;
+  (void)s;
+  (void)p;
+  return 1;
+}
 
 static const int step4[4] = {-16, 16, -1, 1};
 static const char step_ch[4] = {'U', 'D', 'L', 'R'};
@@ -34,6 +47,8 @@ static uint64_t hash_state(const node *s) {
   for (int i = 0; i < (int)EG_MAX_ITEM; i++) h = (h ^ s->pk[i]) * 1099511628211ull;
   h = (h ^ s->p) * 1099511628211ull;
   h = (h ^ s->keys) * 1099511628211ull;
+  for (int k = 0; k < s->nent; k++)
+    for (int b = 0; b < 4; b++) h = (h ^ s->ent[k][b]) * 1099511628211ull;
   return h ? h : 1;
 }
 
@@ -113,8 +128,8 @@ static int region(const uint8_t *c, uint8_t p, uint8_t *out, uint8_t *prev) {
   return n;
 }
 
-/* the player can't walk freely: holding a CRT up, or standing on rotten carpet */
-static int pinned(const uint8_t *c, uint8_t p) { return c[p] == T_CRUMBLE || holding(c); }
+/* the player can't walk freely: holding a CRT up, or standing on fragile floor (every step off it counts) */
+static int pinned(const uint8_t *c, uint8_t p) { return EG_FRAGILE(c[p] & T_MASK) || holding(c); }
 
 static uint8_t canon(const uint8_t *c, uint8_t p) {
   uint8_t reg[EG_N];
@@ -249,9 +264,17 @@ static int act_enter(const node *s, uint8_t from, int d, node *out, int *goal) {
     case T_PLATE:
     case T_GATE_OPEN:
     case T_CRUMBLE:
-    case T_ICE:
     case T_PLANK:
-      break; /* open floor: an act only when the player is pinned (or onto rotten carpet) */
+    case T_GLITCH:
+    case T_WORN:
+    case T_WORN_1:
+    case T_WORN_2:
+    case T_CEIL:
+    case T_CEIL_1:
+    case T_GLASS:
+    case T_ICE:
+    case T_ICE_1:
+      break; /* open floor: an act when the player is pinned, or onto fragile floor (stepping off it wears it) */
     case T_DIRT:
     case T_TOKEN:
       r.c[n] = T_EMPTY;
@@ -282,6 +305,7 @@ static int act_enter(const node *s, uint8_t from, int d, node *out, int *goal) {
   }
   if (p != from) eg_leave(&r, from);
   if (!settle_at(&r, p)) return 0;
+  if (!world_tick(&r, out, p)) return 0;
   memcpy(out->c, r.c, EG_N);
   out->land = p;
   out->keys = keys;
@@ -350,6 +374,7 @@ static int act_use(const node *s, uint8_t from, int d, int k, uint64_t ban, node
   if (!settle_at(&r, from)) return 0;
 
   *out = *s;
+  if (!world_tick(&r, out, from)) return 0;
   memcpy(out->c, r.c, EG_N);
   pk_del(out->pk, &out->np, k);
   out->land = from;
@@ -480,6 +505,7 @@ int eg_solve_ban(const eg_room *r, int budget, uint64_t ban, char *moves, size_t
   hn = 0;
   room0 = r;
   memset(st, 0, sizeof *st);
+  st->fatal_depth = -1;
   int count = 0, solved = 0;
   node *root = &nodes[count];
   memset(root, 0, sizeof *root);
@@ -488,6 +514,13 @@ int eg_solve_ban(const eg_room *r, int budget, uint64_t ban, char *moves, size_t
   root->land = r->start;
   root->p = canon(root->c, r->start);
   root->parent = -1;
+  /* "unwinnable before any player action" (a generator or mob fault) is told apart from a player's mistake */
+  st->dead_at_start = eg_dead(r, r->start, NULL, 0);
+  if (st->dead_at_start) {
+    free(nodes);
+    free(hs.keys);
+    return 0;
+  }
   hset_add(&hs, hash_state(root));
   hpush(0, count++);
   static uint32_t tried[48][EG_N];
@@ -516,7 +549,7 @@ int eg_solve_ban(const eg_room *r, int budget, uint64_t ban, char *moves, size_t
         if (ni < 0 || ni >= (int)EG_N) continue;
         uint8_t tv = s.c[ni] & T_MASK;
         /* uses: a piece (made on the bench just before, if need be) on a cell the matrix acts on */
-        if (npq && (tv == T_WATER || tv == T_ICE || tv == T_PAPER || tv == T_PLANK || tv == T_SOCKET ||
+        if (npq && (tv == T_WATER || tv == T_ICE || tv == T_ICE_1 || tv == T_PAPER || tv == T_PLANK || tv == T_SOCKET ||
                     tv == T_PLATE)) {
           for (int qi = 0; qi < npq; qi++) {
             node tmp = s;
@@ -562,6 +595,17 @@ int eg_solve_ban(const eg_room *r, int budget, uint64_t ban, char *moves, size_t
       node *nx = &kids[k];
       if (count >= budget) break;
       if (!hset_add(&hs, hash_state(nx))) continue;
+      /* a dead end (eg_dead: sound, never a false alarm) is counted and never expanded */
+      st->states++;
+      {
+        eg_room t = *r;
+        memcpy(t.c, nx->c, EG_N);
+        if (eg_dead(&t, nx->land, nx->pk, nx->np)) {
+          st->dead++;
+          if (st->fatal_depth < 0 || s.g + 1 < st->fatal_depth) st->fatal_depth = s.g + 1;
+          continue;
+        }
+      }
       nx->parent = id;
       nx->g = s.g + 1;
       nx->meaningful = 0;
@@ -592,7 +636,7 @@ int eg_trivial(const eg_room *r) {
       int s = c + step4[d];
       if (s < 0 || s >= (int)EG_N || seen[s]) continue;
       uint8_t t = r->c[s] & T_MASK;
-      if (!EG_PASSABLE(t) && t != T_DOOR) continue;
+      if ((!EG_PASSABLE(t) && t != T_DOOR) || t == T_GLASS || t == T_GLITCH) continue; /* bridges: the puzzle */
       seen[s] = 1;
       if (t != T_DOOR) q[n++] = (uint8_t)s;
     }
@@ -602,7 +646,31 @@ int eg_trivial(const eg_room *r) {
   return seen[r->door];
 }
 
-int eg_sealed_with(const eg_room *r, uint8_t type) {
+int eg_glitch_ok(const eg_room *r) {
+  uint8_t seen[EG_N], q[EG_N];
+  memset(seen, 0, sizeof seen);
+  for (int i = 0; i < (int)EG_N; i++) {
+    if ((r->c[i] & T_MASK) != T_GLITCH || seen[i]) continue;
+    int n = 0, h = 0;
+    q[n++] = (uint8_t)i;
+    seen[i] = 1;
+    while (h < n) {
+      uint8_t c = q[h++];
+      for (int d = 0; d < 4; d++) {
+        int s = c + step4[d];
+        if (s < 0 || s >= (int)EG_N || seen[s] || (r->c[s] & T_MASK) != T_GLITCH) continue;
+        seen[s] = 1;
+        q[n++] = (uint8_t)s;
+      }
+    }
+    if (n > (int)EG_GLITCH_RUN) return 0;
+  }
+  return 1;
+}
+
+static int sealed2(const eg_room *r, uint8_t type, uint8_t type2);
+int eg_sealed_with(const eg_room *r, uint8_t type) { return sealed2(r, type, type); }
+static int sealed2(const eg_room *r, uint8_t type, uint8_t type2) {
   uint8_t seen[EG_N], q[EG_N];
   memset(seen, 0, sizeof seen);
   int n = 0, h = 0;
@@ -614,7 +682,7 @@ int eg_sealed_with(const eg_room *r, uint8_t type) {
       int s = c + step4[d];
       if (s < 0 || s >= (int)EG_N || seen[s]) continue;
       uint8_t t = r->c[s] & T_MASK;
-      if (t == T_WALL || t == T_SOCKET || t == type) continue;
+      if (t == T_WALL || t == T_SOCKET || t == type || t == type2) continue;
       seen[s] = 1;
       if (t != T_DOOR) q[n++] = (uint8_t)s;
     }
@@ -627,8 +695,17 @@ int eg_sealed_with(const eg_room *r, uint8_t type) {
 int eg_sealed(const eg_room *r) { return eg_sealed_with(r, T_WALL); }
 
 int eg_trick_needed(const eg_room *r) {
-  static const uint8_t obstacle[TRICK_COUNT] = {T_PAPER, T_WATER, T_DEAD, T_GATE};
+  static const uint8_t obstacle[TRICK_COUNT] = {T_PAPER, T_WATER, T_DEAD, T_GATE, T_GLASS, T_GLITCH};
   if (r->trick >= TRICK_COUNT) return 0;
+  if (r->trick >= TRICK_GLASS) {
+    /* the void is crossed only on the bridge, or over a pit a CRT filled: sound while the room has no CRT */
+    for (int i = 0; i < (int)EG_N; i++)
+      if ((r->c[i] & T_MASK) == T_ROCK) return 0;
+    eg_room t = *r;
+    for (int i = 0; i < (int)EG_N; i++) /* the other locks open */
+      if (t.c[i] == T_PAPER || t.c[i] == T_WATER) t.c[i] = T_EMPTY;
+    return sealed2(&t, T_PIT, obstacle[r->trick]);
+  }
   if (r->trick == TRICK_WEIGHT) /* sound only while every plate sits where no CRT can go (the north wall) */
     for (int i = (int)EG_W; i < (int)EG_N; i++)
       if ((r->c[i] & T_MASK) == T_PLATE) return 0;
@@ -740,4 +817,24 @@ int eg_difficulty(const eg_room *r, const eg_stats *st) {
   for (int k = 0; k < TRICK_COUNT; k++)
     if (r->support & (1u << k)) sup++;
   return st->steps + 3 * st->branching100 / 100 + 4 * r->depth + 2 * sup;
+}
+
+uint16_t eg_room_mech(const eg_room *r) {
+  uint16_t m = (uint16_t)(1u << (MK_BURN + r->trick));
+  for (int k = 0; k < TRICK_COUNT; k++)
+    if (r->support & (1u << k)) m |= (uint16_t)(1u << (MK_BURN + k));
+  for (int i = 0; i < (int)EG_N; i++) {
+    uint8_t t = r->c[i] & T_MASK;
+    if (t == T_ROCK) m |= 1u << MK_CRT;
+    if (t == T_BRICK) m |= 1u << MK_DRYWALL;
+    if (t >= T_WORN && t <= T_CEIL_1) m |= 1u << MK_STEPS;
+  }
+  return m;
+}
+
+int eg_insights(const eg_room *r) {
+  int n = 1;
+  for (int k = 0; k < TRICK_COUNT; k++)
+    if (k != r->trick && (r->support & (1u << k))) n++;
+  return n;
 }

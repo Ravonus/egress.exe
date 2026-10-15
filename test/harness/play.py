@@ -33,9 +33,11 @@ MODE_BOOT, MODE_TITLE, MODE_PLAY, MODE_CLEAR, MODE_DEAD = range(5)
 EG_W, EG_N = 16, 224
 T_MASK, T_EMPTY, T_DIRT, T_BRICK, T_ROCK = 0x1F, 0, 1, 3, 4
 # B1: cells a body may stand in (EG_PASSABLE in src/core/eg_room.h): carpet, foam, token, keycard, rotten carpet,
-# plate, open shutter, ice, plank, a piece lying on the floor
-PASSABLE = {0, 1, 5, 6, 8, 10, 12, 14, 16, 17}
+# plate, open shutter, glitched glass, plank, a piece lying on the floor, fragile floor (worn, ceiling, glass, ice)
+PASSABLE = {0, 1, 5, 6, 8, 10, 12, 14, 16, 17, 23, 24, 25, 26, 27, 28, 29, 30}
+T_GLITCH, T_GLASS = 14, 28
 TRICK_RX = {"burn": 5, "cold": 10, "short": 37, "weight": 38}  # RX_BURN RX_FREEZE RX_SHORT RX_WEIGHT
+TRICKS = ["burn", "cold", "short", "weight", "glass", "rhythm"]
 DIRS = {"U": (0, -1, "up"), "D": (0, 1, "down"), "L": (-1, 0, "left"), "R": (1, 0, "right")}
 SEED = 0x5EED
 
@@ -184,7 +186,15 @@ def step(g: Game, mv: str, log: list[str]) -> bool:
     target = cur + dx + dy * EG_W
     tx, ty = cell_center(target)
     cx, cy = cell_center(cur)
-    align(g, cx, cy, "y" if dx else "x")
+    cells = g.room()
+    if cells[target] & T_MASK == T_GLITCH and cells[cur] & T_MASK != T_GLITCH:
+        align(g, cx, cy, "y" if dx else "x")
+        for _ in range(140):  # onto glitched glass on the beat (EG_BEAT_LEN 128, floor for EG_BEAT_ON 80 frames)
+            if g.peek16("frame_count") & 127 < 2:
+                break
+            g.tick()
+    else:
+        align(g, cx, cy, "y" if dx else "x")
     floor0 = g.peek("floor_no")
     for _ in range(240):
         x, y = g.player()
@@ -240,10 +250,18 @@ def bench_act(g: Game, act: str, log: list[str], shot: Path | None = None) -> bo
     """drives the cartridge's bench: 'C' a b makes a recipe, 'P' a D uses piece a on the cell in direction D"""
     a = ord(act[1]) - ord("a") + 1
     if act[0] == "P":  # face the cell first (a one-frame tap turns without leaving the cell)
-        g.hold({DIRS[act[2]][2]})
-        g.tick(1)
-        g.hold(set())
-        g.tick(2)
+        want = "UDLR".index(act[2])  # F_UP F_DOWN F_LEFT F_RIGHT
+        x, y = g.player()
+        cx, cy = cell_center((y // 16) * EG_W + x // 16)
+        align(g, cx, cy, "y")
+        align(g, cx, cy, "x")
+        for _ in range(4):
+            g.hold({DIRS[act[2]][2]})
+            g.tick(1)
+            g.hold(set())
+            g.tick(2)
+            if g.peek("pl_face") == want:
+                break
     if not bench_open(g, log):
         return False
     inv = pocket(g)
@@ -288,7 +306,7 @@ def bench_act(g: Game, act: str, log: list[str], shot: Path | None = None) -> bo
 
 
 def drive_plan(g: Game, moves: str, log: list[str], shots_at: dict[int, Path] | None = None,
-               after_rx: dict[int, Path] | None = None, frames: list | None = None) -> None:
+               after_rx: dict[int, Path] | None = None, frames: list | None = None, after_act=None) -> None:
     """after_rx: {RX id: shot path} taken right after a use sets that reaction off; frames: collects every
     4th frame for a GIF"""
     floor0 = g.peek("floor_no")
@@ -303,7 +321,9 @@ def drive_plan(g: Game, moves: str, log: list[str], shots_at: dict[int, Path] | 
         g.tick = tick_rec  # type: ignore[method-assign]
     try:
         for i, mv in enumerate(plan_acts(moves)):
-            settle_board(g)
+            x, y = g.player()
+            if g.room()[(y // 16) * EG_W + x // 16] & T_MASK != T_GLITCH:  # never wait on glitched glass
+                settle_board(g)
             if shots_at and i in shots_at:
                 g.shot(shots_at[i])
             if mv[0] in "CP":
@@ -313,6 +333,8 @@ def drive_plan(g: Game, moves: str, log: list[str], shots_at: dict[int, Path] | 
                     g.shot(after_rx.pop(g.peek("last_rx")))
             else:
                 ok = step(g, mv, log)
+            if after_act:
+                after_act(g)
             if not ok:
                 break
             if g.peek("game_mode") != MODE_PLAY or g.peek("floor_no") != floor0:
@@ -697,12 +719,14 @@ def contact(out: Path, names: list[str]) -> None:
 
 # --- B1: one baked room per trick, solved through the real cartridge (pocket, bench, uses, reactions) ---
 def baked_seeds(tier: int) -> list[int]:
-    src = Path("src/gen/eg_seeds.c").read_text()
-    rows = re.findall(r"\{([^{}]*)\}", src[src.index("= {") + 3:])
-    return [int(v) for v in rows[tier].replace("\n", " ").split(",") if v.strip()]
+    """the baked rooms of a tier (src/gen/eg_seeds.c records: seed, tier, ...)"""
+    recs = re.findall(r"\{(\d+), (\d+), ", Path("src/gen/eg_seeds.c").read_text())
+    return [int(sd) for sd, t in recs if int(t) == tier]
 
 
 def run_puzzle(rom: Path, egtool: Path, out: Path, report: dict) -> bool:
+    """one baked room per trick, solved through the real cartridge; a shot at each trick's moment, the bench, a GIF
+    of a reaction solve and one of a fragile crossing"""
     tier, found = 2, {}
     for seed in baked_seeds(tier):
         d = subprocess.run([str(egtool), "dump", str(seed), str(tier)], capture_output=True, text=True, check=True)
@@ -710,9 +734,10 @@ def run_puzzle(rom: Path, egtool: Path, out: Path, report: dict) -> bool:
         if trick in found:
             continue
         plan = subprocess.run([str(egtool), "solve", str(seed), str(tier)], capture_output=True, text=True).stdout
-        if "C" in plan and len(plan) < 260:  # a bench step in it, and short enough to watch
+        bench_ok = "C" in plan or trick in ("glass", "rhythm")
+        if bench_ok and len(plan) < 260:  # a bench step in it (the void tricks have none), short enough to watch
             found[trick] = (seed, d.stdout.split()[0], plan.strip())
-        if len(found) == len(TRICK_RX):
+        if len(found) == len(TRICKS):
             break
     ok_all = True
     rep = report.setdefault("puzzle", {})
@@ -729,26 +754,93 @@ def run_puzzle(rom: Path, egtool: Path, out: Path, report: dict) -> bool:
             continue
         r["room_matches_host"] = bytes(g.room()[:EG_N]) == bytes.fromhex(cells)
         g.shot(out / f"b1_puzzle_{trick}_start.png")
+        shot = out / f"b1_puzzle_{trick}.png"
+        shot.unlink(missing_ok=True)
         log: list[str] = []
-        frames: list | None = [] if trick == "short" else None
+        frames: list | None = [] if trick in ("short", "glass") else None
         shots = {-1: out / "b1_puzzle_bench.png"} if trick == "short" else {}
-        drive_plan(g, moves, log, shots, {TRICK_RX[trick]: out / f"b1_puzzle_{trick}.png"}, frames)
+        glass0 = sum(1 for v in g.room()[:EG_N] if v & T_MASK == T_GLASS)
+        hp0 = g.peek("pl_hp")
+
+        def moment(g: Game) -> None:  # the void tricks' moment: glass breaking behind you, standing on the beat
+            if shot.exists():
+                return
+            cells_now = g.room()[:EG_N]
+            x, y = g.player()
+            if trick == "glass" and sum(1 for v in cells_now if v & T_MASK == T_GLASS) < glass0:
+                g.tick(6)
+                g.shot(shot)
+            if trick == "rhythm" and cells_now[(y // 16) * EG_W + x // 16] & T_MASK == T_GLITCH:
+                g.shot(shot)
+        rx = {TRICK_RX[trick]: shot} if trick in TRICK_RX else None
+        drive_plan(g, moves, log, shots, rx, frames, moment)
         for _ in range(240):
             if g.peek("floor_no") >= 2:
                 break
             g.tick()
         r["log"] = log
         r["reached_floor2"] = g.peek("floor_no") >= 2
-        r["reaction_shot"] = (out / f"b1_puzzle_{trick}.png").exists()
+        r["moment_shot"] = shot.exists()
+        r["hp_lost"] = hp0 - g.peek("pl_hp")  # a fall on glitched glass costs a heart (god mode keeps it)
         if frames:
             frames = frames[:900]
-            frames[0].save(out / "b1_puzzle_solve.gif", save_all=True, append_images=frames[1:], duration=67, loop=0,
-                           optimize=True)
+            name = "b1_puzzle_solve.gif" if trick == "short" else "b1_fragile.gif"
+            frames[0].save(out / name, save_all=True, append_images=frames[1:], duration=67, loop=0, optimize=True)
             r["gif_frames"] = len(frames)
         rep[trick] = r
-        ok_all = ok_all and r["room_matches_host"] and r["reached_floor2"] and r["reaction_shot"]
+        ok_all = ok_all and r["room_matches_host"] and r["reached_floor2"] and r["moment_shot"]
         g.stop()
-    return ok_all and len(found) == len(TRICK_RX)
+    # the wrong order: across the glass without the keycard (a tier-0 glass room: nothing else in the way)
+    for seed in baked_seeds(0):
+        d = subprocess.run([str(egtool), "dump", str(seed), "0"], capture_output=True, text=True, check=True)
+        if d.stdout.split()[-1] == "glass":
+            ok_all = run_dead_hint(rom, seed, 0, out, rep) and ok_all
+            break
+    return ok_all and len(found) == len(TRICKS)
+
+
+def run_dead_hint(rom: Path, seed: int, tier: int, out: Path, rep: dict) -> bool:
+    g = Game(rom)
+    g.wait_mode(MODE_TITLE, 1500)
+    g.poke16("dbg_fseed", seed)
+    g.poke("dbg_ftier", tier)
+    r: dict = {"seed": seed}
+    rep["dead_hint"] = r
+    if not start_run(g, god=True, no_enemies=True):
+        return False
+    cells = g.room()[:EG_N]
+    glass = [i for i, v in enumerate(cells) if v & T_MASK == T_GLASS][0]
+    log: list[str] = []
+    for goal in (glass, glass - EG_W, glass - 2 * EG_W):  # onto the glass, off it on the far side
+        for _ in range(60):
+            x, y = g.player()
+            cur = (y // 16) * EG_W + x // 16
+            if cur == goal:
+                break
+            mv = path_step(g.room()[:EG_N], cur, goal, {T_GLASS})
+            if not mv or not step(g, mv, log):
+                break
+    for _ in range(60):
+        if g.peek("dead_t"):
+            break
+        g.tick()
+    r["hint"] = g.peek("dead_t") != 0
+    g.tick(10)
+    g.shot(out / "b1_dead_hint.png")
+    tokens0 = g.peek("tokens")
+    g.hold({"select"})
+    g.tick(75)
+    g.hold(set())
+    g.tick(60)
+    after = g.room()[:EG_N]
+    r["reset_restores_glass"] = after[glass] & T_MASK == T_GLASS
+    r["hint_cleared"] = g.peek("dead_t") == 0
+    r["hearts_kept"] = g.peek("pl_hp") == g.peek("pl_hp_max")
+    r["tokens_before_after"] = [tokens0, g.peek("tokens")]
+    r["log"] = log
+    g.shot(out / "b1_dead_reset.png")
+    g.stop()
+    return r["hint"] and r["reset_restores_glass"] and r["hint_cleared"] and r["hearts_kept"]
 
 
 def main() -> int:

@@ -64,6 +64,7 @@ uint8_t eg_tile_tag(uint8_t type) EG_BANKED {
     case T_WATER:
       return TAG_WET;
     case T_ICE:
+    case T_ICE_1:
       return TAG_COLD;
     default:
       return EG_TAGS;
@@ -89,7 +90,7 @@ static uint8_t in_occ(uint8_t i, const uint8_t *occ, uint8_t n) {
 /* what a spread may enter */
 static uint8_t spread_class(uint8_t rx, uint8_t v) {
   if (rx == RX_BURN) return (uint8_t)(v == T_PAPER || v == T_PLANK);
-  if (rx == RX_THAW) return (uint8_t)(v == T_ICE);
+  if (rx == RX_THAW) return (uint8_t)(v == T_ICE || v == T_ICE_1);
   return (uint8_t)(v == T_WATER); /* FREEZE, SHORT */
 }
 
@@ -186,7 +187,7 @@ uint8_t eg_apply(eg_room *r, uint8_t piece, uint8_t cell, const uint8_t *occ, ui
     for (k = 0u; k != n; k++) {
       v = q[k];
       if (rx == RX_BURN) r->c[v] = r->c[v] == T_PLANK ? T_PIT : T_EMPTY;
-      else if (rx == RX_FREEZE) r->c[v] = T_ICE;
+      else if (rx == RX_FREEZE) r->c[v] = T_ICE; /* thin ice: fragile, 2 steps */
       else r->c[v] = T_WATER;
       mark(v);
     }

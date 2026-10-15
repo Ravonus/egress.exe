@@ -16,7 +16,7 @@
 #define BUDGET 30000
 
 static char glyph(uint8_t v) {
-  static const char g[T_TYPES + 1] = ".:#=O$kD~_pGgwiPh*SsXBb";
+  static const char g[T_TYPES + 1] = ".:#=O$kD~_pGgw%Ph*SsXBbWVUEF|IJ";
   uint8_t t = v & T_MASK;
   return t < T_TYPES ? g[t] : '?';
 }
@@ -43,8 +43,13 @@ static int checks(int tier, const eg_room *r, const eg_stats *st, const char **w
   if (st->steps > 320) return *why = "long", 0;
   if (eg_trivial(r)) return *why = "trivial", 0;
   if (!eg_trick_needed(r)) return *why = "trick-skippable", 0;
-  if (tier > 0 && r->trick != TRICK_BURN && st->combines < 1) return *why = "no-bench", 0;
-  if (d < diff_lo[tier] || d > diff_hi[tier]) return *why = "out-of-band", 0;
+  if (tier > 0 && r->trick != TRICK_BURN && r->trick < TRICK_GLASS && st->combines < 1) return *why = "no-bench", 0;
+  if (!eg_glitch_ok(r)) return *why = "glitch-run", 0;
+  for (int i = 0; i < (int)EG_N; i++)
+    if (EG_PROT(r, i) && EG_FRAGILE(r->c[i] & T_MASK)) return *why = "protected-fragile", 0;
+  /* the void tricks are about order, not length: their band starts lower */
+  int lo = r->trick >= TRICK_GLASS ? diff_lo[tier] * 2 / 3 : diff_lo[tier];
+  if (d < lo || d > diff_hi[tier]) return *why = "out-of-band", 0;
   int a, b;
   if (r->herrings && !eg_herrings_safe(r, BUDGET, &a, &b)) return *why = "herring-unsafe", 0;
   return *why = "ok", 1;
@@ -72,9 +77,10 @@ int main(int argc, char **argv) {
     }
     if (!strcmp(argv[1], "show")) {
       show(&r);
-      printf("trick %s support %d herrings %d depth %d keys %d tokens %d spawns %d trivial %d needed %d\npieces: ",
+      printf("trick %s support %d herrings %d depth %d keys %d tokens %d spawns %d trivial %d needed %d mech 0x%03x\n"
+             "pieces: ",
              eg_trick_name[r.trick], r.support, r.herrings, r.depth, r.keys, r.tokens, r.nspawn, eg_trivial(&r),
-             eg_trick_needed(&r));
+             eg_trick_needed(&r), eg_room_mech(&r));
       piece_list(&r, stdout);
       printf("\n");
       return 0;
@@ -91,9 +97,10 @@ int main(int argc, char **argv) {
     int ok = eg_solve(&r, argc > 4 ? atoi(argv[4]) : BUDGET, moves, sizeof moves, &st);
     fprintf(stderr,
             "solved %d nodes %d acts %d steps %d pushes %d breaks %d digs %d drops %d picks %d combines %d uses %d "
-            "branching %.2f difficulty %d trick %s\n",
+            "branching %.2f difficulty %d trick %s states %d dead %d fatal-depth %d\n",
             ok, st.nodes, st.actions, st.steps, st.pushes, st.breaks, st.digs, st.drops, st.picks, st.combines, st.uses,
-            st.branching100 / 100.0, eg_difficulty(&r, &st), eg_trick_name[r.trick]);
+            st.branching100 / 100.0, eg_difficulty(&r, &st), eg_trick_name[r.trick], st.states, st.dead,
+            st.fatal_depth);
     if (!ok) return 1;
     printf("%s\n", moves);
     return 0;
@@ -119,9 +126,11 @@ int main(int argc, char **argv) {
       const char *why;
       int ok = checks(tier, &r, &st, &why);
       if (survey)
-        printf("%u %s sup %d herr %d depth %d steps %d acts %d combines %d uses %d branch %.2f diff %d nodes %d %s\n",
+        printf("%u %s sup %d herr %d depth %d steps %d acts %d combines %d uses %d branch %.2f diff %d nodes %d dead "
+               "%d/%d fatal %d %s\n",
                seed, eg_trick_name[r.trick], r.support, r.herrings, r.depth, st.steps, st.actions, st.combines,
-               st.uses, st.branching100 / 100.0, eg_difficulty(&r, &st), st.nodes, why);
+               st.uses, st.branching100 / 100.0, eg_difficulty(&r, &st), st.nodes, st.dead, st.states,
+               st.fatal_depth, why);
       if (!ok) {
         rejected++;
         continue;
@@ -129,15 +138,19 @@ int main(int argc, char **argv) {
       steps += st.steps;
       diff += eg_difficulty(&r, &st);
       by_trick[r.trick]++;
-      if (!survey) printf("%u\n", seed);
+      /* the bake record: seed trick mechanics difficulty dead-share% fatal-depth insights steps branching% */
+      if (!survey)
+        printf("%u %d 0x%03x %d %d %d %d %d %d\n", seed, r.trick, eg_room_mech(&r), eg_difficulty(&r, &st),
+               st.states ? st.dead * 100 / st.states : 0, st.fatal_depth, eg_insights(&r), st.steps,
+               st.branching100);
       fflush(stdout);
       got++;
     }
     fprintf(stderr,
             "tier %d: %d accepted of %d (gen-fail %d unsolved %d rejected %d) mean steps %ld difficulty %ld; "
-            "burn %d cold %d short %d weight %d\n",
+            "burn %d cold %d short %d weight %d glass %d rhythm %d\n",
             tier, got, tried, gen_fail, unsolved, rejected, got ? steps / got : 0, got ? diff / got : 0, by_trick[0],
-            by_trick[1], by_trick[2], by_trick[3]);
+            by_trick[1], by_trick[2], by_trick[3], by_trick[4], by_trick[5]);
     return (!survey && got < per) ? 3 : 0;
   }
   fprintf(stderr, "usage: egtool show|solve|dump SEED TIER | tier TIER COUNT | survey TIER COUNT\n");

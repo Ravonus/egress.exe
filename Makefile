@@ -13,7 +13,7 @@ HOSTCFLAGS := -O2 -std=c99 -Wall -Wextra -Werror
 MAPPER ?= mbc5
 
 SRC := src/main.c src/screens.c src/play.c src/grid.c src/hud.c src/player.c src/actors.c src/sprites.c src/boss.c \
-	src/sound.c src/boot/keel_boot.c src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c src/core/eg_clock.c src/gen/art.c src/gen/art_pics.c \
+	src/sound.c src/boot/keel_boot.c src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c src/core/eg_plan.c src/core/eg_clock.c src/gen/art.c src/gen/art_pics.c \
 	src/gen/eg_seeds.c src/puzzle.c
 MAPPER_SRC := src/run.c src/clock.c
 OBJ := $(patsubst src/%.c,build/obj/%.o,$(SRC))
@@ -90,6 +90,11 @@ build/host/egtool: host/egtool.c host/eg_solve.c $(ROOM_SRC) $(ROOM_HDR)
 seeds: build/host/egtool tools/bake_seeds.sh
 	sh tools/bake_seeds.sh build/host/egtool src/gen/eg_seeds.c 128
 
+# the run planner over the baked table, headless (B1 curriculum): `egplan check 1000` is part of `make test`
+build/host/egplan: host/egplan.c src/core/eg_plan.c src/core/eg_plan.h src/gen/eg_seeds.c src/gen/eg_seeds.h
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/egplan.c src/core/eg_plan.c src/gen/eg_seeds.c
+
 build/host/test_room: host/test_room.c host/eg_solve.c $(ROOM_SRC) $(ROOM_HDR)
 	@mkdir -p $(dir $@)
 	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_room.c host/eg_solve.c $(ROOM_SRC)
@@ -112,8 +117,9 @@ test-rtc: build/host/test_clock build/egress.gbc build/egress-rtc.gbc
 	$(PY) tools/mapper_audit.py build/linked-mbc5.map build/linked-mbc3.map
 	$(PY) test/rtc_test.py build/egress.gbc build/egress-rtc.gbc
 
-test: build/host/test_room build/egress.gbc build/egress-rtc.gbc test-rtc
+test: build/host/test_room build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc
 	build/host/test_room src/gen/eg_seeds.c
+	build/host/egplan check 1000
 	$(PY) tools/test_finish_rom.py build/egress.gbc
 	$(PY) tools/test_finish_rom.py build/egress-rtc.gbc
 

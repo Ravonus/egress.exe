@@ -3,41 +3,78 @@
   "size": 98304,
   "puzzle": {
     "burn": {
-      "seed": 10,
+      "seed": 1,
       "tier": 2,
-      "plan": "UULLLLLLLLDUCcgPiUUUDDDDDRRRRRRRRRRUULULLLLLLLLLUUURRRRRPaUUUUUURRRLLLLLLLU",
+      "plan": "ULLLLRRRRRDRrRUDRRDRRrRUDLLULLLLLULLLCcgPiUUUUuUUPaUUUURRRRRRRULLLLLLU",
       "room_matches_host": true,
       "log": [],
       "reached_floor2": true,
-      "reaction_shot": true
+      "moment_shot": true,
+      "hp_lost": 0
     },
     "cold": {
-      "seed": 4,
+      "seed": 3,
       "tier": 2,
-      "plan": "UULLLLLPaUUUURRRURRRLLLLDDRRRRRUUULLCbcCcgPiUUURUULLLLU",
+      "plan": "LLLDDRRUURRRPaUUUULLLLLRRDRRRDDDRRDLLLLLLLLLLLURRURRRRRRRUUUULLCbcCcgPiULLUUUULLLLRRRU",
       "room_matches_host": true,
       "log": [],
       "reached_floor2": true,
-      "reaction_shot": true
+      "moment_shot": true,
+      "hp_lost": 0
+    },
+    "glass": {
+      "seed": 34,
+      "tier": 2,
+      "plan": "ULLLLLLLDDLLLLLLUUURPaUUURUURRRRRRDDLLLLLLDDRDDDRRRUULRDDLLLUUULUUUULUUUUU",
+      "room_matches_host": true,
+      "log": [],
+      "reached_floor2": true,
+      "moment_shot": true,
+      "hp_lost": 0,
+      "gif_frames": 565
+    },
+    "rhythm": {
+      "seed": 35,
+      "tier": 2,
+      "plan": "URRRRRRULLRCcgPiUUULLLULLLLLlLUDRRURRRRRRRRUUUULLLLLLLLLlLDUURRRRU",
+      "room_matches_host": true,
+      "log": [],
+      "reached_floor2": true,
+      "moment_shot": true,
+      "hp_lost": 0
     },
     "short": {
       "seed": 2,
       "tier": 2,
-      "plan": "URRRUDRRUURRRRDDDDDLLLLLDLCacCefPlLRRUUUURRRRRRRRUUULLLLLLLLLCcgPiUUULLLLURRRRRUU",
+      "plan": "URRRUDRRUURRRRDDDDDLLLLLDLCacCefPlLRRUUURRRRRRURRUUULLLLLLLLLCcgPiULLUULRURRRUU",
       "room_matches_host": true,
       "log": [],
       "reached_floor2": true,
-      "reaction_shot": true,
-      "gif_frames": 664
+      "moment_shot": true,
+      "hp_lost": 0,
+      "gif_frames": 643
     },
     "weight": {
-      "seed": 3,
+      "seed": 32,
       "tier": 2,
-      "plan": "UUURUURRRRRRDDDLLLLUUURRPaUDDLLLUURRRUUULLLLLDRRRRRDDDDDDDUUUULLLLLURRRRRUUUURCbdCahPkUDRRUU",
+      "plan": "UUURRRRRURLLDDDRRRDUUULLLLLLLLURRRRRRCcgPiUDDDDDDLLLLULUUUUURRRRRUUUUCbdCahPkURRRRDDLLULLLLLUU",
       "room_matches_host": true,
       "log": [],
       "reached_floor2": true,
-      "reaction_shot": true
+      "moment_shot": true,
+      "hp_lost": 0
+    },
+    "dead_hint": {
+      "seed": 1,
+      "hint": true,
+      "reset_restores_glass": true,
+      "hint_cleared": true,
+      "hearts_kept": true,
+      "tokens_before_after": [
+        0,
+        0
+      ],
+      "log": []
     }
   },
   "results": {

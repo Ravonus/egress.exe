@@ -31,7 +31,7 @@ static void settle(eg_room *r) {
 static const int8_t step4[4] = {-16, 16, -1, 1};
 
 /* bands: zone z covers rows zt[z]..zb[z]; lock k (between zone k and k+1) is row lk[k] */
-static uint8_t nb, lk[3], zt[4], zb[4], band[3];
+static uint8_t nb, lk[3], th[3], zt[4], zb[4], band[3];
 static uint8_t need[10], nneed, needz[10], needop[10], hpiece[3], nh; /* pieces to place, the lowest zone index each may go in */
 
 static uint8_t zone_cell(uint8_t z) {
@@ -78,6 +78,8 @@ static uint8_t expand(uint8_t obj, uint8_t d, uint8_t *out) {
   }
 }
 
+static void protect(eg_room *r, uint8_t i) { r->prot[i >> 3] |= (uint8_t)(1u << (i & 7u)); }
+
 static uint8_t lock_obj(uint8_t trick, uint8_t deep) {
   if (trick == TRICK_BURN) return P_FIRE;
   if (trick == TRICK_COLD) return deep >= 3u ? P_ICE : P_SNOW;
@@ -87,6 +89,7 @@ static uint8_t lock_obj(uint8_t trick, uint8_t deep) {
 /* queue a lock's ingredients: as deep as `want` allows within the item budget */
 static uint8_t add_lock(uint8_t trick, uint8_t want, uint8_t minz, uint8_t *depth) {
   uint8_t buf[5], n, d = want, k;
+  if (trick >= TRICK_GLASS) return 1u; /* crossed, not opened: nothing to make */
   for (;;) {
     n = expand(lock_obj(trick, d), d, buf);
     if (nneed + n <= EG_MAX_ITEM || d == 0u) break;
@@ -151,7 +154,13 @@ static void guard(eg_room *r, uint8_t i, uint8_t kind) {
     s = (uint8_t)(i - EG_W);
     if (open_cell(c[s])) c[s] = T_ROCK;
   } else if (kind == 1u) {
+    /* the drywall goes on one of the sides that can take it (else the alcove would be sealed) */
     side = (uint8_t)(eg_rnd() & 3u);
+    for (d = 0u; d != 4u; d++, side = (uint8_t)((side + 1u) & 3u)) {
+      s = (uint8_t)(i + step4[side]);
+      if (open_cell(c[s]) && s != r->start && EG_Y(s) != 0u && EG_Y(s) != EG_H - 1u) break;
+    }
+    if (d == 4u) return;
     for (d = 0u; d != 4u; d++) {
       s = (uint8_t)(i + step4[d]);
       if (!open_cell(c[s]) || s == r->start || EG_Y(s) == 0u || EG_Y(s) == EG_H - 1u) continue;
@@ -204,44 +213,57 @@ uint8_t eg_generate(eg_room *r, uint16_t seed, uint8_t tier) EG_BANKED {
   r->start = 0u;
 
   /* 1-2: the trick, the supporting locks, the bands */
-  r->trick = tier == 0u ? (uint8_t)(eg_rnd() & 1u) : (uint8_t)(eg_rnd() & 3u);
+  r->trick = eg_rndn(TRICK_COUNT);
+  for (k = 0u; k != (uint8_t)(EG_N / 8u); k++) r->prot[k] = 0u;
   nsup = tier < 2u ? 0u : (tier < 4u ? 1u : 2u);
   r->support = 0u;
   nb = 0u;
-  if (r->trick <= TRICK_COLD) band[nb++] = r->trick;
+  if (r->trick <= TRICK_COLD || r->trick >= TRICK_GLASS) band[nb++] = r->trick;
   for (k = 0u; k != nsup; k++) {
     t = (uint8_t)(eg_rnd() & 1u);
     band[nb++] = t;
     r->support |= (uint8_t)(1u << t);
   }
+  /* a lock is one row, the glitched-glass band 2 (3 from tier 3, when there is room) */
+  for (k = 0u; k != 3u; k++) th[k] = 1u;
+  if (r->trick == TRICK_RHYTHM) th[0] = (uint8_t)(tier >= 3u && nb < 3u ? 3u : 2u);
   if (nb == 1u) lk[0] = (uint8_t)(4u + eg_rndn(3u));
   else if (nb == 2u) {
     lk[0] = (uint8_t)(4u + eg_rndn(2u));
-    lk[1] = (uint8_t)(8u + eg_rndn(2u));
+    lk[1] = (uint8_t)(8u + eg_rndn(2u) + th[0] - 1u);
   } else if (nb == 3u) {
     lk[0] = 3u;
-    lk[1] = 6u;
-    lk[2] = 9u;
+    lk[1] = (uint8_t)(6u + th[0] - 1u);
+    lk[2] = (uint8_t)(9u + th[0] - 1u);
   }
   zt[0] = 1u;
   for (k = 0u; k != nb; k++) {
     zb[k] = (uint8_t)(lk[k] - 1u);
-    zt[k + 1u] = (uint8_t)(lk[k] + 1u);
+    zt[k + 1u] = (uint8_t)(lk[k] + th[k]);
   }
   zb[nb] = EG_H - 2u;
   for (k = 0u; k <= nb; k++) fill_zone(r, k, tier);
-  /* the locks: a concrete row with one opening of the obstacle */
+  /* the locks: a concrete row with one opening of the obstacle; the fragile locks are the void (pits) bridged by
+   * glass (1-2 cells: one crossing each) or by a column of glitched glass */
   for (k = 0u; k != nb; k++) {
     y = lk[k];
-    for (x = 1u; x != EG_W - 1u; x++) c[EG_IDX(x, y)] = T_WALL;
-    w = (uint8_t)(2u + eg_rndn(3u));
-    a = (uint8_t)(1u + eg_rndn((uint8_t)(15u - w)));
+    t = band[k] >= TRICK_GLASS ? T_PIT : T_WALL;
+    for (i = 0u; i != th[k]; i++)
+      for (x = 1u; x != EG_W - 1u; x++) c[EG_IDX(x, y + i)] = t;
+    w = band[k] == TRICK_RHYTHM ? 1u : (band[k] == TRICK_GLASS ? (uint8_t)(1u + (tier < 2u)) : (uint8_t)(2u + eg_rndn(3u)));
+    a = (uint8_t)(2u + eg_rndn((uint8_t)(13u - w)));
     for (x = a; x != (uint8_t)(a + w); x++) {
-      s = EG_IDX(x, y);
-      c[s] = band[k] == TRICK_BURN ? T_PAPER : T_WATER;
-      /* something to stand on either side of the opening */
-      if (c[(uint8_t)(s - EG_W)] == T_WALL) c[(uint8_t)(s - EG_W)] = T_DIRT;
-      if (c[(uint8_t)(s + EG_W)] == T_WALL) c[(uint8_t)(s + EG_W)] = T_DIRT;
+      for (i = 0u; i != th[k]; i++)
+        c[EG_IDX(x, y + i)] = band[k] == TRICK_BURN ? T_PAPER
+                              : band[k] == TRICK_GLASS ? T_GLASS
+                              : band[k] == TRICK_RHYTHM ? T_GLITCH : T_WATER;
+      /* something to stand on either side of the opening (kept: protected) */
+      s = EG_IDX(x, y - 1u);
+      if (c[s] == T_WALL || band[k] >= TRICK_GLASS) c[s] = T_EMPTY;
+      protect(r, s);
+      s = EG_IDX(x, y + th[k]);
+      if (c[s] == T_WALL || band[k] >= TRICK_GLASS) c[s] = T_EMPTY;
+      protect(r, s);
     }
   }
   settle(r);
@@ -251,7 +273,7 @@ uint8_t eg_generate(eg_room *r, uint16_t seed, uint8_t tier) EG_BANKED {
   r->door = EG_IDX(x, 0u);
   c[r->door] = T_DOOR;
   s = EG_IDX(x, 1u);
-  if (r->trick >= TRICK_SHORT) {
+  if (r->trick == TRICK_SHORT || r->trick == TRICK_WEIGHT) {
     c[s] = r->trick == TRICK_SHORT ? T_DEAD : T_GATE;
     c[(uint8_t)(s - 1u)] = T_WALL;
     c[(uint8_t)(s + 1u)] = T_WALL;
@@ -361,17 +383,57 @@ uint8_t eg_generate(eg_room *r, uint16_t seed, uint8_t tier) EG_BANKED {
   /* 5: the keycard behind the last lock (a gate room without locks: far from the start); tier 4 up a second */
   n = tier >= 4u ? 2u : 1u;
   for (k = 0u; k != n; k++) {
-    i = k == 0u ? free_cell(r, 0u, 0u, nb ? 0u : 6u) : free_cell(r, nb > 1u ? 1u : 0u, nb > 1u ? 1u : 0u, 4u);
+    if (r->trick == TRICK_GLASS) /* one-way glass: the keycard lies below the bridge (take it before you cross) */
+      i = free_cell(r, 1u, nb, 3u);
+    else
+      i = k == 0u ? free_cell(r, 0u, 0u, nb ? 0u : 6u) : free_cell(r, nb > 1u ? 1u : 0u, nb > 1u ? 1u : 0u, 4u);
     if (!i) return 0u;
     c[i] = T_KEY;
     r->keys++;
   }
   /* the physical layer around what the plan needs: more of it, and the nastier kinds, deeper down */
   n = tier < 2u ? 2u : 4u;
+  /* over the void no CRT may stand anywhere (one would fill a pit: a way round the bridge): alcoves and foam only */
+  a = (uint8_t)(r->trick >= TRICK_GLASS);
   for (k = 0u; k != r->nitem; k++)
-    if (eg_rndn(10u) < (uint8_t)(3u + tier)) guard(r, r->item_cell[k], eg_rndn(n));
+    if (eg_rndn(10u) < (uint8_t)(3u + tier)) guard(r, r->item_cell[k], a ? (uint8_t)(1u + ((eg_rnd() & 1u) << 1)) : eg_rndn(n));
   for (i = EG_W; i != (uint8_t)(EG_N - EG_W); i++)
-    if (c[i] == T_KEY && eg_rndn(10u) < (uint8_t)(3u + tier)) guard(r, i, eg_rndn(n));
+    if (c[i] == T_KEY && eg_rndn(10u) < (uint8_t)(3u + tier))
+      guard(r, i, a ? (uint8_t)(1u + ((eg_rnd() & 1u) << 1)) : eg_rndn(n));
+  /* protected: what the plan stands on or needs (never fragile; no mob may break it, B2) */
+  protect(r, r->start);
+  for (d = 0u; d != 4u; d++) protect(r, (uint8_t)(r->start + step4[d]));
+  protect(r, (uint8_t)(r->door + EG_W));
+  protect(r, (uint8_t)(r->door + 2u * EG_W));
+  for (k = 0u; k != r->nitem; k++) protect(r, r->item_cell[k]);
+  for (i = 0u; i != (uint8_t)EG_N; i++) {
+    t = c[i];
+    if (t == T_KEY || t == T_SOCKET || t == T_PLATE || t == T_GATE || t == T_DEAD) protect(r, i);
+    if (t == T_PLATE) protect(r, (uint8_t)(i + EG_W));
+    if (t == T_WATER && r->trick == TRICK_SHORT && (EG_X(i) <= 4u || EG_X(i) >= EG_W - 5u)) protect(r, i);
+  }
+  /* step routing (tier 1 up): a concrete run gets a gap of worn carpet (3 crossings) or, deeper, ceiling tile (2);
+   * and a few worn tiles lie in the open where a careless path wears them through */
+  if (tier) {
+    n = (uint8_t)(1u + (tier >= 3u));
+    for (tries = 0u; n && tries != 60u; tries++) {
+      i = EG_IDX(2u + eg_rndn(12u), 2u + eg_rndn(10u));
+      for (k = 0u; k != nb; k++)
+        if (EG_Y(i) >= lk[k] && EG_Y(i) < (uint8_t)(lk[k] + th[k])) break;
+      if (k != nb || c[i] != T_WALL || EG_PROT(r, i) || c[(uint8_t)(i - 1u)] != T_WALL || c[(uint8_t)(i + 1u)] != T_WALL ||
+          !open_cell(c[(uint8_t)(i - EG_W)]) || !open_cell(c[(uint8_t)(i + EG_W)]))
+        continue;
+      c[i] = tier >= 2u && (eg_rnd() & 1u) ? T_CEIL : T_WORN;
+      n--;
+    }
+    n = (uint8_t)(1u + eg_rndn(3u));
+    for (tries = 0u; n && tries != 60u; tries++) {
+      i = free_cell(r, nb ? 1u : 0u, nb, 3u);
+      if (!i || c[i] != T_EMPTY || EG_PROT(r, i) || c[(uint8_t)(i - EG_W)] == T_ROCK) continue;
+      c[i] = T_WORN;
+      n--;
+    }
+  }
   /* tokens: a few, as the reward for a side pocket (a cell boxed in on three sides), else anywhere off the start */
   n = (uint8_t)(3u + (tier >> 1));
   for (tries = 0u; r->tokens != n && tries != 120u; tries++) {

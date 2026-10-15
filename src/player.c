@@ -83,6 +83,7 @@ static void try_push(int8_t dir) {
     sfx(SFX_DENY);
     return;
   }
+  puzzle_dirty = 1u; /* B1: a push can seal a room */
   queue_cell(ahead);
   queue_cell(beyond);
   sfx(SFX_PUSH);

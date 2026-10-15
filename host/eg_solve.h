@@ -9,6 +9,9 @@
 #include <stdint.h>
 #include "../src/core/eg_room.h"
 #include "../src/core/eg_piece.h"
+#include "../src/core/eg_plan.h"
+
+#define EG_MAX_ENT 4 /* B2: living obstacles per room in the solver state */
 
 typedef struct {
   int actions;  /* board- or pocket-changing acts */
@@ -18,6 +21,10 @@ typedef struct {
   uint64_t reactions;              /* bit per RX_* the plan sets off */
   int branching100;                /* mean meaningful acts available per state on the plan, x100 */
   int nodes;    /* search nodes expanded */
+  int states;   /* distinct states generated */
+  int dead;     /* of those, dead ends (eg_dead): unforgiving rooms have many */
+  int fatal_depth; /* the fewest acts after which a fatal mistake was found (-1: none found) */
+  int dead_at_start; /* EG_DEAD_* when the room is unwinnable before the player acts (a fault, not a mistake) */
 } eg_stats;
 
 /* moves:
@@ -48,6 +55,13 @@ int eg_herrings_safe(const eg_room *r, int budget, int *bad_a, int *bad_b);
 
 /* Replays moves on the grid model: returns 1 when they end inside the open door without the player being hit. */
 int eg_replay(const eg_room *r, const char *moves);
+
+/* 1 when every glitched-glass run is at most EG_GLITCH_RUN cells (crossable inside one beat) */
+int eg_glitch_ok(const eg_room *r);
+
+/* the mechanics the room uses (MK_* bits, src/core/eg_plan.h) and its distinct insights (trick types needed) */
+uint16_t eg_room_mech(const eg_room *r);
+int eg_insights(const eg_room *r);
 
 /* the score of 3.2: steps + 3 branching + 4 depth + 2 supporting tricks */
 int eg_difficulty(const eg_room *r, const eg_stats *st);

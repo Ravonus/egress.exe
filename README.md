@@ -34,6 +34,14 @@ the goal), keep their herrings harmless, and solve within the tier's difficulty 
 seeds. `make test` re-checks every baked seed; the harness checks that the cartridge's room is byte-identical to the
 host's and drives the solver's plan, bench and all, through the real game to the door.
 
+Fragile floor (`eg_room.h` eg_frag: worn carpet 3 steps, ceiling tile 2, glass 1, thin ice 2, glitched glass on a
+beat) wears by stepping off it; the last step leaves the void. Two more tricks use it: one-way glass (the keycard lies
+behind you) and glitched glass (cross on the beat). Breaking the wrong tile can make a room unwinnable: the cartridge
+notices the common cases (a flood fill after every break or push), says ROOM FORGETS, and holding SELECT puts the
+room back for a token, never a heart. Which room a floor gets is the run planner's (`src/core/eg_plan.c`): mechanics
+are introduced alone, developed, then combined, on a tension-release-spike wave that rises with depth and with the
+runs played (`host/egplan sim`, `tools/plot_curve.py`).
+
 ## A run
 
 Ten floors. Floors 1-9 are generated rooms from the baked seeds, tiers 0,0,1,1,2,2,3,4,5; floor 10 is a built arena

@@ -8,6 +8,7 @@
 void run_begin(void) BANKED;      /* a new run: mods, factions, the truth matrix seeded from the saved trace */
 void run_floor_done(void) BANKED; /* the floor's acts move factions and the matrix; unlocks */
 void run_end(uint8_t won) BANKED; /* the meta save */
+void run_room_forgot(void) BANKED; /* B1: a held-SELECT reset leans the matrix once */
 void landing_screen(void) BANKED; /* someone talks, then trades */
 void ending_screen(void) BANKED;  /* a question, from what the matrix leans toward */
 
