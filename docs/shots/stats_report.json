@@ -37,11 +37,11 @@
   "recipes drift (400 x A then 60 x B)": "B"
  },
  "sram": {
-  "used": 5113,
-  "free": 3079,
+  "used": 5241,
+  "free": 2951,
   "total": 8192,
   "free_runs": [
-   "A2C0-A3AF (240)",
+   "A340-A3AF (112)",
    "AF68-B4BF (1368)",
    "B740-BBFF (1216)",
    "BF00-BFFE (255)"
@@ -50,10 +50,12 @@
   "map": [
    "A000-A01F    32 meta record A",
    "A020-A03F    32 meta record B",
-   "A040-A13F   256 mid-run continue record A",
-   "A140-A23F   256 mid-run continue record B",
+   "A040-A13F   256 mid-run continue record A (run50, 3.6.10: 168 used)",
+   "A140-A23F   256 mid-run continue record B (run50)",
    "A240-A2BF   128 sky event scenes (19)",
-   "A2C0-A3AF   240 free",
+   "A2C0-A2FF    64 line progress record A (run50, 3.6.10: doors, cycle, egresses, mechanics, descent board)",
+   "A300-A33F    64 line progress record B (run50)",
+   "A340-A3AF   112 free",
    "A3B0-A3EF    64 inheritance",
    "A3F0-A46F   128 seen history",
    "A470-A56F   256 book (best tallies, recipe margins); the stats half moved to STATS",

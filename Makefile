@@ -126,7 +126,7 @@ src/gen/art.c src/gen/art_pics.c src/gen/art.h: tools/bake_art.py
 
 # the floor's look: the office cards, the biome palettes (tools/bake_look.py borrows bake_art.py's helpers)
 src/gen/look_art.c src/gen/look_art.h: tools/bake_look.py tools/bake_art.py
-	$(PY) tools/bake_look.py src/gen --sheet docs/shots/b1_look_tiles.png --fragile docs/shots/b1_fragile_tiles.png
+	$(PY) tools/bake_look.py src/gen --sheet docs/shots/b1_look_tiles.png --fragile docs/shots/b1_fragile_tiles.png --items docs/shots/b1_items_tiles.png
 
 src/gen/music_data.h: tools/compose.py
 	$(PY) tools/compose.py $@
@@ -142,10 +142,11 @@ build/host/egtool: host/egtool.c host/eg_solve.c $(ROOM_SRC) $(ROOM_HDR)
 seeds: build/host/egtool tools/bake_seeds.sh
 	sh tools/bake_seeds.sh build/host/egtool src/gen/eg_seeds.c 128
 
-# the run planner over the baked table, headless (B1 curriculum): `egplan check 1000` is part of `make test`
-build/host/egplan: host/egplan.c src/core/eg_plan.c src/core/eg_plan.h src/gen/eg_seeds.c src/gen/eg_seeds.h
+# the run planner over the baked table, headless (B1 curriculum) and the full ~52-floor layout (3.6): `egplan check 1000`
+# is part of `make test`
+build/host/egplan: host/egplan.c host/egrun.c src/core/eg_plan.c src/core/eg_plan.h src/gen/eg_seeds.c src/gen/eg_seeds.h
 	@mkdir -p $(dir $@)
-	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/egplan.c src/core/eg_plan.c src/gen/eg_seeds.c
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/egplan.c host/egrun.c src/core/eg_plan.c src/gen/eg_seeds.c -lm
 
 build/host/test_room: host/test_room.c host/eg_solve.c $(ROOM_SRC) $(ROOM_HDR)
 	@mkdir -p $(dir $@)

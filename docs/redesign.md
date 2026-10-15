@@ -404,8 +404,9 @@ Rooms are procedural, but the order you meet them in is designed. Each mechanic 
 - **The target rises with depth and generation, in waves, not monotonically:** tension → a release room → a spike →
   rest/landing. Mixed rooms get more frequent with depth, and late floors mostly combine 2–3 mechanics plus a
   twist.
-- **A light adaptive bias.** Several resets or deaths on one mechanic make the next room that uses it a notch
-  gentler. Fast clears make it a notch harder. The bias is bounded, so it never trivialises.
+- **A light adaptive bias.** Two failed rooms running on one mechanic make the next room that uses it one notch
+  gentler, never under the depth's floor. Fast clears make it a notch harder (up to +2). The bias is capped (3.6.8),
+  so it never trivialises.
 - **No repeats.** Never the same trick at the same difficulty back to back, and the deck's seen-history rule stays.
 - **On the cartridge:**
   - the baked seed table also stores each seed's difficulty vector and mechanic set;
@@ -417,7 +418,406 @@ Rooms are procedural, but the order you meet them in is designed. Each mechanic 
   - it plots the difficulty components by room index;
   - it checks that introduce comes before combine in 100% of runs;
   - it shows the wave shape and the mixed-puzzle share by depth.
-  The plots go here once B1's puzzle branch produces them (`docs/shots/b1_curve_*.png`).
+  B1's plots are `docs/shots/b1_curve_*.png` (the nine-floor slice). The ~52-floor run's curriculum, its checks and
+  its plots are in 3.6.
+- **The adaptive bias is capped** (3.6.8): it softens only after repeated failure, by at most one level, and never
+  under the curriculum floor for the depth.
+
+### 3.6 The full run: ~52 floors, shortcuts, and HARD (run50)
+
+The run is about 50 floors, not 10 (the 10-floor run was a mistake). This section replaces the old run shape (section 4,
+"8 floors") and the 10-floor assumptions in 13 and 18. The B1 cartridge only has the office, so it still plays the
+**B1 slice** (nine office floors over the baked table, then the Watchman; 3.5). The full run is laid out by the same
+planner (`src/core/eg_plan.c`, `eg_run_build`). It is checked on the host (`host/egrun.c`) and compiled into the
+cartridge from B4 (`EG_FULL_RUN`; it builds under sdcc at 7.2 KB of bank code).
+
+#### 3.6.1 Shape
+
+```
+[biome 1: 4 stages + mid-boss + boss] landing [biome 2] landing ... [biome 8 = glitch core] FINAL EGRESS
+```
+
+- **8 biomes in a generated order:** the office or the vents first, the glitch core last, each biome once. The order
+  comes from the line's **cycle seed**, so it stays fixed for a family until a new cycle (3.6.5). That keeps the
+  shortcut doors meaningful.
+- **Per biome: 4–6 stage slots under the curriculum,** a mid-boss after the first half (after stage 2 of 4, or after
+  stage 3 of 5 or 6), then the biome boss. Biomes 1, 2 and 8 have 4 stages; the middle five have 4 (60%), 5 (30%) or
+  6 (10%). That makes 6–8 floors per biome.
+- **A rest landing between biomes** (7 a run): a talker, a trader, the book, the tree, the door toll (3.6.4). A landing
+  is not a floor.
+- **The final stretch:** after the glitch core's boss, FINAL (the hardest mixed room the run holds, 3 mechanics plus a
+  theme), then the EGRESS. The egress asks the ending question that the truth matrix picks (section 10).
+- **Length:** 50–55 floors from the front door, **mean 52.3** (`egplan check`).
+- **Rare stages replace a combine slot:** a 3D stage (15.2) in 10% of eligible slots, a glitch rift in 6%, and today's
+  sky event stage (19) once a run on an event day. Never in biome 1, never two rare stages running, at most one per
+  biome. Measured: 3.0% / 1.7% / 1.1% of all stage slots, about 1 3D stage, 0.6 rifts and 0.4 sky stages per full run.
+
+One run, taken from door 4 by a line at generation 13 that has met everything up to biome 7 (`egplan layout 0x5a17
+0x42 12 0xffffc 3`; the level is the planned level, with the curriculum floor in brackets; the floor numbers stay the
+full run's, so this 32-floor run starts on floor 19):
+
+| Floor | Biome | Slot | Stage | Mechanics | Level |
+| --- | --- | --- | --- | --- | --- |
+| 19–20 | 4 atrium | combine, combine | escort, puzzle | sentry + weight (+PLACE theme); short + heavy | 8, 9 (8) |
+| 21 | | MID-BOSS | | | 11 |
+| 22–23 | | combine, test | escort, chase | burn + heavy + short; heavy + sentry | 8, 11 (8) |
+| 24 | | BOSS, then a landing | | | 12 |
+| 25–30 | 5 mall | combine (rift), combine, MID-BOSS, combine, test, BOSS | rift, hunt, holdout, mixp | pusher + cold + steps; pusher + rhythm; weight + heavy + beam; beam + pusher | 9, 10, 12, 9, 12, 13 |
+| 31–36 | 6 vents | combine x2, MID-BOSS, combine, test, BOSS | holdout, dark, puzzle, hunt | steps + mirror; sleeper + glass; mirror + kettle; rhythm + sleeper | 11, 12, 14, 11, 14, 15 |
+| 37–42 | 7 server | **introduce**, develop, MID-BOSS, combine, test, BOSS | puzzle, chase, holdout, chase | LIGHT-EATER alone; light-eater; mirror + weight + light-eater; light-eater + short + pusher | 5, 11, 15, 12, 15, 15 |
+| 43–48 | 8 core | **introduce**, develop, MID-BOSS, combine (rift), test, BOSS | puzzle, holdout, rift, holdout | DRIFTER alone; drifter; dark + pusher + burn; light-eater + kettle + drifter | 5, 11, 15, 14, 15, 15 |
+| 49–50 | | FINAL, EGRESS | | 3 mechanics + a theme | 15 |
+
+#### 3.6.2 The curriculum over ~52 floors
+
+Every mechanic still goes **introduce → develop → combine → test** (3.5). What is new is that the introductions are
+spread across the whole run: each mechanic has a **band**, the biome position it arrives at.
+
+| Biome position | Arrives (band) | Count |
+| --- | --- | --- |
+| 1 | burn, glass | 2 |
+| 2 | cold, step-count routing, patroller | 3 |
+| 3 | short circuit, kettle, heavy wanderer | 3 |
+| 4 | dead weight, sleeper, sentry | 3 |
+| 5 | glitched-glass rhythm, mirror beam, pusher | 3 |
+| 6 | lights out (dark), eater, mirror (the obstacle) | 3 |
+| 7 | follower, light-eater | 2 |
+| 8 | glitch drifter (the glitch core's one twist) | 1 |
+
+That is 20 curriculum mechanics (7 from B1, 3 more puzzle tricks, the 10 living obstacles of 7.7) on top of the basic
+CRTs and drywall. Each also has a **home biome** (burn and glass in the office, cold in the atrium, sentries in the
+server farm ...), which weights it up in that biome's mixes.
+
+**How a biome's stage slots are filled** (deterministic from the run seed and the line's history):
+1. The stage after an introduction is always its **develop** (same mechanic, a notch harder: intro level + 2 + depth / 2,
+   never the biome's full level).
+2. Otherwise, if a mechanic of this band or earlier is unseen by the line, **introduce** it, alone, in a puzzle room at
+   the gentle intro level (2 at biome 1, 5 at biome 8), if its develop still fits in the biome. The lowest band goes
+   first, then this biome's own. The third mechanic of a 3-band waits for the next biome or the next run.
+3. A mechanic the line was introduced to but never developed (the heir died between the two) gets its develop next.
+4. The last stage slot before the boss is the **test**: the hardest mix the slot's level allows.
+5. Anything else **combines** 2 or 3 developed mechanics open at this depth (3 gets likelier with depth: 10% more per
+   biome from biome 4, +15% in a test, +20% in a new cycle), weighted 4x for this biome's band and 3x for its home.
+   Some of these slots are a known mechanic alone instead, a notch harder: 40% in biome 1, falling 6 points a biome to
+   10%.
+6. Biome 4 on adds a **theme** (3.3: PLACE ... ELEMENT) to mixes, 12% more per biome; that is the "fresh twist" in
+   biomes that have nothing new left to introduce.
+
+The line's history is two masks in the save (3.6.10): mechanics **introduced** and mechanics **developed**. A mechanic
+from a later band never appears early, even if the line has met it, so every run still feels like it deepens: the
+office is always about burn and glass, new things always arrive further down. For a line that has met everything, a
+biome opens on its own band in mixes rather than re-teaching it.
+
+**The stage types:** an introduction is always a puzzle room. A develop is a puzzle, or for an obstacle a holdout, chase
+or escort built around it, or a dark room for lights-out, or mix-under-pressure for a recipe trick. Mixes deal from the
+weighted deck (section 4): puzzle 5, holdout 2, chase 2, hunt 2, escort 1, mix-under-pressure 2, dark 2 (once lights-out
+is open), heist 1 (biome 4 on). Stage types arrive with depth too (chase and hunt from biome 2, escort and mix-under-
+pressure from 3). Measured over played stages: puzzle 52%, holdout 10%, chase 8%, hunt 7%, mix-under-pressure 8%,
+dark 5%, escort 4%, heist 2%, rare 6%.
+
+**Bosses close the biome and test its band.** The mid-boss and boss arenas use the band's mechanics as machinery
+(7.5, 7.7: THE TENANT drags MOVERs across the office glass).
+
+**Generations raise the pressure.** The planned level is `base(biome) + wave + min(g, 24) / 6 + 2·(cycle − 1)`,
+clamped to 15. The base is 2 3 5 6 8 9 11 12 by biome position. The wave inside a biome is −1, 0, +1 up to the
+mid-boss, then −1 (release), 0/+1, and +2 for the test; the mid-boss is base + 2 and the boss base + 3. At the cap,
+the pressure moves into themes and 3-mechanic mixes.
+
+![the wave over the full run](shots/run50_wave.png)
+
+`run50_wave.png` (`egplan runsim 1000`, 1,000 runs at generations 1–30, laid out from the front door): the planned
+level per floor for three generation groups, the curriculum floor, the level played after the capped nudge, the
+fights, one run's own wave, and what each floor is.
+
+![introductions and mixes where heirs play](shots/run50_mix.png)
+
+`run50_mix.png` (from the survival model, 3.6.7: only the stages heirs actually reached): the introductions move down
+the run as the line gets deeper. Generations 1–3 meet theirs in biomes 1–3, generations 9–15 in biomes 5–7, and late
+lines meet the drifter and the last obstacles in biomes 7–8. A line of generation 16 or later mixes in **78–90%** of
+its stages in every biome it plays.
+
+#### 3.6.3 Pacing
+
+A stage takes 2–4 minutes (a puzzle about 3, a rare stage about 4), a mid-boss 3, a boss 5, a landing 2. A
+front-door full run is about 34 stages, 16 fights, 7 landings, FINAL and the egress: **about 3 h 10 min.** A run from
+door 7 (the last two biomes) is about 45 minutes. Most runs end earlier: the median run is 8–15 floors.
+
+So the mid-run continue is essential (B3). It saves at every floor start and every landing (3.6.10).
+
+#### 3.6.4 Lineage shortcuts (Rogue Legacy-style)
+
+- **Unlock.** Beating the boss of the biome at position k (2–7) finds **door k**: the entrance of that biome. Door 1
+  is the front door. The glitch core has no door: the last biome is always walked into from the one before it, so a
+  shortcut run is at least two biomes plus the final stretch.
+- **Open (the cost).** A found door is opened at a landing by **LOCK's toll keeper** for 40 x (k − 1) tokens (40 for
+  door 2, 240 for door 7). Partial payments are kept, so a poor heir can pay toward it and a later one finishes it.
+- **Use (the trade-off).** An heir who takes door k:
+  - skips biomes 1..k−1 and everything they hold: the heart shards, pieces and finds a front-door heir would have
+    gathered. **The toll buys a stake:** the keeper hands the heir a starter pack worth about 20 floors of finds (about
+    three quarters of a full run's kit; the model's run-kit term starts at 0.76, not 1). Without the stake a deep door
+    is a trap: in the model, lines that never took a door cleared more often than lines that did (5.5% against 1.3% a
+    run at generation 20);
+  - finds **half the treasure budget** in the first biome after the door ("the stairs are picked clean");
+  - takes a **matrix trace**: REVERSIBLE leans one step toward "it can't be undone" (taking the stairs is fleeing,
+    section 10), and the run is marked SHORTCUT in the stats.
+  - The door is a choice on the heir pick screen (a door row under the three siblings). The deepest open door is the
+    default.
+- **Bytes:** the line progress record (3.6.10), doors found 1, doors open 1, the remaining toll per door 6.
+
+#### 3.6.5 After the first egress
+
+- **Descent (endless).** Unlocked by the line's first egress, from the title (DESCENT, under CONTINUE). Strata of 5
+  mixed stages in a biome drawn fresh (never the last stratum's), a remixed boss, a landing every second stratum.
+  - Nothing is introduced; every slot mixes from everything the line has developed.
+  - The level starts at 12 and rises half a level a stratum to 15. Past that, the pressure stacks themes: 1 theme,
+    then 2 from stratum 4, 3 from stratum 8; 3-mechanic mixes go from 40% to all.
+  - The **leaderboard is on the STATS page** (9.8): the line's five deepest descents (floor, generation, heir). The
+    bytes are in the line progress record, so the STATS record stays as B3 laid it out.
+- **The matrix keeps moving.** Play after the egress still leans the four axes (section 10). The egress marks the
+  question it asked. A different ending question needs a different lean, and **new truths can surface**: four deep
+  truths open only to a line that has already asked a question (a second egress, a descent past stratum 6, a new
+  cycle, all four axes past ±96). They are delivered the same way (whispers, boss lines, the book's margins), never as a
+  reveal. Bytes: endings asked 2, truths surfaced 1.
+- **New cycle (optional).** Offered at the egress ("THE BUILDING SETTLES. AGAIN?"). The world reassembles:
+  - a new cycle seed: a new biome order and new stage counts;
+  - **the calamity shifts:** the truth matrix's starting lean rotates, and the bosses lie about a different axis;
+  - the doors close (it is a different building), but the line keeps its genes, its inheritance and its history;
+  - **harder:** +2 levels per cycle, 3-mechanic mixes +20%, themes +20%;
+  - **new mechanic combos:** one mechanic moves across each band boundary (2→3 ... 6→7), so mechanics arrive next to
+    neighbours they never met before.
+
+#### 3.6.6 Difficulty: HARD, and fair
+
+Two things stay separate:
+- **Build fairness stays.** No build or breeding strategy beats random picks by more than a few points (9.4, 13).
+- **Absolute difficulty goes way up.** For a skilled player: a first heir rarely gets past biome 2–3, a full clear
+  takes many generations and shortcuts, and the clear rate per run stays in the low single digits until the line is
+  strong.
+
+What makes it hard in the game (the model's knobs in 3.6.7 stand for these):
+- **Hearts:** start at 4. A heart shard drops from each mid-boss and boss (4 shards make a heart), not every 2 floors.
+  No healing between floors. A landing restores 2 hearts. The trader sells healing at a price.
+- **Bosses are punishing but fair:**
+  - every attack has a tell of at least 24 frames, and a fixed tell per attack family, so a fight is learnable across
+    heirs (the model gives a boss +0.3 ability per earlier attempt, up to +1.5);
+  - nothing hits off screen, nothing hits without a tell, there is no damage roll;
+  - **the no-hit bot:** the stage sim plays every boss template with perfect inputs and must take 0 damage, so a hit
+    is always avoidable (the player's fault);
+  - phase 3 slams take 2 hearts, there are no heals in the arena, and an enrage timer stops a turtle;
+  - 20–25 good hits over 3 phases (13).
+- **Late-run puzzles are genuinely hard mixed rooms:** tier 4–5 (level 12–15), 3 mechanics plus a theme, and the bake
+  asks more of them: a dead-end share of at least 25%, a first fatal move within 8 acts, 3 or more insights.
+
+#### 3.6.7 The survival model (`egplan survive`, `tools/plot_survival.py`)
+
+A line of heirs played by a skilled player, one heir (one run) per generation, 4,000 lines x 40 generations, through
+the real layout (`eg_run_build`) and the real capped nudge.
+- **Death on a floor:** `P = 0.006 + 0.85·logistic((challenge − ability) / 1.345)`.
+- **Challenge:** 0.607 x the level after the nudge, plus the stage type's pressure (holdout and chase +0.8, escort and
+  mix-under-pressure +0.9, a 3D stage +1.0, a rift +1.6), +0.4 per theme, and +0.7 per mechanic the line hasn't met.
+  A mid-boss adds 1.22, a boss 2.99 (less what the line has learned of that fight), the final room 4.2 (it passes 40%
+  of the heirs who reach it at generation 20 and 50% at 40).
+- **Ability:** the player's skill (6.2, growing by up to 2.45 over 200 floors played), biome familiarity (up to +1),
+  the line's strength (inherited mods, recipes and bounded genes: up to +3.0, time constant 6 generations), the run's
+  kit (up to +1 over 14 floors; a door start begins at the toll's stake, 20 floors' worth), and the heir's build
+  (σ 0.35; the best bred strategy adds +0.21 on a young line, falling to 0 as the line reaches full strength: 9.4's
+  shared ceiling).
+- **Doors:** found on a boss kill, paid at landings (7 tokens a floor), and the deepest open one is taken.
+- **The front-door arm:** 4,000 more lines (random picks) that never take a door, for the front-door clear rate.
+
+The knobs were tuned to the targets by a random search, then by hand. They are constants at the top of the model in
+`host/egrun.c`, and `EGSURV="NAME=value,..."` overrides them for tuning.
+
+![survival by biome and the full-clear rate](shots/run50_survival.png)
+
+**% of runs reaching each biome** (a run that starts at a door has reached it):
+
+| Generation | biome 2 | 3 | 4 | 5 | 6 | 7 | 8 | **egress** |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 49.2 | 18.9 | 5.3 | 0.7 | 0.0 | 0.0 | 0.0 | **0.00** |
+| 5 | 98.7 | 91.1 | 66.7 | 31.9 | 11.2 | 2.0 | 0.2 | **0.00** |
+| 10 | 100 | 100 | 97.9 | 81.8 | 49.5 | 14.9 | 2.9 | **0.07** |
+| 20 | 100 | 100 | 100 | 99.9 | 94.2 | 53.5 | 20.2 | **2.1** |
+| 30 | 100 | 100 | 100 | 100 | 99.8 | 90.0 | 45.5 | **8.1** |
+| 40 | 100 | 100 | 100 | 100 | 100 | 99.2 | 58.9 | **16.2** |
+
+- **A first heir** dies in biome 1 half the time. 18.9% reach biome 3 and 5.3% reach biome 4.
+- **The full-clear rate per run** is 0.02% over generations 1–10, 0.9% over 11–20, 5.3% over 21–30 and 13.7% over
+  31–40.
+- **The first egress** comes at generation 26 / 32 / 38 (quartiles); 19% of lines have none by generation 40.
+- **Doors carry the line** (`run50_doors.png`): the most-taken door is door 3 at generation 5 (51%), door 4 at 10
+  (53%), door 6 at 20 (68%) and door 7 at 30 (76%) and 40 (98%).
+- **A front-door full clear** (all ~52 floors in one run, about 3 hours) is counted on its own by the front-door arm:
+
+  | Generation | 10 | 15 | 20 | 25 | 30 | 35 | 40 |
+  | --- | --- | --- | --- | --- | --- | --- | --- |
+  | never takes a door | 0.10 | 0.83 | 2.3 | 3.6 | 5.2 | 5.9 | **7.5** |
+  | takes the deepest open door | 0.07 | 0.65 | 2.1 | 5.1 | 8.1 | 14.1 | **16.2** |
+
+  Up to about generation 22 the two are level (a line that never pays a toll has the same floors of experience in
+  one long run). After that the doors pull ahead, and by generation 40 they double the rate. So most lines clear
+  through the doors, and a front-door clear stays the feat the STATS page counts separately.
+- **The nudge** softens 0.5% of the stage slots in the waves sim, and never under the floor.
+
+![doors taken by generation](shots/run50_doors.png)
+
+**Build fairness over a long run.** On one stage the best bred strategy is +3.7 points over random picks (the 9.3
+bred-lines table). Over a 52-floor run a constant edge compounds, and it grows with the clear rate, so the late
+generations show it most. Best bred minus random on the egress rate per run, 8,000 lines x 40 generations (the first
+four rows before the door stake, with the final room at 2.6):
+
+| Bred edge in the model | Worst single generation, 10–40 | Worst 5-generation window |
+| --- | --- | --- |
+| constant +0.21 (+3.7 a stage, as measured) | +9.0 points (generation 37) | +7.7 |
+| constant +0.105 (halved) | +4.2 | +3.4 |
+| constant +0.05 (a quarter) | +3.3 | +1.9 |
+| +0.21 on a young line, falling to 0 at full strength | +1.4 | +1.0 |
+| **the same, with the adopted knobs (4,000 lines)** | **+2.0** (generation 26) | **+0.9** |
+
+Halving the edge is not enough on its own. **The lever is 9.4's shared ceiling:** breeding decides how an heir
+reaches the line's ceiling, not how high it is. A young line's picks matter in full; by the time lines clear, a
+random line has caught up. The adopted model meets the target (13): within +3 points of random at every generation
+from 10 to 40. Over generations 26–35 the two egress at 9.6% and 8.9% a run.
+
+#### 3.6.8 The capped nudge
+
+The adaptive bias may never make it easy:
+- **Hardening is free:** a fast clean clear moves the next room on that mechanic up a notch, to at most +2.
+- **Softening needs repeated failure:** two failed rooms running on one mechanic (2+ resets, or the room was lost).
+  Then it softens by **at most 1 level**, and only once, until a clean clear puts it back on plan.
+- **Never under the curriculum floor:** a stage's level after the nudge is at least `base(biome) + pressure − 1`, and
+  never more than 1 under its plan. Introductions, fights and the final room are never softened.
+- `eg_nudge_level` and `eg_nudge_result` are shared by the slice and the full run. `egplan check` drives 20,000
+  random result streams and every laid-out slot through them: 0 under the floor, 0 past the cap, 0 softening without a
+  streak.
+
+#### 3.6.9 The seed bank and the ROM
+
+**Demand.** The survival model records every room a line draws in its first 30 generations, by cell: the lead mechanic
+x mix size (2 or 3) x curriculum class x stage type x tier. A cell holding n rooms that a line plays v times repeats
+about v²/2n of them (the birthday bound, an upper bound). The cheapest pool that meets a repeat target sizes each cell
+by √E[v²], with at least 4 rooms a cell so no run repeats inside itself (`tools/seed_bank.py`,
+`docs/shots/run50_seed_bank.json`).
+
+**The rule that keeps it small:** a baked room serves a slot when it holds the slot's lead mechanic and nothing outside
+the slot's open set. The planner then takes the room's own mechanics as the slot's. Keying the bank by exact mechanic
+sets instead needs 7,135 room cells and about 490 KB, which doesn't fit.
+
+| Repeat target (a line's first 30 generations) | Puzzle-family rooms (puzzle, mix under pressure, dark) | Stage seeds (holdout, chase, hunt, escort, heist) | Total |
+| --- | --- | --- | --- |
+| ≤ 10% repeats | 564 cells, effective pool 3,306 → **2,449 records x 6 B = 14.7 KB** | 845 cells, pool 4,739 → **6,319 x 5 B = 31.6 KB** | **46.3 KB** |
+| ≤ 5% repeats (**recommended**) | pool 5,796 → **4,294 x 6 B = 25.8 KB** | pool 8,397 → **11,196 x 5 B = 56.0 KB** | **81.7 KB** (+ a 2 KB directory) |
+
+- A line draws about 132 puzzle-family rooms and 74 other stages in 30 generations.
+- **Rooms by tier** (10% target): 109 / 416 / 410 / 734 / 820 / 817. **By class:** introduce 227, develop 827, mix
+  2,252. The deep tiers need the most, because that is where long lines spend their runs.
+- **A room record, 6 B:** seed 2; mechanic-set index 1 (into a table of the sets that occur, at most 256); level and
+  insights 1; trick (5 bits) and variant mask (3 bits) 1; biome mask 1. The bake verifies each record's transforms (an X mirror, a
+  herring swap) and its biome reskins (which biomes' fragile kinds map onto its own). The estimate assumes 1.8
+  verified variants per seed and 75% of biomes; the first B4 bake measures both. The table is sorted by (set, tier),
+  so a 2 KB directory gives each set's range and the pick stays a table scan of one range.
+- **A stage record, 5 B:** seed 2, the stage sim's budget and condition count 1, type and tier 1, a biome mask 1.
+- **Generated on the cart, no bank:** 3D mazes (the world generator's mazes are solvable by construction; a flood fill
+  checks the exit), glitch rifts (a stage seed plus rift modifiers), sky stages (built on the event). That is 17.3
+  plays per line in 30 generations.
+- **Descent** reuses the deep tiers in every biome with stacked themes. Repeats there are expected and fine.
+- **The B1 table** (768 x 12 B = 9.2 KB) is replaced by the B4 bank.
+
+**ROM ledger** (gate 1,900,000 bytes; settled with the B3 STATS session on 2026-10-15):
+
+| Item | Bytes |
+| --- | --- |
+| current ROM (code, heir data and art, office look, B1 seeds), measured | 475,136 |
+| title (3 pre-baked walks), 479 KB | 490,496 |
+| 3D stage tables (cap) | ≤ 393,216 |
+| seed bank (5% target) plus its directory | 81,744 + 2,048 = 83,792 |
+| less the B1 seed table it replaces | −9,216 |
+| **total** | **1,433,424** (~1.42 MB) |
+| **left for B2–B7 code, art and music** | **466,576** (about 456 KB; the STATS session's round figure is ~480 KB) |
+
+- **Estimates for B2–B7** (not measured): 7 biome looks at ~6 KB each (the office's is 4.6 KB), 42 KB; the mob look
+  generator and families ~24 KB; 16 boss and mid-boss templates and arenas ~40 KB; music ~16 KB; sky scenes 14 KB
+  (19.5); talk and lore text ~12 KB; the full-run planner 7.2 KB (measured under sdcc); the stage generator ~8 KB.
+  That is about **163 KB**, which leaves about 300 KB of margin. The 3D stages' own tables (38 KB measured in 15.1,
+  plus billboard frames at 9–10.5 KB a mob variant) sit inside their 384 KB cap.
+- **If the bank ever has to go:** generate puzzles on the cart with a lightweight verify. The backwards generator
+  already runs on the cart. The cart replays the generator's own plan forward under the cart's rules, running the 3.4
+  flood fill after each step (≤ 80 steps x ~9,000 M-cycles ≈ 0.72 M M-cycles ≈ 21 frames at double speed, inside the
+  room's ~60-frame assembly). That proves the room solvable and protected-cell safe. It cannot prove trick necessity
+  or herring safety (they need the host solver), so on-cart rooms would be a fallback for deep descent strata only,
+  never the curriculum.
+
+#### 3.6.10 Saves: the mid-biome resume and the line progress (9.5)
+
+**The mid-run continue record** (A at `0xA040`, B at `0xA140`, 256 B each; the higher valid sequence wins). It is
+written at every floor start (after the room is picked, before it assembles) and at every landing. HP is rewritten (with
+the CRC) on every hit, so pulling the power never heals. A death or the egress clears both. On resume, the layout is
+rebuilt from the run inputs (`eg_run_build` is deterministic), and the heir re-enters that floor's assembly or that
+landing.
+
+| Offset | Size | Field |
+| --- | --- | --- |
+| `0x00` | 4 | version, sequence, state (0 none, 1 floor start, 2 landing), mode (story / descent) |
+| `0x04` | 2 | run seed |
+| `0x06` | 2 | cycle seed |
+| `0x08` | 2 | cycle, door taken |
+| `0x0A` | 2 | generation (u16) |
+| `0x0C` | 4 | heir ring slot, descent stratum, today's sky event, spare |
+| `0x10` | 6 | mechanics introduced and developed **at run start** (3 + 3; the layout's inputs) |
+| `0x16` | 6 | resume point: slot index, floor, the room's seed (2), tier, variant bits |
+| `0x1C` | 20 | the nudge: per curriculum mechanic, bias (3 bits, signed) and failure streak (3 bits) |
+| `0x30` | 16 | rooms played this run (a 128-bit Bloom of bank indices: no repeats inside a run) |
+| `0x40` | 69 | the heir: HP now 1, max hearts 1, shards 1, tokens 2, keycards 1, pocket 6 x 5, weapon base + 4 mods 5 x 5, recipes known this run 5, run buffs 3 |
+| `0x85` | 12 | matrix this run: truth deltas 4, faction deltas 6, room-forgot traces 2 |
+| `0x91` | 4 | treasure: found, offered, relics carried 2 |
+| `0x95` | 16 | the run's counters for STATS (9.8's stage accumulator, folded in at the run's end) |
+| `0xA5` | 3 | RNG state 2, sky stage used 1 |
+| `0xA8` | 86 | spare |
+| `0xFE` | 2 | CRC-16 |
+
+**170 bytes are used (with the CRC) and 86 are spare.** The old row's "room state delta" is gone: a resume always re-enters at a
+floor start, so no mid-room state is kept.
+
+**The line progress record** (new, A at `0xA2C0`, B at `0xA300`, 64 B each, taken from the 240-byte free run):
+
+| Offset | Size | Field |
+| --- | --- | --- |
+| `0x00` | 2 | version, sequence |
+| `0x02` | 2 | doors found, doors open (bit k − 1 = door k, the entrance of biome k; bit 0, the front door, always set) |
+| `0x04` | 6 | toll left per door 2–7, in units of 4 tokens (≤ 60) |
+| `0x0A` | 2 | cycle seed (the world order of this cycle) |
+| `0x0C` | 4 | cycle, egresses (u8, saturating; 0 keeps descent locked), calamity shift, flags (front-door clear done, new cycle offered) |
+| `0x10` | 6 | mechanics introduced, mechanics developed (20 bits each, as 3 bytes) |
+| `0x16` | 4 | endings asked (16 bits), truths surfaced (4 bits), spare |
+| `0x1A` | 30 | descent leaderboard: 5 x (deepest descent floor u16, generation u16, heir hash u16) |
+| `0x38` | 6 | spare |
+| `0x3E` | 2 | CRC-16 |
+
+The B1 cart keeps its 7 seen bits in the meta record's seen word (`MK_FROM_SEEN`). B4 moves them here.
+
+**Claimed in 9.5 by run50:** `0xA040`–`0xA23F` (the continue records, contents redefined) and `0xA2C0`–`0xA33F` (the
+line progress pair, 128 B). `0xA340`–`0xA3AF` (112 B) stays free. `tools/mock/stats_save.py` checks the whole map
+with these rows: **5,241 used, 2,951 free.**
+
+#### 3.6.11 Verification (`make test` runs `egplan check 1000`)
+
+The check plays the B1 slice as before, then lays out 1,000 full runs over lines of 25 heirs (with deaths, doors and
+cycles 1–3; a quarter of them from arbitrary saves at arbitrary doors), plus 160 descent strata:
+
+```
+floors per front-door run: 50..55, mean 52.3
+structure breaks 0; band breaks 0; introduce -> develop -> combine ordering breaks 0
+introductions 4495, not alone/gentle 0; develop not right after its introduction 0
+back to back: same mechanics at the same level 0, same stage type 0, two rare stages 0
+nudge under its floor or past its cap 0; descent slots that don't mix 0
+fresh line, whole layout: every position introduces (of 40): 80 80 82 83 83 83 85 80
+progressive lines: introduced in its own biome 66.5%, one later 29.0%, two later 4.5%, later 0.0%
+mixed share by biome position:    54%   55%   52%   48%   43%   40%   78%   86%  (late biomes 78%)
+```
+
+It fails on any break: structure (biome order, 4–6 stages, mid-boss and boss placement, landings, 50–57 floors),
+bands, ordering, introductions alone and gentle, develop-after-introduce, back-to-back repeats, the nudge cap, the
+spread (every biome but the last introduces something on a fresh line), and late biomes under 60% mixed.
 
 ---
 
@@ -447,15 +847,16 @@ to back and keeps a "seen" history (the last 6 types and the last 10 tricks) so 
 **Escalation.**
 - Every stage is scored by its generator: solver steps for puzzles, the enemy budget (sum of mob cost), the
   condition count (how many kill/gate conditions must be met) and modifiers.
-- The **target difficulty** for depth `d` and generation `g` is `D(d,g) = base + 6·d + 2·min(g, 8)`, with ±15%
-  jitter. The generator rerolls until the stage lands in the band, so the score rises by depth (monotonic-ish, with
-  some easy breathers) and slowly by generation.
-- **Run shape** (8 floors): 3–4 stages per floor plus a landing; a mid-boss on floor 4, the boss on floor 8; one
-  optional rift per run on average.
-- **Biome order** is generated per run, under these constraints:
+- The **target level** per slot comes from the run planner (3.6.2): the biome's base, the wave, the generation and
+  the cycle. The generator rerolls (or the planner picks from the bank) until the stage lands in the band.
+  (The prototype sim below used `D(d,g) = base + 6·d + 2·min(g, 8)` over 8 floors.)
+- **Run shape:** about 52 floors over 8 biomes, each 4–6 stages plus a mid-boss and a boss, landings between, then
+  the final stretch and the egress (3.6.1). Rare stages (3D, rifts, sky events) take combine slots.
+- **Biome order** is generated per **cycle** (fixed for a family until a new cycle, so the shortcut doors of 3.6.4 mean
+  something):
   - the glitch core is always last;
   - the office or the vents comes first;
-  - no biome appears twice in a row.
+  - every biome appears once.
 - The biome sets which recipes and elements are common (the flooded atrium is WET-heavy and COLD-useful, the server
   farm is ELECTRIC, the dream garden is ALIVE).
 
@@ -1542,6 +1943,13 @@ Reading it:
 - **Recessives reappear through the pool**: blink still shows up at 13–18% in lines that never picked for it.
 - **About 6% of children carry a new trait.**
 
+**One shared ceiling (the run50 fairness rule, 3.6.7).** What a bred line gains (its traits, affinities and stat
+genes) and what every line gains (inherited mods, recipes) fill one ceiling per heir. Breeding decides how an heir
+reaches it, not how high it is: the bred bonus an heir can express is clamped to the ceiling less the line's strength.
+On a young line the picks matter in full (+3.7 points a stage for the best strategy, the 9.3 table). By the time lines
+reach the egress, a random line has nearly caught up. Over the ~52-floor run the best bred strategy then stays within
++2 points of random picks on the egress rate at every generation from 10 to 40 (survival model, 4,000 lines). A
+constant edge would compound to +9.
 
 The face trees (`proto/genetics/out/tree_heavy.png`, `tree_random.png`) show 3 siblings per generation over 30
 generations, with the played heir outlined. Siblings resemble each other and their parent, and skin and hair drift
@@ -1569,10 +1977,12 @@ both tree copies fit (`tree_report.json`, entry "save").
 | --- | --- | --- |
 | `0xA000`–`0xA01F` | 32 | meta record A (save version, settings incl. 4/8-way, volumes, sequence, CRC-16) |
 | `0xA020`–`0xA03F` | 32 | meta record B (mirror) |
-| `0xA040`–`0xA13F` | 256 | mid-run continue record A (floor, stage seed, HP, pocket, weapon pieces, room state delta, CRC) |
+| `0xA040`–`0xA13F` | 256 | mid-run continue record A (run50, 3.6.10: run inputs, resume point, nudge, heir, matrix and counters for the run; 170 used, 86 spare) |
 | `0xA140`–`0xA23F` | 256 | mid-run continue record B |
 | `0xA240`–`0xA2BF` | 128 | sky event scenes (section 19: 17 seen bytes, 4-byte gallery mask, 24 first-seen minutes; 117 used, 11 spare) |
-| `0xA2C0`–`0xA3AF` | 240 | **free** (the old 16 x 20 lineage rows lived here) |
+| `0xA2C0`–`0xA2FF` | 64 | **line progress record A** (run50, 3.6.10): shortcut doors and tolls, cycle, egresses, mechanics introduced and developed, endings and truths, the descent leaderboard |
+| `0xA300`–`0xA33F` | 64 | **line progress record B** (the same layout; the higher valid sequence wins) |
+| `0xA340`–`0xA3AF` | 112 | **free** (the old 16 x 20 lineage rows lived here) |
 | `0xA3B0`–`0xA3EF` | 64 | inheritance: mods unlocked 8, known recipes 6, forgotten 6, faction trace 6, truth leaning 8, reserved 28, CRC 2 |
 | `0xA3F0`–`0xA46F` | 128 | seen history: tricks, stage types and biomes recently dealt; book bits for the recipes; talks heard; treasure tallies |
 | `0xA470`–`0xA56F` | 256 | book: best tallies per stage type (4b), recipe margins. The lifetime stats moved to their own record (9.8) |
@@ -1589,12 +1999,12 @@ both tree copies fit (`tree_report.json`, entry "save").
 | `0xBF00`–`0xBFFE` | 255 | **free** |
 | `0xBFFF` | 1 | reserved: the byte the RTC build's register access goes through (16b), never used for save data |
 
-- **Used: 5,113 bytes. Free: 3,079 bytes**, in four runs: 240 at `0xA2C0`, 1,368 at `0xAF68`, 1,216 at `0xB740`
-  and 255 at `0xBF00`. Before B3 it was 4,345 used and 3,847 free.
-- **B3's claim is `0xBC00`–`0xBEFF` (768 bytes, the STATS A/B pair) and nothing else.** The other rows are run50's
-  to change: its shortcut and mid-run resume rows should come from the `0xA2C0`, `0xAF68` or `0xB740`–`0xBBFF`
-  runs. `tools/mock/stats_save.py` checks this map: contiguous, ending at `0xC000`, and the claim clear of every
-  other row.
+- **Used: 5,241 bytes. Free: 2,951 bytes**, in four runs: 112 at `0xA340`, 1,368 at `0xAF68`, 1,216 at `0xB740`
+  and 255 at `0xBF00`. Before B3 it was 4,345 used and 3,847 free; B3 made it 5,113 / 3,079.
+- **run50's claim is `0xA2C0`–`0xA33F` (128 bytes, the line progress A/B pair, new)** plus the contents of the
+  existing continue records at `0xA040`–`0xA23F` (3.6.10). Nothing else moved.
+- **B3's claim is `0xBC00`–`0xBEFF` (768 bytes, the STATS A/B pair) and nothing else.** `tools/mock/stats_save.py`
+  checks this map: contiguous, ending at `0xC000`, and both claims clear of every other row.
 - **The lineage** (both tree copies plus inheritance) is 2,616 bytes, up from 432 for the first 16 x 20 ring.
 - **24 heirs fit with room to spare.** Between the book (it ends at `0xA56F`) and the kept clock (`0xB4C0`) there are 3,920
   bytes; two copies of the tree block take 2 x (100 + 49 x N), so the largest ring that fits there is **37 heirs**
@@ -2689,8 +3099,9 @@ Every text screen gets a layout test in the harness, which renders every string 
 - setup (4/8-way, music and SFX volume, palette assist);
 - ending (the question).
 
-**Mid-run continue:** the run is saved at every stage entry (SRAM records above), and continuing resumes at that
-stage's assembly.
+**Mid-run continue:** the run is saved at every floor start and every landing (the continue record, 3.6.10), and
+continuing resumes at that floor's assembly or that landing. With a ~3-hour full run, this is what makes a run
+playable in sittings. Pulling the power never heals: HP is rewritten on every hit.
 
 ---
 
@@ -2972,12 +3383,34 @@ phase's palette set, so no tile has more than 4 colours, and it counts sprites p
 
 ## 13. Balance targets (folded in)
 
-- **Boss:** 20–25 good hits over 3 phases; mid-boss: 10–12.
-- **Hearts** start at 4; the SMALL trait costs 1; a heart shard is found every 2 floors.
-- **Prices:** tune so that a full-clear run can buy 2 of 3 shop items.
+The run is ~52 floors (3.6). The targets are for a skilled player and are checked by the survival model
+(`egplan survive`, 3.6.7), then by the harness bot once the biomes exist.
+- **HARD, in absolute terms:**
+  - a first heir dies in biome 1 about half the time, reaches biome 3 about 1 run in 6 and biome 4 about 1 in 20
+    (model: 49.2% / 18.9% / 5.3%);
+  - the egress (a full clear, from any door) per run: under 0.5% before generation 10, about 1–2% at 20, about
+    5–9% at 30 (model: 0.07%, 2.1%, 8.1%); the first egress comes around generation 25–40 (quartiles 26 / 32 / 38);
+  - a full clear needs the shortcut doors: by generation 20 most heirs start at door 6, and from about generation 23 a
+    line that takes the doors clears more often than one that doesn't (16.2% against 7.5% a run at 40);
+  - the front-door clear (no shortcuts) is reported on its own (model: 0.1%, 2.3%, 5.2% and 7.5% a run at
+    generations 10, 20, 30 and 40). It is a 3-hour run, the feat the STATS page counts.
+- **Fair:** every boss attack has a 24-frame tell and the no-hit bot clears every template untouched; every puzzle is
+  solver-verified; an unseen mechanic only ever arrives alone.
+- **The nudge never makes it easy:** at most one level softer, only after two failures running, never under the
+  curriculum floor (3.6.8).
+- **Boss:** 20–25 good hits over 3 phases; mid-boss: 10–12. A biome boss is the run's wall: about 0.3 ability per
+  earlier attempt is what the line learns of it.
+- **Hearts** start at 4; the SMALL trait costs 1; a heart shard drops from each mid-boss and boss (4 make a heart). No
+  healing between floors; a landing restores 2.
+- **Prices:** tune so that a run that reaches the egress from a door can buy 2 of 3 shop items; a door toll costs a
+  generous heir's whole purse (40 x (k − 1) tokens) and buys a stake of about 20 floors of finds (3.6.4).
+- **Pacing:** a stage 2–4 minutes; a front-door full run about 3 h 10 min; a run from door 7 about 45 minutes.
 - **Bot runs without invincibility.** A harness bot plays generated runs and reports the floor reached, the deaths
-  by cause, and the tokens over time; prices and hearts are tuned from it.
-- **Build spread:** no archetype above ≈ 60% clear rate in the sim (the same bar CRUCIBLE used), none useless.
+  by cause, and the tokens over time; prices, hearts and the model's knobs are tuned from it.
+- **Build spread:** no archetype above ≈ 60% clear rate per stage in the sim (the same bar CRUCIBLE used), none
+  useless. **And over the whole run:** a bred strategy stays within +3 points of random picks on the egress rate at
+  every generation from 10 to 40 (model: at most +2.0). A constant edge compounds (+3.7 a stage gives +9 by
+  generation 37), so the bred edge falls with the line's strength: 9.4's shared ceiling (3.6.7).
 
 ---
 
@@ -3518,15 +3951,21 @@ left in cycles. The ledger is folded in here when the fullscreen work lands (15.
    VRAM budget.
 2. **Puzzles:** pocket, bench, recipe subset, trait verbs, the backwards generator + solver, the bake.
 3. **The matrix:** pieces, the reaction table, weapons/mods, particles/FX/SFX.
-4. **Mobs, elites, conditions, stage types, biomes**; the stage sim.
+4. **Mobs, elites, conditions, stage types, biomes**; the stage sim. With the biomes comes the **full ~52-floor run**
+   (3.6): `EG_FULL_RUN` on the cart, the B4 seed bank (keyed by lead mechanic and tier, 3.6.9), the landings and the
+   final stretch. Until then the cart plays the B1 slice.
 5. **Heirs, lineage, save, tree screen**; story fragments and the truth matrix.
+   - **B3 (run50's half)** includes the mid-run continue record and the line progress record (3.6.10), the shortcut
+     doors, their toll and the stake it buys (3.6.4), and 9.4's shared ceiling (the bred bonus clamped to the ceiling
+     less the line's strength), checked against the survival model's fairness line (3.6.7).
    - **B3 (saves)** includes the STATS record at `0xBC00`–`0xBEFF`, the stage accumulator and its commit at stage end
      and death, the STATS screen (title and pause menus) and the record toasts (9.8). The checks:
      `stats_save.py` (layout, CRC, A/B, saturation, favourites, SRAM map) and `stats_mock.py` (CGB limits).
-6. **Bosses.**
+6. **Bosses** (with the no-hit bot, 3.6.6).
 7. **Music system.**
 8. **Title + FPS stages** (if the raycaster numbers hold up).
-9. **Balance passes** with the bot.
+9. **Balance passes** with the bot, against the survival targets (13, 3.6.7).
+10. **After the egress:** descent, new cycles, the deep truths (3.6.5).
 
 Each milestone ships with its harness checks and screenshots.
 
@@ -3662,6 +4101,9 @@ it is exact and needs no solver on the boot path.
 
 ### 19.4 Gameplay ties
 
+- **Sky event stages (3.6.1):** on an event day the run planner deals one sky stage into a combine slot (biome 2 on).
+  The room is built on the event (the eclipse's dark room, the meteor shower's falling wish stars), and its SKY TODAY
+  effects hold for that stage. Sky stages are generated on the cart, with no seed bank.
 - **SKY TODAY:** each scene closes on the caption pages of its SKY TODAY row. The effects and values are 9.7.7's,
   the same numbers the balance sim runs. Each page is two 19-glyph lines: white is the row; yellow | pink is the
   effect | its value. The font has no `%`, so foe and pickup numbers are the chart screen's points (+2 = +2%), and

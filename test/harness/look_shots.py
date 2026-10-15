@@ -12,6 +12,9 @@ Writes, from power-on on a blank save, headless and deterministic:
   b1_look_death.gif        the world letting go around a body (2x): the death collapse keeps the 8 neighbours
   b1_fragile_room.png      the fragile floors in a room (1x and 3x): worn carpet's three stages, a ceiling tile's two,
                            glass, glitched glass and a pit, set through the look's skins beside ordinary floor
+  b1_items_room.png        a room's pieces as their item cards (1x and 3x): the floor play.py starts on, then a piece of each
+                           kind laid on the slabs around the player, and a cell of thin ice and cracked ice
+  b1_floor_vs_mock.png     docs/shots/mock_room.png (left) beside that floor as the game draws it (right), the same scale
   b1_fragile_break.gif     the glitched glass's beat, worn carpet stepped through its stages, then each kind breaking
                            (3x)
 and checks: the room assembles (look_busy_n reaches 0, the game reaches MODE_PLAY), every cell on screen is back in
@@ -79,7 +82,7 @@ def fragile(rom: Path, out: Path) -> dict:
     a = g.addr("room")
     for c in range(224):  # floor first, as in run 1
         x, y = c % 16, c // 16
-        if g.pb.memory[a + c] & 0x0F == 1 and ((x // 3) + (y // 2)) % 4:
+        if g.pb.memory[a + c] & 0x1F == 1 and ((x // 3) + (y // 2)) % 4:
             g.pb.memory[a + c] = 0
     while g.peek("game_mode") != H.MODE_PLAY and g.frames < 4000:
         g.tick()
@@ -99,7 +102,7 @@ def fragile(rom: Path, out: Path) -> dict:
         xs = [x for x in range(x0, x0 + len(show) + 1)]
         if xs[-1] > 14:
             continue
-        walls = sum(1 for x in xs if g.pb.memory[room + y * 16 + x] & 0x0F in (2, 7))
+        walls = sum(1 for x in xs if g.pb.memory[room + y * 16 + x] & 0x1F in (2, 7))
         if best is None or walls < best[0]:
             best = (walls, y, xs)
     if best is None:
@@ -162,6 +165,94 @@ def fragile(rom: Path, out: Path) -> dict:
     return rep
 
 
+ROOM_NITEM = 241  # eg_room: c[224], start, door, keys, tokens, nspawn, spawn[6], spawn_kind[6], nitem, item_cell[6],
+ROOM_ITEM_CELL = 242  # item_piece[6] (src/core/eg_room.h)
+ROOM_ITEM_PIECE = 248
+
+
+def labelled(img: Image.Image, label: str, scale: int) -> Image.Image:
+    from PIL import ImageDraw
+    big = img.resize((img.width * scale, img.height * scale), Image.NEAREST)
+    out = Image.new("RGB", (big.width, big.height + 20), (24, 22, 32))
+    out.paste(big, (0, 20))
+    ImageDraw.Draw(out).text((4, 4), label, fill=(236, 220, 255))
+    return out
+
+
+def items(rom: Path, out: Path) -> dict:
+    M = look_ids()
+    rep: dict = {}
+    g = H.Game(rom)
+    ok = H.start_run(g, god=True, no_enemies=True)
+    g.tick(45)
+    room = g.addr("room")
+    mem = g.pb.memory
+    n0 = mem[room + ROOM_NITEM]
+    natural = [mem[room + ROOM_ITEM_CELL + k] for k in range(n0) if mem[room + mem[room + ROOM_ITEM_CELL + k]] & 0x1F == 17]
+    rep["items_in_room"] = n0
+    floor = frame(g)
+    mock = Image.open(out / "mock_room.png").convert("RGB")
+    k = max(1, mock.width // 160)  # the same scale: the mock is drawn at k x the screen
+    a = labelled(mock, "mock_room.png (target)", 1)
+    b = labelled(floor, "the B1 floor (b1-items, PyBoy), %dx" % k, k)
+    vs = Image.new("RGB", (a.width + 16 + b.width, max(a.height, b.height)), (24, 22, 32))
+    vs.paste(a, (0, 0))
+    vs.paste(b, (a.width + 16, 0))
+    vs.save(out / "b1_floor_vs_mock.png")
+    # every kind: six at a time on carpet around the player (the room's item list holds six), then thin ice
+    px, py = g.peek("pl_x") >> 4, g.peek("pl_y") >> 4
+    cx, cy = g.peek("cam_x"), g.peek("cam_y")
+    spots = []
+    for c in range(224):
+        x, y = c % 16, c // 16
+        sx, sy = x * 16 - cx, y * 16 - cy
+        if mem[room + c] & 0x1F == 0 and (x, y) != (px, py) and 0 <= sx <= 144 and 0 <= sy <= 96:
+            spots.append((abs(x - px) + abs(y - py), c))
+    spots = [c for _, c in sorted(spots)][:8]
+    skin = g.addr("look_skin")
+
+    def redraw(c: int) -> None:
+        mem[skin + c] = 0
+        g.poke("look_dbg_cell", c)
+        g.poke("look_dbg_kind", 0x80)  # applies "no skin" and redraws the cell
+        g.tick()
+
+    shots = []
+    seen = set()
+    for first in range(1, 17, 6):
+        pieces = list(range(first, min(first + 6, 17)))
+        for c in natural:
+            mem[room + c] = 0
+            redraw(c)
+        mem[room + ROOM_NITEM] = len(pieces)
+        for k, p in enumerate(pieces):
+            c = spots[k]
+            mem[room + ROOM_ITEM_CELL + k] = c
+            mem[room + ROOM_ITEM_PIECE + k] = p
+            mem[room + c] = 17
+            redraw(c)
+        if first == 13:  # the last four: and the two stages of thin ice
+            for k, t in ((6, 29), (7, 30)):
+                mem[room + spots[k]] = t
+                redraw(spots[k])
+        g.tick(4)
+        natural = spots[: len(pieces)]
+        shots.append(frame(g))
+        vram_ok = all(g.peek("meta_pal", M["ITEM0"] + p - 1) & 0x80 for p in pieces)
+        seen.add(vram_ok)
+    strip = Image.new("RGB", (160 * 3 + 16, 144), (24, 22, 32))
+    for k, f in enumerate(shots):
+        strip.paste(f, (k * 168, 0))
+    big = strip.resize((strip.width * 3, strip.height * 3), Image.NEAREST)
+    o = Image.new("RGB", (big.width, 144 + 8 + big.height), (24, 22, 32))
+    o.paste(strip, (0, 0))
+    o.paste(big, (0, 152))
+    o.save(out / "b1_items_room.png")
+    rep["items_ok"] = ok and seen == {True}
+    g.stop()
+    return rep
+
+
 def main() -> int:
     rom, out = Path(sys.argv[1]), Path(sys.argv[2])
     out.mkdir(parents=True, exist_ok=True)
@@ -173,7 +264,7 @@ def main() -> int:
     thinned = 0
     for c in range(224):
         x, y = c % 16, c // 16
-        if g.pb.memory[a + c] & 0x0F == 1 and ((x // 3) + (y // 2)) % 4:
+        if g.pb.memory[a + c] & 0x1F == 1 and ((x // 3) + (y // 2)) % 4:
             g.pb.memory[a + c] = 0
             thinned += 1
     rep["foam_thinned"] = thinned
@@ -228,8 +319,10 @@ def main() -> int:
     g.stop()
     # 3. the fragile floors: skins in a room, the glitch beat, the stages, the breaks
     rep.update(fragile(rom, out))
+    # 4. the pieces lying in a room, as cards; the floor beside the mock
+    rep.update(items(rom, out))
     print(json.dumps(rep, indent=2))
-    ok_all = rep["assembled"] and rep["cells_absent_after_assembly"] == 0 and rep["fragile_ok"]
+    ok_all = rep["assembled"] and rep["cells_absent_after_assembly"] == 0 and rep["fragile_ok"] and rep["items_ok"]
     return 0 if ok_all else 1
 
 

@@ -121,13 +121,7 @@ void draw_meta(uint8_t i, uint8_t m) NONBANKED {
   set_bkg_tiles((uint8_t)(EG_X(i) << 1), (uint8_t)(EG_Y(i) << 1), 2, 2, meta_tile[m]);
 }
 
-void draw_cell(uint8_t i) NONBANKED {
-  if (cell_type(i) == T_ITEM && !look_skin[i] && solid_ground(i)) { /* B1: a piece shows its name (src/puzzle.c) */
-    puzzle_draw_item(i);
-    return;
-  }
-  draw_meta(i, meta_for(i));
-}
+void draw_cell(uint8_t i) NONBANKED { draw_meta(i, meta_for(i)); }
 
 void flush_cells(uint8_t max) NONBANKED {
   while (cq_tail != cq_head && max--) {

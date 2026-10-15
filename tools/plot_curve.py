@@ -1,11 +1,24 @@
-"""Plots of the B1 curriculum sim (host/egplan sim): the difficulty components by room index, the wave, the mixed
-share by depth and generation, the stages by floor.
+"""Plots of the curriculum sims.
+
+B1 slice (host/egplan sim): the difficulty components by room index, the wave, the mixed share by depth and
+generation, the stages by floor.
 
     build/host/egplan sim 1000 curve.csv docs/shots/b1_curve.json
     python tools/plot_curve.py curve.csv docs/shots
+
+The full run (host/egplan runsim, 3.6): the wave over all ~52 floors, the stages by floor, the mixes by biome.
+
+    build/host/egplan runsim 1000 run.csv docs/shots/run50_curve.json
+    python tools/plot_curve.py --full run.csv docs/shots
 """
 import csv
 import sys
+
+if sys.argv[1] == "--full":
+    import plot_run50  # noqa: E402  (tools/plot_run50.py)
+
+    plot_run50.main(sys.argv[2], sys.argv[3])
+    sys.exit(0)
 from collections import defaultdict
 from pathlib import Path
 

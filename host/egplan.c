@@ -1,6 +1,11 @@
 /* egplan: the run planner (src/core/eg_plan.c) over the baked table, headless.
- *   egplan check RUNS              simulate RUNS runs; fail (exit 1) if any curriculum rule breaks
- *   egplan sim RUNS OUT.csv OUT.json   the same, writing every room picked and the summary (tools/plot_curve.py)
+ *   egplan check RUNS              simulate RUNS runs of the B1 slice (the cartridge's nine office floors) and RUNS
+ *                                  laid-out full runs (~52 floors, host/egrun.c); fail (exit 1) if any curriculum rule
+ *                                  breaks in either
+ *   egplan sim RUNS OUT.csv OUT.json   the slice sim, writing every room picked and the summary (tools/plot_curve.py)
+ *   egplan runsim RUNS OUT.csv OUT.json    the full run: every slot of RUNS runs (tools/plot_curve.py --full)
+ *   egplan survive LINES GENS OUT.json     the survival model: lines of heirs with shortcuts (tools/plot_survival.py)
+ *   egplan layout RUNSEED CYCLESEED GEN SEEN DOOR   one full run's layout as text
  *
  * The runs are played by simulated players, 8 runs each, with a skill that grows run by run: a room far above it
  * costs resets and sometimes the run; a room well below it is cleared fast. Seen mechanics carry over between a
@@ -29,11 +34,32 @@ static int popc(unsigned m) {
   return n;
 }
 
+int full_check(int runs, int verbose);                     /* host/egrun.c */
+int full_runsim(int runs, const char *csv, const char *json);
+int survive(int lines, int gens, const char *json);
+int full_layout(unsigned run_seed, unsigned cycle_seed, unsigned gen, uint32_t seen, unsigned door);
+
+static int slice_main(int argc, char **argv);
+
 int main(int argc, char **argv) {
-  if (argc < 3 || (strcmp(argv[1], "check") && strcmp(argv[1], "sim"))) {
-    fprintf(stderr, "usage: egplan check RUNS | egplan sim RUNS OUT.csv OUT.json\n");
-    return 2;
+  if (argc >= 3 && !strcmp(argv[1], "check")) {
+    int a = slice_main(argc, argv);
+    int b = full_check(atoi(argv[2]), 1);
+    return a || b;
   }
+  if (argc >= 3 && !strcmp(argv[1], "sim")) return slice_main(argc, argv);
+  if (argc >= 5 && !strcmp(argv[1], "runsim")) return full_runsim(atoi(argv[2]), argv[3], argv[4]);
+  if (argc >= 7 && !strcmp(argv[1], "layout"))
+    return full_layout((unsigned)strtoul(argv[2], 0, 0), (unsigned)strtoul(argv[3], 0, 0), (unsigned)atoi(argv[4]),
+                       (uint32_t)strtoul(argv[5], 0, 0), (unsigned)atoi(argv[6]));
+  if (argc >= 5 && !strcmp(argv[1], "survive")) return survive(atoi(argv[2]), atoi(argv[3]), argv[4]);
+  fprintf(stderr, "usage: egplan check RUNS | sim RUNS OUT.csv OUT.json | runsim RUNS OUT.csv OUT.json | "
+                  "survive LINES GENS OUT.json\n");
+  return 2;
+}
+
+static int slice_main(int argc, char **argv) {
+  printf("== B1 slice (the cartridge: nine office floors over the baked table) ==\n");
   int sim = !strcmp(argv[1], "sim"), runs = atoi(argv[2]);
   FILE *csv = sim && argc > 3 ? fopen(argv[3], "w") : NULL;
   if (csv)
