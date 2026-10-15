@@ -1,0 +1,58 @@
+{
+ "source": "docs/shots/run50_survival.json",
+ "lines": 4000,
+ "targets": {
+  "repeat_10pct": {
+   "rooms": {
+    "cells": 561,
+    "plays_per_line_30_gens": 127.6,
+    "effective_pool": 3244,
+    "baked_records": 2403,
+    "bytes": 14418,
+    "repeat_share_upper_bound": 0.0876
+   },
+   "stages": {
+    "cells": 839,
+    "plays_per_line_30_gens": 70.5,
+    "effective_pool": 4678,
+    "baked_records": 6238,
+    "bytes": 31190,
+    "repeat_share_upper_bound": 0.0876
+   },
+   "total_bytes": 45608
+  },
+  "repeat_5pct": {
+   "rooms": {
+    "cells": 561,
+    "plays_per_line_30_gens": 127.6,
+    "effective_pool": 5649,
+    "baked_records": 4185,
+    "bytes": 25110,
+    "repeat_share_upper_bound": 0.0474
+   },
+   "stages": {
+    "cells": 839,
+    "plays_per_line_30_gens": 70.5,
+    "effective_pool": 8252,
+    "baked_records": 11003,
+    "bytes": 55015,
+    "repeat_share_upper_bound": 0.0472
+   },
+   "total_bytes": 80125
+  }
+ },
+ "on_cart_plays_per_line": 16.5,
+ "rooms_effective_by_tier_10pct": [
+  110,
+  422,
+  414,
+  740,
+  801,
+  757
+ ],
+ "rooms_effective_by_class_10pct": {
+  "introduce": 227,
+  "develop": 827,
+  "mix": 2190
+ }
+}

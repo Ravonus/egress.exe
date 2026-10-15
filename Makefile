@@ -107,10 +107,11 @@ build/host/egtool: host/egtool.c host/eg_solve.c $(ROOM_SRC) $(ROOM_HDR)
 seeds: build/host/egtool tools/bake_seeds.sh
 	sh tools/bake_seeds.sh build/host/egtool src/gen/eg_seeds.c 128
 
-# the run planner over the baked table, headless (B1 curriculum): `egplan check 1000` is part of `make test`
-build/host/egplan: host/egplan.c src/core/eg_plan.c src/core/eg_plan.h src/gen/eg_seeds.c src/gen/eg_seeds.h
+# the run planner over the baked table, headless (B1 curriculum) and the full ~52-floor layout (3.6): `egplan check 1000`
+# is part of `make test`
+build/host/egplan: host/egplan.c host/egrun.c src/core/eg_plan.c src/core/eg_plan.h src/gen/eg_seeds.c src/gen/eg_seeds.h
 	@mkdir -p $(dir $@)
-	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/egplan.c src/core/eg_plan.c src/gen/eg_seeds.c
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/egplan.c host/egrun.c src/core/eg_plan.c src/gen/eg_seeds.c -lm
 
 build/host/test_room: host/test_room.c host/eg_solve.c $(ROOM_SRC) $(ROOM_HDR)
 	@mkdir -p $(dir $@)

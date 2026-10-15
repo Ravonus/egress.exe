@@ -872,7 +872,8 @@ def block_bytes(ring):
 SRAM = [  # (start, size, content); the whole 8 KiB bank, 0xA000..0xBFFF
     (0xA000, 32, "meta record A"), (0xA020, 32, "meta record B"),
     (0xA040, 256, "mid-run continue A"), (0xA140, 256, "mid-run continue B"),
-    (0xA240, 128, "sky event scenes (section 19)"), (0xA2C0, 240, "free"),
+    (0xA240, 128, "sky event scenes (section 19)"), (0xA2C0, 64, "line progress A (3.6.10)"),
+    (0xA300, 64, "line progress B (3.6.10)"), (0xA340, 112, "free"),
     (0xA3B0, 64, "inheritance"), (0xA3F0, 128, "seen history"), (0xA470, 256, "book"),
     (0xA570, block_bytes(RING), "tree copy A"), (0xA570 + block_bytes(RING), block_bytes(RING), "tree copy B"),
     (0xA570 + 2 * block_bytes(RING), 0xB4C0 - 0xA570 - 2 * block_bytes(RING), "free"),

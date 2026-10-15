@@ -163,15 +163,19 @@ SPARE = CRC_AT - LIN_END
 STATS_A, STATS_B = 0xBC00, 0xBC00 + RECORD
 SRAM = [  # the 9.5 map after B3: (start, size, content, owner)
     (0xA000, 32, "meta record A", "-"), (0xA020, 32, "meta record B", "-"),
-    (0xA040, 256, "mid-run continue record A", "-"), (0xA140, 256, "mid-run continue record B", "-"),
-    (0xA240, 128, "sky event scenes (19)", "-"), (0xA2C0, 240, "free", "run50 may claim"),
+    (0xA040, 256, "mid-run continue record A (run50, 3.6.10: 170 used)", "run50"),
+    (0xA140, 256, "mid-run continue record B (run50)", "run50"),
+    (0xA240, 128, "sky event scenes (19)", "-"),
+    (0xA2C0, 64, "line progress record A (run50, 3.6.10: doors, cycle, egresses, mechanics, descent board)", "run50"),
+    (0xA300, 64, "line progress record B (run50)", "run50"),
+    (0xA340, 112, "free", "-"),
     (0xA3B0, 64, "inheritance", "-"), (0xA3F0, 128, "seen history", "-"),
     (0xA470, 256, "book (best tallies, recipe margins); the stats half moved to STATS", "-"),
     (0xA570, 1276, "tree copy A", "-"), (0xAA6C, 1276, "tree copy B", "-"),
-    (0xAF68, 1368, "free", "run50 may claim"),
+    (0xAF68, 1368, "free", "-"),
     (0xB4C0, 32, "kept clock A/B", "-"), (0xB4E0, 16, "HOST CLOCK block", "-"), (0xB4F0, 16, "RTC block", "-"),
     (0xB500, 576, "face generator base layer", "-"),
-    (0xB740, 0xBC00 - 0xB740, "free", "run50 may claim"),
+    (0xB740, 0xBC00 - 0xB740, "free", "-"),
     (STATS_A, RECORD, "STATS record A (B3, 9.8)", "B3"), (STATS_B, RECORD, "STATS record B (B3, 9.8)", "B3"),
     (0xBF00, 0xFF, "free", "-"),
     (0xBFFF, 1, "reserved: RTC access byte", "-"),
@@ -482,6 +486,8 @@ def check_sram():
     free = sum(s for (_, s, c, _) in SRAM if c.startswith("free"))
     b3 = [(s, z) for (s, z, c, o) in SRAM if o == "B3" and not c.startswith("free")]
     assert b3 == [(0xBC00, RECORD), (0xBD80, RECORD)]
+    r50 = [(s, z) for (s, z, c, o) in SRAM if o == "run50"]
+    assert r50 == [(0xA040, 256), (0xA140, 256), (0xA2C0, 64), (0xA300, 64)]
     runs = [f"{s:04X}-{s + z - 1:04X} ({z})" for (s, z, c, _) in SRAM if c.startswith("free")]
     return {"used": used, "free": free, "total": used + free, "free_runs": runs,
             "claimed": "0xBC00-0xBEFF (768)",
