@@ -40,7 +40,7 @@ fi
   echo "VSH = $VSH"; echo "VY0 = $VY0"; echo "OBJT0 = $OBJT0"; echo "FS = $FS"; echo "VOFF = $((255 - (H + 255) / 2))"; echo "VEND = $((255 - (H + 255) / 2 + H))"; echo "STRIP = $((H * 2))";
   echo "NRAYS = $((W / 4))"; echo "VIEW_H = $H"; echo "TW = $((W / 8))"; cat "$B/layout.inc" src/fill2.s; } > "$B/fill2.s"
 $LCC -c -o "$B/fill2.o" "$B/fill2.s"; [ -f "$B/fill2.o" ] || exit 1
-{ echo "NRAYS = $((W / 4))"; echo "	.area _CODE"; cat src/cast2.s; } > "$B/cast2.s"
+{ echo "NRAYS = $((W / 4))"; case "$*" in *-DNOMID*) echo "NOMID = 1";; esac; echo "	.area _CODE"; cat src/cast2.s; } > "$B/cast2.s"
 $LCC -c -o "$B/cast2.o" "$B/cast2.s"
 LCDO=""
 DPAD=1; case " $* " in *NO_DMA_PAD*) DPAD=0;; esac

@@ -67,6 +67,14 @@ extern uint16_t cam_x, cam_y, cam_a; /* 8.8 cells, angle 0..1023 */
 extern uint8_t ray_h[NRAYS], ray_u[NRAYS], ray_t[NRAYS];
 extern uint16_t ray_d[NRAYS];
 extern uint8_t ray_fv[NRAYS], ray_cv[NRAYS]; /* first floor row, first row whose ceiling mirror shows */
+extern uint8_t ray_hc[NRAYS], ray_hr[NRAYS], ray_fr[NRAYS], ray_mr[NRAYS]; /* hit records (mid-ray interpolation) */
+#ifdef __SDCC
+#define T_RT ((const uint8_t *)0x6800u) /* tables2_abs.s */
+#define T_HIX ((const uint8_t *)0x7C00u)
+#else
+extern const uint8_t T_RT[64 * 64]; /* mid-ray weight 256 h1 / (h0 + h1) at quantised heights */
+extern const uint8_t T_HIX[256];    /* height -> T_RT index (fine at small heights) */
+#endif
 
 void cast_all(void);
 void walls_all(uint8_t *buf);

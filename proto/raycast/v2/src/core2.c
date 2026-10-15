@@ -22,6 +22,9 @@ int16_t scos(uint16_t a) {
   return (a & 1023u) < 256u || (a & 1023u) >= 768u ? v : (int16_t)-v;
 }
 
+/* per-ray hit record for the mid-ray interpolation: hit cell column / row, 8-bit position along the face, mirror */
+uint8_t ray_hc[NRAYS], ray_hr[NRAYS], ray_fr[NRAYS], ray_mr[NRAYS];
+
 #if !(defined(__SDCC) && defined(CAST_ASM)) /* the cartridge uses cast2.s's quarter-square version */
 int16_t smulhi(int16_t r, int16_t c) {
   uint16_t ar = r < 0 ? (uint16_t)-r : (uint16_t)r;
@@ -37,61 +40,122 @@ void cast_all(void) {
   cast_asm();
 }
 #else
-void cast_all(void) {
-  uint8_t i;
+/* One full DDA ray (v1's), recording its hit for mid_ray. */
+static void cast_one(uint8_t i) {
   uint8_t fx = (uint8_t)cam_x, fy = (uint8_t)cam_y;
   uint16_t base = (uint16_t)((uint16_t)(cam_y >> 8) * MAPW + (cam_x >> 8));
-  for (i = 0; i < NRAYS; i++) {
-    uint16_t a = (uint16_t)((cam_a + T_COLOFF[i]) & 1023u);
-    uint16_t ay = (uint16_t)((a - 256u) & 1023u);
-    uint16_t ddx = T_DELTA[a], ddy = T_DELTA[ay];
-    uint8_t xpos = (a < 256u || a >= 768u);
-    uint8_t ypos = (a < 512u);
-    int16_t stx = xpos ? 1 : -1;
-    int16_t sty = ypos ? MAPW : -MAPW;
-    uint8_t gx = xpos ? (uint8_t)(255u - fx) : fx;
-    uint8_t gy = ypos ? (uint8_t)(255u - fy) : fy;
-    uint16_t sdx = mulhi(ddx, gx), sdy = mulhi(ddy, gy);
-    uint16_t idx = base, d;
-    uint8_t side, c, frac, u, h;
-    uint16_t perp, hi;
-    for (;;) {
-      if (sdx < sdy) {
-        idx = (uint16_t)(idx + stx);
-        d = sdx;
-        sdx = (uint16_t)(sdx + ddx);
-        side = 0;
-      } else {
-        idx = (uint16_t)(idx + sty);
-        d = sdy;
-        sdy = (uint16_t)(sdy + ddy);
-        side = 1;
-      }
-      c = map[idx & (MAPW * MAPW - 1)];
-#ifdef STATS
-      { extern unsigned st_steps; st_steps++; }
-#endif
-      if (c < 0x80u) break; /* walls are 1..127; open cells are 0x80 | floor set */
-    }
-    perp = mulhi(d, T_COLCOS[i]);
-    hi = perp >> 2;
-    if (hi > 2047u) hi = 2047u;
-    h = T_HEIGHT[hi];
-    if (side == 0) {
-      uint8_t off = (uint8_t)mulhi(d, T_COSABS[ay]);
-      frac = ypos ? (uint8_t)(fy + off) : (uint8_t)(fy - off);
-      u = frac >> 4;
-      if (!xpos) u = (uint8_t)(15u - u);
+  uint16_t a = (uint16_t)((cam_a + T_COLOFF[i]) & 1023u);
+  uint16_t ay = (uint16_t)((a - 256u) & 1023u);
+  uint16_t ddx = T_DELTA[a], ddy = T_DELTA[ay];
+  uint8_t xpos = (a < 256u || a >= 768u);
+  uint8_t ypos = (a < 512u);
+  int16_t stx = xpos ? 1 : -1;
+  int16_t sty = ypos ? MAPW : -MAPW;
+  uint8_t gx = xpos ? (uint8_t)(255u - fx) : fx;
+  uint8_t gy = ypos ? (uint8_t)(255u - fy) : fy;
+  uint16_t sdx = mulhi(ddx, gx), sdy = mulhi(ddy, gy);
+  uint16_t idx = base, d;
+  uint8_t side, c, frac, u, h, mir;
+  uint16_t perp, hi;
+  for (;;) {
+    if (sdx < sdy) {
+      idx = (uint16_t)(idx + stx);
+      d = sdx;
+      sdx = (uint16_t)(sdx + ddx);
+      side = 0;
     } else {
-      uint8_t off = (uint8_t)mulhi(d, T_COSABS[a]);
-      frac = xpos ? (uint8_t)(fx + off) : (uint8_t)(fx - off);
-      u = frac >> 4;
-      if (ypos) u = (uint8_t)(15u - u);
+      idx = (uint16_t)(idx + sty);
+      d = sdy;
+      sdy = (uint16_t)(sdy + ddy);
+      side = 1;
     }
-    ray_h[i] = h;
-    ray_u[i] = u;
-    ray_t[i] = (uint8_t)(((c - 1u) << 1) | side);
-    ray_d[i] = perp;
+    c = map[idx & (MAPW * MAPW - 1)];
+#ifdef STATS
+    { extern unsigned st_steps; st_steps++; }
+#endif
+    if (c < 0x80u) break; /* walls are 1..127; open cells are 0x80 | floor set */
+  }
+  perp = mulhi(d, T_COLCOS[i]);
+  hi = perp >> 2;
+  if (hi > 2047u) hi = 2047u;
+  h = T_HEIGHT[hi];
+  if (side == 0) {
+    uint8_t off = (uint8_t)mulhi(d, T_COSABS[ay]);
+    frac = ypos ? (uint8_t)(fy + off) : (uint8_t)(fy - off);
+    mir = !xpos;
+  } else {
+    uint8_t off = (uint8_t)mulhi(d, T_COSABS[a]);
+    frac = xpos ? (uint8_t)(fx + off) : (uint8_t)(fx - off);
+    mir = ypos;
+  }
+  u = frac >> 4;
+  if (mir) u = (uint8_t)(15u - u);
+  ray_h[i] = h;
+  ray_u[i] = u;
+  ray_t[i] = (uint8_t)(((c - 1u) << 1) | side);
+  ray_d[i] = perp;
+  idx &= MAPW * MAPW - 1u;
+  ray_hc[i] = (uint8_t)(idx & 31u);
+  ray_hr[i] = (uint8_t)(idx >> 5);
+  ray_fr[i] = frac;
+  ray_mr[i] = mir;
+}
+
+/* Ray i from its neighbours i-1 and i+1 when both hit the same wall face line from the same side, in the same
+   or adjacent cells (the cells are solid and the cells in front open, as both rays came through them): every ray
+   between them hits that line too (an occluder would have to fit inside the 2-column wedge, > 17 cells away, past
+   the total fog). Height is linear in screen x on a plane; the position along the face is the perspective-correct
+   mix w0 + (w1 - w0) * h1 / (h0 + h1), the weight from a table at quantised heights. 0 = not possible. */
+static uint8_t mid_ray(uint8_t i) {
+  uint8_t a = (uint8_t)(i - 1u), b = (uint8_t)(i + 1u), side = ray_t[a] & 1u, h0 = ray_h[a], h1 = ray_h[b];
+  uint8_t la, lb, r, c, fr, u, mrow;
+  uint16_t w0, w1, wm, cell;
+  if (side != (ray_t[b] & 1u) || h0 == 255u || h1 == 255u) return 0;
+  if (side == 0) {
+    if (ray_hc[a] != ray_hc[b]) return 0;
+    la = ray_hr[a];
+    lb = ray_hr[b];
+  } else {
+    if (ray_hr[a] != ray_hr[b]) return 0;
+    la = ray_hc[a];
+    lb = ray_hc[b];
+  }
+  if ((uint8_t)(lb - la + 1u) > 2u) return 0;
+  w0 = (uint16_t)(((uint16_t)la << 8) | ray_fr[a]);
+  w1 = (uint16_t)(((uint16_t)lb << 8) | ray_fr[b]);
+  r = T_RT[((uint16_t)T_HIX[h0] << 6) | T_HIX[h1]];
+  if (w1 >= w0) wm = (uint16_t)(w0 + mulhi((uint16_t)(w1 - w0), r));
+  else wm = (uint16_t)(w0 - mulhi((uint16_t)(w0 - w1), r));
+  mrow = (uint8_t)(wm >> 8);
+  fr = (uint8_t)wm;
+  cell = side == 0 ? (uint16_t)(((uint16_t)(mrow & 31u) << 5) | ray_hc[a]) : (uint16_t)(((uint16_t)ray_hr[a] << 5) | (mrow & 31u));
+  c = map[cell];
+  if (c >= 0x80u) return 0;
+  u = fr >> 4;
+  if (ray_mr[a]) u = (uint8_t)(15u - u);
+  ray_h[i] = (uint8_t)((h0 + h1) >> 1);
+  ray_u[i] = u;
+  ray_t[i] = (uint8_t)(((c - 1u) << 1) | side);
+  ray_d[i] = (uint16_t)((ray_d[a] >> 1) + (ray_d[b] >> 1) + (ray_d[a] & ray_d[b] & 1u));
+  return 1;
+}
+
+#ifdef STATS
+unsigned st_mid;
+#endif
+void cast_all(void) {
+  uint8_t i;
+  for (i = 0; i < NRAYS; i += 2u) cast_one(i);
+  cast_one(NRAYS - 1u);
+  for (i = 1; i < NRAYS - 1u; i += 2u) {
+#ifdef NOMID
+    cast_one(i);
+#else
+    if (!mid_ray(i)) cast_one(i);
+#ifdef STATS
+    else st_mid++;
+#endif
+#endif
   }
 }
 #endif
