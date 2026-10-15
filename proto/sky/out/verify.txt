@@ -1,0 +1,24 @@
+1. decode: 14136 events, 0 mismatches
+2. live longitudes vs Astronomy Engine, 72670 samples 2026-2126 (deg)
+| body | mean | p99 | max | target |
+| SUN | 0.020 | 0.031 | 0.038 | 1.0 |
+| MOON | 0.016 | 0.052 | 0.086 | 1.0 |
+| MERCURY | 0.017 | 0.057 | 0.103 | 1.0 |
+| VENUS | 0.016 | 0.078 | 0.146 | 1.0 |
+| MARS | 0.013 | 0.064 | 0.144 | 1.0 |
+| JUPITER | 0.010 | 0.032 | 0.047 | 2.0 |
+| SATURN | 0.006 | 0.017 | 0.025 | 2.0 |
+| ASC | 0.006 | 0.022 | 0.033 | 1.0 |
+| MC | 0.006 | 0.017 | 0.023 | 1.0 |
+   ascendant formula vs a horizon search (40 moments): max 0.048 deg
+3. retrograde: live (two-day motion) vs baked stations
+| planet | samples agree | disagreements, farthest from a station (days) | worst live station error (days) | stations |
+| MERCURY | 99.830% | 1.25 | 1.25 | 636 (live 676) |
+| VENUS | 99.794% | 1.70 | 1.26 | 126 (live 394) |
+| MARS | 99.762% | 5.00 | 0.96 | 94 (live 458) |
+| JUPITER | 99.583% | 3.69 | 1.20 | 185 (live 763) |
+| SATURN | 99.322% | 5.53 | 1.61 | 194 (live 1128) |
+4. fallback: phase8 equal to the table 97.77%, off by one 1648, worse 0; eclipses found 452/461 (rough kind right 400), false eclipse days 3; missed by kind {'lunar penumbral': 6, 'solar partial': 3}
+   live new moons vs baked: worst 59 min over 1249
+5. void of course: 1454/1460 samples agree (99.6%)
+6. published dates: 47 checked, 0 off by more than a day or of the wrong kind

@@ -1,0 +1,253 @@
+{
+ "birth_utc": "2026-10-15T05:48:00",
+ "chart": {
+  "SUN": 201.87,
+  "MOON": 254.53,
+  "MERCURY": 226.69,
+  "VENUS": 215.68,
+  "MARS": 129.76,
+  "JUPITER": 141.99,
+  "SATURN": 10.45,
+  "ASC": 196.57,
+  "MC": 109.19
+ },
+ "signs": {
+  "SUN": "LIBRA",
+  "MOON": "SAGITTARIUS",
+  "MERCURY": "SCORPIO",
+  "VENUS": "SCORPIO",
+  "MARS": "LEO",
+  "JUPITER": "LEO",
+  "SATURN": "ARIES",
+  "ASC": "LIBRA",
+  "MC": "CANCER"
+ },
+ "aspects": [
+  [
+   "SUN",
+   "ASC",
+   "CONJ",
+   5.3
+  ],
+  [
+   "MOON",
+   "MARS",
+   "TRINE",
+   4.8
+  ],
+  [
+   "MOON",
+   "JUPITER",
+   "TRINE",
+   7.5
+  ],
+  [
+   "MOON",
+   "SATURN",
+   "TRINE",
+   4.1
+  ],
+  [
+   "MERCURY",
+   "JUPITER",
+   "SQUARE",
+   5.3
+  ],
+  [
+   "VENUS",
+   "MARS",
+   "SQUARE",
+   4.1
+  ],
+  [
+   "MARS",
+   "SATURN",
+   "TRINE",
+   0.7
+  ]
+ ],
+ "screens": [
+  {
+   "screen": "chart_wheel",
+   "bg_tile_violations": 0,
+   "bg_palettes": 8,
+   "bg_palettes_used": 8,
+   "unique_bg_tiles": 212,
+   "sprites": 8,
+   "obj_palettes": 7,
+   "obj_violations": 0,
+   "max_sprites_per_line": 3
+  },
+  {
+   "screen": "chart_step_sun",
+   "bg_tile_violations": 0,
+   "bg_palettes": 8,
+   "bg_palettes_used": 7,
+   "unique_bg_tiles": 164,
+   "sprites": 12,
+   "obj_palettes": 7,
+   "obj_violations": 0,
+   "max_sprites_per_line": 7
+  },
+  {
+   "screen": "chart_step_moon",
+   "bg_tile_violations": 0,
+   "bg_palettes": 8,
+   "bg_palettes_used": 8,
+   "unique_bg_tiles": 170,
+   "sprites": 12,
+   "obj_palettes": 7,
+   "obj_violations": 0,
+   "max_sprites_per_line": 5
+  },
+  {
+   "screen": "chart_step_asc",
+   "bg_tile_violations": 0,
+   "bg_palettes": 8,
+   "bg_palettes_used": 7,
+   "unique_bg_tiles": 166,
+   "sprites": 8,
+   "obj_palettes": 7,
+   "obj_violations": 0,
+   "max_sprites_per_line": 3
+  },
+  {
+   "screen": "chart_step_mercury",
+   "bg_tile_violations": 0,
+   "bg_palettes": 8,
+   "bg_palettes_used": 8,
+   "unique_bg_tiles": 167,
+   "sprites": 12,
+   "obj_palettes": 7,
+   "obj_violations": 0,
+   "max_sprites_per_line": 5
+  },
+  {
+   "screen": "chart_step_venus",
+   "bg_tile_violations": 0,
+   "bg_palettes": 8,
+   "bg_palettes_used": 8,
+   "unique_bg_tiles": 167,
+   "sprites": 12,
+   "obj_palettes": 7,
+   "obj_violations": 0,
+   "max_sprites_per_line": 5
+  },
+  {
+   "screen": "chart_step_mars",
+   "bg_tile_violations": 0,
+   "bg_palettes": 8,
+   "bg_palettes_used": 8,
+   "unique_bg_tiles": 163,
+   "sprites": 12,
+   "obj_palettes": 7,
+   "obj_violations": 0,
+   "max_sprites_per_line": 6
+  },
+  {
+   "screen": "chart_transit",
+   "bg_tile_violations": 0,
+   "bg_palettes": 8,
+   "bg_palettes_used": 8,
+   "unique_bg_tiles": 166,
+   "sprites": 15,
+   "obj_palettes": 7,
+   "obj_violations": 0,
+   "max_sprites_per_line": 5
+  },
+  {
+   "screen": "sky_today",
+   "bg_tile_violations": 0,
+   "bg_palettes": 8,
+   "bg_palettes_used": 3,
+   "unique_bg_tiles": 47,
+   "sprites": 6,
+   "obj_palettes": 4,
+   "obj_violations": 0,
+   "max_sprites_per_line": 1
+  }
+ ],
+ "next_30_days": [
+  [
+   "NOV 09 NEW MOON",
+   "2026-11-09T02:03:00"
+  ],
+  [
+   "NOV 13 MERC DIRECT",
+   "2026-11-13T10:52:00"
+  ],
+  [
+   "NOV 13 VENU DIRECT",
+   "2026-11-13T19:21:00"
+  ],
+  [
+   "NOV 22 SUN TO SAG",
+   "2026-11-22T02:24:00"
+  ],
+  [
+   "NOV 24 FULL MOON",
+   "2026-11-24T09:54:00"
+  ],
+  [
+   "NOV 25 MARS TO VIR",
+   "2026-11-25T18:37:00"
+  ]
+ ],
+ "transit_hits": [
+  [
+   "SATURN",
+   "TRINE",
+   "MARS",
+   0.61
+  ],
+  [
+   "SUN",
+   "SQUARE",
+   "MARS",
+   0.88
+  ]
+ ],
+ "sky_today": [
+  [
+   "MERCURY",
+   "MERCURY BACKWARD",
+   "RECIPES SLIP",
+   "10D"
+  ],
+  [
+   "VENUS",
+   "VENUS BACKWARD",
+   "PRICES SWAY",
+   "10D"
+  ],
+  [
+   "SATURN",
+   "SATURN BACKWARD",
+   "SLOW TURN",
+   "37D"
+  ],
+  [
+   "MOON",
+   "HALF MOON IN LEO",
+   "QUIET",
+   "6D"
+  ],
+  [
+   "MOON",
+   "MOON UNTETHERED",
+   "NO ALIGNING",
+   "6H"
+  ]
+ ],
+ "sky_read_now": {
+  "date": 9803,
+  "mod": 130,
+  "flags": 2,
+  "phase8": 6,
+  "eclipse": 0,
+  "retro": 76,
+  "station": 0,
+  "moon_sign": 4,
+  "voc_end": 441146
+ }
+}

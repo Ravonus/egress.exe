@@ -1,0 +1,54 @@
+{
+ "calls": [
+  {
+   "call": "sky_positions (all 10)",
+   "clocks": 708000,
+   "ms": 84.4,
+   "frames": 5.04
+  },
+  {
+   "call": "sky_read in range",
+   "clocks": 1647472,
+   "ms": 196.39,
+   "frames": 11.73
+  },
+  {
+   "call": "sky_read outside (fallback)",
+   "clocks": 2898256,
+   "ms": 345.5,
+   "frames": 20.64
+  },
+  {
+   "call": "sky_find phase (late block)",
+   "clocks": 106912,
+   "ms": 12.74,
+   "frames": 0.76
+  },
+  {
+   "call": "sky_find Mercury ingress (late block)",
+   "clocks": 122720,
+   "ms": 14.63,
+   "frames": 0.87
+  },
+  {
+   "call": "natal chart + 15 aspects",
+   "clocks": 801440,
+   "ms": 95.54,
+   "frames": 5.71
+  },
+  {
+   "call": "transit scan (now + 49 aspects)",
+   "clocks": 864096,
+   "ms": 103.01,
+   "frames": 6.15
+  },
+  {
+   "call": "sky_mark",
+   "clocks": 10992,
+   "ms": 1.31,
+   "frames": 0.08
+  }
+ ],
+ "rom_matches_host": true,
+ "romusage": "\nBank         Range                Size     Used  Used%     Free  Free% \n--------     ----------------  -------  -------  -----  -------  -----\nROM_0        0x0000 -> 0x3FFF    16384     2156    13%    14228    87% |-###-.......................|\nROM_1        0x4000 -> 0x7FFF    16384    14964    91%     1420     9% |#########################-..|\nROM_8        0x4000 -> 0x7FFF    16384    16362   100%       22     0% |############################|\nROM_9        0x4000 -> 0x7FFF    16384    16184    99%      200     1% |###########################-|\nROM_10       0x4000 -> 0x7FFF    16384     4801    29%    11583    71% |########....................|\nWRAM_LO      0xC000 -> 0xCFFF     4096      378     9%     3718    91% |.-#-........................|\n"
+}

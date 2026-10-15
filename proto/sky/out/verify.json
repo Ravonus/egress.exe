@@ -1,0 +1,470 @@
+{
+ "decode": {
+  "events": 14136,
+  "mismatches": 0,
+  "per_stream": {
+   "phase": 0,
+   "perigee": 0,
+   "st_mercury": 0,
+   "st_venus": 0,
+   "st_mars": 0,
+   "st_jupiter": 0,
+   "st_saturn": 0,
+   "st_uranus": 0,
+   "st_neptune": 0,
+   "st_pluto": 0,
+   "in_sun": 0,
+   "in_mercury": 0,
+   "in_venus": 0,
+   "in_mars": 0,
+   "in_jupiter": 0,
+   "in_saturn": 0,
+   "in_uranus": 0,
+   "in_neptune": 0,
+   "in_pluto": 0
+  },
+  "eclipse_mismatch": 0,
+  "super_mismatch": 0
+ },
+ "longitude": {
+  "SUN": {
+   "mean": 0.0195,
+   "p99": 0.0307,
+   "max": 0.0377,
+   "target": 1.0
+  },
+  "MOON": {
+   "mean": 0.0157,
+   "p99": 0.0524,
+   "max": 0.0861,
+   "target": 1.0
+  },
+  "MERCURY": {
+   "mean": 0.017,
+   "p99": 0.0571,
+   "max": 0.1033,
+   "target": 1.0
+  },
+  "VENUS": {
+   "mean": 0.0162,
+   "p99": 0.0777,
+   "max": 0.1457,
+   "target": 1.0
+  },
+  "MARS": {
+   "mean": 0.0135,
+   "p99": 0.0636,
+   "max": 0.1437,
+   "target": 1.0
+  },
+  "JUPITER": {
+   "mean": 0.0101,
+   "p99": 0.0322,
+   "max": 0.0471,
+   "target": 2.0
+  },
+  "SATURN": {
+   "mean": 0.0056,
+   "p99": 0.0171,
+   "max": 0.0253,
+   "target": 2.0
+  },
+  "ASC": {
+   "mean": 0.006,
+   "p99": 0.0216,
+   "max": 0.0331,
+   "target": 1.0
+  },
+  "MC": {
+   "mean": 0.0059,
+   "p99": 0.017,
+   "max": 0.0231,
+   "target": 1.0
+  }
+ },
+ "asc_formula_vs_horizon_max": 0.048,
+ "retro": {
+  "MERCURY": {
+   "agree": 0.9983,
+   "disagree_farthest_days": 1.25,
+   "worst_station_days": 1.25,
+   "stations": 636,
+   "live_flips": 676
+  },
+  "VENUS": {
+   "agree": 0.99794,
+   "disagree_farthest_days": 1.7,
+   "worst_station_days": 1.26,
+   "stations": 126,
+   "live_flips": 394
+  },
+  "MARS": {
+   "agree": 0.99762,
+   "disagree_farthest_days": 5.0,
+   "worst_station_days": 0.96,
+   "stations": 94,
+   "live_flips": 458
+  },
+  "JUPITER": {
+   "agree": 0.99583,
+   "disagree_farthest_days": 3.69,
+   "worst_station_days": 1.2,
+   "stations": 185,
+   "live_flips": 763
+  },
+  "SATURN": {
+   "agree": 0.99322,
+   "disagree_farthest_days": 5.53,
+   "worst_station_days": 1.61,
+   "stations": 194,
+   "live_flips": 1128
+  }
+ },
+ "fallback_eclipse_missed_by_kind": {
+  "lunar penumbral": 6,
+  "solar partial": 3
+ },
+ "fallback": {
+  "phase8_exact": 0.9777,
+  "phase8_off_by_one": 1648,
+  "phase8_worse": 0,
+  "eclipses": 461,
+  "eclipses_found": 452,
+  "eclipse_kind_rough_ok": 400,
+  "false_eclipse_days": 3
+ },
+ "live_new_moon_minutes_max": 59,
+ "voc_agree": 0.9959,
+ "published": [
+  {
+   "what": "MERCURY station R",
+   "published": "2026-02-26",
+   "engine": "2026-02-26 06:47",
+   "days": -0.22,
+   "type_ok": true
+  },
+  {
+   "what": "MERCURY station D",
+   "published": "2026-03-20",
+   "engine": "2026-03-20 19:34",
+   "days": 0.32,
+   "type_ok": true
+  },
+  {
+   "what": "MERCURY station R",
+   "published": "2026-06-29",
+   "engine": "2026-06-29 17:37",
+   "days": 0.23,
+   "type_ok": true
+  },
+  {
+   "what": "MERCURY station D",
+   "published": "2026-07-23",
+   "engine": "2026-07-23 22:57",
+   "days": 0.46,
+   "type_ok": true
+  },
+  {
+   "what": "MERCURY station R",
+   "published": "2026-10-24",
+   "engine": "2026-10-24 07:15",
+   "days": -0.2,
+   "type_ok": true
+  },
+  {
+   "what": "MERCURY station D",
+   "published": "2026-11-13",
+   "engine": "2026-11-13 15:52",
+   "days": 0.16,
+   "type_ok": true
+  },
+  {
+   "what": "MERCURY station R",
+   "published": "2027-02-09",
+   "engine": "2027-02-09 17:36",
+   "days": 0.23,
+   "type_ok": true
+  },
+  {
+   "what": "MERCURY station D",
+   "published": "2027-03-03",
+   "engine": "2027-03-03 12:35",
+   "days": 0.02,
+   "type_ok": true
+  },
+  {
+   "what": "MERCURY station R",
+   "published": "2027-06-10",
+   "engine": "2027-06-10 18:19",
+   "days": 0.26,
+   "type_ok": true
+  },
+  {
+   "what": "MERCURY station D",
+   "published": "2027-07-04",
+   "engine": "2027-07-04 19:40",
+   "days": 0.32,
+   "type_ok": true
+  },
+  {
+   "what": "MERCURY station R",
+   "published": "2027-10-07",
+   "engine": "2027-10-07 14:40",
+   "days": 0.11,
+   "type_ok": true
+  },
+  {
+   "what": "MERCURY station D",
+   "published": "2027-10-28",
+   "engine": "2027-10-28 14:11",
+   "days": 0.09,
+   "type_ok": true
+  },
+  {
+   "what": "VENUS station R",
+   "published": "2026-10-03",
+   "engine": "2026-10-03 07:10",
+   "days": -0.2,
+   "type_ok": true
+  },
+  {
+   "what": "VENUS station D",
+   "published": "2026-11-13",
+   "engine": "2026-11-14 00:21",
+   "days": 0.51,
+   "type_ok": true
+  },
+  {
+   "what": "MARS station R",
+   "published": "2027-01-10",
+   "engine": "2027-01-10 13:01",
+   "days": 0.04,
+   "type_ok": true
+  },
+  {
+   "what": "MARS station D",
+   "published": "2027-04-01",
+   "engine": "2027-04-01 14:10",
+   "days": 0.09,
+   "type_ok": true
+  },
+  {
+   "what": "solar eclipse (annular)",
+   "published": "2026-02-17",
+   "engine": "2026-02-17 12:12 annular",
+   "days": 0.01,
+   "type_ok": true
+  },
+  {
+   "what": "lunar eclipse (total)",
+   "published": "2026-03-03",
+   "engine": "2026-03-03 11:34 total",
+   "days": -0.02,
+   "type_ok": true
+  },
+  {
+   "what": "solar eclipse (total)",
+   "published": "2026-08-12",
+   "engine": "2026-08-12 17:46 total",
+   "days": 0.24,
+   "type_ok": true
+  },
+  {
+   "what": "lunar eclipse (partial)",
+   "published": "2026-08-28",
+   "engine": "2026-08-28 04:13 partial",
+   "days": -0.32,
+   "type_ok": true
+  },
+  {
+   "what": "solar eclipse (annular)",
+   "published": "2027-02-06",
+   "engine": "2027-02-06 16:00 annular",
+   "days": 0.17,
+   "type_ok": true
+  },
+  {
+   "what": "lunar eclipse (penumbral)",
+   "published": "2027-02-20",
+   "engine": "2027-02-20 23:13 penumbral",
+   "days": 0.47,
+   "type_ok": true
+  },
+  {
+   "what": "lunar eclipse (penumbral)",
+   "published": "2027-07-18",
+   "engine": "2027-07-18 16:03 penumbral",
+   "days": 0.17,
+   "type_ok": true
+  },
+  {
+   "what": "solar eclipse (total)",
+   "published": "2027-08-02",
+   "engine": "2027-08-02 10:07 total",
+   "days": -0.08,
+   "type_ok": true
+  },
+  {
+   "what": "lunar eclipse (penumbral)",
+   "published": "2027-08-17",
+   "engine": "2027-08-17 07:14 penumbral",
+   "days": -0.2,
+   "type_ok": true
+  },
+  {
+   "what": "lunar eclipse (partial)",
+   "published": "2028-01-12",
+   "engine": "2028-01-12 04:13 partial",
+   "days": -0.32,
+   "type_ok": true
+  },
+  {
+   "what": "solar eclipse (annular)",
+   "published": "2028-01-26",
+   "engine": "2028-01-26 15:08 annular",
+   "days": 0.13,
+   "type_ok": true
+  },
+  {
+   "what": "lunar eclipse (partial)",
+   "published": "2028-07-06",
+   "engine": "2028-07-06 18:20 partial",
+   "days": 0.26,
+   "type_ok": true
+  },
+  {
+   "what": "solar eclipse (total)",
+   "published": "2028-07-22",
+   "engine": "2028-07-22 02:55 total",
+   "days": -0.38,
+   "type_ok": true
+  },
+  {
+   "what": "lunar eclipse (total)",
+   "published": "2028-12-31",
+   "engine": "2028-12-31 16:52 total",
+   "days": 0.2,
+   "type_ok": true
+  },
+  {
+   "what": "march equinox",
+   "published": "2026-03-20 14:46",
+   "engine": "2026-03-20 14:46",
+   "days": 0.0,
+   "type_ok": true
+  },
+  {
+   "what": "june solstice",
+   "published": "2026-06-21 08:24",
+   "engine": "2026-06-21 08:25",
+   "days": 0.0007,
+   "type_ok": true
+  },
+  {
+   "what": "september equinox",
+   "published": "2026-09-23 00:05",
+   "engine": "2026-09-23 00:06",
+   "days": 0.0007,
+   "type_ok": true
+  },
+  {
+   "what": "december solstice",
+   "published": "2026-12-21 20:50",
+   "engine": "2026-12-21 20:50",
+   "days": 0.0,
+   "type_ok": true
+  },
+  {
+   "what": "full moon",
+   "published": "2026-01-03",
+   "engine": "2026-01-03 10:03",
+   "days": -0.08,
+   "type_ok": true
+  },
+  {
+   "what": "full moon",
+   "published": "2026-02-01",
+   "engine": "2026-02-01 22:10",
+   "days": 0.42,
+   "type_ok": true
+  },
+  {
+   "what": "full moon",
+   "published": "2026-03-03",
+   "engine": "2026-03-03 11:39",
+   "days": -0.01,
+   "type_ok": true
+  },
+  {
+   "what": "full moon",
+   "published": "2026-04-02",
+   "engine": "2026-04-02 02:13",
+   "days": -0.41,
+   "type_ok": true
+  },
+  {
+   "what": "full moon",
+   "published": "2026-05-01",
+   "engine": "2026-05-01 17:24",
+   "days": 0.23,
+   "type_ok": true
+  },
+  {
+   "what": "full moon",
+   "published": "2026-05-31",
+   "engine": "2026-05-31 08:46",
+   "days": -0.13,
+   "type_ok": true
+  },
+  {
+   "what": "full moon",
+   "published": "2026-06-29",
+   "engine": "2026-06-29 23:57",
+   "days": 0.5,
+   "type_ok": true
+  },
+  {
+   "what": "full moon",
+   "published": "2026-07-29",
+   "engine": "2026-07-29 14:36",
+   "days": 0.11,
+   "type_ok": true
+  },
+  {
+   "what": "full moon",
+   "published": "2026-08-28",
+   "engine": "2026-08-28 04:19",
+   "days": -0.32,
+   "type_ok": true
+  },
+  {
+   "what": "full moon",
+   "published": "2026-09-26",
+   "engine": "2026-09-26 16:50",
+   "days": 0.2,
+   "type_ok": true
+  },
+  {
+   "what": "full moon",
+   "published": "2026-10-26",
+   "engine": "2026-10-26 04:12",
+   "days": -0.33,
+   "type_ok": true
+  },
+  {
+   "what": "full moon",
+   "published": "2026-11-24",
+   "engine": "2026-11-24 14:54",
+   "days": 0.12,
+   "type_ok": true
+  },
+  {
+   "what": "full moon",
+   "published": "2026-12-24",
+   "engine": "2026-12-24 01:29",
+   "days": -0.44,
+   "type_ok": true
+  }
+ ],
+ "published_misses": []
+}

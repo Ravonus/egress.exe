@@ -1,0 +1,123 @@
+[
+ {
+  "screen": "whole tree, FACES (tall BG)",
+  "bg_tile_violations": 0,
+  "bg_palettes_used": 5,
+  "unique_bg_tiles": 264,
+  "obj_palettes_used": 9,
+  "obj_violations": 0,
+  "sprites": 59,
+  "max_sprites_per_line": 6,
+  "unique_obj_8x16": 20
+ },
+ {
+  "screen": "whole tree, LOOKS (tall BG)",
+  "bg_tile_violations": 0,
+  "bg_palettes_used": 6,
+  "unique_bg_tiles": 262,
+  "obj_palettes_used": 9,
+  "obj_violations": 0,
+  "sprites": 43,
+  "max_sprites_per_line": 6,
+  "unique_obj_8x16": 18
+ },
+ {
+  "screen": "whole tree, STATS (tall BG)",
+  "bg_tile_violations": 0,
+  "bg_palettes_used": 6,
+  "unique_bg_tiles": 259,
+  "obj_palettes_used": 9,
+  "obj_violations": 0,
+  "sprites": 43,
+  "max_sprites_per_line": 6,
+  "unique_obj_8x16": 18
+ },
+ {
+  "screen": "whole tree, TRUTH (tall BG)",
+  "bg_tile_violations": 0,
+  "bg_palettes_used": 6,
+  "unique_bg_tiles": 401,
+  "obj_palettes_used": 9,
+  "obj_violations": 0,
+  "sprites": 43,
+  "max_sprites_per_line": 6,
+  "unique_obj_8x16": 18
+ },
+ {
+  "screen": "tree_faces",
+  "bg_tile_violations": 0,
+  "bg_palettes_used": 7,
+  "unique_bg_tiles": 125,
+  "obj_palettes_used": 4,
+  "obj_violations": 0,
+  "sprites": 18,
+  "max_sprites_per_line": 8,
+  "unique_obj_8x16": 6
+ },
+ {
+  "screen": "tree_founders",
+  "bg_tile_violations": 0,
+  "bg_palettes_used": 7,
+  "unique_bg_tiles": 132,
+  "obj_palettes_used": 4,
+  "obj_violations": 0,
+  "sprites": 13,
+  "max_sprites_per_line": 4,
+  "unique_obj_8x16": 9
+ },
+ {
+  "screen": "tree_sibling",
+  "bg_tile_violations": 0,
+  "bg_palettes_used": 7,
+  "unique_bg_tiles": 128,
+  "obj_palettes_used": 4,
+  "obj_violations": 0,
+  "sprites": 16,
+  "max_sprites_per_line": 7,
+  "unique_obj_8x16": 11
+ },
+ {
+  "screen": "tree_looks",
+  "bg_tile_violations": 0,
+  "bg_palettes_used": 8,
+  "unique_bg_tiles": 112,
+  "obj_palettes_used": 3,
+  "obj_violations": 0,
+  "sprites": 10,
+  "max_sprites_per_line": 4,
+  "unique_obj_8x16": 6
+ },
+ {
+  "screen": "tree_stats",
+  "bg_tile_violations": 0,
+  "bg_palettes_used": 8,
+  "unique_bg_tiles": 126,
+  "obj_palettes_used": 4,
+  "obj_violations": 0,
+  "sprites": 12,
+  "max_sprites_per_line": 4,
+  "unique_obj_8x16": 6
+ },
+ {
+  "screen": "tree_truth",
+  "bg_tile_violations": 0,
+  "bg_palettes_used": 8,
+  "unique_bg_tiles": 162,
+  "obj_palettes_used": 3,
+  "obj_violations": 0,
+  "sprites": 12,
+  "max_sprites_per_line": 4,
+  "unique_obj_8x16": 8
+ },
+ {
+  "screen": "tree_detail",
+  "bg_tile_violations": 0,
+  "bg_palettes_used": 8,
+  "unique_bg_tiles": 158,
+  "obj_palettes_used": 0,
+  "obj_violations": 0,
+  "sprites": 0,
+  "max_sprites_per_line": 0,
+  "unique_obj_8x16": 0
+ }
+]

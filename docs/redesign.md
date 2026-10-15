@@ -46,6 +46,7 @@ dithered tiles, objects, panels, HUD and the M2 font), with faces from the share
 | `docs/shots/anim.png` | animation states: 8 directions (5 drawn plus 3 mirrored), walk, idle, combo, charge, roll, blink, hurt, death |
 | `docs/shots/characters.png` | before/after: M2, CRUCIBLE as style reference, EGRESS now |
 | `proto/genetics/out/tree_*.png`, `drift.png` | 30 generations of a family: faces and bred-for abilities |
+| `docs/shots/tree_*.png`, `tree_scroll.gif` | the family tree screen (section 9.6): live end, founders, a road not taken, LOOKS / STATS / TRUTH views, node detail |
 | `docs/shots/boot_compare.png` | the ported KEEL boot, frame by frame against CRUCIBLE's |
 
 These are mock-ups: hand-placed compositions of the kit's pieces. Mobs on the scene mocks are 2:1 reductions of the
@@ -1118,6 +1119,506 @@ slowly across the line. `drift.png` charts the four measures per strategy.
 The ring keeps the last 16 heirs (they are also the gene pool). Older ones are summarised into a 16-bit "elders"
 count, and their deaths still count in the matrix through the leaning bytes. **Lineage total: 432 bytes.**
 
+### 9.6 Family tree screen
+
+The TREE is a full screen, not a list. It opens from the **title menu** (TREE, under CONTINUE), from the **heir pick**
+(SELECT, as `mock_heir.png` already shows) and from the landing/pause menu. Mocks: `docs/shots/tree_*.png` (4x) and
+`tree_*_1x.png` (native 160x144); `tree_scroll.gif` scrolls the whole line; `tree_strip.png` is the whole tree
+unrolled; `tree_contact.png` puts them side by side. Script: `tools/mock/tree_mock.py`. It draws the screens tile by
+tile and checks them against the CGB limits; results are in `docs/shots/tree_report.json`, with 0 violations on every
+screen. The line in the mocks is a real `genes.py` line bred for HEAVY over 22 generations, with 3 kids waiting.
+
+| File | Shows |
+| --- | --- |
+| `tree_faces.png` | the live end, opened from the heir pick: G20–G22 played, the 3 kids (G23) waiting, the cursor on a kid |
+| `tree_founders.png` | the root: the FOUNDERS node (G1's face, with the folded elders as faded silhouettes either side), then G7 onward |
+| `tree_sibling.png` | the cursor on a road not taken ("HUGO NOT TAKEN"), with glitch lines and sparkles on mutated siblings |
+| `tree_looks.png`, `tree_stats.png`, `tree_truth.png` | the three SELECT views |
+| `tree_detail.png` | node detail (A) |
+
+**Layout** (20x18 tiles):
+- **Top bar** (2 tile rows, fixed): the view name and its legend.
+- **Window** (13 tile rows, scrolls): the tree, one generation per 3 tile rows (24 px). Two rows hold the 16x16
+  nodes. The third row is the connector: the drop from the parent, the bar, and the drops to the three children.
+- **Bottom bar** (3 tile rows, fixed): the selected node's caption and the buttons.
+
+The window shows about 4.3 generations.
+- **The live branch is a straight spine** down the middle (tile columns 9–10). Each played heir is a full-colour
+  bust on a dithered pink glow, joined by a 2 px cyan line. The glow strengthens toward the present.
+- **Unpicked siblings** hang off the same bar, left and right (columns 5–6 and 13–14). They are faded busts in one
+  shared lilac palette, on dotted lilac lines: the roads not taken.
+- **Mutations and glitch births** break their connector into a **glitch line**: magenta runs, displaced sideways. A
+  sparkle sits on the node. A glitch-born node also switches to its new kind's bust template.
+- **Labels:** the generation is on the left. On the right are the floor reached and the biome, plus a sun-sign glyph
+  (an OBJ in the last column).
+- **The FOUNDERS node** sits at the top. It shows G1's own bust with the folded elders as faded silhouettes either
+  side, labelled `G1-G6 / FIRST / 6 GEN`, so the root is never forgotten.
+- **The live end:**
+  - opened from the heir pick, the bottom row is the three waiting kids in full colour on a dotted cyan bar (`G23
+    NEXT`, A picks);
+  - opened from the title, the bottom is the living heir on a dotted spine.
+- **Look:** a synthwave genealogy chart.
+  - Pastel lines on the void (cyan spine, lilac roads, magenta glitches), sparse dither drift lines and stars.
+  - The glow's bright entry is palette-cycled pink > lilac > cyan > lilac, one palette write every 8 frames.
+  - Scrolling is gentle: an eased SCY over 12 frames per generation.
+
+**Controls:**
+
+| Input | Does |
+| --- | --- |
+| Up / Down | one generation (hold: one every 6 frames); the cursor stays on the spine |
+| Left / Right | the siblings of that generation (wraps) |
+| A | node detail (on a waiting kid: pick it and return to the heir pick) |
+| SELECT | cycle the view: FACES > LOOKS > STATS > TRUTH |
+| START | jump between the root and the live end |
+| B | back to wherever the tree was opened from |
+
+**Views (SELECT).** Every view keeps the tree and redraws only the right-hand 4 tile columns, plus one palette swap
+(BG7). Each lane is exactly one tile column, so a tile only ever holds one lane colour.
+- **FACES** (default): floor reached, biome, sun sign.
+- **LOOKS:** gene drift as four colour bands down the tree, for HEAVY (amber), BLINK (ice), HOT (ember) and
+  GLITCHED (magenta). A solid band means expressed, a dithered band means carried (latent or one recessive allele), a
+  dotted guide means absent. In the mock, HEAVY switches on at G9 and stays on; BLINK shows as carried, then skips
+  generations.
+- **STATS:** the line's records in the top bar (`DEEP F8 G7`, `LONG ISA 4D`). Per generation: a floor-reached bar (8
+  steps, pink at F8) and the kill count. The caption adds kills and lifespan.
+- **TRUTH:** four unlabelled threads (CAUSE, CULPRIT, REVERSIBLE, SELF) that lean left or right per generation, with
+  "IT LEANED / NOT A FACT" in the header. The caption gives one vague question per node, from its strongest axis
+  ("WAS IT MADE?", "WAS IT YOU?", "CAN IT CLOSE?", "SAME HANDS?"). No axis names and no values, as section 10 wants.
+
+**Node detail (A),** `tree_detail.png`:
+- **Who:** the full 48x48 portrait (the shared face generator), name, generation.
+- **Birth:** date and time, and the sun sign with its glyph in a box. The glyph box is the chart's door: SELECT opens
+  the chart (birth data and the chart are designed separately; this screen only reserves the slot). Lifespan in real
+  time ("LIVED 1D 4H").
+- **World ties:** "SEEN AS GHOST 2X" / "NEVER CAME BACK".
+- **Genes:** a dodge chip plus expressed-trait chips. Carried recessives show as faint icons after "CARRIES" (ECHO,
+  REMEMBERS, COLOURBLIND, GLITCHED, BLINK).
+- **Factions:** the one liked (heart, green) and the one hated (cracked heart, red).
+- **Death:** floor and biome reached, "TAKEN BY ...", and a two-line epitaph.
+- **Best feat:** an icon plus a line, such as first boss killed or rarest recipe.
+
+Up and Down step through generations without leaving the detail. On a sibling the same page shows the bust's genes
+and "NOT TAKEN", with no death block.
+
+**World ties:**
+- A ghost (ECHO) or a body (lineage relic) placed in a run carries its ring slot (4 bits). "Read the tag" shows the
+  name, the generation and the epitaph.
+- From a landing or the pause menu, SELECT on that memory opens the tree at that node.
+- Each meeting bumps the node's ghost or body counter (world-ties byte).
+- Talks have an `{ANCESTOR}` slot, filled by rule:
+  - the most recent ancestor who died on this floor;
+  - else one who liked or hated the talker's faction;
+  - else the founder.
+  Naming sets the node's "named" bit. Faction talkers lean on liked/hated ("WE REMEMBER ODA").
+
+**Music sting:**
+- On open: a 4-note rising arpeggio (pulse 2) over a wave-channel pad swell, about 1.2 s. The running loop then
+  continues ducked, with its high pulse muted.
+- Each generation step: one soft pluck, a step lower per generation (older = lower).
+- Landing on a glitch-line node: a 2-frame noise-channel crush.
+
+**CGB budget (tree screen; checked by the script):**
+
+| Slot | BG palette | Colours | Used for |
+| --- | --- | --- | --- |
+| 0 | VOID | V0 indigo, V1, V2, star | the void |
+| 1 | LINES | V0, lilac, cyan, magenta | connectors, glitch lines, the 4th lane colour |
+| 2 | GLOW | V0, plum, pink (cycled), cyan | the live branch's glow and spine |
+| 3 | GHOST | V0, three lilacs | every unpicked sibling |
+| 4 | TEXT | V0, V1 (shadow), pink, white | labels on the void |
+| 5 | UI-A | ink, panel, cyan, white | bars |
+| 6 | UI-B | ink, panel, cyan, pink | bars |
+| 7 | VIEW | swapped by SELECT: BANDS / BARS / LEANS | the right-hand lanes |
+
+- **OBJ palettes:** OBJ0–6 are dynamic node palettes. Each played heir or waiting kid gets three colours: ink/hair
+  and skin from the face generator's palette tables, plus cloth from the accent gene (so a fire line wears warm).
+  OBJ7 holds the cursor, the sun-sign glyphs and the glitch sparkles.
+  - Worst case on screen: 3 played rows + 3 kids + 1 partial row = 7 node palettes + OBJ7.
+  - The mocks use at most 4, because a family shares colours.
+- **Sprites:** a node is two 8x16 OBJ.
+  - Worst line: the kids row, 6 + cursor 2 + a sparkle = 9 of 10.
+  - Played rows: 2 + cursor 2 + glyph 1 + up to 3 sparkles = 8.
+  - Measured max: 8.
+- **Tiles:**
+  - The tree is a tall BG (440 px for 16 generations + founders + kids). It is streamed into the 32x32 map one
+    generation at a time during VBlank: 60 map + 60 attribute bytes and at most about 14 new tiles (224 B by HDMA)
+    per 24 px scrolled.
+  - Measured worst window ±1 generation: 129 unique BG tiles (FACES), 185 (TRUTH, the threads are unique), plus
+    about 40 for the bars. That fits the 256 BG tiles of VRAM bank 1.
+  - OBJ: 4 tiles per visible node (at most 7 nodes = 28), cursor 2, glyphs and sparkle about 6: under 40 tiles of
+    bank 0.
+- **Detail screen:**
+  - 8 BG palettes: UI-A, UI-B, PORTRAIT (card + the face's 3 colours), CHIPS, FAINT, FACTION, SIGN and WORDS.
+  - 158 unique BG tiles, including the portrait's 36.
+  - No sprites.
+- **Mini portraits** are not a reduction of the 48x48 face. A 3:1 or 2:1 reduction was tried and turns the
+  generator's dithered shading into mush. Instead, a small **bust generator** builds the 16x16 bust from the same
+  look genes:
+  - skin and face shape (a superellipse: width from the shape gene and size, round or square jaw);
+  - hair (5 masks), neck (4), size (HEAVY widens the head and shoulders, SMALL narrows them);
+  - accent (the cloth colour) and the visible marks (glasses, headphones, scarf, beanie, visor);
+  - fixed eyes and mouth, then a 1 px ink outline pass.
+  - Cost: about 0.5 KB of masks and code. A bust renders far faster than the face generator, so a whole row streams
+    in one frame.
+  - Played busts go to OBJ tiles. Siblings go to BG tiles through the GHOST mapping (ink to dark lilac, cloth to mid,
+    skin to light).
+
+**Save: the tree record.** This replaces the lineage rows of the 9.5 SRAM table (`0xA240`–`0xA3AF`, 368 bytes,
+which become free). The ring stays the gene pool, with full genomes.
+
+Per-heir node, **44 bytes** (16 in the ring):
+
+| Offset | Size | Field |
+| --- | --- | --- |
+| 0 | 14 | genome (9.2; flags carry mutated, glitch-born, founder) |
+| 14 | 1 | name id (256-name ROM table) |
+| 15 | 1 | death floor (bits 0–3, 0 = alive) and stage on the floor (bits 4–7) |
+| 16 | 1 | biome (bits 0–2) and stage type (bits 3–6); bit 7 = died in a rift |
+| 17 | 1 | cause of death: killer family or hazard (bits 0–4) and how (bits 5–7) |
+| 18 | 1 | epitaph id (256 two-line phrases, chosen at death from the cause, traits and feat) |
+| 19 | 2 | best feat: type (bits 12–15: first boss, elite, rarest recipe, treasure, escort, none...) and id (bits 0–11) |
+| 21 | 1 | factions: liked (bits 0–2), hated (bits 3–5), strength (bits 6–7) |
+| 22 | 5 | birth stamp (owned by the birth-data design): 4 bytes of minutes since 2000-01-01 UTC, and 1 byte UTC offset in 15-minute steps. Death = the child's birth, so lifespan costs nothing |
+| 27 | 2 | truth lean at death: 4 axes, signed nibbles (the TRUTH threads) |
+| 29 | 1 | kills (saturating) |
+| 30 | 1 | rooms cleared (saturating) |
+| 31 | 1 | world ties: ghost met 0–3 (bits 0–1), body found 0–3 (bits 2–3), named by a talker (bit 4), chart opened (bit 5), where the pick sat among the three (bits 6–7) |
+| 32 | 12 | two sibling records, 6 bytes each |
+
+Sibling record, **6 bytes**. Siblings never breed, so their full genome is dropped; the kind is the line's.
+
+| Offset | Size | Field |
+| --- | --- | --- |
+| 0 | 4 | looks packed into 28 bits (skin 3, shape 3, mouth 1, hair 3, neck 2, pattern 3, dither 3, size 2, accent 3, mark 3, look 2), plus expressed dodge (2), mutated (1) and glitch-born (1) |
+| 4 | 1 | name id |
+| 5 | 1 | expressed traits: 2 x 4 bits (0 = none, 1–10) |
+
+FOUNDERS node, **48 bytes:**
+
+| Offset | Size | Field |
+| --- | --- | --- |
+| 0 | 32 | G1's own node record, without siblings (written once, never evicted) |
+| 32 | 2 | elders folded in (16-bit count) |
+| 34 | 1 | elders' deepest floor (bits 0–3) and its biome (bits 4–6) |
+| 35 | 2 | the generation of that deepest run |
+| 37 | 1 | bosses killed by elders (saturating) |
+| 38 | 2 | elders' total kills (16-bit, saturating) |
+| 40 | 1 | glitch births (high nibble) and mutations (low nibble) among elders |
+| 41 | 2 | traits ever expressed by an elder (10-bit mask) and dodge styles seen (3 bits) |
+| 43 | 2 | elders' average truth lean (4 signed nibbles: the top of the TRUTH threads) |
+| 45 | 2 | the longest elder life, in hours |
+| 47 | 1 | one remembered elder name id (the longest-lived; talkers can quote it) |
+
+When a 17th heir enters the ring, the oldest ring node is folded into these aggregates and its slot is reused.
+
+The tree block, one copy:
+
+| Size | Content |
+| --- | --- |
+| 6 | header: ring head, count, generation (16-bit), write sequence, record version |
+| 704 | ring: 16 x 44 |
+| 48 | founders |
+| 42 | the waiting kids' genomes (3 x 14, so a pick survives power-off) |
+| 2 | CRC-16 |
+| **802** | **one copy** |
+
+It is kept as two copies, A/B with the sequence byte (the meta record's rule), so a power cut mid-write can't lose
+the family: copy A at `0xA570`–`0xA891`, copy B at `0xA892`–`0xABB3`, **1,604 bytes**. The inheritance block
+(`0xA3B0`, 64 bytes) is unchanged. **Lineage total: 1,668 bytes** (was 432). That leaves 0xABB4–0xB4FF (2,380 bytes)
+free, plus the 368 freed at 0xA240.
+
+**Open questions:**
+1. **A real-time birth stamp needs a clock.** The cart is MBC5, which has no RTC. Options:
+   - MBC3 + RTC (MBC30 for 8 KiB SRAM banks);
+   - a date set once at first boot, plus play time;
+   - the host or link.
+   This needs a decision with the birth-data design.
+2. **Sun signs repeat.** With real-time births, a session's heirs mostly share a sun sign (the mock line spans about
+   7 weeks: Virgo to Scorpio). Is that fine, given the chart varies faster?
+3. **The busts show accessories the portrait doesn't.** Mini busts show the in-room sprite's marks (visor,
+   headphones...), which the 48x48 portrait does not draw. Should the portrait draw them, or the bust drop them?
+4. **Ring size.** Keep 16 heirs, or 24? 24 costs +352 bytes per copy.
+5. **Title-menu TREE before any death:** hide it, or show the founder alone?
+6. **Glitch-born kinds** (constructs, sheet ghosts) need their own bust templates; the mocks show human lines only.
+
+### 9.7 Birth charts and the sky
+
+Every heir, talker and trader has a birth minute and a small chart. The chart nudges play a little and gives the line
+something to read. The sky above the shared world is the real one: today's retrogrades, eclipses and moons arrive on
+their real dates and lean the session slightly. None of it is ever needed to progress. Prototype: `proto/sky/` (the
+engine, the rules, the host checks, the cost probe ROM). Mocks: `tools/mock/chart_mock.py` →
+`docs/shots/chart_*.png`, `sky_today_*.png` (1x native and 4x; 0 CGB-limit violations, see `chart_report.json`).
+
+#### 9.7.1 The clock
+
+The cart is MBC5 and has no RTC, so the clock is CRUCIBLE's HCLK approach. This answers 9.6's open question 1 and
+12b's clock question.
+- **Asked once.** At the first boot of a new save, the cart asks for the date, the time **and the UTC offset** (one
+  screen; the offset steps by 15 minutes and defaults to the last answer). It never asks again by itself.
+- **A host can set it.** A 16-byte HOST CLOCK block with CRUCIBLE's layout and CRC: magic "HCLK", **version 2**,
+  year as u16 (2000..2199). **Flags bit 0** marks byte 13 as the UTC offset, a signed count of quarter hours. The
+  website and emulator wrapper write it before each boot, so hosted play is always right. The cart consumes it at
+  power-on and zeroes the magic.
+- **Kept clock:** two alternating 16-byte records (the A/B and CRC rule of the meta record). Each holds UTC days since
+  2000 (u16), the minute of the day (u16), the frame remainder, the UTC offset, a "known" flag and a sequence byte.
+  Proposed placement, in 9.6's free range: kept clock at `0xB4C0`–`0xB4DF`, host block at `0xB4E0`–`0xB4EF`.
+- **Advance:** the cart counts VBlanks with a remainder, 70,224 clocks a frame against 4,194,304 a second, so it is
+  exact relative to the crystal. Crystal drift is about ±50 ppm, which is about 4 s a day while powered.
+- **Staleness is the real error.** The clock stops while the cart is off. On a real cartridge, every power cycle
+  without a host block loses the time it was off. So:
+  - CONTINUE shows the cart's date and time small in the corner, and SELECT there re-sets it. It never interrupts
+    play.
+  - A stamp made by a clock that was set by the player in this power-on, or advanced from a host block, is marked
+    quality PLAYER or HOST. A clock resumed from SRAM after power-off is marked STALE (quality 0, "UNSET" in
+    `astro.h`), and the tree shows such a birth time with a `~`.
+  - Re-ask when: a new save starts, the player presses SELECT on CONTINUE, or the save's clock is unknown (a CRC
+    failure on both copies).
+
+#### 9.7.2 Who is born when
+
+- **Founder (G1):** the minute the save is created.
+- **Heirs:** the real minute the parent died. Death equals the child's birth, so lifespan still costs nothing (9.6).
+  The 3 kids are not identical: the **first-born** takes the death minute; the second and third are born 7..97 seeded
+  minutes later each. The Moon moves about 1° in that time, but the Rising moves 2–25°. Siblings share a Sun and
+  usually a Moon sign, and differ in the Rising, which is what the pick screen shows. This answers 9.6's open
+  question 2: Sun signs repeat across a session by design, while the Rising and Moon carry the variety.
+- **Talkers and traders:** seeded from (world seed, talker id). The year is 1950..2010 (talkers are older than the
+  line), the day and minute are uniform, and the stamp is marked SEEDED. A trader's Sun element is what Venus prices
+  against.
+- **The place:** the shared world sits at **40°N on its own meridian 0** (local sky = UTC). The latitude only moves
+  the Rising and MC; 40° keeps every sign rising within the 9.7.4 orbs. The player's UTC offset is for display only;
+  the sky is always computed in UTC.
+
+#### 9.7.3 Bytes (coordinated with 9.6 and 12b)
+
+**Birth stamp, node offset 22, 5 bytes** (the slot 9.6 reserved). Readers that only show dates use
+`stamp & 0x03FFFFFF`.
+
+| Bits / byte | Field |
+| --- | --- |
+| u32 LE, bits 0–25 | minutes since 2000-01-01 00:00 UTC (valid to 2127) |
+| bits 26–27 | clock quality: 0 stale/unset, 1 player-set, 2 host, 3 seeded |
+| bits 28–29 | birth order among the 3 kids (0 first-born) |
+| bit 30 | approx: born outside the baked tables (before 2026 or after 2126) |
+| bit 31 | spare |
+| byte 4 | the player's UTC offset at that moment, signed quarter hours (display only) |
+
+**Sky bytes, node offset 44, 3 bytes**: the node grows from **44 to 47 bytes**, so the ring grows to 752 bytes, one
+copy to 850 bytes, and both copies to 1,700 bytes (+96). The chart itself is never stored; it is recomputed from the
+stamp, which takes about 0.1 s (9.7.6).
+
+| Byte | Bits | Field |
+| --- | --- | --- |
+| 44 | 0–1, 2–3, 4–5, 6–7 | alignment tier 0..2 of the Sun, Moon, Rising and Mercury |
+| 45 | 0–1, 2–3 | tier of Venus and Mars |
+| 45 | 4–6 | echo: the parent's most aligned placement (0..5), 7 none |
+| 45 | 7 | spare |
+| 46 | 0–3 | the strengthened aspect: one of 7 natal pairs, 15 none |
+| 46 | 4–5 | its tier |
+| 46 | 6–7 | spare |
+
+The founders node keeps G1's stamp inside its 32-byte copy of the node; G1's sky bytes are not kept. The
+pack/unpack round trip (`astro_pack`/`astro_unpack`) is tested over 20,000 random records.
+
+#### 9.7.4 The chart
+
+Ten points: the Sun, Moon, Mercury, Venus, Mars, Jupiter and Saturn, the mean node, the Rising (Ascendant) and the
+MC. Major aspects only: conjunction, sextile, square, trine and opposition. Orbs are 8° with the Sun or Moon and 6°
+otherwise. Elements follow sign mod 4 and map onto the matrix's tags: **Fire→HOT, Earth→STONE, Air→AIRY, Water→WET.**
+
+| Placement | Effect (percent points in the 5.1 stat groups, or a tag) |
+| --- | --- |
+| Sun | on-hit status of its element at 3% (+2 a tier); foes of the opposite element (fire↔water, earth↔air) deal ×17/16 to you, which is the price of the affinity |
+| Moon | idle animation and ghost whisper flavour by element; no numbers |
+| Rising | starting kit: 1 + tier pieces of its element |
+| Mercury | one talk in 6 / 4 / 2 (by tier) gets an extra dialogue option |
+| Venus | −3% (−2 a tier) prices at traders whose Sun shares Venus's element; +1 warmth with the faction of that element |
+| Mars | the charge release carries Mars's element tag at 2 (+2 a tier) |
+| Aspects | 7 named pairs give tiny nudges: Sun–Mars, Mars–Rising, Sun–Saturn, Sun–Jupiter, Moon–Venus, Mars–Saturn, Venus–Mars. A soft aspect gives a +, a hard one a + paired with a −, clamped to ±4 per stat group |
+
+#### 9.7.5 The sky engine (real dates, 2026-01-01 .. 2126-12-31)
+
+A hybrid, with every number checked against Astronomy Engine (MIT, pip `astronomy-engine`; no JPL kernels):
+
+1. **Baked event tables** (`proto/sky/bake.py` → `gen_tables.py`):
+   - stations of Mercury through Pluto;
+   - eclipses with their type (total, annular, hybrid, partial, penumbral);
+   - lunar quarters, perigees and super new and full moons (under 361,000 km);
+   - sign ingresses of the Sun and Mercury through Pluto;
+   - solstices and equinoxes.
+
+   Each stream is delta-encoded minutes (2, 3 or 4 bytes with a bias; a flag bit marks backward ingresses), with an
+   absolute index every 32 events. Eclipses and supermoons are marks on the phase stream. `sky_find(stream, minute)`
+   returns the previous and next events in about 13 ms.
+2. **Live integer positions** for the wheel, transits, the Moon's sign and void of course:
+   - mean longitudes plus a least-squares-fitted trig series, 77 terms over 32 mean angles;
+   - planets are heliocentric, then made geocentric through the Earth's series;
+   - the Moon uses 34 ELP terms;
+   - 16-bit binary angles, a 2,049-entry sine table, a custom 16×16 multiply in assembly.
+
+   The phase, retrogrades and stations come from the tables, so the wheel and the events never disagree.
+3. **Outside the range** (a clock set before 2026 or after 2126), the series runs alone:
+   - the phase comes from elongation, retrograde from the motion over ±1 day, and eclipses from the Moon near the mean
+     node;
+   - everything shows a small "~" (approx);
+   - it never crashes and never shows garbage: the series is periodic and bounded, and only the mean motions grow.
+
+| Table | Events | Bytes |
+| --- | --- | --- |
+| phases (quarters + marks) | 4,997 quarters, 461 eclipses, 485 supermoons | 10,779 |
+| stations, Mercury..Pluto | 1,836 | |
+| ingresses, Sun + Mercury..Pluto | 5,018 | |
+| perigees, seasons | 1,339 + 404 | |
+| **all streams** | **14,136 decoded entries** | **37,347 in 3 ROM banks** (16,362 + 16,184 + 4,801) |
+
+**Accuracy (`proto/sky/verify.py`, 2026–2126, 72,670 samples):**
+
+| | Sun | Moon | Mercury | Venus | Mars | Jupiter | Saturn | Rising | MC |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| max error, degrees | 0.038 | 0.086 | 0.103 | 0.146 | 0.144 | 0.047 | 0.025 | 0.033 | 0.023 |
+| target | 1 | 1 | 1 | 1 | 1 | 2 | 2 | 1 | 1 |
+
+- Every baked event decodes to the exact minute (14,136 events, 0 mismatches).
+- The live retrograde state agrees with the tables 99.3–99.8% of the time. The disagreements sit within 1–1.6 days of
+  a station, where a planet barely moves; the game uses the tables.
+- Void of course agrees 99.6%.
+- Fallback mode: phase exact 97.8% (otherwise off by one eighth); 452 of 461 eclipses found (the misses are 6
+  penumbral and 3 partial); 3 false eclipse days; new moons within 59 minutes.
+- 47 published dates in `fixtures.json` all match:
+  - the 2026–27 Mercury retrogrades;
+  - the 2026-08-12 and 2027-08-02 total solar eclipses;
+  - the 2026 equinoxes and solstices, and the 2026 full moons.
+
+  The fixture dates were recalled, not copied from a source; they agree with the engine either way.
+
+#### 9.7.6 Cost (PyBoy, CGB double speed; `proto/sky/rom/`)
+
+| Call | CPU clocks | ms | frames |
+| --- | --- | --- | --- |
+| `sky_positions` (all 10 points) | 708,000 | 84 | 5.0 |
+| `sky_read` (today: positions, phase, retrogrades, eclipse, void of course) | 1,647,472 | 196 | 11.7 |
+| `sky_read` outside the range | 2,898,256 | 346 | 20.6 |
+| `sky_find` (late block) | 107k–123k | 13–15 | 0.8–0.9 |
+| natal chart + aspects | 801,440 | 96 | 5.7 |
+| transit scan | 864,096 | 103 | 6.2 |
+
+- **ROM:** the engine and its tables use 14,964 bytes of one switchable bank, plus a small copy helper in bank 0.
+  The events take 37,347 bytes in 3 more banks.
+- **RAM:** about 380 bytes of WRAM for the whole probe.
+- The ROM's positions equal the host build's bit for bit.
+- **When it runs:** only on screens that already pause:
+  - SKY TODAY is computed once at boot and at each floor transition, spread over frames behind the fade;
+  - the chart is built when its screen opens;
+  - a transit refresh happens once per floor.
+
+  No sky work runs during room play.
+
+#### 9.7.7 The sky today (session effects, small and bounded)
+
+Each floor reads the sky once. A state is real for the whole local day it touches. At most the two tightest natal
+transits apply. Foe-strength bonuses cap at +5% and the offering (treasure) tilt at +3, however the sky stacks.
+
+| Sky | Play |
+| --- | --- |
+| Mercury retrograde | recipes misfire (a mix room needs one extra step), talkers misremember a line, the bench glitches visually, ghosts return to floors they already left. **Never touches the controls.** |
+| Venus retrograde | trader prices and faction warmth swing ±1 step per visit |
+| Mars retrograde | HOT hits at 75%, parries hold one beat longer |
+| Jupiter station (±2 days) | run-long tilt: better pickups (+3 offering) |
+| Saturn station (±2 days) | run-long tilt: elites +4% |
+| Solar eclipse | dark rooms more often (×20/16), light puzzles, a boss variant; **eclipse-only drops** |
+| Lunar eclipse | more ghosts and ancestors (foes +2%); eclipse-only drops |
+| Full moon / super | foes +3% / +5%, offering +2 / +3 |
+| New moon / super | dark rooms ×18/16 / ×19/16, offering +1 |
+| Void-of-course Moon | alignment fails; crafting unstable (one extra step) |
+| Solstice / equinox | the palette and music season changes; no numbers |
+| Solar return (birthday) | +6 HP for the run, a party scene (19), a guided talk |
+| Lunar return | +2 status |
+| Natal transits | e.g. "SATURN SQUARES YOUR SUN: +1 GUARD -SPEED", shown on the chart's transit screen |
+
+**Eclipse-only drops** come from a short list of found-only pieces that can only roll while an eclipse is active.
+They are sidegrades, the same rule as found-only pieces. **Guided talks** are rare (at most one per floor): a talker
+remarks on today's sky, or on the heir's return.
+
+#### 9.7.8 Alignment (the upgrade)
+
+"Align" a placement at the bench or a shrine:
+- **Cost:** tier 1 costs tokens (the common tier); tier 2 costs a rare relic (a lineage relic or an eclipse drop).
+- **Cap:** each placement goes 0 → 2, with at most **3 tiers per heir** in total (the strengthened aspect counts).
+- **Sky gating:** tier 2 needs the real sky: the Moon or the planet itself conjunct or trine its natal point within
+  3°. The chart's next-30-days list shows when.
+- **Void of course:** no alignment at all while the Moon is void of course.
+- **Echo:** a child inherits a faint **echo** of the parent's most aligned placement: half a tier, never past the
+  tier-2 ceiling, and never stacking over generations. The echo is recomputed from the parent, not copied, so a line
+  can't snowball. It shows as a faint second ring on that glyph.
+
+#### 9.7.9 The chart screens
+
+Opened from the heir pick (SELECT on the sun glyph), the tree's node detail (the glyph box) and the pause menu.
+
+| Mock | Shows |
+| --- | --- |
+| `chart_wheel` | 12 sign segments in a 4-colour pastel band, Rising fixed at 9 o'clock, planet glyph sprites (7 OBJ palettes), aspect lines (green soft, pink hard) over a dithered inner glow |
+| `chart_step` (+ `_strip`) | the D-pad steps the six placements; corner brackets mark the selection; one line of reading, and the effect in cyan |
+| `chart_transit` | the transit outer ring (today's planets), r on retrograde glyphs, the tightest hit and its effect, the next event; LEFT/RIGHT pages the next 30 days |
+| `sky_today` | SKY TODAY: each active state, its effect and how long it lasts, with the Moon's phase icon in the corner |
+
+The **readings voice** is oblique, specific and a little wrong, never horoscope cheese: "YOUR CHARGE COMES OUT LIT.",
+"YOU ARRIVE BEFORE THE DUST DOES.", "AT REST YOU TAP. THE FLOOR TAPS BACK." There is one line per placement and
+element (24) and one per transit kind. Retrograde is shown as "BACKWARD", void of course as "UNTETHERED".
+
+#### 9.7.10 Balance (`proto/sky/astro_sim.c` through the matrix model, `proto/sky/out/astro_balance.md`)
+
+The setup: 1,000 bred heirs (200 per strategy, generation 30), the adopted final trait model and K=42. Births are
+seeded across 2026–2126. 40% of heirs never align, 35% align one tier and 25% optimise to the cap; half carry an
+echo.
+
+**Natal charts on, no sky.** All within 2 points:
+
+| Strategy | Without charts | With charts | Delta |
+| --- | --- | --- | --- |
+| random | 56.1% | 56.9% | +0.8 |
+| heavy | 56.8% | 57.5% | +0.7 |
+| blink | 58.7% | 59.4% | +0.7 |
+| fire | 59.8% | 60.9% | +1.1 |
+| power | 58.5% | 59.2% | +0.7 |
+| all | 58.0% | 58.8% | +0.8 |
+
+**No chart dominates:**
+- Sun element groups: +0.5 to +0.9.
+- Mars element groups: +0.5 to +1.1.
+- The 16 Sun×Mars pairs: −0.4 to +1.5.
+- Alignment policy: none +0.7, one tier +0.8, optimiser +1.0.
+
+**Each sky state forced on every run** (against charts on with no sky), all within ±5:
+- Mercury retrograde −1.0, Venus retrograde 0.0, Mars retrograde +1.1;
+- Jupiter station +0.1, Saturn station −1.9;
+- solar eclipse −0.2, lunar eclipse −2.8;
+- full moon −0.9, super full moon −2.7, new moon 0.0;
+- void of course −1.0, birthday +2.2;
+- worst stack (Mercury retrograde + Saturn station + super full moon) −3.7, best stack +2.3.
+
+**Real moments, 2026–2030 every 12 h** (3,652 moments, paired runs):
+- median −0.3; p5 −1.6; p95 +0.6;
+- min −5.0 (inside the ±2.5 sampling noise of a 1,600-run moment);
+- **97.2% of moments within ±2.**
+
+**Whole runs under the real sky:** +0.2 to +0.5 by strategy.
+
+#### 9.7.11 Open questions
+
+1. **The stale clock.** Is the CONTINUE-corner clock with SELECT-to-set enough, or should the cart ask "STILL <date>?"
+   after a power-off? An MBC3+RTC board would remove the question but changes the cart (9.6, 12b).
+2. **Sibling charts.** The siblings' 7..97-minute spread makes them differ mostly in the Rising. Is that enough, or
+   should siblings be born days apart (in story terms, a found-later child)?
+3. **Speed.** `sky_read` is about 0.2 s. An assembly series loop could probably halve it. Worth it, or keep
+   spreading the work across fades?
+4. **Live stations.** If the game ever shows live (fallback-mode) retrogrades, they need hysteresis, because the flag
+   chatters for a day either side of a station.
+5. **Talker ages.** Is a birth year range of 1950..2010 right for talkers, or should some be "born" in the shared
+   world's own impossible years?
+6. **Event-born (19.4).** The ±3% event-born bound is owned here but not yet simulated; the traits are still shapes.
+
 ---
 
 ## 10. Story: a small calamity
@@ -1222,6 +1723,254 @@ stage's assembly.
 
 ---
 
+## 12b. Death sequence
+
+The M2 death screen was plain text on black (`docs/shots/12_death.png`). The redesign makes death a short sequence
+that ties into the collapsing world and the lineage: the room lets go of the heir, a memorial badge says who they
+were and how it happened, a panel shows what the line keeps, and the tree takes the new ancestor.
+
+**Mocks** (1x and 4x side by side; `tools/mock/death_mock.py`, which legalises every frame, see "GBC budget"):
+
+| File | Shows |
+| --- | --- |
+| `docs/shots/death_sequence.gif` | the full sequence, 9.4 s, with the beat name and time beside the 1x frame |
+| `docs/shots/death_collapse.png` | LET GO: the drained room coming apart outside-in into the pastel void |
+| `docs/shots/death_card.png` | the epitaph card (memorial / office ID badge) |
+| `docs/shots/death_variants.png` | the fall by dodge style, first death, no heirs left, a boss kill, a faction note, the ghost later |
+
+### 12b.1 Beats
+
+Unskipped it runs **9.4 s** (566 ticks at 60 Hz). The table is printed from the mock's timeline.
+
+| Time | Ticks | Beat | What happens |
+| --- | --- | --- | --- |
+| 0.00–0.17 s | 0–10 | HITSTOP | The killing hit freezes. White flash on the heir, 2 px shake (SCX/SCY). |
+| 0.17–0.83 s | 10–50 | FALL | The death animation by dodge style. The palette drains to cool greys in 4 steps, 8 ticks apart. The heir drains only halfway: it is the last thing with colour. Music cuts on the next beat into a low drone. |
+| 0.83–1.00 s | 50–60 | STILL | Nothing moves. The drone settles. |
+| 1.00–2.02 s | 60–121 | LET GO | The room collapses outside-in, ordered by distance from the body. Each cell cracks (3 ticks), then splits into two 8x16 halves that fall and dissolve into the void (8 ticks). The void's palette steps from drained indigo to pastel. The HUD lets go at 1.67 s. Glitch tears. |
+| 2.02–2.67 s | 121–160 | LIGHT | Dithered light falls from the top onto the last tile. The heir brightens 2 palette steps, and motes drift down. |
+| 2.67–2.87 s | 160–172 | CARD IN | The memorial badge slides up (window layer). |
+| 2.87–5.50 s | 172–330 | CARD | Name, kit and floor appear, then the IN/OUT clock. The cause types at 1 character per tick, the epitaph fades in over 2 palette steps, and the stats count up. |
+| 5.50–5.70 s | 330–342 | SWAP | The card slides out left as the carry panel comes in from the right. |
+| 5.70–7.70 s | 342–462 | CARRIES | Kept and lost rows land 18 ticks apart, then the trait teaser. |
+| 7.70–7.90 s | 462–474 | OUT | The panel drops away. Back to the lit tile. |
+| 7.90–8.40 s | 474–504 | DROP | The body tile cracks and drops into the void with the heir. |
+| 8.40–9.43 s | 504–566 | THE LINE | The tree slides in from the right. The new ancestor drops into the row, faded, eyes shut, with a glitch. The 3 kids slide up. The heir pick takes over. |
+
+**Skipping:**
+- The first death ever plays in full.
+- After that, **hold B** for 30 ticks to skip. A ring fills around a small B in the corner, and the sequence jumps
+  to THE LINE (kept, 1 s, so the new ancestor is always seen added).
+- **A** advances the card and carry beats early.
+- Skipping writes the same records: the ring node, the epitaph id, the matrix nudge.
+
+### 12b.2 The fall: by dodge style, accented by traits
+
+The heir's death animation is chosen by its dodge gene. `DEATH_ANIM` in the mock lists the frames. They are poses
+of the heir rig (`proto/anim/heirs.py`), so every generated heir gets all three.
+
+| Dodge | Fall |
+| --- | --- |
+| ROLL | white flash, a stagger, a two-frame tumble (the roll ball), then flat on the back |
+| SLIDE | flash, a skid with dust (6 px), then slumps sitting, head down, eyes shut |
+| BLINK | flash, flickers out in two glitch frames, re-forms 2 px off and kneels, with a 1-px glitch |
+
+**Trait accents** (one extra event, no new frames):
+- HEAVY: a 2 px thud shake and a dust ring.
+- SMALL: a 3 px bounce.
+- DAMP: a puddle cell under the body.
+- GLITCHED: one torn frame.
+- ECHO: a faint afterimage stands for 20 ticks and rises.
+- LOUD: the drone starts a beat early.
+
+### 12b.3 The world lets go
+
+The order is designed. Cells are sorted by distance from the body, with seeded jitter, so the room comes apart from
+the edges inward. The wall row and the door go early, and the 8 neighbours go last. That leaves the heir on **one
+floating tile** in the pastel void.
+
+The void becomes pastel by palette writes alone (BG palette 2, 4 steps). It is the same void tiles as during play,
+so the place you die in is the place you always walked over, just lit differently.
+
+The light is a column of dithered BG tiles in its own palette over the void. It reaches the tile in 18 ticks. Light
+only comes from something in the world (section 1): the gap above the last tile.
+
+### 12b.4 The epitaph card
+
+The card is a memorial and an office ID badge at once: a lanyard slot, a header band, a photo, a barcode and a
+time-clock stamp. The look is synthwave: a cyan rim and pink and cyan type on indigo.
+
+| Part | Content | Source |
+| --- | --- | --- |
+| Header | MEMORIAL, GEN nn | lineage header |
+| Photo | the face generator's own face with the **eyes shut** (its blink frame), printed in 3 memorial tones; a glitch row tears through it every few ticks | genome; `avatar_dump genome HEX talk` now prints the blink frame too |
+| Name | ≤ 9 characters, pink | name id |
+| Kit | dodge + first expressed trait (SLIDE HEAVY) | genome |
+| Place | F3 OFFICE | death floor + biome |
+| Barcode | the face genome as bars (decor, but true) | genome |
+| IN | birth date and time = the real moment the parent died | the birth stamp (birth-data design) |
+| OUT | now (= the next heirs' IN) | the clock |
+| Cause | 2 lines, ≤ 18 each, generated (below) | the death record |
+| Epitaph | 1 line, ≤ 18, in quotes, lilac, from the truth matrix | the lean at death |
+| Stats | tokens, treasure X/5, kills, recipes made (count up, icons are sprites) | run stats |
+
+**Cause-of-death grammar.** It is filled at the killing blow from what actually happened:
+- `how`: the damage or reaction that landed;
+- `killer`: the mob's generated name, the object, the boss, the hazard or the reaction;
+- `owner`: who set the killer in motion (SELF, MOB, BOSS or ROOM), plus *how* (pushed, made, poured, planted,
+  reflected, threw, dug, lit);
+- context flags: mid-dodge, carrying, last heart, one hit short, seconds on the floor, boss phase.
+
+```
+CAUSE  := VERB "BY" KILLER [TWIST]          broken onto 2 lines of <= 18 at the most balanced word boundary
+VERB   := the reaction's participle         CRUSHED COOKED STEAMED FROZEN SHORTED OUT OVERGROWN UNRENDERED
+                                            SHATTERED DROWNED STUCK ERASED MELTED
+        | the biome's verb for a plain hit  FILED AWAY (office) VENTED DUNKED DEFRAGGED RUNG UP COMPOSTED
+                                            BLOWN OFF DELETED (glitch core)
+KILLER := POSS "OWN" NOUN                   when the owner is SELF and the killer is a reaction or projectile
+        | "A"/"AN" NOUN | BOSS NAME
+TWIST  := PRON OWN_VERB REFLEX | PRON OWN_VERB      when the owner is SELF ("A CRT SHE PUSHED HERSELF")
+        | ", " CONTEXT                              MID-ROLL, MUG IN HAND, LAST HEART, PHASE 3, 4S IN, ONE HIT SHORT
+special: falling into the void = "LET GO OF / THE FLOOR ON Fn"
+```
+
+Candidates are tried from most to least specific, and the first that fits on 2 lines wins. If nothing fits, the twist
+is dropped. Pronouns follow the look gene: SHE/HER/HERSELF, HE/HIS/HIMSELF, or THEY/THEIR/THEMSELF.
+
+Generated by the mock (`death_mock.py --grammar`):
+
+| Death record | Card |
+| --- | --- |
+| CRT, pushed by self | CRUSHED BY A CRT / SHE PUSHED HERSELF |
+| her steam, frozen | FROZEN BY / HER OWN STEAM |
+| puddle he poured, shocked | SHORTED OUT BY A / PUDDLE HE POURED |
+| a mob, mid-roll, vents | VENTED BY A DAMP / INTERN, MID-ROLL |
+| his own fire orb, reflected back | COOKED BY / HIS OWN ORB |
+| a sprout she planted | OVERGROWN BY A / SPROUT SHE PLANTED |
+| boss beam, phase 3 | ERASED BY OLD / MONITOR, PHASE 3 |
+| a leak, carrying | DROWNED BY A / LEAK, MUG IN HAND |
+| a mob 4 s into the floor, mall | RUNG UP BY A RIME / TOASTER, 4S IN |
+| fell into the void | LET GO OF / THE FLOOR ON F2 |
+
+**Epitaph.** The truth axis that leans hardest at death, and its sign, pick a pool of 3–4 lines. The seed picks the
+line. The lines are short and odd, never a reveal or a pun:
+
+| Lean | Lines |
+| --- | --- |
+| SELF + (the same person) | THE CHAIR WAS WARM · SAME DESK, AGAIN · THE BADGE FIT · SHE KNEW THE WAY |
+| SELF − | A STRANGER'S SHOES · NOBODY KNEW HER · THE NAME WAS NEW |
+| CAUSE + (made) | SOMEONE MIXED THIS · IT WAS PUT HERE · THE BENCH WAS WARM |
+| CAUSE − (the building) | THE FLOOR GAVE UP · ALWAYS LOOSE · THE BUILDING SAGS |
+| CULPRIT + (you) | SHE HAD THE KEY · HER HANDS, AGAIN · SHE OPENED IT |
+| CULPRIT − (a faction) | THEY KNEW HER NAME · SOMEONE WATCHED · THE DOOR WAS DRAWN |
+| REVERSIBLE + | NOT YET. NOT HERE · IT CAN BE PUT BACK · THE STAIRS WAIT |
+| REVERSIBLE − | SOME DOORS STAY · THE STAIRS WENT · NOTHING CAME BACK |
+
+The pronouns in a line are rewritten for the heir. The chosen line is stored as the tree node's epitaph id, so the
+tree, a ghost and a talker can all quote it later.
+
+### 12b.5 What carries on
+
+One row lands every 18 ticks. Each row has an icon, a label and a verdict chip (KEEP in cyan, LOST in pink), and its
+own small animation. The rules are section 9.5's:
+
+| Row | Animation | Verdict |
+| --- | --- | --- |
+| weapon mods unlocked (EMBER MOD) | icon settles | KEEP |
+| recipes known (4 icons) | the forgotten one (1 in 4, seeded; REMEMBERS protects one) Bayer-dissolves | 3/4 |
+| faction trace (WATCH, 6 pips) | the pips halve, 6 → 3 | HALF |
+| tokens | count down 23 → 00 | LOST |
+| pocket and weapon pieces | icon greys | LOST |
+
+The truth lean is never shown as a number. The world just keeps leaning.
+
+**Trait teaser.** Then one line about the coming kids, built from the three siblings already rolled at death, such
+as SMALL RUNS IN IT. Their silhouettes stand unlit, and the ones carrying that trait get a yellow rim. A mutated
+child adds SOMETHING NEW, without naming it. The full reveal is the heir pick.
+
+### 12b.6 Into the heir pick
+
+The body tile cracks and drops with the heir (both halves dissolve into the pastel). THE LINE slides in from the
+right over the void, showing the elders, the grandparent and the new ancestor. The new ancestor drops into the row as
+sprites with a tear, faded and eyes shut, then commits to the BG. The three kids' cards slide up into the heir pick
+layout (`mock_heir.png`). The full tree screen is designed separately; this is only its entrance.
+
+### 12b.7 Variations (`death_variants.png`)
+
+**First death:**
+- A FIRST OF THE LINE TO STOP stamp lands on the card.
+- The carry panel holds each row a beat longer and names the rule once (e.g. "1 IN 4 RECIPES FORGET").
+- It can't be skipped.
+
+**No heirs left** (the line ends):
+- The tile does not drop. The light column narrows to the heir and goes out, column by column.
+- The card says NO ONE CAME AFTER, and there is no carry panel.
+- A:BEGIN AGAIN starts a new founder. The old line is kept in the tree as a closed branch.
+
+**Boss kill:**
+- Before the cause types, the boss speaks one line in a talk box: its face, its name, and a line from its matrix
+  slant ("OLD MONITOR: YOU LEFT IT ON. SO DID SHE.").
+- The line is stored by id, so the boss can bring it up again on a rematch.
+
+**Faction note:**
+- About 1 death in 6, and only when a faction's standing with the line is strong. That talker adds a line after the
+  card, slanted by standing ("WATCH: WE SAW HER PUSH IT. WE WROTE IT.").
+- It nudges CULPRIT.
+
+**The ghost later:**
+- On the floor where an ancestor died, their ghost (ECHO) or their body (a relic) stands where they stopped.
+- Its line is built from the stored cause and epitaph ("SHE STOPPED HERE. MIND THE SCREEN. -CORA, GEN 06").
+- The killer noun becomes the warning: a CRT death warns about screens, and a steam death says "IT GETS COLD
+  AFTER".
+
+### 12b.8 GBC budget (checked per frame by the mock)
+
+The mock composes each frame the way the cartridge would. It maps the BG/window layer to 8x8 tiles against the
+phase's palette set, so no tile has more than 4 colours, and it counts sprites per line, 8x16 mode.
+
+| Phase | BG palettes | Unique BG tiles (with flips) | Sprites / line (max 10) | Notes |
+| --- | --- | --- | --- | --- |
+| FALL, LET GO | 8: floor, wall, void, underside, HUD, hearts, light, objects | ≤ 134 | ≤ 10 | the drain is 4 palette writes (64 B each); the CRT at rest is BG in the object palette |
+| LIGHT → DROP (scene) | 3: void, light, last tile | ≤ 134 | ≤ 10 | the void and light colours follow the drain and pastel steps |
+| CARD / CARRIES (window) | 5: header, body text, name/kit, labels and stats, photo | 201 / 111 | 4 (stat icons) / 6 (carry icons) | 3 + 5 = 8 while the card slides over the scene. The heir's OAM is hidden while the window covers it |
+| THE LINE | 8: pastel void, 2 text, 5 faces | ≤ 257 | 2 (the dropping face) | the scene is gone, so all 8 are free |
+
+- **Collapse throughput:** a small scheduler (`schedule()` in the mock) launches the next cell only while ≤ 8 cells
+  are in flight (16 OAM) and no line passes 10 sprites, counting the heir's two layers. The 39 cells of an 8x5 room
+  clear in 61 ticks. A bigger room just takes longer, and the wave keeps its order.
+- **VRAM:**
+  - collapse commits are map writes, 4 map + 4 attribute bytes per cell, ≤ 6 per VBlank (section 2);
+  - the crack tile and the light dither are 6 tiles, preloaded with the biome;
+  - the card is 201 unique tiles (font about 50, the photo 36, the rest panel and barcode), uploaded by HDMA
+    during STILL and LET GO (≈ 3.2 KB, about 14 tiles per VBlank, finished well before CARD IN);
+  - the carry panel reuses the font and adds about 12 icon tiles;
+  - THE LINE uploads its faces as the TREE screen does.
+- **OAM during the card:** the heir is hidden, and the stat icons and carry icons use 4–8 sprites in OBJ palettes
+  4–7.
+- **Sound:** the drone is the collapse mood's pad, alone (the music system's DROP transition). The card's typing tick
+  borrows pulse 1 in the key, and each KEEP/LOST chip is a pickup arpeggio up or down.
+- **Data:** the grammar and epitaph strings are about 1.1 KB in ROM.
+- **Save:** the cause needs **3 bytes**:
+  - how (4 bits), owner (2), thing (2);
+  - the killer noun id;
+  - the mob adjective id or own-verb (4), and the context flag (3).
+
+  The tree node (section 9) currently has 1 byte for cause, so it needs 2 more (see the open questions).
+
+**Open questions for the owner:**
+1. **The clock.** The card's IN/OUT wants a real-time clock, and MBC5 has none. Without one, use play-time stamps,
+   or move to MBC3+RTC. This is shared with the birth-data design.
+2. **Epitaph source.** The brief says the epitaph comes from the truth matrix. The tree record says from cause,
+   traits and feat. Pick one, or use matrix lines with a cause-aware pronoun and noun swap.
+3. **Cause bytes.** Grow the node's cause field from 1 to 3 bytes, or keep 1 byte and lose the specific killer
+   name (the twist and the mob's own name are the funny part).
+4. **Length.** 9.4 s unskipped. The card holds about 2.6 s. Is that long enough to read two lines plus an epitaph,
+   or should A be required to leave the card on the first few deaths?
+5. **Tone of the biome verbs** (FILED AWAY, RUNG UP, DEFRAGGED). These are the funniest lines on the card. Keep
+   them, or keep the card fully deadpan and put the jokes only in the cause nouns?
+
+---
+
 ## 13. Balance targets (folded in)
 
 - **Boss:** 20–25 good hits over 3 phases; mid-boss: 10–12.
@@ -1320,8 +2069,10 @@ scripted walk per configuration, with frame timing counted in scanlines (154 per
 
 **Verdict: viable at 96x64 with 4 px columns, at a steady 30 fps** (locked to every second frame). The edges are
 chunky but the full 1 px vertical resolution keeps it readable.
-- **FPS stages:** use 96x64 at 30 fps, with the HUD around it.
-- **Title:** can use 128x80 at about 24 fps, because it is a slow walk.
+- **FPS stages:** use 96x64 at 30 fps, with the HUD around it. (v1, untextured floors; see 15.1 for the
+  textured v2 numbers that replace this.)
+- **Title:** v1 could run 128x80 at about 24 fps. The v2 renderer is laid out for 96x64 only (its 128-byte strips
+  and page-aligned buffers don't fit 128x80), so the title uses 96x64 too, at the same 24.8 fps as a stage.
 - **Cost:** 2 px columns cost twice as much and are not viable.
 - **Caveats:**
   - only tested in PyBoy; it needs a hardware check;
@@ -1339,6 +2090,144 @@ render.
 - **Lights:** some lights are off (a GLOWS item lights a cone).
 - **Collapse:** the corridor collapsing behind you is shown as walls closing (map cells flipping to solid).
 - **Frequency:** at most one per run, never on floor 1.
+
+### 15.1 v2 renderer: dithered fog, textured walls, floors and ceilings
+
+Prototype in `proto/raycast/v2` (build: `build2.sh 96 64 SCENE`; measure: `measure2.py`). It replaces v1's flat
+floor gradient and plain walls.
+- **Ordered-dither fog.** There are 17 fog levels from 3 cells (clear) to 10 cells (full haze), drawn as 4x4 Bayer
+  patterns. Walls take the level per column. Floors and ceilings take it per row. Rows that are fully fogged are
+  skipped.
+- **Wall textures.** 16x16 textures are stored as colour runs per texel column:
+  - office: 3 bases plus outlet, poster, vent, exit sign, CRT, stain, water, tear, clock, two doors, and the 4 burn
+    frames of the puzzle wall;
+  - vents: 3 bases plus grate, fan, pipes, hazard, sign, steam, ladder, hatch;
+  - 3 office→vents blend tiles.
+  Walls shorter than 32 px use an 8-row mip, so far walls don't shimmer. The y-faces darken the mid colour with a 25%
+  dither (level 4); the 50% checker read as noise in review.
+- **Floor and ceiling textures.** There are 8 floor/ceiling sets: office and vents, each lit and dark, plus 3 blend
+  steps. One sample covers 4 px across. Groups of 4 rows share a sample, and gameplay stages use 8-row groups below
+  mid-depth (see 15.2).
+- **Per biome and seeded.** `dress()` turns the generator's raw cells (wall, open, door) into texture ids:
+  - a hash of the cell picks the decor and the base;
+  - 8x8-cell zones keep bases coherent;
+  - 4x4-cell patches pick the dark sets (the lights are out there);
+  - biome thresholds pick the blend steps.
+  The same seed gives the same room.
+- **Same-view comparison:** `docs/shots/raycast_v1_v2_stills.png` and `raycast_v1_v2_walk.gif`. The camera poses
+  are recorded from v1 and replayed in v2.
+
+**Measured at 96x64, 960 frames per scene in PyBoy.** Phases are in scanlines (154 per frame). Every scene's
+framebuffer matched the host build of the same C byte for byte at 4 checkpoints.
+
+| Scene | fps avg | Frames per view (count) | upd | ray | walls | floors | sprites |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Stage walk (scene 0) / title (scene 4) | **24.8** | 2: 189, 3: 134 | 6 | 102 | 167 | 82 | 0 |
+| Combat: 2 mobs + elite, weapon (scene 1) | **20.0** | 2: 14, 3: 220, 4: 10 | 9 | 126 | 120 | 124 | 67 |
+| Puzzle: poster wall burns open (scene 2) | **23.9** | 2: 147, 3: 145 | 2 | 105 | 176 | 81 | 8 |
+| Biome blend, office→vents (scene 3) | **22.2** | 2: 99, 3: 157, 4: 16 | 17 | 105 | 184 | 88 | 8 |
+
+**What the texture and dither pass costs.**
+- v1 ran the same walk at 32.8 fps; v2 runs it at 24.8 fps. That is about 8 fps (~25%) for textured, fogged walls
+  plus textured floors and ceilings.
+- The stage target (≥24 fps) holds, but only just. The title is a slow walk, and it reads as smooth at 24.8.
+- Where the time goes:
+  - walls cost 167 lines, against v1's 126 for plain fills;
+  - floors and ceilings cost 82, against 0 in v1 (a palette gradient).
+- The speed-ups that got v2 from 18.1 to 24.8 fps:
+  - the walls and floors loops in assembly, with per-slot colour caches;
+  - the 8-row wall mip, so short walls read fewer runs;
+  - 4-row floor groups with a lookup-table fast path;
+  - the DDA cast in assembly.
+- **ROM:** 38 KB of tables across banks 2–4 (walls 14.8 KB, floors 12.3 KB, walls mip 11.4 KB). The ROM is
+  128 KB in total, so it is well inside the 1.9 MB budget.
+
+### 15.2 3D stages as full gameplay
+
+The FPS stage stops being "walk to the exit". It uses the same pieces, reactions, moveset and solver as the 2D
+floors. The feasibility checks came first, and each is in a GIF:
+- **≥3 billboards with distance scaling and z-occlusion, one an elite.** Passed. See `raycast_v2_combat.gif` and
+  `_sheet.png`:
+  - mobgen mobs are pre-scaled to 6 sizes (12–48 px) and cropped to 8x16 OBJ columns;
+  - they are hidden per 4 px column against the wall depths;
+  - the elite has its crown and two orbiting sparks.
+- **A puzzle wall tile changes after a reaction.** Passed. See `raycast_v2_puzzle.gif`: a HOT recipe on a poster
+  wall burns it through 3 frames to char, and the cell opens.
+- **A biome blend.** Passed. See `raycast_v2_blend.gif`: wall tiles dither across a 3-cell threshold while the BG
+  palettes crossfade with the camera.
+- **fps with textures plus sprites at 96x64.** **20.0 avg in combat.** 220 of 244 views take 3 frames (20 fps).
+  10 take 4 frames (15 fps), when all three mobs are close at once.
+
+**How sprites work on the CGB.**
+- Each mob variant bakes 7 frames into its own ROM bank (~9–10.5 KB per variant): walk ×2, tell, attack, hurt,
+  die ×2.
+- Each view copies the visible 8x16 columns into a WRAM staging area (24 sprites max, 768 B). The copy masks each
+  column against the wall depths, in 4 px steps.
+- The second VBlank of the flip GDMAs the staging area into the hidden VRAM bank.
+- OAM and the OBJ palettes are double-buffered and swapped with the BG flip, so sprites never tear against the
+  walls.
+- Palettes:
+  - distance haze takes 4 steps per mob and is cached;
+  - death fades into the haze;
+  - tells (yellow) and hits (white) are fixed flash colours, never hazed, so a wind-up reads at any distance.
+- The first-person weapon takes 4 sprites and its own palette, with an idle frame and a strike frame.
+
+**What had to give to reach 20 fps in combat.**
+- Start: 17.4 fps.
+- **Sprite build: 97 → 67 lines.** The billboard column copy and the visibility fill went into assembly. Palettes are
+  cached per haze step. Only the OAM entries used last time are cleared.
+- **Gameplay stages sample the near floor once per 8 rows** instead of 4 (below mid-depth): **−32 lines.** Near
+  texels are magnified anyway. The cost is blockier floor bands at your feet. Walk-only stages and the title keep
+  4-row groups.
+- **Scene and AI update: 16 → 9 lines.** Divisions came out of the frame loop.
+- Not given up: the texture detail, the fog dither, the view size, and 3 mobs. 96x56 was tried and only gained
+  about 1 fps, because the walls stay just as tall.
+- **Room depth is not the knob.** Rooms 9 or 11 cells deep measured slower than 14: mobs come closer, so they are
+  bigger, and there is more near floor.
+- **The rule for stage design:** at most 3 mobs in view, at most one at the largest size, and the boss alone with
+  its adds kept off-screen. If we need more, the honest next cut is mob frames on twos (a 30 fps HUD over a 10 fps
+  mob animation), not the world.
+- **Unverified:**
+  - the CGB 10-sprites-per-line limit. A 48 px mob is 6 columns and the weapon is 2. Two large mobs side by side
+    would flicker, so the spawn logic has to keep them apart;
+  - real hardware. PyBoy only.
+
+**Puzzles (all in map cells, so the solver sees them exactly as in 2D).**
+- *Switches and doors:* a wall switch texture (on/off frames) flips a door cell elsewhere. The door slides as 4 wall
+  frames over 8 views.
+- *Blocks:* a pushable crate is a half-height billboard that snaps cell to cell. Pressure plates are floor-set
+  cells.
+- *Bench recipes on walls:* the reaction hits the facing wall cell. Burn opens posters, WET shorts a panel, GLOWS
+  lights a dark set. Each is a texture swap, as in the puzzle GIF.
+- *Light and dark:* the dark floor and ceiling sets plus a darker palette row. A GLOWS item lifts the fog level
+  around you, which is cheap (a different fog table page).
+- *Keys and egress:* a key is a billboard pickup. The egress door uses the exit texture.
+- *Collapse:* cells behind you flip to solid wall over a few views, with a dust burst.
+- *Landmarks:* unique decor (clock, CRT, fan) is placed once per zone, so a player can navigate without a map.
+- The 2D solver checks the cell graph unchanged. 3D only adds line of sight, and the generator keeps every switch
+  visible from its door's approach.
+
+**Combat moveset in first person.** The same two buttons as section 6:
+
+| Input | Move | 3D read |
+| --- | --- | --- |
+| A | strike | weapon swing frame, hit flash white |
+| B | sidestep (with a direction) / backstep | 0.4-cell camera slide |
+| B then A | lunge | a forward slide plus a strike |
+| A then B | parry | a strike frame on the tell beat; the enemy flashes and staggers |
+| hold A | charge | alternating strike and recoil frames, multi-hit |
+
+- **Tells:** a yellow and white blink plus the TELL frame. They last about 0.67 s (normal) or 0.7 s (elite): 13–14
+  views at 20 fps, which is plenty to read.
+- **Bosses use the room.** A boss pulls a collapse ring around the arena. It burns posters so fire spreads along
+  walls (a texture reaction you must avoid). It kills the lights (dark sets) and only shows by its tell glow. Bosses
+  get a whole bank of frames and are the only large billboard on screen.
+
+**Biome blends.** A stage can cross a biome border:
+- 3 blend wall tiles and 3 floor/ceiling blend sets per biome pair (about 2 KB of ROM per pair);
+- a 16-step palette crossfade driven by the camera position.
+The crossfade costs 17 lines in the update while it runs, which caused the 4-frame dips in the blend GIF. Spread it
+over 4 views on the cartridge.
 
 ---
 
@@ -1399,3 +2288,188 @@ Each milestone ships with its harness checks and screenshots.
 
 The uncommitted M2 puzzle-feature edits (crumble, plates, gates, pits in `eg_room`) are kept as the physical layer.
 They'll be committed with a rebake when step 2 starts.
+
+---
+
+## 19. Sky event scenes
+
+**MOCK.** `tools/mock/skyscene_mock.py` writes `docs/shots/skyscene_eclipse.gif`, `skyscene_retrograde.gif`,
+`skyscene_meteors.gif` (each frame: 1x and 3x side by side, with the beat and what the hardware is doing),
+`skyscene_eclipse_variants.png` (total, annular, partial at their peak) and `skyscene_report.json` (the costs below).
+`proto/skyscenes/meteors.py` bakes the meteor-shower table. Event times come from the sky engine's baked events
+(`proto/sky/out/events.json`, minutes since 2026-01-01 00:00 UTC, the same base as its event streams). The captions
+show a sample local offset of UTC-5; the cartridge uses the player's RTC offset.
+
+During a notable sky event, the game plays a short animated scene. The heir looks out of the building's big
+three-pane window, or a skylight, at the shared world's sky.
+- **Length:** 4–8 s. B skips.
+- **Captions:** a small caption gives the real event name and local time (`MERCURY STATIONS / RETROGRADE 02:15`).
+  The scene closes on the **SKY TODAY** line that the event adds to the chart screen's panel.
+- **Sting:** each event has a two-bar sting in the current music key and chord (section 14's in-key SFX path). It
+  is 20–30 bytes of chord-relative notes per sting.
+- **Shown once:** each scene plays once per event per save. The **SKY** gallery in the chart screen replays every
+  scene the save has seen, using the real event it first saw.
+
+### 19.1 Triggers
+
+| Trigger | When it plays |
+| --- | --- |
+| First boot of the day | an event is active today (within its window, below) |
+| Character creation or picking an heir | an event is active at that minute: the heir's birth moment gets its scene, and the heir is event-born (19.4) |
+| An heir's first play on an event day | once per heir per event, on the landing |
+| An event begins mid-session | as an interstitial at the next safe point (room change, landing, death card done). Never mid-combat, mid-boss or mid-puzzle-collapse; if the run ends first, it plays at the next landing |
+
+Event windows: an eclipse, station, ingress, lunation, solstice or equinox is active from its minute to 24 h after
+it (the scene's caption still gives the exact minute). A meteor shower is active from 24 h before its peak to 12 h
+after. The heir's birthday is the whole local day of their solar return. Two events on the same boot play the
+rarer one (the order below, top first), and the other waits for the next safe point.
+
+**Save:** 1 byte per scene kind (17 kinds) holds "seen this instance" against the instance's minute hash, and a
+4-byte gallery bitmask marks which kinds and variants the save has seen. For replay, the first-seen event minute
+of each variant is kept (u32 x 24 variants = 96 B SRAM). The total is about 120 B of the save.
+
+### 19.2 The scenes (by rarity)
+
+| Scene | Variants | What happens | Built from |
+| --- | --- | --- | --- |
+| Halley's Comet (easter egg) | 1 | Perihelion ~2061-07-28; the window runs ±30 days. The tail is plotted across all three panes, the room glows teal, and an old ghost in the tree remembers 1986 (if the line is that deep). Unique drop: **HALLEY'S TAIL** (once per save, ever) | night kit + plotted tail tiles + 2 sprites |
+| Solar eclipse | total, annular, partial | The moon slides over the sun. The room, the sky and the music drop to a hush. In a total eclipse: diamond ring, then a dithered corona, stars, street lights and a 360° sunset on the horizon. In an annular one, a ring of fire. In a partial one, a bite and a dimming | day kit + corona block (palette-revealed) + 6-sprite moon |
+| Lunar eclipse | total, partial, penumbral | Blood-moon tint over the building (a palette walk to rust and rose). The ancestors' ghosts (the last 3 dead heirs, dithered) stand at the sill and look up | night kit + moon sprite + 3 ghost sprites |
+| Planet ingress (Jupiter, Saturn; others skip) | 2 planets x 12 signs | The sign glyph assembles from scattered stars, the way the room cards fall in | night kit + the chart screen's sign glyphs |
+| Retrograde station | 8 planets x R/D | The planet's glyph moves, slows, halts and judders, then loops backwards across the window. VHS rewind: a noise band, line tears, REW on screen, a chroma wobble. A direct station plays the rewind as fast-forward (FF) | night kit + 2-sprite glyph + plotted trail |
+| Supermoon / full / new | super full, full, new | Full: the moon rises over the corridor's end (the raycaster's sky strip in first-person stages, or the window). Supermoon: bigger, with a halo. New: the stars brighten | night kit + moon sprite |
+| Meteor shower | 11 showers | Streaks fly from the shower's radiant across the panes. Each bright one carries a wish, written as matrix talk; a fireball drops a wish star to the sill | night kit + plotted streaks + baked table (19.3) |
+| Solstice / equinox | 4 | A palette sweep runs through the building, wall by wall, in the season's colours. Solstice nights hold the longest-night or longest-day light | any kit, palettes only |
+| Heir's birthday (solar return) | 1 | Party glitch: the cake is made on the bench (FIRE + SEED + a candle piece, by the bench's own animation), confetti is palette-cycled sparkle sprites, and the room tiles glitch with joy | the bench's sprites + 4 confetti sprites |
+
+The three mocked scenes (frames checked):
+
+![eclipse](shots/skyscene_eclipse.gif) ![retrograde](shots/skyscene_retrograde.gif)
+![meteors](shots/skyscene_meteors.gif)
+
+- **Eclipse (total, 2026-08-12, 12:46 at UTC-5).** Every corona pixel is in the BG from the first frame. BG
+  palette 1 holds the sky colour in two slots until totality, then the corona's lilac and white, shimmering between
+  two palette states. The sky darkens with coverage^3.5. The room darkens with it, and the shared world's windows
+  light up (palette 2, slot 3). The moon is a 24x24 sprite (6 OBJ). The diamond ring is one sparkle sprite at second
+  and third contact.
+- **Retrograde (Mercury, 2026-10-24, 02:15).** The glyph is a 16x16 sprite (2 OBJ) in the planet's colour. The trail
+  is plotted into the sky tiles in the same colour (SKY palette slot 2, so changing planets is one palette write).
+  The VHS band is one row of 20 map writes to two stored noise tiles. The tears are per-line SCX (BG only). REW is
+  3 OSD sprites.
+- **Meteors (Geminids, 2026-12-14, 23:52).** The radiant octant and streak colour come from the table.
+  - **Streaks:** each one is a head and a fading tail, plotted into sky tiles (worst 11 tiles a frame).
+  - **Wishes:** each wish is a talk line composed from the family's matrix tags, e.g. *PIM: A GREEN KEY THAT
+    REMEMBERS* (SEED -> GREEN). It is two caption lines; a long name drops the clause.
+  - **Fireball:** a sparkle-sprite head. The room flashes in the shower's colour (palette).
+
+**Per-planet colour and tune (retrogrades):**
+
+| Planet | Colour |
+| --- | --- |
+| Mercury | cyan |
+| Venus | pink |
+| Mars | coral |
+| Jupiter | apricot |
+| Saturn | sand |
+| Uranus | mint |
+| Neptune | blue |
+| Pluto | violet |
+
+Each planet's sting is the biome motif's four notes reversed (rewind), in a planet-specific mode: Mercury
+mixolydian, Venus lydian, Mars phrygian, Jupiter major, Saturn dorian, Uranus whole-tone, Neptune lydian flat-7,
+Pluto locrian. That is 4 bytes per planet.
+
+### 19.3 Meteor-shower table (2026–2126)
+
+`proto/skyscenes/meteors.py` (Astronomy Engine 2.1.19, already in `.venv`) finds each year's peak. The peak is the
+minute the Sun's J2000 ecliptic longitude reaches the shower's IMO peak solar longitude, bisected to the minute.
+The script writes `proto/skyscenes/out/meteors.json` (every peak, with UTC strings) and `meteor_tab.c`/`.h` (the
+cartridge table plus a 4-line decoder, `meteor_peak(s, year-2026)`). The decoder was checked against the JSON on
+the host.
+
+**Size: 1,225 bytes** (a 4-byte header, then 11 showers x 111 bytes).
+- **Per-shower header (10 bytes):** id, ZHR, radiant octant + colour, residual unit, the u32 2026 peak, and a u16
+  mean step per year.
+- **Residuals:** 101 int8, one per year.
+- **Accuracy:** every residual fits in ±127 min at a 1-minute unit, so the max decode error is 0 min. The table is
+  exact to the bake.
+
+| Shower | λ☉ (J2000) | ZHR | 2026 peak (UTC) | 2126 peak (UTC) |
+| --- | --- | --- | --- | --- |
+| Quadrantids | 283.15 | 80 | 01-03 12:47 | 01-03 19:14 |
+| Lyrids | 32.32 | 18 | 04-22 10:41 | 04-22 15:22 |
+| Eta Aquariids | 45.5 | 50 | 05-06 00:12 | 05-06 04:30 |
+| Southern Delta Aquariids | 127.0 | 25 | 07-30 03:06 | 07-30 06:53 |
+| Perseids | 140.0 | 100 | 08-12 16:48 | 08-12 20:50 |
+| Draconids | 195.4 | 10 | 10-08 16:12 | 10-08 21:32 |
+| Orionids | 208.0 | 20 | 10-21 09:22 | 10-21 14:59 |
+| Northern Taurids | 230.0 | 5 | 11-12 09:17 | 11-12 15:24 |
+| Leonids | 235.27 | 15 | 11-17 14:51 | 11-17 21:04 |
+| Geminids | 262.2 | 150 | 12-14 04:52 | 12-14 11:27 |
+| Ursids | 270.7 | 10 | 12-22 13:19 | 12-22 19:54 |
+
+Real peaks scatter by an hour or more around the solar-longitude moment, and the Draconids and Leonids vary by
+year. The scene uses a day-wide window, so this doesn't matter.
+
+A cheaper option: the cartridge already computes the Sun's longitude live (`sky_positions`), so it could solve
+for the peaks at run time from 11 x 2-byte longitudes (22 B plus ~150 B of code). The baked table is kept because
+it is exact and needs no solver on the boot path.
+
+### 19.4 Gameplay ties
+
+- **SKY TODAY:** the scene's last caption is the line it adds to the chart screen's SKY TODAY panel. The mock's
+  lines are placeholders: *ECLIPSE: DARK ROOMS, ECHO+1*, *MERC R: TALK SCRAMBLES*, *GEMINIDS: WISH STAR +1 DROP*.
+  The real effects belong to the sky engine's design and its balance sim.
+- **Event-born heirs:** an heir created or picked during an active event is marked *eclipse-born*, *meteor-born*,
+  *retro-born* and so on. The mark costs one genome bit: the spare bit in 9.2's flags becomes SKYBORN. The kind is
+  not stored, because it is recomputed from the heir's birth minute with the sky engine's `sky_find`, which also
+  gives their chart.
+  - The trait is a small, third, flavour-sized trait. It never counts toward the 2 expressed traits.
+  - **Bound (to be enforced by the sky agent's balance sim, which owns it):** an event-born trait may move a line's
+    clear rate by at most ±3% in the sim and must not stack with itself across generations. It is not inherited;
+    it is only set at birth. This matters because a player can time character creation to a known event.
+  - Example shapes: eclipse-born sees one extra hidden SHINY cell in dark rooms; meteor-born has +1 in 20 for a wish
+    star from elites; retro-born keeps the last room's recipe hint once per floor.
+
+### 19.5 Costs (from `skyscene_report.json`)
+
+GBC limits hold in every frame of all three scenes:
+- **BG palettes:** at most 7 of 8.
+- **OBJ:** at most 13 of 40, with at most 9 sprites on any line.
+- **OBJ palettes:** at most 3 of 8.
+- **Caption:** legalised against its two window palettes with zero error.
+- **Tiles on screen:** at most 188 at once (one VRAM bank's 256-tile BG range is enough).
+
+| Scene | ROM tiles (own) | Tile bytes | Map + attrs | Palette keys | Script | **ROM bytes** | Plotted tiles / frame (worst) | Map writes / frame |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Shared window kit (wall, mullions, sill, carpet, skyline) | 59 | 944 | – | – | – | **944** | – | – |
+| Solar eclipse (day sky, corona block) | 72 | 1,152 | 600 | 256 | 48 | **2,056** | 0 | 0 |
+| Retrograde (night sky + 2 noise tiles) | 58 | 928 | 600 | 192 | 64 | **1,784** | 17 | 41 |
+| Meteor shower (night sky) | 56 | 896 | 600 | 192 | 96 | **1,784** + table 1,225 | 11 | 13 |
+
+The retrograde and meteor scenes share the same night-sky tiles, so they are stored once, and the meteors add only
+their map, palette keys and script (888 B). The real total for the three scenes is about **5.7 KB** (5.1 KB if the
+night scenes share one map), plus the meteor table.
+
+**Estimates for the scenes not mocked** (they reuse the kits):
+- lunar eclipse: ~0.6 KB (moon and ghost sprites, palette keys);
+- moons: ~0.4 KB;
+- solstice/equinox: ~0.3 KB (palettes only);
+- ingress: ~0.3 KB (it reuses the chart screen's sign glyphs);
+- birthday: ~0.7 KB;
+- Halley: ~0.9 KB.
+
+Per-planet glyphs add 8 x 64 B. Stings take ~0.4 KB and the scene player code ~3 KB.
+
+**Everything fits in one 16 KB bank (~14 KB, tight).** The worst-case VBlank load is 17 plotted tiles (272 B) plus 41
+map bytes, within a CGB VBlank with HDMA.
+
+**Raycaster:** the "corridor opening onto the sky" variant (full moon, solstice) would use the first-person
+stage's sky strip, a palette and a sprite over the raycaster's ceiling band (`proto/raycast/v2`). It is not mocked
+here; the window kit covers every scene.
+
+**Open questions for the owner:**
+1. The SKY TODAY effects and the event-born traits are placeholders until the sky engine's section and balance
+   sim land.
+2. Should a birth during an event be a choice ("born under the eclipse?") or always on?
+3. Should Halley's drop be tradeable in link play?

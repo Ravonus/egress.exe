@@ -1,0 +1,18 @@
+{
+  "_about": "Published real-world sky dates (UTC calendar dates) for spot checks. No offline almanac was available, so these are well-known published dates recalled from standard sources (NASA GSFC eclipse catalogue for eclipses, USNO for seasons and moon phases, common ephemeris tables for stations). Marked 'recalled': trust them to about a day; verify.py reports any disagreement with Astronomy Engine rather than hiding it.",
+  "confidence": "recalled",
+  "stations": {
+    "MERCURY": [["2026-02-26", "R"], ["2026-03-20", "D"], ["2026-06-29", "R"], ["2026-07-23", "D"], ["2026-10-24", "R"], ["2026-11-13", "D"],
+                ["2027-02-09", "R"], ["2027-03-03", "D"], ["2027-06-10", "R"], ["2027-07-04", "D"], ["2027-10-07", "R"], ["2027-10-28", "D"]],
+    "VENUS": [["2026-10-03", "R"], ["2026-11-13", "D"]],
+    "MARS": [["2027-01-10", "R"], ["2027-04-01", "D"]]
+  },
+  "eclipses": [
+    ["2026-02-17", "solar", "annular"], ["2026-03-03", "lunar", "total"], ["2026-08-12", "solar", "total"], ["2026-08-28", "lunar", "partial"],
+    ["2027-02-06", "solar", "annular"], ["2027-02-20", "lunar", "penumbral"], ["2027-07-18", "lunar", "penumbral"], ["2027-08-02", "solar", "total"],
+    ["2027-08-17", "lunar", "penumbral"], ["2028-01-12", "lunar", "partial"], ["2028-01-26", "solar", "annular"], ["2028-07-06", "lunar", "partial"],
+    ["2028-07-22", "solar", "total"], ["2028-12-31", "lunar", "total"]
+  ],
+  "seasons_2026": [["2026-03-20 14:46", "march equinox"], ["2026-06-21 08:24", "june solstice"], ["2026-09-23 00:05", "september equinox"], ["2026-12-21 20:50", "december solstice"]],
+  "full_moons_2026": ["2026-01-03", "2026-02-01", "2026-03-03", "2026-04-02", "2026-05-01", "2026-05-31", "2026-06-29", "2026-07-29", "2026-08-28", "2026-09-26", "2026-10-26", "2026-11-24", "2026-12-24"]
+}

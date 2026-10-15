@@ -1,7 +1,8 @@
 /* Host build of the ported CRUCIBLE face generator (src/avatar, -DAVATAR_HOST): prints faces for the art tools.
  *   avatar_dump seed FACTION [SEED...]     one line per face: 576 tile bytes (hex), then 4 RGB555 colours
  *   avatar_dump genome HEX12               the face of a 6-byte genome
- * With "talk", a second line per face has the mouth open (avatar_say('A')) and a third the eyes shut (a blink). */
+ * With "talk", a seed face adds a mouth-open line (avatar_say('A')) and an eyes-shut line (a blink); a genome face
+ * adds the eyes-shut line only. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,6 +31,7 @@ int main(int argc, char **argv) {
       }
       avatar_make_genome(g);
       out();
+      if (talk) { blink_ = 5; dirty_ = 1; avatar_tick(0); out(); }
     }
     return 0;
   }

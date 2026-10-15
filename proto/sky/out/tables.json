@@ -1,0 +1,237 @@
+{
+ "streams": [
+  {
+   "name": "phase",
+   "n": 4997,
+   "width": 2,
+   "flag": 0,
+   "bias": 9479,
+   "bytes": 10779
+  },
+  {
+   "name": "perigee",
+   "n": 1339,
+   "width": 2,
+   "flag": 0,
+   "bias": 35485,
+   "bytes": 2888
+  },
+  {
+   "name": "st_mercury",
+   "n": 636,
+   "width": 3,
+   "flag": 0,
+   "bias": 28456,
+   "bytes": 2008
+  },
+  {
+   "name": "st_venus",
+   "n": 126,
+   "width": 3,
+   "flag": 0,
+   "bias": 58873,
+   "bytes": 398
+  },
+  {
+   "name": "st_mars",
+   "n": 94,
+   "width": 3,
+   "flag": 0,
+   "bias": 86405,
+   "bytes": 297
+  },
+  {
+   "name": "st_jupiter",
+   "n": 185,
+   "width": 3,
+   "flag": 0,
+   "bias": 169236,
+   "bytes": 585
+  },
+  {
+   "name": "st_saturn",
+   "n": 194,
+   "width": 3,
+   "flag": 0,
+   "bias": 192440,
+   "bytes": 617
+  },
+  {
+   "name": "st_uranus",
+   "n": 200,
+   "width": 3,
+   "flag": 0,
+   "bias": 214617,
+   "bytes": 635
+  },
+  {
+   "name": "st_neptune",
+   "n": 200,
+   "width": 3,
+   "flag": 0,
+   "bias": 225214,
+   "bytes": 635
+  },
+  {
+   "name": "st_pluto",
+   "n": 201,
+   "width": 2,
+   "flag": 0,
+   "bias": 233918,
+   "bytes": 437
+  },
+  {
+   "name": "in_sun",
+   "n": 1212,
+   "width": 2,
+   "flag": 0,
+   "bias": 42396,
+   "bytes": 2614
+  },
+  {
+   "name": "in_mercury",
+   "n": 1503,
+   "width": 3,
+   "flag": 1,
+   "bias": 0,
+   "bytes": 4744
+  },
+  {
+   "name": "in_venus",
+   "n": 1281,
+   "width": 3,
+   "flag": 1,
+   "bias": 0,
+   "bytes": 4048
+  },
+  {
+   "name": "in_mars",
+   "n": 702,
+   "width": 3,
+   "flag": 1,
+   "bias": 0,
+   "bytes": 2216
+  },
+  {
+   "name": "in_jupiter",
+   "n": 162,
+   "width": 3,
+   "flag": 1,
+   "bias": 0,
+   "bytes": 516
+  },
+  {
+   "name": "in_saturn",
+   "n": 82,
+   "width": 3,
+   "flag": 1,
+   "bias": 0,
+   "bytes": 261
+  },
+  {
+   "name": "in_uranus",
+   "n": 39,
+   "width": 3,
+   "flag": 1,
+   "bias": 0,
+   "bytes": 127
+  },
+  {
+   "name": "in_neptune",
+   "n": 24,
+   "width": 3,
+   "flag": 1,
+   "bias": 0,
+   "bytes": 77
+  },
+  {
+   "name": "in_pluto",
+   "n": 13,
+   "width": 4,
+   "flag": 1,
+   "bias": 0,
+   "bytes": 57
+  }
+ ],
+ "marks": 852,
+ "marks_bytes": 3408,
+ "banks": [
+  [
+   "phase",
+   "in_mercury",
+   "st_uranus",
+   "in_uranus",
+   "in_neptune"
+  ],
+  [
+   "in_venus",
+   "perigee",
+   "in_sun",
+   "in_mars",
+   "st_mercury",
+   "st_neptune",
+   "st_saturn",
+   "st_jupiter",
+   "in_jupiter",
+   "in_pluto"
+  ],
+  [
+   "st_pluto",
+   "st_venus",
+   "st_mars",
+   "in_saturn",
+   "marks"
+  ]
+ ],
+ "bank_fill": [
+  16362,
+  16184,
+  4801
+ ],
+ "total_event_bytes": 37347,
+ "pruned": {
+  "EARTH": 0.0083,
+  "MOON": 0.1112,
+  "MERCURY": 0.0044,
+  "VENUS": 0.0046,
+  "MARS": 0.022,
+  "JUPITER": 0.0363,
+  "SATURN": 0.0008
+ },
+ "nang": 32,
+ "nterms": 77,
+ "angle_names": [
+  "LME",
+  "MME",
+  "UME",
+  "LVE",
+  "MVE",
+  "UVE",
+  "LEA",
+  "MEA",
+  "LMA",
+  "MMA",
+  "UMA",
+  "LJU",
+  "MJU",
+  "UJU",
+  "LSA",
+  "MSA",
+  "USA",
+  "LMO",
+  "D",
+  "MS",
+  "MM",
+  "F",
+  "A1",
+  "NODE",
+  "GMST",
+  "OUT_EARTH",
+  "OUT_MOON",
+  "OUT_MERCURY",
+  "OUT_VENUS",
+  "OUT_MARS",
+  "OUT_JUPITER",
+  "OUT_SATURN"
+ ]
+}
