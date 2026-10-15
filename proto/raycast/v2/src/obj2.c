@@ -130,6 +130,36 @@ static void put(uint8_t y, uint8_t x, uint8_t t, uint8_t a) {
   obj_on++;
 }
 
+#if FS
+/* the CGB shows at most 10 OBJ per line: OAM is filled nearest first, and an entry is only placed when every
+   8-line band it touches has room (bands make it conservative: an edge band can count two sprites that never
+   share a line), so a crowd loses its farthest columns whole instead of the hardware slicing them per line */
+#define NBAND (VIEW_SH / 8u)
+uint8_t band[NBAND], bb0, bb1, band_k;
+uint8_t band_max(uint8_t b0, uint8_t n); /* fill2.s: max of band[b0 .. b0 + n - 1] */
+void band_add(uint8_t b0, uint8_t n); /* fill2.s: band[b0 .. b0 + n - 1] += band_k */
+/* room = OBJ that still fit on every line of [y0, y1) (10 - the fullest band); 10 when outside the view */
+static uint8_t span_room(int16_t y0, int16_t y1) {
+  if (y0 < 0) y0 = 0;
+  if (y1 > (int16_t)VIEW_SH) y1 = VIEW_SH;
+  if (y1 <= y0) { bb1 = 0; return 10u; }
+  bb0 = (uint8_t)((uint8_t)y0 >> 3);
+  bb1 = (uint8_t)((uint8_t)((uint8_t)(y1 - 1) >> 3) - bb0 + 1u);
+  return (uint8_t)(10u - band_max(bb0, bb1));
+}
+/* add n OBJ to the bands of the last span_room */
+#define span_add(n) do { if (bb1) { band_k = (n); band_add(bb0, bb1); } } while (0)
+static uint8_t span_ok(int16_t y0, int16_t y1) {
+  if (!span_room(y0, y1)) return 0;
+  span_add(1u);
+  return 1;
+}
+#else
+#define span_ok(y0, y1) 1
+#define span_room(y0, y1) 10u
+#define span_add(n)
+#endif
+
 /* per-ray visibility nibbles for one depth (0x0F = this 4 px column shows the mob) */
 static uint8_t pj0, pj1;
 #define nib(j) vpad[(uint8_t)((j) + 2)]
@@ -145,10 +175,15 @@ void obj_build(uint8_t cur) {
   obj_oam = OAMBUF(cur);
   obj_on = 0;
   obj_stage_n = 0;
+#if FS
+  for (i = 0; i < NBAND; i++) band[i] = 0;
+#endif
   /* the weapon, in front of everything */
   if (weapon_frame != 0xFFu) {
     uint8_t wx = (uint8_t)(WPN_X(weapon_frame) + 8u), wy = (uint8_t)(WPN_Y(weapon_frame) + 16u);
     uint8_t t = (uint8_t)(T_WEAPON + weapon_frame * (BB_WC * BB_WR * 2u)), c, r;
+    span_room((int16_t)WPN_Y(weapon_frame), (int16_t)(WPN_Y(weapon_frame) + BB_WR * 16u));
+    span_add(BB_WC);
     for (c = 0; c < BB_WC; c++)
       for (r = 0; r < BB_WR; r++, t += 2u) put((uint8_t)(wy + r * 16u), (uint8_t)(wx + c * 8u), t, 6u | FIXB);
   }
@@ -177,7 +212,7 @@ void obj_build(uint8_t cur) {
     uint8_t hr = T_HEIGHT[di > 2047u ? 2047u : di], h = HSCALE(hr), hb = (uint8_t)((h >> 1) + (h >> 2) + (h >> 4)), b;
     int16_t cx = (int16_t)(VIEW_W / 2 + smulhi(lat, h)), bottom = (int16_t)((VIEW_SH + h) >> 1), left, top;
     const uint8_t *ds;
-    uint8_t nc, nr, c, j0, j1;
+    uint8_t nc, nr, c, j0, j1, room, placed;
     uint16_t addr;
     if (hb < 9u) continue;
     for (b = BB_NBUCKET - 1u; b && BB_BUCKET[b] > hb; b--) {
@@ -229,6 +264,8 @@ void obj_build(uint8_t cur) {
 #if SPRCUT == 3
     continue;
 #endif
+    room = span_room(top, (int16_t)(top + (int16_t)nr * 16));
+    placed = 0;
     for (c = 0; c < nc; c++) {
       int16_t x = left + (int16_t)c * 8;
       uint8_t mask;
@@ -241,7 +278,8 @@ void obj_build(uint8_t cur) {
         uint16_t w = ((uint16_t)vpad[j] << 8) | (uint8_t)((vpad[j + 1u] << 4) | vpad[j + 2u]);
         mask = (uint8_t)(w >> sh);
       }
-      if (mask) {
+      if (mask && placed < room) {
+        placed++;
         bbc_src = addr;
         bbc_bank = ds[0];
         bbc_mask = mask;
@@ -255,12 +293,14 @@ void obj_build(uint8_t cur) {
       }
       addr += (uint16_t)nr * 32u;
     }
+    span_room(top, (int16_t)(top + (int16_t)nr * 16));
+    span_add(placed);
     /* the elite: a crown over its head and two orbiting sparks (hidden with the body behind walls) */
     if (m->var == 2u && m->fx != FX_DEAD) {
       int16_t hx = cx - 4, hy = top - 6;
       uint8_t o = (uint8_t)((tick >> 1) & 7u);
       int8_t jj = (int8_t)(cx >> 2);
-      if (cx >= 0 && cx < VIEW_W && nib(jj) && hy > -8 && hy < VIEW_SH)
+      if (cx >= 0 && cx < VIEW_W && nib(jj) && hy > -8 && hy < VIEW_SH && span_ok(hy, (int16_t)(hy + 16)))
         put((uint8_t)(VY0 + 16 + hy), (uint8_t)(VX0 + 8 + hx), T_CROWN, 7u | FIXB);
       for (c = 0; c < 2u; c++) {
         int8_t ox = ORBIT[(o + c * 4u) & 7u][0], oy = ORBIT[(o + c * 4u) & 7u][1];
@@ -269,7 +309,9 @@ void obj_build(uint8_t cur) {
         else if (b > 3u) { ox = (int8_t)(ox + (ox >> 1)); oy = (int8_t)(oy + (oy >> 1)); }
         sx = cx + ox - 4;
         sy = top + (int16_t)(BB_BUCKET[b] >> 1) + oy;
-        if (sx < 0 || sx >= VIEW_W - 8 || sy < 0 || sy >= VIEW_SH - 8 || !nib((int8_t)((sx + 4) >> 2))) continue;
+        if (sx < 0 || sx >= VIEW_W - 8 || sy < 0 || sy >= VIEW_SH - 8 || !nib((int8_t)((sx + 4) >> 2)) ||
+            !span_ok(sy, (int16_t)(sy + 16)))
+          continue;
         put((uint8_t)(VY0 + 16 + sy), (uint8_t)(VX0 + 8 + sx), T_SPARK, 7u | FIXB);
       }
     }

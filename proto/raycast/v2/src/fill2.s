@@ -1996,6 +1996,44 @@ _bb_col::
 	ld	(0x2000), a
 	ret
 
+; band_max(b0 = a, n = e) -> a: the fullest of band[b0 .. b0 + n - 1] (n >= 1); band_add(b0 = a, n = e): += band_k
+	.globl	_band, _band_k
+_band_max::
+	ld	hl, #_band
+	add	a, l
+	ld	l, a
+	adc	a, h
+	sub	a, l
+	ld	h, a
+	ld	c, #0
+1$:
+	ld	a, (hl+)
+	cp	a, c
+	jr	c, 2$
+	ld	c, a
+2$:
+	dec	e
+	jr	nz, 1$
+	ld	a, c
+	ret
+
+_band_add::
+	ld	hl, #_band
+	add	a, l
+	ld	l, a
+	adc	a, h
+	sub	a, l
+	ld	h, a
+	ld	a, (_band_k)
+	ld	c, a
+1$:
+	ld	a, (hl)
+	add	a, c
+	ld	(hl+), a
+	dec	e
+	jr	nz, 1$
+	ret
+
 ; vis_fill: vpad[j0 + 2 + i] = vf_d < ray_d[j0 + i] ? 0x0F : 0, i < vf_n (the billboard's per-ray visibility)
 _vis_fill_asm::
 	ld	a, (_vf_j0)
