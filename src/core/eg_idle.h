@@ -10,6 +10,13 @@
  * Portable C for SDCC (SM83) and host compilers: no floats, no allocation, no globals but const tables. */
 #include <stdint.h>
 
+#ifdef __SDCC
+#include <gb/gb.h>
+#define EGI_BANKED BANKED /* banked (eg_idle.c is in a switchable bank): ROM0 is full */
+#else
+#define EGI_BANKED
+#endif
+
 /* segments (what the caller animates) */
 enum {
   EG_ID_BASE = 0, /* the base loop: breathe (or EG_ID_LOWHP when HP is low) */
@@ -34,7 +41,8 @@ enum {
 #define EG_IC_FIGHT 0x01u
 #define EG_IC_LOWHP 0x02u
 
-extern const uint8_t eg_idle_len[EG_ID_COUNT]; /* fixed segment lengths (fidgets, the sit twitch); 0 = scheduled */
+extern const uint8_t eg_idle_len[EG_ID_COUNT]; /* fixed segment lengths (fidgets, the sit twitch); 0 = scheduled. On the
+                                                cartridge it sits in eg_idle.c's bank: read it from eg_idle.c only */
 
 typedef struct {
   uint32_t s;       /* the LCG (heirs.py _Lcg) */
@@ -46,8 +54,8 @@ typedef struct {
   uint8_t traits, ctx;
 } eg_idle_t;
 
-void eg_idle_init(eg_idle_t *s, uint16_t seed, uint8_t traits, uint8_t ctx);
+void eg_idle_init(eg_idle_t *s, uint16_t seed, uint8_t traits, uint8_t ctx) EGI_BANKED;
 /* Advance one tick. Returns 1 when a new segment starts on this tick (the caller restarts its animation). */
-uint8_t eg_idle_step(eg_idle_t *s);
+uint8_t eg_idle_step(eg_idle_t *s) EGI_BANKED;
 
 #endif

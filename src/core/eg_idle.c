@@ -1,4 +1,7 @@
 /* EGRESS heir idle scheduler (see eg_idle.h and proto/anim/heirs.py idle_plan). */
+#ifdef __SDCC
+#pragma bank 255
+#endif
 #include "eg_idle.h"
 
 /* heirs.py state lengths (sum of frame durations at 60 Hz) */
@@ -89,7 +92,7 @@ static void next(eg_idle_t *s) {
   }
 }
 
-void eg_idle_init(eg_idle_t *s, uint16_t seed, uint8_t traits, uint8_t ctx) {
+void eg_idle_init(eg_idle_t *s, uint16_t seed, uint8_t traits, uint8_t ctx) EGI_BANKED {
   s->s = (uint32_t)seed * 2654435761ul + 1ul;
   if (!s->s) s->s = 1ul;
   s->t = 0u;
@@ -103,7 +106,7 @@ void eg_idle_init(eg_idle_t *s, uint16_t seed, uint8_t traits, uint8_t ctx) {
     top(s);
 }
 
-uint8_t eg_idle_step(eg_idle_t *s) {
+uint8_t eg_idle_step(eg_idle_t *s) EGI_BANKED {
   if (s->t != 0xffffu) s->t++;
   if (s->left == EG_IDLE_FOREVER) return 0u;
   if (--s->left) return 0u;

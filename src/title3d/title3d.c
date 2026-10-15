@@ -224,16 +224,205 @@ static void clock_line(uint8_t slot) {
   }
 }
 
-/* ---- entropy for the seed ---- */
-static uint16_t entropy(void) {
-  /* WRAM bank 7 is never written by the game: on hardware it holds the power-on noise of the RAM cells */
-  uint16_t h = 0x1D3Bu;
-  const uint8_t *p = (const uint8_t *)0xD000u;
-  uint16_t i;
-  SVBK_REG = 7;
-  for (i = 0; i < 0x1000u; i += 7u) h = (uint16_t)((h << 5) + (h >> 11) + p[i]);
-  SVBK_REG = T3D_WBANK;
-  return h;
+/* ---- the loops' tables (tools/title3d/bake.py; ROM0) and the ISRs' switch ---- */
+extern const uint8_t tb_loops[]; /* per loop: first chunk, chunks, frames (u16), frame 1's record: chunk, offset (u16),
+                                    first dictionary chunk */
+
+static uint16_t tb_frames(uint8_t loop) {
+  const uint8_t *l = &tb_loops[(uint16_t)loop * 8u];
+  return (uint16_t)(l[2] | ((uint16_t)l[3] << 8));
+}
+
+static void tb_open(uint8_t loop) { /* the loop from its keyframe record */
+  const uint8_t *l = &tb_loops[(uint16_t)loop * 8u];
+  t3d_dict0 = l[7];
+  t3d_rec_at(l[0], 0);
+}
+
+static void tb_frame1(uint8_t loop) { /* the loop's frame 1 record (after the wrap record W) */
+  const uint8_t *l = &tb_loops[(uint16_t)loop * 8u];
+  t3d_rec_at(l[4], (uint16_t)(l[5] | ((uint16_t)l[6] << 8)));
+}
+
+static void t3d_isr_on(void) {
+  t3d_keys_prev = joypad(); /* a button still held from the last screen is not a press */
+  t3d_keys = 0;
+  t3d_last_flip = t3d_vbl;
+  CRITICAL {
+    add_VBL(t3d_vbl_isr);
+    add_LCD(t3d_lcd_isr);
+  }
+}
+
+static void t3d_isr_off(void) {
+  CRITICAL {
+    remove_VBL(t3d_vbl_isr);
+    remove_LCD(t3d_lcd_isr);
+    LYC_REG = hud_line;
+    SCX_REG = 0;
+  }
+}
+
+/* WRAM for the title (t3d.h): the title keeps SVBK = 2 throughout, ISRs included, for its buffers at 0xD800-0xDFBF.
+ * The game's own data reaches past 0xD000 (into bank 1's window), so on the way in bank 1's 0xD000-0xD7FF is
+ * mirrored into bank 2 and on the way out copied back: everything that runs during the title (the title, the game's
+ * VBlank and STAT handlers, the sound driver) sees the game's data at its usual addresses. Interrupts are off while
+ * the banks change and nothing is pushed between a copy and its SVBK write (the stack itself may be in the window).
+ * Each switch runs in one stretch from the top of the frame (lines 1-7 on) to well before line 144 (~100 lines), so
+ * it never holds a VBlank interrupt back, and never spans the frame boundary where a debugger (the harness) looks in.
+ * Banked: none of it switches ROM banks, and title3d_main calls it from this bank. */
+
+/* wait for the top of a frame (LY 1-7; at once if the LCD is off); returns with interrupts off, so nothing runs
+ * between the check and the stretch that follows (interrupts are taken between polls) */
+static void top_of_frame(void) __naked {
+  __asm
+    di
+    ldh a, (0x40)
+    bit 7, a
+    ret z
+  00910$:
+    ldh a, (0x44)
+    dec a
+    cp a, #7
+    ret c
+    ei
+    nop
+    di
+    jr 00910$
+  __endasm;
+}
+
+/* 0xD000-0xD7FF from one WRAM bank into the other, 4 bytes a switch pair (~108 lines); ends with SVBK = the
+ * destination. Interrupts must be off. The return address may sit in the window: it was pushed into the source
+ * bank and is copied with the rest, so the ret finds it in the destination. */
+static void wram_1to2(void) __naked {
+  __asm
+    ld hl, #0xD000
+  00911$:
+    ld a, #1
+    ldh (0x70), a
+    ld a, (hl+)
+    ld b, a
+    ld a, (hl+)
+    ld c, a
+    ld a, (hl+)
+    ld d, a
+    ld a, (hl+)
+    ld e, a
+    ld a, #2
+    ldh (0x70), a
+    dec hl
+    dec hl
+    dec hl
+    dec hl
+    ld a, b
+    ld (hl+), a
+    ld a, c
+    ld (hl+), a
+    ld a, d
+    ld (hl+), a
+    ld a, e
+    ld (hl+), a
+    ld a, h
+    cp a, #0xD8
+    jr c, 00911$
+    ret
+  __endasm;
+}
+
+static void wram_2to1(void) __naked {
+  __asm
+    ld hl, #0xD000
+  00912$:
+    ld a, #2
+    ldh (0x70), a
+    ld a, (hl+)
+    ld b, a
+    ld a, (hl+)
+    ld c, a
+    ld a, (hl+)
+    ld d, a
+    ld a, (hl+)
+    ld e, a
+    ld a, #1
+    ldh (0x70), a
+    dec hl
+    dec hl
+    dec hl
+    dec hl
+    ld a, b
+    ld (hl+), a
+    ld a, c
+    ld (hl+), a
+    ld a, d
+    ld (hl+), a
+    ld a, e
+    ld (hl+), a
+    ld a, h
+    cp a, #0xD8
+    jr c, 00912$
+    ret
+  __endasm;
+}
+
+/* SVBK = 2 with bank 1's window mirrored in; returns (BC) a hash of WRAM bank 7, every 7th byte of 0xD000-0xDFFF:
+ * h = rotl(h, 5) + byte (bank 7 is never written by the game: on hardware it holds the power-on noise) */
+static uint16_t t3d_wram_enter(void) __naked {
+  __asm
+    call _top_of_frame
+    ld a, #7
+    ldh (0x70), a
+    ld bc, #0x1D3B
+    ld hl, #0xD000
+  00901$:
+    swap b              ; rotl(bc, 4): b = B0 C1, c = C0 B1
+    swap c
+    ld a, b
+    xor a, c
+    and a, #0xF0
+    xor a, c
+    ld e, a
+    ld a, c
+    xor a, b
+    and a, #0xF0
+    xor a, b
+    ld c, a
+    ld b, e
+    ld a, b             ; rotl(bc, 1)
+    rlca
+    rl c
+    rl b
+    ld a, c
+    add a, (hl)
+    ld c, a
+    jr nc, 00902$
+    inc b
+  00902$:
+    ld de, #7
+    add hl, de
+    ld a, h
+    cp a, #0xE0
+    jr c, 00901$
+    ld a, #1
+    ldh (0x70), a
+    ei
+    push bc
+    call _top_of_frame
+    call _wram_1to2
+    ei
+    pop bc
+    ret
+  __endasm;
+}
+
+/* bank 2's window copied back into bank 1, SVBK = 1 */
+static void t3d_wram_leave(void) __naked {
+  __asm
+    call _top_of_frame
+    call _wram_2to1
+    ei
+    ret
+  __endasm;
 }
 
 /* ---- the logo's neon: ignition flicker, then rare glitch bursts ---- */
@@ -331,8 +520,10 @@ void title3d_main(void) BANKED {
   uint8_t lcd_was_on, lcdc0, i, dt, out = 0;
   uint16_t lastv, v, out_t = 0, clock_t, nfr, f = 0;
 
-  SVBK_REG = T3D_WBANK;
-  if (!titles) t3d_seed ^= entropy();
+  {
+    uint16_t h = t3d_wram_enter(); /* SVBK = 2 from here, bank 1's window mirrored (t3d.h); h: bank 7's noise */
+    if (!titles) t3d_seed ^= h;
+  }
   if (t3d_seed_force) t3d_seed = t3d_seed_force;
 #ifdef T3D_TEST_SEED
   t3d_seed = T3D_TEST_SEED;
@@ -497,8 +688,8 @@ void title3d_main(void) BANKED {
   SCY_REG = 0;
   WY_REG = 144u;
   VBK_REG = 0;
-  SVBK_REG = 1;
   t3d_result = out;
+  t3d_wram_leave(); /* the window back into bank 1, SVBK = 1 */
 }
 
 uint8_t title3d_run(void) BANKED {

@@ -21,14 +21,17 @@
  *
  * Memory while the title runs (nothing of it is live once title3d_run() returns):
  *
- *   WRAM bank 2 (SVBK = 2 for the whole title; game data stays below 0xD000, the Makefile checks the link):
- *     0xD000-0xD7FF  staging: a frame's tiles (up to 128), the HDMA source
- *     0xD800-0xD88F  the frame's upload jobs (VRAM address, tiles; up to 48)
- *     0xD900-0xDA7F  the frame's dictionary runs (first tile, tiles; up to 128)
- *     0xDC00-0xDD9F  the shadow BG map: 13 view rows x 32 tile ids (the HDMA source of the hidden map)
- *     the rest free
- *   GBDK's stack is at 0xDFFF down, inside the bank: the title runs on its own stack, t3d_stack in WRAM0.
- *   WRAM0: the title's C data (~0.2 KiB) and t3d_stack (192 B).
+ *   WRAM bank 2 (SVBK = 2 for the whole title, ISRs included):
+ *     0xD000-0xD7FF  a mirror of bank 1's: the game's data runs past 0xD000 (the Makefile checks it ends below
+ *                    0xD800), so title3d.c's t3d_wram_enter() copies bank 1's 0xD000-0xD7FF here on the way in and
+ *                    t3d_wram_leave() copies it back on the way out: everything that runs during the title (the
+ *                    game's VBlank and STAT handlers, the sound driver, the title itself) sees the game's data
+ *     0xD800-0xDCFF  staging: a frame's tiles (up to 80), the HDMA source
+ *     0xDD00-0xDE9F  the shadow BG map: 13 view rows x 32 tile ids (the HDMA source of the hidden map)
+ *     0xDEA0-0xDEFF  the frame's upload jobs (VRAM address, tiles; up to 32)
+ *     0xDF00-0xDFBF  the frame's dictionary runs (first tile, tiles; up to 64)
+ *   Bank 1's 0xD800-0xDFFF (GBDK's stack, from 0xDFFF down) is untouched: the title runs on its own stack.
+ *   The game's _DATA: the title's C data (~0.2 KiB) and t3d_stack (192 B).
  *
  *   ROM: the loops' records and dictionaries (TB_NLOOPS loops, ~470 KB in autobanked chunks of up to 16 KiB,
  *   build/t3d_bake/gen/ledger.txt);
@@ -46,10 +49,11 @@
 #include <stdint.h>
 
 #define T3D_WBANK 2u
-#define T3D_STAGE ((uint8_t *)0xD000u)
-#define T3D_JOBS ((uint8_t *)0xD800u)
-#define T3D_RANGES ((uint8_t *)0xD900u)
-#define T3D_SHADOW ((uint8_t *)0xDC00u)
+#define T3D_MIRROR_END 0xD800u /* bank 1's 0xD000 up to here is mirrored; the game's data must end below it */
+#define T3D_STAGE ((uint8_t *)0xD800u)
+#define T3D_SHADOW ((uint8_t *)0xDD00u)
+#define T3D_JOBS ((uint8_t *)0xDEA0u)
+#define T3D_RANGES ((uint8_t *)0xDF00u)
 
 #define T3D_SCY 112u      /* BG rows 14-31 on screen */
 #define T3D_ROW_LOGO 14u  /* the dark band: row 14 blank, the logo's three rows 15-17 */
@@ -68,9 +72,9 @@
 #define T3D_STACK 192u     /* t3d_core.c hard-codes it in the stack switch */
 #define T3D_VBL_LAST 152u  /* the palettes go up only if the VBlank has from here 2 lines left */
 #define T3D_JOB_MAX 24u    /* tiles per upload job (the bake splits runs) */
-#define T3D_STAGE_TILES 128u
-#define T3D_MAX_JOBS 48u
-#define T3D_MAX_RANGES 128u /* dictionary runs a record stages */
+#define T3D_STAGE_TILES 80u
+#define T3D_MAX_JOBS 32u
+#define T3D_MAX_RANGES 64u /* dictionary runs a record stages */
 #define T3D_DICT_TILES 1024u
 
 enum { T3D_START = 1, T3D_SELECT = 2 };
@@ -91,12 +95,13 @@ extern volatile uint16_t t3d_cyc_tiles, t3d_cyc_pal; /* harness: tiles uploaded,
 extern uint8_t t3d_stack[T3D_STACK];
 extern uint8_t t3d_flip_late, t3d_flip_line_max; /* flips that missed a VBlank (must stay 0); latest flip line - 144 */
 
-void tb_open(uint8_t loop) NONBANKED;   /* the loop from its keyframe record */
-void tb_frame1(uint8_t loop) NONBANKED; /* the loop's frame 1 record (after the wrap record W) */
 void tb_play(void) NONBANKED;           /* the next record into VRAM by HBlank DMA, then marked ready to flip */
-uint16_t tb_frames(uint8_t loop) NONBANKED;
-void t3d_isr_on(void) NONBANKED;
-void t3d_isr_off(void) NONBANKED;
+void t3d_rec_at(uint8_t chunk, uint16_t off) NONBANKED; /* the next record: chunk (tb_chunks) and offset */
+extern uint8_t t3d_dict0;              /* the playing loop's first dictionary chunk */
+extern uint8_t t3d_keys_prev;
+extern uint16_t t3d_last_flip;
+void t3d_vbl_isr(void) NONBANKED;
+void t3d_lcd_isr(void) NONBANKED;
 void t3d_on_stack(void) NONBANKED; /* runs title3d_main() on t3d_stack */
 
 /* ---- title3d.c (banked) ---- */

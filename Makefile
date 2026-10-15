@@ -100,8 +100,8 @@ build/obj/tb/%.o: $(TB_GEN)/%.s
 build/linked-%.gbc: $$(OBJ_$$*)
 	$(LCC) $(LDFLAGS) -Wm-yt$(CART_$*) -o $@ $(OBJ_$*)
 	@end=$$(grep -oE '[0-9A-F]{8}  s__HEAP ' build/linked-$*.map | head -1 | cut -c5-8); \
-	[ $$((0x$$end)) -le $$((0xD000)) ] || { echo "WRAM: game data ends at 0x$$end, past 0xD000 (the 3D title banks \
-	0xD000-0xDFFF, src/title3d/t3d.h)" >&2; rm -f $@; exit 1; }
+	[ $$((0x$$end)) -le $$((0xD800)) ] || { echo "WRAM: game data ends at 0x$$end, past 0xD800 (the title mirrors \
+	0xD000-0xD7FF and keeps its buffers above it, src/title3d/t3d.h)" >&2; rm -f $@; exit 1; }
 
 build/egress.gbc: build/linked-mbc5.gbc tools/finish_rom.py
 	$(PY) tools/finish_rom.py build/linked-mbc5.gbc build/linked-mbc5.map $@ --mapper mbc5

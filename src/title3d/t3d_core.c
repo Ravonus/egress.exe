@@ -23,8 +23,9 @@ volatile uint16_t t3d_cyc_tiles, t3d_cyc_pal;
 uint8_t t3d_flip_late, t3d_flip_line_max; /* flips outside VBlank (must stay 0); the latest VBlank line one landed on */
 uint8_t t3d_stack[T3D_STACK];
 uint16_t t3d_saved_sp;
-static uint8_t keys_prev, slice;
-static uint16_t last_flip;
+static uint8_t slice;
+uint8_t t3d_keys_prev;
+uint16_t t3d_last_flip;
 
 /* ---- the records (tools/title3d/bake.py): one per frame, in ROM chunks of up to 16 KiB; per loop a dictionary of
  * its unique tiles (1024 to a chunk) the records name by index ---- */
@@ -33,28 +34,13 @@ extern const uint8_t tb_loops[];  /* per loop: first chunk, chunks, frames (u16)
                                      first dictionary chunk */
 
 static const uint8_t *rec; /* the next record */
-static uint8_t rec_chunk, dict0;
+static uint8_t rec_chunk;
+uint8_t t3d_dict0; /* the loop's first dictionary chunk (title3d.c tb_open) */
 
-static void rec_at(uint8_t c, uint16_t off) NONBANKED {
+void t3d_rec_at(uint8_t c, uint16_t off) NONBANKED {
   const uint8_t *e = &tb_chunks[(uint16_t)c * 3u];
   rec_chunk = c;
   rec = (const uint8_t *)((e[1] | ((uint16_t)e[2] << 8)) + off);
-}
-
-uint16_t tb_frames(uint8_t loop) NONBANKED {
-  const uint8_t *l = &tb_loops[(uint16_t)loop * 8u];
-  return (uint16_t)(l[2] | ((uint16_t)l[3] << 8));
-}
-
-void tb_open(uint8_t loop) NONBANKED {
-  const uint8_t *l = &tb_loops[(uint16_t)loop * 8u];
-  dict0 = l[7];
-  rec_at(l[0], 0);
-}
-
-void tb_frame1(uint8_t loop) NONBANKED {
-  const uint8_t *l = &tb_loops[(uint16_t)loop * 8u];
-  rec_at(l[4], (uint16_t)(l[5] | ((uint16_t)l[6] << 8)));
 }
 
 /* one HBlank DMA (Pan Docs, HDMA5 bit 7 = 1): n blocks of 16 bytes from WRAM into VRAM bank 0, one block in each
@@ -116,13 +102,13 @@ void tb_play(void) NONBANKED {
   if (next) {
     rec = p + next;
   } else {
-    rec_at((uint8_t)(rec_chunk + 1u), 0);
+    t3d_rec_at((uint8_t)(rec_chunk + 1u), 0);
   }
   /* the tiles, out of the dictionary */
   st = T3D_STAGE;
   for (k = nr, q = T3D_RANGES; k; k--, q += 3u) {
     i = (uint16_t)(q[0] | ((uint16_t)q[1] << 8));
-    e = &tb_chunks[(uint16_t)(uint8_t)(dict0 + (uint8_t)(i >> 10)) * 3u];
+    e = &tb_chunks[(uint16_t)(uint8_t)(t3d_dict0 + (uint8_t)(i >> 10)) * 3u];
     EG_ROM_BANK(e[0]);
     off = (uint16_t)q[2] << 4;
     memcpy(st, (const uint8_t *)((e[1] | ((uint16_t)e[2] << 8)) + ((i & 1023u) << 4)), off);
@@ -179,20 +165,20 @@ static void pal_upload(void) NONBANKED __naked {
  * allows (a register write: LCDC bit 3); the palettes, if they changed and the VBlank has the ~2 lines left (LY now:
  * the VBlank may have started late, main having had interrupts off); then the keys and the sound. No VRAM work: the
  * frames go in by HBlank DMA (tb_play). */
-static void t3d_vbl_isr(void) NONBANKED {
+void t3d_vbl_isr(void) NONBANKED {
   uint8_t ly;
   t3d_vbl++;
   frame_count++;
   SCX_REG = t3d_glitch ? t3d_scx[0] : 0u;
   slice = 1;
   LYC_REG = t3d_glitch ? 11u : 144u;
-  if (t3d_map_ready && (uint16_t)(t3d_vbl - last_flip) >= t3d_map_pace) {
+  if (t3d_map_ready && (uint16_t)(t3d_vbl - t3d_last_flip) >= t3d_map_pace) {
     ly = LY_REG;
     if ((STAT_REG & 3u) == 1u) {
       LCDC_REG ^= LCDCF_BG9C00;
       t3d_map_ready = 0;
       t3d_nflips++;
-      last_flip = t3d_vbl;
+      t3d_last_flip = t3d_vbl;
       if (ly >= 144u && (uint8_t)(ly - 144u) > t3d_flip_line_max) t3d_flip_line_max = (uint8_t)(ly - 144u);
     } else {
       t3d_flip_late++; /* not flipped: the VBlank was missed, next one */
@@ -206,8 +192,8 @@ static void t3d_vbl_isr(void) NONBANKED {
   }
   {
     uint8_t j = joypad();
-    t3d_keys |= (uint8_t)(j & (uint8_t)~keys_prev & (J_START | J_A | J_SELECT));
-    keys_prev = j;
+    t3d_keys |= (uint8_t)(j & (uint8_t)~t3d_keys_prev & (J_START | J_A | J_SELECT));
+    t3d_keys_prev = j;
   }
   if (t3d_sound) sound_tick();
   if (t3d_buzz) {
@@ -244,31 +230,12 @@ static void hbl_wait(void) NONBANKED __naked {
 
 /* LYC: the logo's glitch slices: lines 12-17, 18-23, 24-29 take their own SCX, from 30 (the neon rule, then the
  * view) it is 0 again. Only while the logo glitches; otherwise the one LYC at line 144 returns at once. */
-static void t3d_lcd_isr(void) NONBANKED {
+void t3d_lcd_isr(void) NONBANKED {
   if (!t3d_glitch || slice > 4u) return;
   hbl_wait();
   SCX_REG = slice < 4u ? t3d_scx[slice] : 0u;
   slice++;
   LYC_REG = slice == 2u ? 17u : slice == 3u ? 23u : slice == 4u ? 29u : 144u;
-}
-
-void t3d_isr_on(void) NONBANKED {
-  keys_prev = joypad(); /* a button still held from the last screen is not a press */
-  t3d_keys = 0;
-  last_flip = t3d_vbl;
-  CRITICAL {
-    add_VBL(t3d_vbl_isr);
-    add_LCD(t3d_lcd_isr);
-  }
-}
-
-void t3d_isr_off(void) NONBANKED {
-  CRITICAL {
-    remove_VBL(t3d_vbl_isr);
-    remove_LCD(t3d_lcd_isr);
-    LYC_REG = hud_line;
-    SCX_REG = 0;
-  }
 }
 
 /* The title's own stack (t3d.h): GBDK's sits in 0xD000-0xDFFF, which the title banks. */
