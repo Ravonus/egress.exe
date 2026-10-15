@@ -179,6 +179,9 @@ def main() -> int:
             gb += bytes(mem[sym["_ray_d"] + i] for i in range(2 * nrays))
             gb += bytes(mem[bp + i] if fsb is None else mem[fsb, bp + i] for i in range(bufsz))
             checks += 1
+            hb = res.setdefault("ray_h_buckets", {"lt8": 0, "lt16": 0, "lt32": 0, "lt64": 0, "ge64": 0})
+            for hv in gb[:nrays]:
+                hb["lt8" if hv < 8 else "lt16" if hv < 16 else "lt32" if hv < 32 else "lt64" if hv < 64 else "ge64"] += 1
             if gb != ref:
                 bad += 1
                 diffs = [i for i, (x, y) in enumerate(zip(gb, ref)) if x != y]

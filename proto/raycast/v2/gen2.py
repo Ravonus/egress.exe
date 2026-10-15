@@ -347,6 +347,10 @@ def main() -> None:
                                 ("LKT", 0x6000, lkt_flat)], "bank3_floors")
     inc = [f"{k} = 0x{v:04X}" for k, v in {**lay2, **lay3}.items()]
     inc += [f"NFROW = {len(fd)}", f"FR = {FR}", f"MIPH = {MIPH}", "MIPOFF = 0", f"SIDEK = {a.sidek}"]
+    # rows y0..: the leading d = 0 sample rows (the horizon band) are left to the walls' zeroing
+    zb = next(y for y, d in zip(fy0, fd) if d)
+    assert all(d == 0 for y, d in zip(fy0, fd) if y < zb)
+    inc += [f"ZBAND = {zb}"]
     (a.out / "layout.inc").write_text("\n".join(inc) + "\n")
     print(f"bank2 {n2} B, bank3 {n3} B")
 

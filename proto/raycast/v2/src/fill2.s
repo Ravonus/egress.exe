@@ -115,6 +115,8 @@ F_CV0 = 0xFFA6
 F_CV1 = 0xFFA7
 F_K = 0xFFA8
 F_VIS = 0xFFA9
+F_YS = 0xFFAA		; partial path: first row of a slot-0 run
+F_NST = 0xFFAB		; partial path: slot-0 rows stored outright
 REC = 0xCB00		; per tile column {fv0, fv1, cv0, cv1} (C fills it)
 
 	.area _CODE
@@ -543,27 +545,75 @@ wcol:
 	ld	hl, #_ray_fv
 	add	hl, bc
 	ld	(hl), a
-	; slot 0 zeroes its rows above and below the wall
+	; slot 0 zeroes only the rows where ray i + 1 shows wall and ray i does not (floors OR into those; they store
+	; the rest): [a1, min(vt, b1)) and [max(bot, a1), b1), a1 = max(vt1, VOFF), b1 = min(vt1 + h1, VEND)
 	ldh	a, (W_SLOT)
 	or	a, a
 	jr	nz, 110$
+	inc	c
+	ld	hl, #_ray_h
+	add	hl, bc
+	dec	c
+	ld	l, (hl)
+	ld	h, #>VTOP
+	ld	a, (hl)
+	ld	h, a			; h = vt1
+	add	a, l
+	cp	a, #VEND
+	jr	c, 1051$
+	ld	a, #VEND
+1051$:
+	ld	l, a			; l = b1
+	ld	a, h
+	cp	a, #VOFF
+	jr	nc, 1052$
+	ld	a, #VOFF
+1052$:
+	ld	h, a			; h = a1
+	; widened to the horizon band [H - ZBAND, ZBAND) (the floors skip its d = 0 rows; colour 0 there)
+	cp	a, #VOFF + VIEW_H - ZBAND
+	jr	c, 1056$
+	ld	h, #VOFF + VIEW_H - ZBAND
+1056$:
+	ld	a, l
+	cp	a, #VOFF + ZBAND
+	jr	nc, 1057$
+	ld	l, #VOFF + ZBAND
+1057$:
+	; top part: n = min(vt, b1) - a1
 	ld	a, d
-	cp	a, #VOFF + 1
-	jr	c, 105$
-	sub	a, #VOFF
+	cp	a, l
+	jr	c, 1053$
+	ld	a, l
+1053$:
+	sub	a, h
+	jr	c, 1054$
+	jr	z, 1054$
+	push	hl
 	ld	b, a
+	ld	a, h
+	sub	a, #VOFF
+	add	a, a
+	ld	c, a
 	ldh	a, (W_STL)
+	add	a, c
 	ld	l, a
 	ldh	a, (W_STH)
 	ld	h, a
 	call	ws_zero
-105$:
+	pop	hl
+1054$:
+	; bottom part: n = b1 - max(bot, a1)
 	ld	a, e
-	cp	a, #VEND
-	jr	nc, 110$
+	cp	a, h
+	jr	nc, 1055$
+	ld	a, h
+1055$:
 	ld	c, a
-	ld	a, #VEND
+	ld	a, l
 	sub	a, c
+	jr	c, 110$
+	jr	z, 110$
 	ld	b, a
 	ld	a, c
 	sub	a, #VOFF
@@ -867,6 +917,32 @@ pup:
 	jr	nz, pup
 	ret
 
+pst:
+	ldh	a, (c)
+	and	a, d
+	ld	(hl+), a
+	ldh	a, (c)
+	and	a, e
+	ld	(hl+), a
+	inc	c
+	dec	b
+	jr	nz, pst
+	ret
+
+pdst:
+	ldh	a, (c)
+	and	a, d
+	ld	(hl+), a
+	ldh	a, (c)
+	and	a, e
+	ld	(hl-), a
+	dec	hl
+	dec	hl
+	inc	c
+	dec	b
+	jr	nz, pdst
+	ret
+
 pdown:
 	ldh	a, (c)
 	and	a, d
@@ -883,8 +959,34 @@ pdown:
 	jr	nz, pdown
 	ret
 
-; one slot of a partial tile: k0 = max(fv - y0, 0); rows k0..FR-1
-	.macro	PSLOT	fv, cv, mask, fr, ?l1, ?l2, ?l3, ?l4
+; one slot of a partial tile: k0 = max(fv - y0, 0); rows k0..FR-1. Slot 0 (ofv/ocv = slot 1's rows, split = 1)
+; ORs only the rows where slot 1 shows wall (the walls zeroed just those rows) and stores the rest outright
+; (slot 1 then ORs its nibble in), so the walls need not zero the slot-0 rows that only floors cover.
+	.macro	PSPLIT	ofv, pw, fr
+	ldh	(F_YS), a
+	ld	a, #fr
+	sub	a, c
+	ld	b, a
+	ld	a, c
+	add	a, #<pw
+	ld	c, a
+	ldh	a, (F_YS)
+	ld	d, a
+	ldh	a, (ofv)
+	sub	a, d
+	jr	nc, .+3
+	xor	a, a
+	cp	a, b
+	jr	c, .+3
+	ld	a, b
+	ld	d, a
+	ld	a, b
+	sub	a, d
+	ldh	(F_NST), a
+	ld	b, d
+	.endm
+
+	.macro	PSLOT	fv, cv, mask, fr, split, ofv, ocv, ?l1, ?l2, ?l3, ?l4, ?l5, ?l6
 	ldh	a, (F_Y0)
 	ld	b, a
 	ldh	a, (fv)
@@ -893,9 +995,12 @@ pdown:
 	xor	a, a
 l1:
 	cp	a, #fr
-	jr	nc, l2
+	jp	nc, l2
 	ld	c, a
 	add	a, b
+.if split
+	push	af
+.endif
 	add	a, a
 	ld	l, a
 	ldh	a, (F_STL)
@@ -903,19 +1008,35 @@ l1:
 	ld	l, a
 	ldh	a, (F_STH)
 	ld	h, a
+.if split
+	pop	af
+	PSPLIT	ofv, PF0, fr
+.else
 	ld	a, #fr
 	sub	a, c
 	ld	b, a
 	ld	a, c
 	add	a, #<PF0
 	ld	c, a
+.endif
 	ldh	a, (P_FL)
 	and	a, #mask
 	ld	d, a
 	ldh	a, (P_FL + 1)
 	and	a, #mask
 	ld	e, a
+.if split
+	inc	b
+	dec	b
+	call	nz, pup
+	ldh	a, (F_NST)
+	or	a, a
+	jr	z, l2
+	ld	b, a
+	call	pst
+.else
 	call	pup
+.endif
 l2:
 	ldh	a, (F_Y0)
 	ld	b, a
@@ -925,9 +1046,12 @@ l2:
 	xor	a, a
 l3:
 	cp	a, #fr
-	jr	nc, l4
+	jp	nc, l4
 	ld	c, a
 	add	a, b
+.if split
+	push	af
+.endif
 	cpl
 	add	a, #VIEW_H
 	add	a, a
@@ -937,19 +1061,35 @@ l3:
 	ld	l, a
 	ldh	a, (F_STH)
 	ld	h, a
+.if split
+	pop	af
+	PSPLIT	ocv, PC0, fr
+.else
 	ld	a, #fr
 	sub	a, c
 	ld	b, a
 	ld	a, c
 	add	a, #<PC0
 	ld	c, a
+.endif
 	ldh	a, (P_CL)
 	and	a, #mask
 	ld	d, a
 	ldh	a, (P_CL + 1)
 	and	a, #mask
 	ld	e, a
+.if split
+	inc	b
+	dec	b
+	call	nz, pdown
+	ldh	a, (F_NST)
+	or	a, a
+	jr	z, l4
+	ld	b, a
+	call	pdst
+.else
 	call	pdown
+.endif
 l4:
 	.endm
 
@@ -1363,8 +1503,8 @@ f352:
 	ld	a, (hl)
 	ldh	(c), a
 	; per slot: floor rows from max(fv, y0), ceiling rows (mirrored) from max(cv, y0); OR into zeroed rows
-	PSLOT	F_FV0, F_CV0, 0xF0, fr
-	PSLOT	F_FV1, F_CV1, 0x0F, fr
+	PSLOT	F_FV0, F_CV0, 0xF0, fr, 1, F_FV1, F_CV1
+	PSLOT	F_FV1, F_CV1, 0x0F, fr, 0, F_FV1, F_CV1
 	pop	de
 	pop	bc
 f380:
