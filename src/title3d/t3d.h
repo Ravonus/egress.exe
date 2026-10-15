@@ -56,7 +56,7 @@
 
 #define T3D_SWAP_LINE 64u /* palette 7 changes from the logo to view row 7, palette 0 from view row 0 to row 8 */
 #define T3D_SWAP2_LINE 111u /* palette 0 changes from view row 8 to the text (the bar under the view, line 112) */
-#define T3D_TEXT_Y (T3D_VY + T3D_TH + 1u) /* PRESS START; the clock row and the seed follow */
+#define T3D_TEXT_Y (T3D_VY + T3D_TH + 1u) /* PRESS START; a blank row, then the cycling info row (clock / prompt / seed) */
 /* t3d_palx: the view rows' colours, then the logo's, then the text's */
 #define T3D_PX_VIEW (T3D_TH * 4u)
 #define T3D_PX_LOGO T3D_PX_VIEW

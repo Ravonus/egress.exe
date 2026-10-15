@@ -432,6 +432,19 @@ static void video_init(void) {
 }
 
 static const char HEX[] = "0123456789ABCDEF";
+/* the one info row under PRESS START (a blank row of air between, as in mock_title.png) cycles every ~2 s:
+ * the date and time (or SELECT: SET CLOCK while the clock was never set), the SELECT prompt (or the drift prompt's
+ * two lines, which main's rule shows only from the 2nd power-on since a set), then the seed */
+#define T3D_INFO_Y (T3D_TEXT_Y + 2u)
+static uint8_t info_slot, info_tick;
+static void info_row(const char *s) {
+  static char r[19];
+  uint8_t n = (uint8_t)strlen(s), x0 = (uint8_t)((18u - n) >> 1), i;
+  memset(r, ' ', 18);
+  r[18] = 0;
+  for (i = 0; i != n; i++) r[x0 + i] = s[i];
+  text(1, T3D_INFO_Y, r, 2);
+}
 static void seed_line(void) {
   static char s[17];
   memcpy(s, "SEED 0000 * KEEL", 17);
@@ -439,13 +452,26 @@ static void seed_line(void) {
   s[6] = HEX[(t3d_seed >> 8) & 15u];
   s[7] = HEX[(t3d_seed >> 4) & 15u];
   s[8] = HEX[t3d_seed & 15u];
-  text(2, 17, s, 2);
+  info_row(s);
 }
-
-static void clock_line(uint8_t phase) {
+/* slot: which line of the cycle; the clock's own text is refreshed while its slot shows */
+static uint8_t info_slots(void) { return (uint8_t)(!clk_known ? 2u : clk_drift ? 4u : 3u); }
+static void clock_line(uint8_t slot) {
   static char s[19];
-  clock_title_text(phase, s);
-  text(1, 16, s, 2);
+  uint8_t last = (uint8_t)(info_slots() - 1u);
+  if (slot >= last) {
+    seed_line();
+    return;
+  }
+  if (slot == 0u) {
+    clock_title_text(0, s); /* the date and time, or SELECT: SET CLOCK */
+    info_row(s[0] == ' ' ? s + 1 : s);
+  } else if (clk_drift) {
+    clock_title_text(slot, s); /* 1: MAY HAVE DRIFTED, 2: SELECT TO SET IT */
+    info_row(s + 1);
+  } else {
+    info_row("SELECT: SET CLOCK");
+  }
 }
 
 /* ---- entropy for the seed ---- */
@@ -561,7 +587,7 @@ void title3d_main(void) BANKED {
   }
   LCDC_REG = (uint8_t)((LCDC_REG | LCDCF_BG8000 | LCDCF_BGON) & (uint8_t)~(LCDCF_BG9C00 | LCDCF_WINON));
   video_init();
-  seed_line();
+  info_slot = info_tick = 0;
   text(4, T3D_TEXT_Y, "PRESS START", 1);
   clock_line(0);
   t3d_cast_init();
@@ -631,9 +657,12 @@ void title3d_main(void) BANKED {
     cur ^= 1u;
     /* the clock row, about once a second */
     clock_t += dt;
-    if (clock_t >= 64u && !out) {
+    if (clock_t >= 64u && !out) { /* about a second: the clock ticks on, every 2nd the row moves on */
       clock_t = 0;
-      clock_line((uint8_t)(v >> 6));
+      if (++info_tick & 1u) {
+        if (++info_slot >= info_slots()) info_slot = 0;
+      }
+      clock_line(info_slot);
     }
     /* START (or A) plays; SELECT opens SETUP; both fade out over the walk */
     if (!out) {

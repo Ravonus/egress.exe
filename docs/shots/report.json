@@ -3,9 +3,9 @@
   "size": 147456,
   "boot_mode_at_150": 0,
   "title_view_colours": 16,
-  "title_view_pixels_changed_1_5s": 4508,
+  "title_view_pixels_changed_1_5s": 4752,
   "title_seed": "50A8",
-  "title_fps": 25.0,
+  "title_fps": 24.9,
   "title_host_diff": [
     {
       "bank": 3,
@@ -18,7 +18,7 @@
       "bytes_differ": 0
     },
     {
-      "bank": 3,
+      "bank": 2,
       "match": true,
       "bytes_differ": 0
     },

@@ -191,20 +191,25 @@ def glyph_tile(ch: str, ink: int) -> list[int]:
 
 
 def logo_bitmap():
-    """160 x 24 px, colours: 0 bg, 1 pink, 2 cyan, 3 white. Glyphs 12 x 16 (6 x 8 at 2x) in 16-px cells, lines
+    """160 x 24 px, colours: 0 bg, 1 pink, 2 cyan, 3 white. Glyphs 12 x 16 (6 x 8 at 2x), kerned, lines
     4..19; the cyan ghost sits 2 px left (chromatic offset), a white rule tops each stroke, and every fourth glyph
     row is a dark scanline gap (the neon tube)"""
     Wd, Hd = 160, 24
     mask = [[0] * Wd for _ in range(Hd)]
+    # kerned: 14-px cells (12-px glyph, 2-px gap), the dot's cell 8 px (its 2x2 dot pair is 4 px wide), centred with
+    # a margin each side (mock_title.png); the cyan ghost runs 2 px left of each stroke
+    cells = [8 if ch == "." else 14 for ch in LOGO_TEXT]
+    x0 = (Wd - sum(cells) + 2) // 2
     for i, ch in enumerate(LOGO_TEXT):
         g = LOGO_GLYPHS[ch]
+        ox = x0 + sum(cells[:i]) - (4 if ch == "." else 0)  # the dot glyph's ink is at columns 2-3 of 6
         for gy, r in enumerate(g):
             for gx, b in enumerate(r):
                 if b != "#":
                     continue
                 for dy in range(2):
                     for dx in range(2):
-                        mask[4 + gy * 2 + dy][i * 16 + 2 + gx * 2 + dx] = 1
+                        mask[4 + gy * 2 + dy][ox + gx * 2 + dx] = 1
     img = [[0] * Wd for _ in range(Hd)]
     for y in range(Hd):
         for x in range(Wd):
@@ -485,6 +490,7 @@ def main() -> None:
 
     # ---- C-side data: palettes, logo, font, frame ----
     ltiles, lmap = logo_tiles()
+    assert len(ltiles) <= 52, len(ltiles)  # bank-0 tiles 108-159 (t3d.h: T3D_T_LOGO .. T3D_T_FRAME)
     ftiles = frame_tiles()
     font1, font2 = [], []
     for ch in FONT_ORDER:
