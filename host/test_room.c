@@ -3,7 +3,10 @@
  *  - gravity: fall, stack, roll, a CRT held up by the player, a falling CRT hitting the player
  *  - the solver: a push puzzle it must solve (and the plan replays), a sealed room it must not
  *  - generation is deterministic
- *  - every seed baked into the cartridge regenerates, is not trivial (tiers > 0) and solves, and its plan replays */
+ *  - the matrix on tiles: HOT burns paper and the planks touching it, COLD freezes a flood, HOT thaws it, a shock
+ *    through water powers a socket, a brick laid on a plate opens the shutters; recipes either way round
+ *  - the solver with the pocket and the bench: a room needing a recipe, a room that can't be done without it
+ *  - every seed baked into the cartridge regenerates, is not trivial, needs its trick, solves, and its plan replays */
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,7 +26,9 @@ static int failures, checks;
     }                                         \
   } while (0)
 
-/* a room from text rows: # wall, : foam, . floor, O CRT, = drywall, $ token, k keycard, D door, @ start */
+/* a room from text rows: # wall, : foam, . floor, O CRT, = drywall, $ token, k keycard, D door, @ start, ~ rotten
+ * carpet, _ pit, p plate, G shutter, w water, i ice, P paper, h plank, S socket, X dead shutter; a..e pieces
+ * (FIRE WATER AIR EARTH METAL), f ENERGY, g RAIN, m MUD */
 static void parse(eg_room *r, const char *const *rows) {
   memset(r, 0, sizeof *r);
   for (int y = 0; y < (int)EG_H; y++)
@@ -43,6 +48,18 @@ static void parse(eg_room *r, const char *const *rows) {
         case '_': t = T_PIT; break;
         case 'p': t = T_PLATE; break;
         case 'G': t = T_GATE; break;
+        case 'w': t = T_WATER; break;
+        case 'i': t = T_ICE; break;
+        case 'P': t = T_PAPER; break;
+        case 'h': t = T_PLANK; break;
+        case 'S': t = T_SOCKET; break;
+        case 'X': t = T_DEAD; break;
+        case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'm':
+          t = T_ITEM;
+          r->item_cell[r->nitem] = i;
+          r->item_piece[r->nitem++] = (uint8_t)(ch == 'f' ? P_ENERGY : ch == 'g' ? P_RAIN : ch == 'm' ? P_MUD
+                                                                                         : P_FIRE + (ch - 'a'));
+          break;
         default: break;
       }
       r->c[i] = t;
@@ -172,6 +189,103 @@ static void test_features(void) {
   CHECK(ok && eg_replay(&r, moves), "over the bridge to the keycard, then out the far side: %s", moves);
 }
 
+
+static void test_matrix(void) {
+  eg_room r;
+  uint8_t p;
+  /* a paper barricade touching a plank bridge: one flame takes both, the bridge leaves a pit */
+  static const char *const burn[EG_H] = {
+      "################", "#..............#", "#..............#", "#####PPP########", "#......h.......#",
+      "#......h.......#", "#..............#", "#..............#", "#..............#", "#..............#",
+      "#..............#", "#..............#", "#..............#", "################"};
+  parse(&r, burn);
+  p = EG_IDX(6, 4);
+  CHECK(eg_apply(&r, P_WATER, EG_IDX(6, 3), &p, 1) == RX_NONE, "WATER does nothing to paper");
+  CHECK(eg_apply(&r, P_FIRE, EG_IDX(6, 3), &p, 1) == RX_BURN, "FIRE burns paper");
+  CHECK(r.c[EG_IDX(5, 3)] == T_EMPTY && r.c[EG_IDX(7, 3)] == T_EMPTY && r.c[EG_IDX(7, 4)] == T_PIT &&
+            r.c[EG_IDX(7, 5)] == T_PIT,
+        "the burn spreads through the connected paper and the planks (planks leave pits)");
+  CHECK(eg_ndirty == 5 && eg_dirty[0] == EG_IDX(6, 3), "the spread lists its cells nearest first (%d)", eg_ndirty);
+  parse(&r, burn);
+  p = EG_IDX(7, 5);
+  CHECK(eg_apply(&r, P_LAVA, EG_IDX(7, 3), &p, 1) == RX_BURN && r.c[EG_IDX(7, 5)] == T_PLANK,
+        "LAVA is HOT too; the plank under the player doesn't burn");
+  CHECK(eg_apply(&r, P_FIRE, EG_IDX(7, 5), &p, 1) == RX_NONE, "nothing is used on the player's own cell");
+
+  /* a flood: COLD freezes the whole body, HOT thaws it, WET on ice does nothing */
+  static const char *const flood[EG_H] = {
+      "################", "#..............#", "#..wwww........#", "#..ww..........#", "#..............#",
+      "#.....w........#", "#..............#", "#..............#", "#..............#", "#..............#",
+      "#..............#", "#..............#", "#..............#", "################"};
+  parse(&r, flood);
+  p = EG_IDX(2, 2);
+  CHECK(eg_apply(&r, P_RAIN, EG_IDX(3, 2), &p, 1) == RX_NONE, "RAIN on water: nothing");
+  CHECK(eg_apply(&r, P_SNOW, EG_IDX(3, 2), &p, 1) == RX_FREEZE, "SNOW freezes the flood");
+  CHECK(eg_count(&r, T_ICE) == 6 && r.c[EG_IDX(6, 5)] == T_WATER, "every connected water cell, no other (%d)",
+        eg_count(&r, T_ICE));
+  CHECK(eg_apply(&r, P_MUD, EG_IDX(3, 2), &p, 1) == RX_NONE, "WET on ice does nothing");
+  CHECK(eg_apply(&r, P_FIRE, EG_IDX(3, 2), &p, 1) == RX_THAW && eg_count(&r, T_WATER) == 7, "FIRE thaws it back");
+
+  /* the short circuit: a shock into water reaches the socket it touches; every dead shutter goes */
+  static const char *const shortc[EG_H] = {
+      "#######D########", "######.X.######", "#..............#", "#..............#", "Swww...........#",
+      "#..............#", "#..............#", "#..............#", "#..............#", "#..............#",
+      "#..............#", "#..............#", "#..............#", "################"};
+  parse(&r, shortc);
+  p = EG_IDX(4, 4);
+  CHECK(eg_apply(&r, P_ENERGY, EG_IDX(3, 4), &p, 1) == RX_NONE, "ENERGY alone doesn't shock");
+  CHECK(eg_apply(&r, P_ELECTRIC, EG_IDX(3, 4), &p, 1) == RX_SHORT, "ELECTRIC into the water: a short circuit");
+  CHECK(r.c[EG_IDX(0, 4)] == T_SOCKET_ON && r.c[EG_IDX(7, 1)] == T_EMPTY, "the socket powers, the dead shutter goes");
+  parse(&r, shortc);
+  r.c[EG_IDX(1, 4)] = T_ICE;
+  CHECK(eg_apply(&r, P_ELECTRIC, EG_IDX(3, 4), &p, 1) == RX_NONE, "ice doesn't conduct: no short");
+
+  /* a laid brick on a plate holds the shutters open */
+  static const char *const weight[EG_H] = {
+      "#####p#D########", "#......G#......#", "#..............#", "#..............#", "#..............#",
+      "#..............#", "#..............#", "#..............#", "#..............#", "#..............#",
+      "#..............#", "#..............#", "#..............#", "################"};
+  parse(&r, weight);
+  p = EG_IDX(5, 1);
+  CHECK(eg_apply(&r, P_EARTH, EG_IDX(5, 0), &p, 1) == RX_NONE, "EARTH is not a weight");
+  CHECK(eg_apply(&r, P_BRICK, EG_IDX(5, 0), &p, 1) == RX_WEIGHT && r.c[EG_IDX(5, 0)] == T_BLOCK_PLATE, "BRICK lays");
+  eg_gravity(&r, &p, 1);
+  CHECK(r.c[EG_IDX(7, 1)] == T_GATE_OPEN, "and the shutter opens");
+  CHECK(eg_apply(&r, P_BRICK, EG_IDX(4, 2), &p, 1) == RX_WEIGHT && r.c[EG_IDX(4, 2)] == T_BLOCK, "on carpet: a block");
+
+  /* recipes, either order; the five-byte pieces' tags are the traits */
+  CHECK(eg_recipe(P_FIRE, P_MUD) == P_BRICK && eg_recipe(P_MUD, P_FIRE) == P_BRICK, "FIRE + MUD = BRICK");
+  CHECK(eg_recipe(P_AIR, P_RAIN) == P_SNOW && eg_recipe(P_WATER, P_SNOW) == P_ICE, "SNOW, ICE");
+  CHECK(eg_recipe(P_METAL, P_ENERGY) == P_ELECTRIC && eg_recipe(P_FIRE, P_FIRE) == 0, "ELECTRIC; FIRE + FIRE: none");
+  CHECK(PC_TAGS(P_ICE) == (TG(TAG_COLD) | TG(TAG_SHINY)) && PC_EFF(P_ELECTRIC) == EFF_SHOCK, "traits are tags");
+  for (int a = 1; a < P_COUNT; a++)
+    for (int b = 0; b < EG_TAGS; b++)
+      for (int c = 0; c < EG_TAGS; c++) CHECK(eg_rx_table[b][c] == eg_rx_table[c][b], "the table is symmetric");
+}
+
+static void test_bench_solver(void) {
+  static char moves[4096];
+  eg_stats st;
+  eg_room r;
+  /* the flood cuts the door off; RAIN + AIR make SNOW; the plan combines on the bench and freezes it */
+  static const char *const cold[EG_H] = {
+      "######D#########", "#..............#", "#.....k........#", "#..............#", "#####wwww#######",
+      "#..............#", "#..g...........#", "#..........c...#", "#..............#", "#.....@........#",
+      "#..............#", "#..............#", "#..............#", "################"};
+  parse(&r, cold);
+  r.trick = TRICK_COLD;
+  CHECK(!eg_trivial(&r) && eg_trick_needed(&r), "the cold room needs its trick");
+  int ok = eg_solve(&r, 40000, moves, sizeof moves, &st);
+  CHECK(ok && st.combines == 1 && st.uses == 1 && (st.reactions >> RX_FREEZE & 1), "it solves on the bench: %s",
+        moves);
+  CHECK(ok && strchr(moves, 'C') && strchr(moves, 'P') && eg_replay(&r, moves), "the plan replays");
+  CHECK(!eg_solve_ban(&r, 40000, 1ull << RX_FREEZE, moves, sizeof moves, &st), "without FREEZE it can't be done");
+  CHECK(!eg_replay(&r, "UUUUUUUCgcPiU"), "a bench act with pieces not in the pocket doesn't replay");
+  /* only one piece: no recipe */
+  r.c[EG_IDX(11, 7)] = T_EMPTY;
+  CHECK(!eg_solve(&r, 40000, moves, sizeof moves, &st), "half a recipe doesn't solve");
+}
+
 static void test_determinism(void) {
   eg_room a, b;
   for (unsigned s = 1; s < 200; s += 7)
@@ -194,7 +308,9 @@ static void test_baked(const char *path) {
   char *p = strstr(text, "= {");
   CHECK(p != NULL, "seed table found");
   if (!p) return;
-  int tier = 0, k = 0, total = 0, depth = 0;
+  int tier = 0, k = 0, total = 0, depth = 0, tricks[6][TRICK_COUNT] = {{0}};
+  long diff[6] = {0}, foam_sum = 0, objects_sum = 0;
+  int foam_max = 0;
   long steps = 0;
   for (p += 2; *p; p++) {
     if (*p == '{') {
@@ -219,23 +335,49 @@ static void test_baked(const char *path) {
       int g = eg_generate(&r, (uint16_t)seed, (uint8_t)tier);
       CHECK(g, "baked seed %u tier %d generates", seed, tier);
       if (!g) continue;
-      if (tier > 0) CHECK(!eg_trivial(&r), "baked seed %u tier %d is a puzzle", seed, tier);
+      CHECK(!eg_trivial(&r), "baked seed %u tier %d is a puzzle", seed, tier);
+      CHECK(eg_trick_needed(&r), "baked seed %u tier %d needs its trick (%s)", seed, tier, eg_trick_name[r.trick]);
+      CHECK(r.nitem <= EG_MAX_ITEM, "baked seed %u tier %d fits the pocket", seed, tier);
       int ok = eg_solve(&r, 40000, moves, sizeof moves, &st);
       CHECK(ok, "baked seed %u tier %d solves", seed, tier);
       if (ok) CHECK(eg_replay(&r, moves), "baked seed %u tier %d plan replays", seed, tier);
       steps += st.steps;
+      tricks[tier][r.trick]++;
+      /* floor first (the approved look): foam in patches under 25% of the interior, carpet the commonest cell */
+      int count[T_TYPES] = {0}, objects = 0;
+      for (int y = 1; y < (int)EG_H - 1; y++)
+        for (int x = 1; x < (int)EG_W - 1; x++) count[r.c[EG_IDX(x, y)] & T_MASK]++;
+      int foam = count[T_DIRT] * 1000 / ((EG_W - 2) * (EG_H - 2)), commonest = 0;
+      for (int t = 0; t < (int)T_TYPES; t++)
+        if (t != T_WALL && count[t] > count[commonest]) commonest = t;
+      CHECK(foam < 250, "baked seed %u tier %d: foam %d.%d%% of the floor", seed, tier, foam / 10, foam % 10);
+      CHECK(commonest == T_EMPTY, "baked seed %u tier %d: carpet is the commonest cell (%d)", seed, tier, commonest);
+      for (int t = 0; t < (int)T_TYPES; t++)
+        if (t != T_EMPTY && t != T_DIRT && t != T_WALL) objects += count[t];
+      foam_sum += foam;
+      if (foam > foam_max) foam_max = foam;
+      objects_sum += objects;
+      diff[tier] += eg_difficulty(&r, &st);
       k++;
       total++;
     }
   }
   CHECK(tier == 6, "six tiers (got %d)", tier);
   printf("baked seeds: %d checked, mean plan %ld moves\n", total, total ? steps / total : 0);
+  if (total)
+    printf("  foam: mean %.1f%% max %.1f%% of the interior; objects (everything but carpet, foam, concrete): mean "
+           "%.1f per room\n", foam_sum / 10.0 / total, foam_max / 10.0, (double)objects_sum / total);
+  for (int t = 0; t < 6; t++)
+    printf("  tier %d: burn %d cold %d short %d weight %d, mean difficulty %ld\n", t, tricks[t][0], tricks[t][1],
+           tricks[t][2], tricks[t][3], diff[t] / 128);
 }
 
 int main(int argc, char **argv) {
   test_gravity();
   test_solver();
   test_features();
+  test_matrix();
+  test_bench_solver();
   test_determinism();
   if (argc > 1) test_baked(argv[1]);
   printf("%d checks, %d failures\n", checks, failures);

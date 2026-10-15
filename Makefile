@@ -13,7 +13,7 @@ HOSTCFLAGS := -O2 -std=c99 -Wall -Wextra -Werror
 MAPPER ?= mbc5
 
 SRC := src/main.c src/screens.c src/play.c src/grid.c src/hud.c src/player.c src/actors.c src/sprites.c src/boss.c \
-	src/sound.c src/boot/keel_boot.c src/core/eg_room.c src/core/eg_clock.c src/gen/art.c src/gen/art_pics.c \
+	src/sound.c src/boot/keel_boot.c src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c src/core/eg_clock.c src/gen/art.c src/gen/art_pics.c \
 	src/gen/eg_seeds.c
 MAPPER_SRC := src/run.c src/clock.c
 OBJ := $(patsubst src/%.c,build/obj/%.o,$(SRC))
@@ -79,18 +79,20 @@ src/gen/art.c src/gen/art_pics.c src/gen/art.h: tools/bake_art.py
 src/gen/music_data.h: tools/compose.py
 	$(PY) tools/compose.py $@
 
-build/host/egtool: host/egtool.c host/eg_solve.c host/eg_solve.h src/core/eg_room.c src/core/eg_room.h
+ROOM_SRC := src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c
+ROOM_HDR := src/core/eg_room.h src/core/eg_piece.h host/eg_solve.h
+build/host/egtool: host/egtool.c host/eg_solve.c $(ROOM_SRC) $(ROOM_HDR)
 	@mkdir -p $(dir $@)
-	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/egtool.c host/eg_solve.c src/core/eg_room.c
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/egtool.c host/eg_solve.c $(ROOM_SRC)
 
 # The seed table is baked on request only (minutes of solving): `make seeds`. `make test` re-solves every baked seed
 # with the current generator, so a generator change without a rebake fails the tests.
 seeds: build/host/egtool tools/bake_seeds.sh
 	sh tools/bake_seeds.sh build/host/egtool src/gen/eg_seeds.c 128
 
-build/host/test_room: host/test_room.c host/eg_solve.c host/eg_solve.h src/core/eg_room.c src/core/eg_room.h
+build/host/test_room: host/test_room.c host/eg_solve.c $(ROOM_SRC) $(ROOM_HDR)
 	@mkdir -p $(dir $@)
-	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_room.c host/eg_solve.c src/core/eg_room.c
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_room.c host/eg_solve.c $(ROOM_SRC)
 
 # the ported face generator on the host, for the art tools and mocks (tools/avatar_png.py, tools/mock/*)
 AVATAR_SRC := src/avatar/crucible_avatar.c src/avatar/crucible_avatar_base.c

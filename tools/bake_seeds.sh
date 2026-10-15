@@ -1,6 +1,7 @@
 #!/bin/sh
-# Bake the accepted-seed table: for every tier, the PER lowest seeds whose rooms generate, are not trivial (a keycard
-# or the door reachable without moving anything) and the solver solves within the tier's bounds. Each tier is split
+# Bake the accepted-seed table: for every tier, the PER lowest seeds whose rooms generate (the backwards generator,
+# src/core/eg_gen.c), are not trivial, need their trick, keep their red herrings safe, and the solver solves within
+# the tier's difficulty band (host/egtool.c checks()). Each tier is split
 # over JOBS interleaved seed streams that run in parallel; the merged, sorted list keeps its first PER seeds.
 # Usage: sh tools/bake_seeds.sh EGTOOL OUT.c [PER] [JOBS]
 set -eu
