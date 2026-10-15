@@ -82,12 +82,12 @@ $(T3D_GEN)/t3d_data.h: tools/title3d/gen_t3d.py tools/title3d/t3d_art.py
 # frames the harness checks the cartridge against); see tools/title3d/bake.py and build/t3d_bake/gen/ledger.txt
 TB_TOOLS := tools/title3d/bake.py tools/title3d/bake_world.py tools/title3d/gen_t3d.py \
 	tools/title3d/t3d_art.py
-$(TB_HOST)/bake_host: tools/title3d/bake_host.c proto/raycast/v2/src/core2.c proto/raycast/v2/src/ray2.h \
+$(TB_HOST)/bake_host: tools/title3d/bake_host.c tools/title3d/core/core2.c tools/title3d/core/ray2.h \
 		tools/title3d/gen_t3d.py tools/title3d/t3d_art.py
 	@mkdir -p $(TB_HOST)/gen
 	$(PY) tools/title3d/gen_t3d.py $(TB_HOST)/gen --host $(TB_HOST) --view 160 104
-	$(HOSTCC) -O2 -std=c99 -Wall -DVIEW_W=160 -DVIEW_H=104 -Iproto/raycast/v2/src -I$(TB_HOST) -o $@ \
-		tools/title3d/bake_host.c proto/raycast/v2/src/core2.c $(TB_HOST)/tables2.c
+	$(HOSTCC) -O2 -std=c99 -Wall -DVIEW_W=160 -DVIEW_H=104 -Itools/title3d/core -I$(TB_HOST) -o $@ \
+		tools/title3d/bake_host.c tools/title3d/core/core2.c $(TB_HOST)/tables2.c
 $(TB_GEN)/chunks.mk: $(TB_TOOLS) $(TB_HOST)/bake_host
 	$(PY) tools/title3d/bake.py $(TB_GEN) $(TB_HOST)
 $(TB_GEN)/tb.h $(TB_GEN)/tb_index.s $(TB_GEN)/tb_l%.s: $(TB_GEN)/chunks.mk
