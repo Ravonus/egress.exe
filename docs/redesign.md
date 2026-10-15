@@ -285,6 +285,71 @@ thousands of rooms per trick and depth, and the ROM picks from them by seed.
 | CRAFT | MADE results are stronger (ladder +1 ledge, shovel +1 depth) |
 | ELEMENT | only the four starters on the floor; everything must be made |
 
+### 3.4 Fragile and trap tiles (owner request)
+
+A data-driven family of floor tiles that break under weight. The rules are shared by the cartridge and the solver
+(`src/core`). The break reuses the assembly/collapse animation the owner signed off ("this is what I wanted"): the
+tile wobbles, drops into the void, and leaves a pit.
+
+**Per-kind properties (ROM table):**
+- `steps_to_break`: 1–N. Each step shows the next crack stage (hairline → split → shattered, as dithered tiles with a
+  readable count), with a sound and a wobble. The last step collapses it into a pit.
+- `reset`: none, timed (ticks), or on room reset.
+- `breakable_by` mask: player, heavy, mob_walker, mob_heavy, mob_burrower, boss, falling, reaction.
+- `flags`: see-through (the void shows through), phased (solid only on the beat), wooden (HOT burns it),
+  from-reaction (made by a reaction).
+- A break SFX per kind, in the music key.
+
+**Kinds by biome:**
+
+| Biome | Kind | Steps | Notes |
+| --- | --- | --- | --- |
+| office | worn carpet tile | 3 | tears |
+| office | ceiling-tile floor | 2 | crunches |
+| any (office in B1) | glass | 1 | shatters into dithered shards and a sparkle; see-through to the void |
+| any (office in B1) | glitched glass | – | flickers in and out on a beat; safe only while solid; fails if stood on in the off phase |
+| vents | rusted grate | 2 | |
+| flooded atrium | thin ice (COLD reaction on water) | 1–2 | |
+| flooded atrium | soggy board | 2 | |
+| server farm | raised floor panel | 1 | pops up |
+| mall | escalator step | 1 | drops |
+| dream garden | cloud tile | 1 | fades after you leave it |
+| rooftop | skylight | 1 | glass |
+| glitch core | corrupted tile | 1–3 (random) | the count is shown by its glitch level |
+
+**Triggers**
+- A player step counts 1. The HEAVY trait counts double.
+- A dodge roll counts once. A blink skips the count.
+- A carried or pushed block counts too: a CRT pushed onto glass breaks it. So do falling objects.
+- Reactions: HOT burns a wooden tile, and COLD freezes water into thin ice, which is then fragile.
+
+**Mobs, by tag**
+- Heavy mobs break the fragile tiles under them. Burrowers come up through some tiles. Flyers never trigger them.
+  Bosses can rip marked tiles out.
+- Luring a heavy mob across glass to drop it into the void is a valid kill. It joins the conditional-kill system
+  (7.3) as "dies only if dropped".
+- **Protected cells:** the exit path's required cells, landing pads, door thresholds, and anything the solver marks
+  critical.
+  - They are never fragile, and nothing but the player's own reactions can break them.
+  - The generator enforces this, so a mob can never make a room unwinnable.
+
+**Puzzles (new trick types for 3.1)**
+- One-way glass path: each tile is usable once, so plan the route.
+- Step-count routing: cross the 2-step tiles in the right order.
+- Lure the heavy mob to open a shortcut (B2, when mobs arrive).
+- Glitched-glass rhythm crossing.
+- Treasure sometimes sits across a fragile path, as a risk tier (4b).
+
+**Solver.** It models step counts, the beat phase and pits. A room is accepted only if it stays solvable in the worst
+case, where mobs have broken every non-protected fragile tile.
+
+**Memory.** One byte per cell of runtime state: a 3-bit step count, a broken flag, a protected flag and 3 spare bits.
+For the 16x14 room that is 224 bytes of WRAM, plus a per-kind ROM table of a few bytes per kind. The B1 puzzle branch
+reports the measured cost.
+
+**Build.** B1 adds the office kinds (worn carpet, ceiling tile, glass, glitched glass), the protected-cell rule, and
+2–3 of the trick types. B2 adds the mob breakage and the lure trick. B4 adds the other biomes' kinds.
+
 ---
 
 ## 4. Stages: not always "find the key, open the door"
