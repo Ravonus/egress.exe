@@ -60,6 +60,9 @@ class Game:
     def peek16(self, name: str) -> int:
         return self.peek(name) | (self.peek(name, 1) << 8)
 
+    def peek16_at(self, name: str, off: int) -> int:
+        return self.peek(name, off) | (self.peek(name, off + 1) << 8)
+
     def poke(self, name: str, v: int, off: int = 0) -> None:
         self.pb.memory[self.addr(name) + off] = v & 0xFF
 

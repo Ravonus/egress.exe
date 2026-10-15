@@ -13,7 +13,7 @@ uint8_t dbg_heir_state, dbg_heir_dir, opt_move4;
 uint8_t ha_state = 0xffu, ha_frame, ha_dir, ha_done;
 static uint8_t ha_left, ha_n, ha_loop, ha_wrap;
 static heir_frame_t ha_fr;
-static eg_idle_t idl;
+eg_idle_t heir_idl; /* not static: the harness reads heir_idl.t (ticks since the idle began) */
 static uint8_t idle_on, idle_n;
 static uint8_t shown_pose = 0xffu, shown_dd, buf_sel, spr_mask;
 /* the heir's OAM entries as offsets: (dy, dx, tile, attributes) per drawn sprite, OAM order */
@@ -181,15 +181,15 @@ void heir_idle(uint8_t ctx) BANKED {
     if (heir.traits & HT_HEAVY) tr |= EG_IT_HEAVY;
     if (heir.traits & HT_GLITCHED) tr |= EG_IT_GLITCHED;
     if (heir.traits & HT_SMALL) tr |= EG_IT_SMALL;
-    eg_idle_init(&idl, (uint16_t)(heir.seed + (uint16_t)idle_n * 0x9e37u), tr, ctx);
+    eg_idle_init(&heir_idl, (uint16_t)(heir.seed + (uint16_t)idle_n * 0x9e37u), tr, ctx);
     idle_n++;
     idle_on = 1;
-    heir_play(idle_state(idl.seg), 1);
+    heir_play(idle_state(heir_idl.seg), 1);
     return;
   }
-  if (eg_idle_step(&idl)) {
-    heir_play(idle_state(idl.seg), 1);
-  } else if (idl.seg == EG_ID_BASE && ha_wrap) {
+  if (eg_idle_step(&heir_idl)) {
+    heir_play(idle_state(heir_idl.seg), 1);
+  } else if (heir_idl.seg == EG_ID_BASE && ha_wrap) {
     /* the base loop: a breath, then a blink, and again */
     heir_play(ha_state == HA_IDLE ? HA_IDLE_BLINK : HA_IDLE, 1);
   }

@@ -244,13 +244,17 @@ def check_idle(rom: Path, report: dict) -> bool:
             name = HA[g.peek("ha_state")].lower()
             if start is None:
                 if name in ("idle", "idle_blink"):
-                    start = t
+                    # the plan's origin is the scheduler's own start (heir_idl.t ticks ago): the run may have begun the
+                    # idle before start_run handed over (the look's assembly)
+                    start = t - g.peek16_at("heir_idl", 4)
                 else:
                     continue
             name = "idle" if name == "idle_blink" else name
             if not seen or seen[-1][1] != name:
                 seen.append([t - start, name])
         g.stop()
+        if seen and seen[0][1] == "idle":
+            seen[0][0] = 0  # the base segment began with the scheduler
         plan = HP.idle_plan(h["seed"], traits, until=t - start)
         want = [[a, ("long_doze" if n == "long_lie" else n)] for a, b, n in plan]
         # merge consecutive equal names in the plan (a fidget never repeats; a base stretch is one segment)
