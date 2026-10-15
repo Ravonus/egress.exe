@@ -4,55 +4,55 @@
  "targets": {
   "repeat_10pct": {
    "rooms": {
-    "cells": 561,
-    "plays_per_line_30_gens": 127.6,
-    "effective_pool": 3244,
-    "baked_records": 2403,
-    "bytes": 14418,
+    "cells": 564,
+    "plays_per_line_30_gens": 132.2,
+    "effective_pool": 3306,
+    "baked_records": 2449,
+    "bytes": 14694,
     "repeat_share_upper_bound": 0.0876
    },
    "stages": {
-    "cells": 839,
-    "plays_per_line_30_gens": 70.5,
-    "effective_pool": 4678,
-    "baked_records": 6238,
-    "bytes": 31190,
-    "repeat_share_upper_bound": 0.0876
+    "cells": 845,
+    "plays_per_line_30_gens": 74.0,
+    "effective_pool": 4739,
+    "baked_records": 6319,
+    "bytes": 31595,
+    "repeat_share_upper_bound": 0.0878
    },
-   "total_bytes": 45608
+   "total_bytes": 46289
   },
   "repeat_5pct": {
    "rooms": {
-    "cells": 561,
-    "plays_per_line_30_gens": 127.6,
-    "effective_pool": 5649,
-    "baked_records": 4185,
-    "bytes": 25110,
-    "repeat_share_upper_bound": 0.0474
-   },
-   "stages": {
-    "cells": 839,
-    "plays_per_line_30_gens": 70.5,
-    "effective_pool": 8252,
-    "baked_records": 11003,
-    "bytes": 55015,
+    "cells": 564,
+    "plays_per_line_30_gens": 132.2,
+    "effective_pool": 5796,
+    "baked_records": 4294,
+    "bytes": 25764,
     "repeat_share_upper_bound": 0.0472
    },
-   "total_bytes": 80125
+   "stages": {
+    "cells": 845,
+    "plays_per_line_30_gens": 74.0,
+    "effective_pool": 8397,
+    "baked_records": 11196,
+    "bytes": 55980,
+    "repeat_share_upper_bound": 0.0472
+   },
+   "total_bytes": 81744
   }
  },
- "on_cart_plays_per_line": 16.5,
+ "on_cart_plays_per_line": 17.3,
  "rooms_effective_by_tier_10pct": [
-  110,
-  422,
-  414,
-  740,
-  801,
-  757
+  109,
+  416,
+  410,
+  734,
+  820,
+  817
  ],
  "rooms_effective_by_class_10pct": {
   "introduce": 227,
   "develop": 827,
-  "mix": 2190
+  "mix": 2252
  }
 }

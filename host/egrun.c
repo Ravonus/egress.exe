@@ -298,19 +298,23 @@ int full_check(int runs, int verbose) {
  *             mods, recipes, the bounded genes; 9.5) + the run's kit (hearts and pieces found so far) + the heir's build
  *             (9.3's spread; a bred strategy adds at most 9.4's measured gap) - an unseen mechanic's surprise.
  * Bosses: every attempt teaches the fight (tells never change), so a boss gets easier with the line's attempts.
- * Shortcuts: the player takes the deepest open door; the door's trade-offs (no kit from the skipped biomes, half the
- * treasure in the first biome) are in the kit term. A door opens once its fee is paid at a landing. */
+ * Shortcuts: the player takes the deepest open door. A door opens once its fee is paid at a landing; the toll keeper
+ * hands a door start a stake (DOOR_KIT: the kit of that many floors, short of a front-door run's by the deep biomes).
+ * The front-door arm (as many lines again, never taking a door) reports what a no-shortcut line clears. */
 static double SK_BASE = 6.2;   /* a skilled player's level on the first heir */
 static double SK_GROW = 2.45;   /* ... and what experience adds, */
 static double SK_TAU = 200.0;  /* ... over this many floors */
 static double FAM_MAX = 1.0;   /* knowing a biome: its cards, mobs and hazards */
 static double FAM_TAU = 5.0;   /* visits */
-static double LIN_MAX = 3.2;   /* the line's strength at its strongest */
+static double LIN_MAX = 3.0;   /* the line's strength at its strongest */
 static double LIN_TAU = 6.0;  /* generations */
 static double KIT_MAX = 1.0;   /* what a run picks up as it goes */
 static double KIT_TAU = 14.0;  /* floors */
+static double DOOR_KIT = 20.0; /* a shortcut start: the kit of this many floors (the toll's stake) */
 static double BUILD_SD = 0.35; /* one heir's build against another's */
-static double BRED_EDGE = 0.21; /* the best bred strategy: 9.4's +3.7 points on the ~58% stage bar = W x 0.153 logits */
+static double BRED_EDGE = 0.21; /* the best bred strategy on a young line: W x 0.153 logits (9.4) */
+static double BRED_LATE = 0.0;   /* ... and on a full-strength line. Between them it falls with the line's strength:
+                                  * 9.4's gene ceiling (genes converge, so a random heir inherits nearly what a bred one does) */
 static double BOSS_LEARN = 0.30; /* per earlier attempt at that fight */
 static double BOSS_LEARN_MAX = 1.5;
 static double NEW_MECH = 0.7;  /* the surprise of an unseen mechanic outside its introduction */
@@ -320,7 +324,7 @@ static double W = 1.345;
 static const double sg_press[SG_COUNT] = {0.0, 0.8, 0.8, 0.5, 0.9, 0.9, 0.5, 0.3, 1.0, 1.6, 0.4};
 static double MIDBOSS_PRESS = 1.22;
 static double BOSS_PRESS = 2.99;
-static double FINAL_PRESS = 2.6;
+static double FINAL_PRESS = 4.2;
 #define LVW_DEFAULT 0.607
 static double LVW = LVW_DEFAULT; /* a level's weight in the challenge */
 /* tuning only: EGSURV="NAME=value,..." overrides the knobs above (the committed values are the defaults) */
@@ -335,8 +339,10 @@ static void knobs_from_env(void) {
       {"LIN_TAU", &LIN_TAU},
       {"KIT_MAX", &KIT_MAX},
       {"KIT_TAU", &KIT_TAU},
+      {"DOOR_KIT", &DOOR_KIT},
       {"BUILD_SD", &BUILD_SD},
       {"BRED_EDGE", &BRED_EDGE},
+      {"BRED_LATE", &BRED_LATE},
       {"BOSS_LEARN", &BOSS_LEARN},
       {"BOSS_LEARN_MAX", &BOSS_LEARN_MAX},
       {"NEW_MECH", &NEW_MECH},
@@ -389,6 +395,9 @@ int survive(int lines, int gens, const char *json) {
   /* per generation: runs, the deepest biome position reached (8: the egress), the door taken */
   static long reach[GMAX][BI_COUNT + 1], egress[GMAX], front_clear[GMAX], door_hist[GMAX][BI_COUNT], first_egress[GMAX + 1];
   static long strat_egress[2][GMAX], strat_runs[2][GMAX], soft_used, soft_slots, floors_played;
+  /* the front-door arm: as many more lines (random picks) that never take a shortcut */
+  static long fo_reach[GMAX][BI_COUNT + 1], fo_egress[GMAX], fo_runs[GMAX];
+  static long fin_try[GMAX], fin_pass[GMAX]; /* the final stretch, main lines */
   static double minutes_full;
   static long minutes_full_n;
   static uint16_t line_cell_plays[SEED_CELLS];
@@ -398,8 +407,9 @@ int survive(int lines, int gens, const char *json) {
   rs = 0x13579bdu;
   memset(cells, 0, sizeof cells);
   ncells = 0;
-  for (int li = 0; li < lines; li++) {
-    int strat = li & 1; /* 0: random picks; 1: the best bred strategy (9.4: +3.7 points on the clear bar) */
+  for (int li = 0; li < 2 * lines; li++) {
+    int arm = li < lines;  /* 1: the main lines; 0: the front-door arm (only its own tallies) */
+    int strat = arm && (li & 1); /* 0: random picks; 1: the best bred strategy (9.4) */
     line_t L = {0, 0, 1, (uint16_t)rnd(), 1};
     int fee_left[BI_COUNT] = {0}, found = 1, boss_tries[BI_COUNT] = {0}, visits[BI_COUNT] = {0}, egressed = 0;
     long floors_total = 0;
@@ -416,13 +426,14 @@ int survive(int lines, int gens, const char *json) {
       in.sky = (uint8_t)(rnd() % 5 == 0);
       int d = 0;
       for (int p = 0; p < BI_COUNT; p++)
-        if (L.doors & (1u << p)) d = p;
+        if (arm && (L.doors & (1u << p))) d = p;
       in.door = (uint8_t)d;
-      door_hist[g][d]++;
+      if (arm) door_hist[g][d]++;
       eg_run_build(&r, &in);
       double skill = SK_BASE + SK_GROW * (1.0 - exp(-floors_total / SK_TAU));
       double lin = LIN_MAX * (1.0 - exp(-g / LIN_TAU));
-      double build = BUILD_SD * gauss() + (strat ? BRED_EDGE : 0.0);
+      double edge = BRED_LATE + (BRED_EDGE - BRED_LATE) * (1.0 - lin / LIN_MAX);
+      double build = BUILD_SD * gauss() + (strat ? edge : 0.0);
       int8_t bias[MK_ALL] = {0};
       uint8_t streak[MK_ALL] = {0};
       int floors_run = 0, deepest = d, tokens = 0, died = 0;
@@ -442,17 +453,16 @@ int survive(int lines, int gens, const char *json) {
           continue;
         }
         if (s->bpos > deepest) deepest = s->bpos;
-        double kit = KIT_MAX * (1.0 - exp(-floors_run / KIT_TAU));
+        double kit = KIT_MAX * (1.0 - exp(-(floors_run + (d ? DOOR_KIT : 0.0)) / KIT_TAU));
         double fam = FAM_MAX * (1.0 - exp(-visits[s->biome] / FAM_TAU));
         double ab = skill + lin + build + kit + fam;
         double ch;
         int m0 = s->m[0];
         if (s->kind == SK_STAGE) {
           uint8_t lvl = eg_nudge_level(s->target, m0 != 255 ? bias[m0] : 0, s->floor_min);
-          soft_slots++;
-          if (lvl < s->target) soft_used++;
+          if (arm) soft_slots++, soft_used += lvl < s->target;
           ch = LVW * lvl + sg_press[s->stype];
-          {
+          if (arm) {
             int gg = g < 3 ? 0 : g < 8 ? 1 : g < 15 ? 2 : g < 30 ? 3 : 4;
             pl_stage[gg][s->bpos]++;
             pl_mix[gg][s->bpos] += popc(set_of(s) & ~MK_BASIC) >= 2;
@@ -463,7 +473,7 @@ int survive(int lines, int gens, const char *json) {
           ch += popc(s->twist) * 0.4;
           minutes += s->stype == SG_PUZZLE ? 3.0 : 2.5 + (SG_RARE(s->stype) ? 1.0 : 0.0);
           /* the cell this slot draws its room from: curriculum class, mechanics, tier (the 3.6.9 bank estimate) */
-          if (g < 30) {
+          if (arm && g < 30) {
             uint32_t cls = s->cstage == ST_INTRO ? 1u : s->cstage == ST_DEVELOP ? 2u : 3u;
             /* key: lead mechanic | mix size | class | stage type | tier. A baked room serves a slot when it holds the
              * slot's lead mechanic and nothing outside the slot's open set (3.6.9), so the bank is keyed coarse */
@@ -487,13 +497,15 @@ int survive(int lines, int gens, const char *json) {
           minutes += 2;
         }
         double pd = s->kind == SK_EGRESS ? 0.0 : H0 + HMAX * logistic((ch - ab) / W);
+        if (arm && s->kind == SK_FINAL) fin_try[g]++, fin_pass[g] += 1;
         if (frand() < pd) {
+          if (arm && s->kind == SK_FINAL) fin_pass[g]--;
           died = 1;
           break;
         }
         floors_run++;
         floors_total++;
-        floors_played++;
+        floors_played += arm;
         tokens += TOKENS_PER_FLOOR;
         if (s->kind == SK_STAGE) {
           /* how the room went, for the nudge */
@@ -510,16 +522,22 @@ int survive(int lines, int gens, const char *json) {
       }
       for (int p = d; p < BI_COUNT; p++) visits[r.order[p]] += p <= deepest;
       int got_out = !died;
+      if (!arm) {
+        fo_reach[g][got_out ? BI_COUNT : deepest]++, fo_runs[g]++, fo_egress[g] += got_out;
+        if (got_out) minutes_full += minutes, minutes_full_n++;
+        continue;
+      }
       reach[g][got_out ? BI_COUNT : deepest]++;
       if (got_out) {
         egress[g]++;
-        if (d == 0) front_clear[g]++, minutes_full += minutes, minutes_full_n++;
+        if (d == 0) front_clear[g]++;
         if (!egressed) first_egress[g]++, egressed = 1;
       }
       strat_runs[strat][g]++;
       pl_runs[g < 3 ? 0 : g < 8 ? 1 : g < 15 ? 2 : g < 30 ? 3 : 4]++;
       strat_egress[strat][g] += got_out;
     }
+    if (!arm) continue;
     if (!egressed) first_egress[gens]++;
     for (int h = 0; h < SEED_CELLS; h++)
       if (line_cell_plays[h]) cells[h].v += line_cell_plays[h], cells[h].v2 += (double)line_cell_plays[h] * line_cell_plays[h];
@@ -555,7 +573,18 @@ int survive(int lines, int gens, const char *json) {
   for (int g = 0; g < gens; g++) fprintf(j, "%s%.4f", g ? ", " : "", strat_runs[0][g] ? (double)strat_egress[0][g] / strat_runs[0][g] : 0.0);
   fprintf(j, "], \"bred\": [");
   for (int g = 0; g < gens; g++) fprintf(j, "%s%.4f", g ? ", " : "", strat_runs[1][g] ? (double)strat_egress[1][g] / strat_runs[1][g] : 0.0);
-  fprintf(j, "]},\n  \"softened_share\": %.4f,\n  \"floors_played\": %ld,\n", soft_slots ? (double)soft_used / soft_slots : 0.0,
+  fprintf(j, "]},\n  \"front_only\": {\"egress\": [");
+  for (int g = 0; g < gens; g++) fprintf(j, "%s%.4f", g ? ", " : "", fo_runs[g] ? (double)fo_egress[g] / fo_runs[g] : 0.0);
+  fprintf(j, "], \"reach\": [");
+  for (int g = 0; g < gens; g++) {
+    fprintf(j, "%s[", g ? ", " : "");
+    for (int b = 0; b <= BI_COUNT; b++) fprintf(j, "%s%ld", b ? ", " : "", fo_reach[g][b]);
+    fprintf(j, "]");
+  }
+  fprintf(j, "]},\n  \"final_pass\": [");
+  for (int g = 0; g < gens; g++) fprintf(j, "%s%.4f", g ? ", " : "", fin_try[g] ? (double)fin_pass[g] / fin_try[g] : 0.0);
+  fprintf(j, "],\n  \"bred_edge\": [%.3f, %.3f]", BRED_EDGE, BRED_LATE);
+  fprintf(j, ",\n  \"softened_share\": %.4f,\n  \"floors_played\": %ld,\n", soft_slots ? (double)soft_used / soft_slots : 0.0,
           floors_played);
   {
     const char *nm[3] = {"played_stages", "played_mixed", "played_intros"};
@@ -594,6 +623,29 @@ int survive(int lines, int gens, const char *json) {
              g + 1, 100 * at[1] / n, 100 * at[2] / n, 100 * at[3] / n, 100 * at[5] / n, 100 * at[7] / n,
              100.0 * egress[g] / n, 100.0 * front_clear[g] / n);
     }
+  {
+    /* 9.4's fairness rule: best bred minus random picks, per generation and over 5-generation windows */
+    double worst = -99, worst5 = -99;
+    int wg = 0, wg5 = 0;
+    for (int g = 9; g < gens; g++) {
+      double gap = 100.0 * ((double)strat_egress[1][g] / strat_runs[1][g] - (double)strat_egress[0][g] / strat_runs[0][g]);
+      if (gap > worst) worst = gap, wg = g + 1;
+      if (g + 2 < gens && g >= 11) {
+        long e[2] = {0}, n[2] = {0};
+        for (int k = g - 2; k <= g + 2; k++)
+          for (int a = 0; a < 2; a++) e[a] += strat_egress[a][k], n[a] += strat_runs[a][k];
+        double gap5 = 100.0 * ((double)e[1] / n[1] - (double)e[0] / n[0]);
+        if (gap5 > worst5) worst5 = gap5, wg5 = g + 1;
+      }
+    }
+    printf("  bred minus random, gens 10-%d: worst single gen %+.2f pt (gen %d), worst 5-gen window %+.2f pt (centred %d)\n",
+           gens, worst, wg, worst5, wg5);
+    for (int g = 0; g < gens; g++)
+      if (g == 9 || g == 19 || g == 29 || g == gens - 1)
+        printf("  gen %2d: random %5.2f%%  bred %5.2f%%  front door only %5.2f%%  final passed %5.1f%%\n", g + 1,
+               100.0 * strat_egress[0][g] / strat_runs[0][g], 100.0 * strat_egress[1][g] / strat_runs[1][g],
+               100.0 * fo_egress[g] / fo_runs[g], fin_try[g] ? 100.0 * fin_pass[g] / fin_try[g] : 0.0);
+  }
   return 0;
 }
 
