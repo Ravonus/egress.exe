@@ -16,8 +16,48 @@ static heir_frame_t ha_fr;
 static eg_idle_t idl;
 static uint8_t idle_on, idle_n;
 static uint8_t shown_pose = 0xffu, shown_dd, buf_sel, spr_mask;
+/* the heir's OAM entries as offsets: (dy, dx, tile, attributes) per drawn sprite, OAM order */
+static uint8_t d_n, d_ent[16], d_flip = 0xffu, d_flash = 0xffu, d_sel = 0xffu;
+static uint8_t hd_x, hd_y, hd_n;
+static uint8_t *hd_dst;
 
-/* --- the roll: genes.founder(Rng(seed * 7919)) and genes.express(), the loci the floor uses --- */
+/* hd_n entries of d_ent to hd_dst with hd_x/hd_y added: a moving frame's whole OAM cost */
+static void oam_write(void) NAKED {
+  __asm
+    ld hl, #_hd_n
+    ld a, (hl)
+    or a, a
+    ret z
+    ld c, a
+    ld hl, #_hd_dst
+    ld a, (hl+)
+    ld d, (hl)
+    ld e, a
+    ld hl, #_d_ent
+  1$:
+    ld a, (#_hd_y)
+    add a, (hl)
+    inc hl
+    ld (de), a
+    inc de
+    ld a, (#_hd_x)
+    add a, (hl)
+    inc hl
+    ld (de), a
+    inc de
+    ld a, (hl+)
+    ld (de), a
+    inc de
+    ld a, (hl+)
+    ld (de), a
+    inc de
+    dec c
+    jr nz, 1$
+    ret
+  __endasm;
+}
+
+/* --- the roll: genes.founder(Rng(seed * 0x9E3779B1 ^ 0x5BD1E995)) and genes.express(), the loci the floor uses --- */
 static uint32_t rs;
 static uint8_t u8(void) {
   rs = rs * 1103515245ul + 12345ul;
@@ -33,7 +73,7 @@ static const uint8_t trait_bit[10] = {HT_HEAVY, HT_SMALL, HT_OTHER, HT_GLITCHED,
 
 void heir_roll(uint16_t seed) BANKED {
   uint8_t d0, d1, w0, k, a, b, n = 0, hair, acc, aff[7], top = 0;
-  rs = (uint32_t)seed * 7919ul;
+  rs = ((uint32_t)seed * 0x9E3779B1ul) ^ 0x5BD1E995ul; /* spread: neighbouring seeds give unrelated heirs */
   if (!rs) rs = 1ul;
   heir.skin = pick(6);
   pick(8); /* face shape */
@@ -73,6 +113,7 @@ void heir_roll(uint16_t seed) BANKED {
   heir.seed = (uint16_t)(seed * 40503u + 1u);
   heir_compose_init();
   shown_pose = 0xffu;
+  d_sel = 0xffu;
 }
 
 void heir_colours(void) BANKED {
@@ -156,35 +197,67 @@ void heir_idle(uint8_t ctx) BANKED {
 
 void heir_idle_stop(void) BANKED { idle_on = 0; }
 
-void heir_reset(void) BANKED { shown_pose = 0xffu; }
+void heir_reset(void) BANKED {
+  shown_pose = 0xffu;
+  d_sel = 0xffu;
+}
 
-/* the four sprites: BODY at box row 1, WEAR at row 6, two columns; X-flip mirrors E/SE/NE into W/SW/NW */
+/* the four sprites: BODY at box row 1, WEAR at row 6, two columns; X-flip mirrors E/SE/NE into W/SW/NW. The
+ * sprite list (offsets, tiles, attributes) is rebuilt only when the pose, flip or flash changes: a frame that only
+ * moves writes four OAM entries with 8-bit adds. */
 uint8_t heir_draw(uint8_t oam, int16_t sx, int16_t sy) BANKED {
-  uint8_t fin, dd, flip, s, n = 0, pal, tile;
-  int16_t x, y;
+  uint8_t fin, dd, flip, s, n, pal, *e;
+  OAM_item_t *o;
   if (ha_state == 0xffu) return 0;
   fin = ha_fr.dir == HEIR_DIR_CAM ? 0u : (uint8_t)((ha_dir + ha_fr.dir) & 7u);
   flip = (uint8_t)(fin >= 5u);
   dd = flip ? (uint8_t)(8u - fin) : fin;
-  if (ha_fr.pose != shown_pose || dd != shown_dd) {
+  /* a gravity frame is the frame's heavy one: a new pose waits a frame unless nothing is on show yet */
+  if ((ha_fr.pose != shown_pose || dd != shown_dd) && (grav_t != GRAVITY_FRAMES || shown_pose == 0xffu)) {
     buf_sel ^= 1u;
     spr_mask = heir_compose(ha_fr.pose, dd, (uint8_t)(buf_sel << 3));
     shown_pose = ha_fr.pose;
     shown_dd = dd;
+    d_sel = 0xffu;
   }
-  for (s = 0; s != 4u; s++) {
-    if (!(spr_mask & (1u << s)) || oam + n > 39u) continue;
-    x = sx + (int16_t)((((s & 1u) ^ flip)) << 3);
-    y = sy + (s < 2u ? 1 : 6);
-    if (x < -8 || x > 168 || y < 0 || y > 160) continue;
-    tile = (uint8_t)((buf_sel << 3) + (s << 1));
-    pal = s < 2u ? 0u : 1u;
-    if (ha_fr.flash == HEIR_FLASH_WHITE) pal = 6u;
-    else if (ha_fr.flash == HEIR_FLASH_RED) pal = 7u;
-    set_sprite_tile((uint8_t)(oam + n), tile);
-    set_sprite_prop((uint8_t)(oam + n), (uint8_t)(pal | (flip ? S_FLIPX : 0u)));
-    move_sprite((uint8_t)(oam + n), (uint8_t)x, (uint8_t)y);
-    n++;
+  if (flip != d_flip || ha_fr.flash != d_flash || buf_sel != d_sel) {
+    d_flip = flip;
+    d_flash = ha_fr.flash;
+    d_sel = buf_sel;
+    pal = d_flash == HEIR_FLASH_WHITE ? 6u : (d_flash == HEIR_FLASH_RED ? 7u : 0xffu);
+    e = d_ent;
+    d_n = 0;
+    for (s = 0; s != 4u; s++) {
+      if (!(spr_mask & (1u << s))) continue;
+      *e++ = s < 2u ? 1u : 6u;
+      *e++ = (uint8_t)(((s & 1u) ^ flip) << 3);
+      *e++ = (uint8_t)((buf_sel << 3) + (s << 1));
+      *e++ = (uint8_t)((pal != 0xffu ? pal : (s < 2u ? 0u : 1u)) | (flip ? S_FLIPX : 0u));
+      d_n++;
+    }
   }
-  return n;
+  n = d_n;
+  if ((uint8_t)(oam + n) > 40u) n = oam < 40u ? (uint8_t)(40u - oam) : 0u;
+  if (!((uint16_t)sx & 0xff00u) && (uint8_t)sx <= 152u && !((uint16_t)sy & 0xff00u) && (uint8_t)sy <= 154u) {
+    hd_x = (uint8_t)sx; /* the usual case: on screen, 8-bit adds in oam_write */
+    hd_y = (uint8_t)sy;
+    hd_n = n;
+    hd_dst = (uint8_t *)&shadow_OAM[oam];
+    oam_write();
+    return n;
+  }
+  o = &shadow_OAM[oam];
+  e = d_ent;
+  fin = 0;
+  for (s = n; s; s--, e += 4) {
+    int16_t xx = sx + e[1], yy = sy + e[0];
+    if (xx < -8 || xx > 168 || yy < 0 || yy > 160) continue;
+    o->y = (uint8_t)yy;
+    o->x = (uint8_t)xx;
+    o->tile = e[2];
+    o->prop = e[3];
+    o++;
+    fin++;
+  }
+  return fin;
 }

@@ -22,8 +22,8 @@ eg_mover_t pmv;
 uint8_t pl_iframe; /* dodge i-frames this frame */
 uint8_t pl_arc;    /* the lead's arc to draw: 0 none, 1 a strike toward pl_face, 2 the spin */
 uint8_t pl_level;  /* the last charged attack's level, 1..3 */
-static uint8_t pgrid[EG_N];
-static const eg_grid_t pg = {pgrid, EG_W, EG_H};
+static uint8_t pmap[256], map_door = 0xffu;
+static const eg_grid_t pg = {room.c, EG_W, EG_H, 4u, pmap};
 static uint8_t dodge_dp, ov_state, ov_t, fight_t, moved_last, last_face;
 
 /* 8-way facing (EG_FACE_*: N NE E SE S SW W NW) as vectors and d-pad bits */
@@ -50,15 +50,26 @@ static void cardinal_face(void) {
   else pl_face = iy < 0 ? F_UP : F_DOWN;
 }
 
-static void grid_build(void) {
-  uint8_t i = 0, c, t;
+/* the mover reads room.c itself through a byte -> cell map (no copy per step), built at the floor's start; the door
+ * bytes follow the door. T_* -> mover cell: 0 free, 1 wall, 2 a CRT (a wall while it falls), 3 the door (a wall until open) */
+static const uint8_t cell_kind[16] = {0, 0, 1, 1, 2, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0};
+static void grid_map(void) {
+  uint8_t c = 0, v;
+  map_door = door_open;
   do {
-    c = room.c[i];
-    t = (uint8_t)(c & T_MASK);
-    if (t == T_WALL || t == T_BRICK || (t == T_DOOR && !door_open)) pgrid[i] = EG_C_WALL;
-    else if (t == T_ROCK) pgrid[i] = (c & F_FALL) ? EG_C_WALL : EG_C_BLOCK;
-    else pgrid[i] = EG_C_FREE;
-  } while (++i != (uint8_t)EG_N);
+    v = cell_kind[c & T_MASK];
+    if (v == 3u) v = door_open ? EG_C_FREE : EG_C_WALL;
+    else if (v == 2u && (c & F_FALL)) v = EG_C_WALL;
+    pmap[c] = v;
+  } while (++c);
+}
+static void door_map(void) { /* the door opened or closed: only door bytes change */
+  uint8_t c = T_DOOR;
+  map_door = door_open;
+  do {
+    pmap[c] = door_open ? EG_C_FREE : EG_C_WALL;
+    c += 0x10u;
+  } while (c != T_DOOR);
 }
 
 void player_hurt(uint8_t n, uint8_t fromx, uint8_t fromy) BANKED {
@@ -151,6 +162,7 @@ static void do_push(void) {
 /* one mover step from the player's centre (psx, psy are the centre, the mover's box is 12x12 from its corner) */
 static void mstep(uint8_t dpad, uint8_t speed, uint8_t synth) {
   uint8_t prev = pmv.prev, o0 = pmv.order[0], o1 = pmv.order[1], o2 = pmv.order[2], o3 = pmv.order[3];
+  if (map_door != door_open) door_map();
   pmv.x = (int16_t)psx - 96;
   pmv.y = (int16_t)psy - 96;
   pmv.mode = (opt_move4 || EG_OPT_MOVE4) && !synth ? EG_MODE_4WAY : EG_MODE_8WAY;
@@ -380,6 +392,7 @@ static void walk(uint8_t speed, uint8_t anim) {
 }
 
 void player_floor_start(void) BANKED {
+  grid_map(); /* here, not on the first step: 256 entries cost most of a frame */
   eg_input_init(&pin, heir.dodge);
   eg_move_init(&pmv, (int16_t)psx - 96, (int16_t)psy - 96, EG_MODE_8WAY);
   pl_face = F_DOWN;
@@ -399,7 +412,6 @@ void player_update(void) BANKED {
   if (pl_inv) pl_inv--;
   if (fight_t) fight_t--;
   if (ov_t) ov_t--;
-  grid_build();
   if (dbg_heir_state) { /* the harness's state sheet: a state on loop, standing still */
     ha_dir = (uint8_t)(dbg_heir_dir & 7u);
     heir_play((uint8_t)(dbg_heir_state - 1u), 0);

@@ -32,12 +32,13 @@ extern heir_t heir;
 extern uint16_t dbg_heir;      /* harness: nonzero = the heir's seed instead of the run's */
 extern uint8_t dbg_heir_state; /* harness: nonzero = play HA_(n-1) on loop, the player frozen (state sheets) */
 extern uint8_t dbg_heir_dir;   /* with dbg_heir_state: the facing, 0..7 (S SE E NE N NW W SW) */
-extern uint8_t opt_move4;      /* the movement setting: 0 8-way (default), 1 4-way (most recent press wins) */
+extern uint8_t opt_move4;      /* SETUP > MOVE: 0 8-way (default), 1 4-way (most recent press wins); this power-on
+                                * only until a settings record exists in SRAM */
 #ifndef EG_OPT_MOVE4
-#define EG_OPT_MOVE4 0u        /* the default until a SETUP screen stores it */
+#define EG_OPT_MOVE4 0u        /* build-time: -DEG_OPT_MOVE4=1 makes 4-way the only mode */
 #endif
 
-void heir_roll(uint16_t seed) BANKED; /* genes.founder(Rng(seed * 7919)) expressed */
+void heir_roll(uint16_t seed) BANKED; /* genes.founder(Rng(seed * 0x9E3779B1 ^ 0x5BD1E995)) expressed */
 void heir_colours(void) BANKED;      /* the BODY and WEAR palettes into pal_sp 0 and 1 */
 
 /* the animation player */
