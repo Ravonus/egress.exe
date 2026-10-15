@@ -19,7 +19,14 @@ SRC := src/main.c src/screens.c src/play.c src/grid.c src/hud.c src/player.c src
 	src/core/eg_input.c src/core/eg_move.c src/core/eg_idle.c src/heir.c src/gen/heir_tab.c src/gen/heir_banks.c \
 	$(sort $(wildcard src/gen/heir_data_*.c))
 MAPPER_SRC := src/run.c src/clock.c src/heir_draw.c
-OBJ := $(patsubst src/%.c,build/obj/%.o,$(SRC))
+# the title (src/title3d, docs/redesign.md 15): its C, its art (committed), the baked walk (generated into build/)
+SRC += src/title3d/title3d.c src/title3d/t3d_core.c
+T3D_GEN := src/title3d/gen
+TB_GEN := build/t3d_bake/gen
+TB_HOST := build/t3d_bake/v160x104
+-include $(TB_GEN)/chunks.mk
+TB_OBJ := $(patsubst %,build/obj/tb/%.o,$(TB_CHUNKS) tb_index)
+OBJ := $(patsubst src/%.c,build/obj/%.o,$(SRC)) $(TB_OBJ)
 OBJ_mbc5 := $(OBJ) $(patsubst src/%.c,build/obj-mbc5/%.o,$(MAPPER_SRC))
 OBJ_mbc3 := $(OBJ) $(patsubst src/%.c,build/obj-mbc3/%.o,$(MAPPER_SRC))
 ROM_mbc5 := build/egress.gbc
@@ -35,7 +42,7 @@ CFLAGS := -c -Isrc -Wf--Werror -Wf--disable-warning -Wf110 -Wf--disable-warning 
 # RAM + battery, CGB only, 2 MiB declared (trimmed afterwards), 8 KiB SRAM declared on both mappers. Autobank stops at
 # bank 114: bank 115 would end past the 1,900,000-byte gate. MBC3 addresses 128 banks of 16 KiB, so the same gate holds.
 LDFLAGS := -Wm-yC -Wm-ya1 -Wm-yo128 -autobank -Wb-ext=.rel -Wb-max=114 -Wl-j -Wl-m
-HDRS := $(wildcard src/*.h src/core/*.h src/gen/*.h src/boot/*.h)
+HDRS := $(wildcard src/*.h src/core/*.h src/gen/*.h src/boot/*.h src/title3d/*.h) $(T3D_GEN)/t3d_data.h $(TB_GEN)/tb.h
 
 .SECONDEXPANSION:
 .SECONDARY:
@@ -65,8 +72,36 @@ build/obj/gen/heir_data_%.o: src/gen/heir_data_%.c
 	@mkdir -p $(dir $@)
 	$(LCC) $(CFLAGS) -o $@ $<
 
+build/obj/title3d/%.o: CFLAGS += -I$(TB_GEN)
+
+# the title's logo, font and palettes (committed; rebuilt when the tool or its art changes)
+$(T3D_GEN)/t3d_data.h: tools/title3d/gen_t3d.py tools/title3d/t3d_art.py
+	$(PY) tools/title3d/gen_t3d.py $(T3D_GEN)
+
+# the baked walk: the v2 renderer's C on the host at 160x104, the loops, their per-frame records and unique-tile dictionaries in ROM (and the
+# frames the harness checks the cartridge against); see tools/title3d/bake.py and build/t3d_bake/gen/ledger.txt
+TB_TOOLS := tools/title3d/bake.py tools/title3d/bake_world.py tools/title3d/gen_t3d.py \
+	tools/title3d/t3d_art.py
+$(TB_HOST)/bake_host: tools/title3d/bake_host.c proto/raycast/v2/src/core2.c proto/raycast/v2/src/ray2.h \
+		tools/title3d/gen_t3d.py tools/title3d/t3d_art.py
+	@mkdir -p $(TB_HOST)/gen
+	$(PY) tools/title3d/gen_t3d.py $(TB_HOST)/gen --host $(TB_HOST) --view 160 104
+	$(HOSTCC) -O2 -std=c99 -Wall -DVIEW_W=160 -DVIEW_H=104 -Iproto/raycast/v2/src -I$(TB_HOST) -o $@ \
+		tools/title3d/bake_host.c proto/raycast/v2/src/core2.c $(TB_HOST)/tables2.c
+$(TB_GEN)/chunks.mk: $(TB_TOOLS) $(TB_HOST)/bake_host
+	$(PY) tools/title3d/bake.py $(TB_GEN) $(TB_HOST)
+$(TB_GEN)/tb.h $(TB_GEN)/tb_index.s $(TB_GEN)/tb_l%.s: $(TB_GEN)/chunks.mk
+	@:
+build/obj/tb/%.o: $(TB_GEN)/%.s
+	@mkdir -p $(dir $@)
+	$(LCC) -c -o $@ $<
+	cp $< $(@:.o=.asm) # beside the object, like SDCC's output, for tools/mapper_audit.py
+
 build/linked-%.gbc: $$(OBJ_$$*)
 	$(LCC) $(LDFLAGS) -Wm-yt$(CART_$*) -o $@ $(OBJ_$*)
+	@end=$$(grep -oE '[0-9A-F]{8}  s__HEAP ' build/linked-$*.map | head -1 | cut -c5-8); \
+	[ $$((0x$$end)) -le $$((0xD000)) ] || { echo "WRAM: game data ends at 0x$$end, past 0xD000 (the 3D title banks \
+	0xD000-0xDFFF, src/title3d/t3d.h)" >&2; rm -f $@; exit 1; }
 
 build/egress.gbc: build/linked-mbc5.gbc tools/finish_rom.py
 	$(PY) tools/finish_rom.py build/linked-mbc5.gbc build/linked-mbc5.map $@ --mapper mbc5
@@ -155,11 +190,13 @@ test-rtc: build/host/test_clock build/egress.gbc build/egress-rtc.gbc
 test: build/host/test_room build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir
 	build/host/test_room src/gen/eg_seeds.c
 	build/host/egplan check 1000
+	$(PY) test/harness/title3d.py build/egress.gbc --loops # the title: every loop at 30 fps, VRAM = the bake
 	$(PY) tools/test_finish_rom.py build/egress.gbc
 	$(PY) tools/test_finish_rom.py build/egress-rtc.gbc
 
-shots: build/egress.gbc build/host/egtool
+shots: build/egress.gbc build/host/egtool $(TB_GEN)/chunks.mk
 	$(PY) test/harness/play.py build/egress.gbc docs/shots
+	$(PY) tools/title3d/vs_refs.py docs/shots
 
 clean:
 	rm -rf build
