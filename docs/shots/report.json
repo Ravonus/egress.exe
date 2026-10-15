@@ -1,7 +1,42 @@
 {
   "rom": "build/egress.gbc",
-  "size": 475136,
+  "size": 966656,
   "boot_mode_at_150": 0,
+  "title_seed": "50AF",
+  "title_loop": 0,
+  "title_variant": 2,
+  "title_fps": 30.0,
+  "title_upload_profile": {
+    "tiles_per_frame": 12.5,
+    "hdma_lines_per_frame": 38.5,
+    "palette_bytes_per_frame": 3.8
+  },
+  "title_vram_vs_bake": [
+    {
+      "loop": 0,
+      "frame": 539,
+      "tiles_differ": 0
+    },
+    {
+      "loop": 0,
+      "frame": 558,
+      "tiles_differ": 0
+    },
+    {
+      "loop": 0,
+      "frame": 589,
+      "tiles_differ": 0
+    },
+    {
+      "loop": 0,
+      "frame": 31,
+      "tiles_differ": 0
+    }
+  ],
+  "title_stack_high_water": 97,
+  "title_flips_missed": 0,
+  "title_flip_line_max": 145,
+  "title_ok": true,
   "solve_started": true,
   "floor_seed": 38,
   "floor_tier": 0,
@@ -21,6 +56,9 @@
   "death_took_damage": true,
   "death_reached_screen": true,
   "death_back_to_title": true,
+  "title_return_views": 60,
+  "title_return_seed": "6499",
+  "title_return_plays": true,
   "save_after_death": {
     "gen": 1,
     "runs": 1,
@@ -101,7 +139,7 @@
   "boss_strikes": 24,
   "boss_dead": true,
   "boss_hp_left": 0,
-  "boss_frames": 1427,
+  "boss_frames": 1447,
   "boss_shots": {
     "tell": true,
     "orbs": true,
@@ -182,7 +220,7 @@
       "reached_floor2": true,
       "moment_shot": true,
       "hp_lost": 0,
-      "gif_frames": 674
+      "gif_frames": 675
     },
     "weight": {
       "seed": 32,
@@ -361,22 +399,23 @@
   ],
   "heir_budget": {
     "combat": {
-      "frames": 11170,
+      "frames": 9480,
       "max_oam": 8,
       "max_per_line": 8,
       "frames_over_10": 0
     },
     "boss": {
-      "frames": 1874,
-      "max_oam": 19,
+      "frames": 1873,
+      "max_oam": 20,
       "max_per_line": 16,
-      "frames_over_10": 128
+      "frames_over_10": 136
     }
   },
   "heir_states_shown": 59,
   "heir_gif_frames": 666,
   "results": {
     "boot": true,
+    "title3d": true,
     "solve": true,
     "combat": true,
     "death": true,
