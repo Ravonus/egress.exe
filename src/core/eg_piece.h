@@ -77,6 +77,7 @@ enum {
   RX_COUNT
 };
 extern const uint8_t eg_rx_table[EG_TAGS][EG_TAGS];
+uint8_t eg_rx(uint8_t a, uint8_t b) EG_BANKED; /* B2: eg_rx_table[a][b] from any bank (RX_NONE off the table) */
 /* a cell type's own tag (EG_TAGS: none), so tiles react like mobs */
 uint8_t eg_tile_tag(uint8_t type) EG_BANKED;
 

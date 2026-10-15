@@ -57,7 +57,18 @@ typedef struct {
   uint8_t shield;          /* MF_SHIELD hits left */
   uint8_t flags;           /* MOBF_* */
   uint8_t hp_max;
+  uint8_t drawn;           /* its body was placed this frame (the overlay follows it) */
+  uint8_t speed, tell;     /* walk speed (subpixels a frame), tell frames (>= 12; hasted x0.75) */
+  uint8_t tick;            /* burn and status ticks */
 } mob_t;
+extern uint8_t wmods;      /* the lead's element mods (5.3), found on elites: WM_* */
+#define WM_EMBER 0x01u     /* HOT */
+#define WM_RIME 0x02u      /* COLD */
+#define WM_DAMP 0x04u      /* WET */
+extern uint8_t orb_shooter; /* fire_orb_at records it in the orb (orb_t.pad = shooter + 1; 0 = B1) */
+/* harness hooks: nonzero dbg_mob[i] = FAM_* + 1 for spawn i (dbg_mob_n spawns at dbg_mob_cell[i]); dbg_elite = the
+ * spawn index + 1 made elite, dbg_affix the affixes (af0 | af1 << 4, 0xff none) */
+extern uint8_t dbg_mob[6], dbg_mob_cell[6], dbg_mob_n, dbg_elite, dbg_affix;
 extern mob_t mob[MAXE];
 
 /* ---- spawning (b2-stages) ---- */
@@ -73,7 +84,7 @@ uint8_t mob_spawn(uint8_t fam, uint8_t cell, uint8_t elite, uint16_t seed) BANKE
 /* spacing for spawns mid-floor: open floor, >= 3 cells from the player, >= 2 cells from any live mob, and at most 2
  * live mobs on that cell row (the 10-per-line budget). */
 uint8_t mob_spawn_ok(uint8_t cell) BANKED;
-/* preload looks for families a stage will spawn later (bitmask of 1 << FAM_*); display off. At most 4 looks. */
+/* preload looks for families a stage will spawn later (bitmask of 1 << FAM_*); display off. At most 3 looks. */
 void mobs_preload(uint8_t fams) BANKED;
 /* live matrix mobs (b2-stages: wave clear) */
 uint8_t mobs_alive(void) BANKED;
@@ -118,12 +129,13 @@ enum { FX_HIT = 0, FX_KILL, FX_HOT, FX_COLD, FX_WET, FX_SHOCK, FX_SHINY, FX_ALIV
 
 /* ---- the look pipeline (b2-obstacles) ---- */
 /* Baked by tools/bake_mobs.py from tools/mock/mobgen.py into src/gen/mob_art.c: per look, frames of the body (palette
- * A, colour 1..3) and an overlay (palette B: ink + one cue colour). Sprite tiles 16..111 (freed by the heir) are 4
- * look slots of 24 tiles; OBJ palettes 2 and 3 are the floor's two body ramps (a look slot uses 2 + (group)), OBJ 5
+ * A, colour 1..3) and an overlay (palette B: ink + one cue colour). Sprite tiles 16..87 (freed by the heir) are 3
+ * look slots of 24 tiles, 88..111 the particle and marker shapes; OBJ palettes 2 and 3 are the floor's two body ramps (a look slot uses 2 + (group)), OBJ 5
  * the overlay/FX palette (1 ink, 2 group 0's cue, 3 group 1's cue), OBJ 7 the elite and tell palette. */
 #define MOB_TILE0 16u
 #define MOB_SLOT_TILES 24u
-#define MOB_SLOTS 4u
+#define MOB_SLOTS 3u
+#define MOB_FX_TILE 88u /* 88..111: the FX and marker tiles (src/gen/mob_art.h FXT_*), 2 per shape */
 uint8_t mob_look_load(uint8_t slot, uint8_t look, uint8_t group) BANKED; /* display off; returns frames */
 void mob_group_pal(uint8_t group, uint8_t ramp, uint8_t el) BANKED;       /* OBJ palette 2 + group, cue into 5 */
 /* draw a loaded look: frame f (0 idle, 1 idle/move, 2 tell, 3 dissolve if baked) at the sprite box top-left
@@ -132,8 +144,12 @@ uint8_t mob_look_draw(uint8_t slot, uint8_t f, int16_t sx, int16_t sy, uint8_t p
 
 /* ---- hooks called from the B1 modules (small edits there) ---- */
 void mobs_update(void) BANKED;      /* from enemies_update: every SPAWN_MOB */
-void mobs_draw(void) BANKED;        /* from draw_sprites, OP_MARK and OP_MOB and OP_OVER */
+void mobs_draw(uint8_t pass) BANKED; /* from draw_sprites: OP_MARK (elite crowns), OP_OVER (overlays) */
 void mob_hit(uint8_t k, uint8_t dmg, uint8_t fromx, uint8_t fromy) BANKED; /* from enemy_hit for SPAWN_MOB */
 void mob_died(uint8_t k) BANKED;    /* from enemy_kill: splits, tokens, fx */
+void mobs_reload(void) BANKED;      /* from sprites_reset (display off): the floor's looks back into VRAM */
+void mob_draw(uint8_t k) BANKED;    /* from draw_sprites' OP_MOB loop: one mob's body */
+void fx_draw(void) BANKED;          /* from draw_sprites, OP_FX: moves and draws the particle pool */
+void fx_reset(void) BANKED;
 
 #endif

@@ -9,46 +9,24 @@
 #include <gb/cgb.h>
 #include "play.h"
 #include "heir.h"
+#include "mob.h"
 
 enemy_t en[MAXE];
 uint8_t nen;
 orb_t orbs[MAXO];
 uint8_t enemies_alive, kills_run;
 
-void actors_spawn(void) BANKED {
-  uint8_t k;
-  nen = dbg_no_enemies ? 0u : room.nspawn;
-  enemies_alive = nen;
-  for (k = 0; k != nen; k++) {
-    enemy_t *e = &en[k];
-    e->kind = room.spawn_kind[k];
-    e->x = cell_sub(EG_X(room.spawn[k]));
-    e->y = cell_sub(EG_Y(room.spawn[k]));
-    e->tx = (uint8_t)(e->x >> 4);
-    e->ty = (uint8_t)(e->y >> 4);
-    e->anim = (uint8_t)(k * 53u);
-    e->flash = 0;
-    e->vx = e->vy = 0;
-    e->face = 0;
-    if (e->kind == SPAWN_MITE) {
-      e->st = ES_WALK;
-      e->hp = (uint8_t)(3u + (floor_tier >> 1));
-      e->cd = 60u;
-    } else {
-      e->st = ES_FLOAT;
-      e->hp = (uint8_t)(2u + (floor_tier >> 2));
-      e->cd = (uint8_t)(90u + k * 20u);
-    }
-  }
-}
+/* B2: the office's matrix mobs take the room's spawns (src/mob.c); the B1 mite and eye stay for boss.c's summons */
+void actors_spawn(void) BANKED { mobs_floor(); }
 
 void enemy_kill(uint8_t k, uint8_t crushed) BANKED {
   enemy_t *e = &en[k];
   e->st = ES_DEAD;
+  if (e->kind == SPAWN_MOB) mob_died(k); /* B2 */
   puff((uint8_t)(e->x >> 4), (uint8_t)(e->y >> 4), e->kind == SPAWN_MITE ? 2u : 3u, ST_PUFF);
   puff((uint8_t)(e->x >> 4), (uint8_t)((e->y >> 4) - 10u), 5, ST_SPARK);
   if (tokens < 250u) tokens = (uint8_t)(tokens + (crushed ? 2u : 1u) + (e->kind == SPAWN_BOSS ? 4u : 0u));
-  if (e->kind == SPAWN_MITE) {
+  if (e->kind == SPAWN_MITE || e->kind == SPAWN_MOB) {
     if (acts.mites != 255u) acts.mites++;
   } else if (acts.eyes != 255u)
     acts.eyes++;
@@ -75,6 +53,10 @@ void enemy_kill(uint8_t k, uint8_t crushed) BANKED {
 void enemy_hit(uint8_t k, uint8_t dmg, uint8_t fromx, uint8_t fromy) BANKED {
   enemy_t *e = &en[k];
   uint8_t ex = (uint8_t)(e->x >> 4), ey = (uint8_t)(e->y >> 4);
+  if (e->kind == SPAWN_MOB) { /* B2: armour, conditions, reactions, knockback, hitstop */
+    mob_hit(k, dmg, fromx, fromy);
+    return;
+  }
   e->flash = 8u;
   freeze = dmg >= 3u ? 5u : 3u;
   sfx(SFX_HIT);
@@ -105,6 +87,7 @@ void fire_orb_at(uint8_t ex, uint8_t ey, int16_t dx, int16_t dy, uint8_t speed) 
   if (!m) m = 1;
   orbs[k].live = 1;
   orbs[k].friendly = 0;
+  orbs[k].pad = (uint8_t)(orb_shooter + 1u); /* B2: who fired it (0: a B1 eye or the boss) */
   orbs[k].life = 200u;
   orbs[k].x = (uint16_t)ex << 4;
   orbs[k].y = (uint16_t)ey << 4;
@@ -285,9 +268,14 @@ static void eye_update(enemy_t *e) {
 
 void enemies_update(void) BANKED {
   uint8_t k;
+  uint8_t mobs = 0;
   for (k = 0; k != nen; k++) {
     enemy_t *e = &en[k];
     if (e->st == ES_DEAD) continue;
+    if (e->kind == SPAWN_MOB) { /* B2: src/mob.c, all at once */
+      mobs = 1u;
+      continue;
+    }
     e->anim++;
     if (e->flash) e->flash--;
     if (e->kind == SPAWN_MITE)
@@ -297,6 +285,7 @@ void enemies_update(void) BANKED {
     else
       boss_update(k);
   }
+  if (mobs) mobs_update();
 }
 
 void orbs_update(void) BANKED {
@@ -319,6 +308,9 @@ void orbs_update(void) BANKED {
         uint8_t r = en[j].kind == SPAWN_BOSS ? 16u : 9u;
         if (en[j].st != ES_DEAD && overlap(ox, oy, (uint8_t)(en[j].x >> 4), (uint8_t)(en[j].y >> 4), r, r)) {
           o->live = 0;
+          hit_src = HS_ORB; /* B2: a returned orb, and whose it was */
+          hit_orb_from = (uint8_t)(o->pad - 1u);
+          hit_tags = 0;
           enemy_hit(j, (mods & MOD_GROUND) ? 4u : 2u, ox, oy);
           break;
         }
@@ -355,6 +347,10 @@ void actors_crush(void) BANKED {
       continue;
     }
     c = cell_at(x, y);
-    if (cell_type(c) == T_ROCK && (room.c[c] & F_FALL)) enemy_kill(k, 1);
+    if (cell_type(c) == T_ROCK && (room.c[c] & F_FALL)) {
+      hit_src = HS_CRUSH; /* B2 */
+      if (e->kind == SPAWN_MOB && (mob[k].status & MS_UNDER)) continue;
+      enemy_kill(k, 1);
+    }
   }
 }

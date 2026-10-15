@@ -56,6 +56,9 @@ const uint8_t eg_rx_table[EG_TAGS][EG_TAGS] = {
     /* STONE */ {RX_GLOWHEAT, RX_BRITTLE, RX_MUD, RX_POLISH, RX_MOSS, RX_RUNE, RX_NOCLIP, RX_CRUSH},
 };
 
+/* B2: the table from any bank (fights read it through this) */
+uint8_t eg_rx(uint8_t a, uint8_t b) EG_BANKED { return (a < EG_TAGS && b < EG_TAGS) ? eg_rx_table[a][b] : RX_NONE; }
+
 uint8_t eg_tile_tag(uint8_t type) EG_BANKED {
   switch (type) {
     case T_PAPER:

@@ -18,7 +18,7 @@ priority and flicker). This page is the short version. Names may gain members; e
 - `mobs_floor()` runs from `actors_spawn()` and turns `room.spawn[]` into the floor's roster.
 - Mid-floor spawns: `mob_spawn(fam, cell, elite, seed)`, with `mob_spawn_ok(cell)` for spacing (open floor, at least
   3 cells from the player, at least 2 from a live mob, at most 2 live mobs on that cell row). Looks for families a
-  stage will spawn later go in with `mobs_preload(mask)` while the display is off (at most 4 looks a floor).
+  stage will spawn later go in with `mobs_preload(mask)` while the display is off (at most 3 looks a floor).
 - `mobs_alive()` is the wave-clear test.
 
 ## Combat (b2-boss)
@@ -68,7 +68,8 @@ priority and flicker). This page is the short version. Names may gain members; e
 - A living obstacle can be another family row in that tool's `LOOKS` table, loaded with `mob_look_load(slot, look,
   group)` and drawn with `mob_look_draw`.
 - VRAM:
-  - sprite tiles 16..111: 4 slots of 24, freed when the heir moved to tiles 0..15;
+  - sprite tiles 16..87: 3 look slots of 24, freed when the heir moved to tiles 0..15;
+  - 88..111: particle and marker shapes (crown, dot, star, shard, drop, ember, bolt, leaf, rune, clang, bump, ring);
   - 112..133 stay B1's mite, eye and orb for boss.c;
   - 210..255 stay the look's.
 - OBJ palettes on a floor:

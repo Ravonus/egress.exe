@@ -16,6 +16,7 @@ SRC := src/main.c src/screens.c src/play.c src/grid.c src/hud.c src/player.c src
 	src/sound.c src/boot/keel_boot.c src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c src/core/eg_plan.c \
 	src/core/eg_clock.c src/gen/art.c src/gen/art_pics.c \
 	src/gen/look_art.c src/look.c src/gen/eg_seeds.c src/puzzle.c \
+	src/mob.c src/fx.c src/gen/mob_info.c src/gen/mob_art_0.c src/gen/mob_art_1.c \
 	src/core/eg_input.c src/core/eg_move.c src/core/eg_idle.c src/heir.c src/gen/heir_tab.c src/gen/heir_banks.c \
 	$(sort $(wildcard src/gen/heir_data_*.c))
 MAPPER_SRC := src/run.c src/clock.c src/heir_draw.c

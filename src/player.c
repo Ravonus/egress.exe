@@ -7,6 +7,7 @@
 #include <gb/gb.h>
 #include <gb/cgb.h>
 #include "play.h"
+#include "mob.h" /* B2: hit_src */
 #include "heir.h"
 #include "core/eg_input.h"
 #include "core/eg_move.h"
@@ -218,9 +219,18 @@ static void deflect(orb_t *o, uint8_t perfect) {
 }
 
 /* the lead's reach: a box toward the 8-way facing; the spin's: around the player */
+/* B2: what the next enemy_hit came from (src/mob.h hit_src) */
+static void hit_from_move(uint8_t spin) {
+  static const uint8_t src[EG_MV_COUNT] = {HS_FUSE, HS_FUSE, HS_FUSE, HS_FUSE, HS_LUNGE, HS_HIT1,
+                                           HS_HIT2, HS_HIT3, HS_CHARGED, HS_CHARGED, HS_PARRY};
+  hit_src = spin && pin.move == EG_MV_CHARGED ? HS_SPIN : src[pin.move];
+  hit_tags = 0;
+}
+
 static void strike(uint8_t spin, uint8_t dmg) {
   uint8_t cx, cy, rx, ry, k, reach = (mods & MOD_LONG) ? 18u : 14u;
   int8_t ix = f8x[pmv.facing], iy = f8y[pmv.facing];
+  hit_from_move(spin); /* B2 */
   if (spin) {
     cx = pl_x;
     cy = pl_y;
@@ -265,6 +275,8 @@ static void guard(void) {
   }
   if (perfect && pin.frame == 2u) {
     hit_mask = 0;
+    hit_src = HS_PARRY; /* B2 */
+    hit_tags = 0;
     for (k = 0; k != nen; k++)
       if (en[k].st != ES_DEAD && en[k].kind != SPAWN_BOSS &&
           overlap(pl_x, pl_y, (uint8_t)(en[k].x >> 4), (uint8_t)(en[k].y >> 4), 18u, 18u))
