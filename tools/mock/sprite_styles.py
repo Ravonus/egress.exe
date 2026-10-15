@@ -13,7 +13,8 @@ Every frame is built the way the cartridge would build it:
     WEAR colour only where a WEAR sprite covers it, and the same for BODY. `legalize` enforces that and `cost`
     counts sprites, sprites per scan line and palettes.
 
-    .venv/bin/python tools/mock/sprite_styles.py            # writes docs/shots/sprite_styles*.png
+    .venv/bin/python tools/mock/sprite_styles.py            # writes docs/shots/sprite_styles.png, _room.png (A, B, C)
+    .venv/bin/python tools/mock/sprite_styles.py --d        # writes docs/shots/sprite_styles_D.png, _D_room.png
 """
 from __future__ import annotations
 
@@ -91,6 +92,34 @@ def make_heir(g, name="", rim=CYAN):
     }
 
 
+def q555(c):
+    """round to the CGB's 5 bits per channel (and back, the way AP.rgb expands it)"""
+    return tuple(int(round(max(0, min(255, v)) * 31 / 255)) * 255 // 31 for v in c)
+
+
+def skin_shadow(skin):
+    """the D styles' skin shadow: the skin darkened and hue-shifted toward red / plum, never toward grey.
+
+    Light skin keeps more value (a rose-tan shadow), deep skin drops less in red than in green and keeps its blue, so
+    the shadow is a warm red-brown, and the result is pulled 12 % toward a crimson-plum (96, 28, 48), which is what
+    makes it read as shadow on skin rather than as dirt. It is a BODY palette entry of its own, so it never mixes the
+    hair/ink colour into a face (that is what made the earlier deep-skin shadows grey-black and muddy)."""
+    L = lum(skin)
+    f = 0.70 + 0.11 * min(1.0, L / 190)
+    base = (skin[0] * f, skin[1] * f * 0.80, skin[2] * f * 0.88)
+    return q555(tuple(base[i] * 0.88 + (96, 28, 48)[i] * 0.12 for i in range(3)))
+
+
+def style_pal(st, h):
+    """the 6 colours a style shows: A/B/C use the portrait's BODY colours; D swaps skin light for the skin shadow"""
+    if isinstance(st, str):
+        st = STYLES[st]
+    pal = h["pal"]
+    if st.get("cel"):
+        return [pal[0], pal[1], skin_shadow(pal[1])] + list(pal[3:])
+    return pal
+
+
 def pick_four():
     """4 diverse heirs: spread of skin tones, different hair, cuts, accents, accessories"""
     want_skin = [0, 2, 4, 5]
@@ -139,11 +168,35 @@ STYLES = {
               cover={"BODY": [(0, 0), (8, 0), (0, 16), (8, 16)], "WEAR": [(0, 0), (8, 0), (0, 16), (8, 16)]},
               rim="inner", detail=2, big_eye=False),
 }
+# D1-D3: refinements of A (the owner's pick of the four, 2026-10): A's 16x20 size, proportions and read in the room,
+# plus hard cel bands (designed shadow shapes, light from the top left), more ordered dither and C's outfit detail.
+# They shade with `cel_pass` and use their own BODY palette (`style_pal`): hair/ink, skin, and a hue-shifted skin
+# SHADOW instead of the portrait's skin light (see skin_shadow). The cel dict tunes each variant:
+#   sw   shadow width as a fraction of the part's width (+1 px the outline eats on the silhouette)
+#   term terminator band in px between light and shadow (Bayer 50 %, then 25 %)
+#   tex  ordered-dither cloth texture in the lit cloth (0 none, else the Bayer fraction of cloth dark)
+#   hmid a second, dithered row under the hair sheen (Bayer fraction)
+#   pants Bayer fraction of cloth dark in the lit trousers (they read a step darker than the jacket)
+#   rim  "solid" short runs or "dith" (every other pixel) on the shadow-side edge of the cloth, lower body only
+#   cast hair fringe shadow on the forehead: 1.0 a solid row, 0.5 dithered
+_D = dict(STYLES["A"], rim="cel", detail=1, big_eye=False)
+STYLES["D1"] = dict(_D, name="D1", title="D1: HARD CEL", cel=dict(sw=0.34, term=1, tex=0, hmid=0, rim="solid", cast=1.0,
+                                                                  pants=0.5))
+STYLES["D2"] = dict(_D, name="D2", title="D2: CEL + DITHER",
+                    cel=dict(sw=0.30, term=2, tex=0.1875, hmid=0.5, rim="dith", cast=0.5, pants=0.5))
+# D3: two more rows of outfit (torso + legs); the BODY cells sit 1 px lower so the hands reach the hips, and the WEAR
+# cells start at row 6 so the shoes are covered: still 4 sprites, 4 per line. A visor is drawn no higher than row 6
+# (it needs a WEAR cell), so on D3 it sits on the hairline rather than up in the hair
+STYLES["D3"] = dict(_D, name="D3", title="D3: BALANCED", H=22, head=(7.1, 5.7, 5.3), sh_y=12.4, hip_y=16.8,
+                    foot_y=21, hand_y=15.6, cover={"BODY": [(0, 1), (8, 1)], "WEAR": [(0, 6), (8, 6)]},
+                    cel=dict(sw=0.32, term=1, tex=0.0625, hmid=0, rim="solid", cast=0.5, pants=0.5))
+D_STYLES = ["D1", "D2", "D3"]
 M = 8  # margin around the character box for weapon / FX sprites
 
 # groups (shading volumes)
 G_HEAD, G_TORSO, G_ARMN, G_ARMF, G_LEGN, G_LEGF, G_SHOEN, G_SHOEF, G_HAIRB, G_WPN, G_FX, G_SKIRT = range(1, 13)
-RIM_GROUPS = {"strong": {1, 2, 3, 4, 5, 6, 9, 12}, "soft": {2, 3, 4, 5, 6, 12}, "inner": {1, 2, 3, 4, 9}}
+RIM_GROUPS = {"strong": {1, 2, 3, 4, 5, 6, 9, 12}, "soft": {2, 3, 4, 5, 6, 12}, "inner": {1, 2, 3, 4, 9},
+              "cel": {2, 3, 4, 5, 6, 12}}
 CYL = {G_TORSO, G_ARMN, G_ARMF, G_LEGN, G_LEGF, G_HAIRB, G_SKIRT}
 
 # materials -> shading bands [(l_max, colour a, colour b, fraction of b)]
@@ -182,6 +235,7 @@ _m("wpnE", [(9, W3, W3, 0)], keep=True, wear=True)
 _m("fxR", [(9, W3, W3, 0)], keep=True, wear=True)
 _m("fxL", [(9, W2, W2, 0)], keep=True, wear=True)
 _m("fxD", [(9, W2, W3, 0.5)], keep=True, wear=True)
+_m("seam", [(9, W1, W1, 0)], keep=True, wear=True)  # D: jacket opening / hem line (a coloured inner line)
 MID = {v["id"]: k for k, v in MAT.items()}
 FXMATS = {"fxR", "fxL", "fxD", "wpnE", "wpn"}
 LIGHT = np.array([-0.55, -0.7, 0.62])
@@ -257,7 +311,7 @@ def rig(st, h, d, pose):
     W, H = st["W"], st["H"]
     C = Canvas(W + 2 * M, H + M)
     ox, oy = M, M
-    big = st["detail"] >= 2
+    big = st["detail"] >= 2 or bool(st.get("cel"))
     if pose.get("ball") is not None:
         ball(C, st, h, pose, ox, oy)
     else:
@@ -271,6 +325,9 @@ def rig(st, h, d, pose):
 
 def figure(C, st, h, dd, pose, ox, oy, big):
     W, H = st["W"], st["H"]
+    cel = bool(st.get("cel"))
+    btop = min(y for (_, y) in st["cover"]["BODY"])  # first row the BODY layer covers
+    wtop = min(y for (_, y) in st["cover"]["WEAR"])
     cx = ox + W / 2 - 0.5
     sq = pose.get("sq", 0)
     cr = pose.get("crouch", 0)
@@ -397,25 +454,31 @@ def figure(C, st, h, dd, pose, ox, oy, big):
             C.rect(c0 - 0.5, sh_y - 0.5, c0 + 0.5, sh_y - 0.5, "skin", G_TORSO)
         elif nk == 1:
             for k in range(3 if big else 2):
-                C.rect(c0 - 1 + k * 0.5, sh_y - 0.5 + k, c0 + 1 - k * 0.5, sh_y - 0.5 + k, "shirt", G_TORSO)
+                C.rect(c0 - 1 + k * 0.5, sh_y - 0.5 + k, c0 + 1 - k * 0.5, sh_y - 0.5 + k, "skin" if cel else "shirt",
+                       G_TORSO)
         elif nk == 2:
             C.rect(c0 - 1.5, sh_y - 1.4, c0 + 1.5, sh_y - 0.6, "top", G_TORSO)
-        if big:  # open jacket: shirt strip down the middle, lapels
+        if big and not cel:  # open jacket: shirt strip down the middle, lapels
             C.rect(c0 - 0.5, sh_y + 0.5, c0 + 0.5, hip_y - 1, "shirt", G_TORSO)
             C.px(c0 - 1.5, sh_y + 0.5, "topP", G_TORSO)
             C.px(c0 + 1.5, sh_y + 0.5, "topP", G_TORSO)
+        elif cel:  # jacket: the zip / opening line under the badge, down to the hem
+            C.rect(c0 + 0.5, sh_y + (hip_y - sh_y) * 0.55 + 1.5, c0 + 0.5, hip_y + (1 if look == 0 else -0.5), "seam",
+                   G_TORSO)
         if not pose.get("badge_up"):
             by = sh_y + (hip_y - sh_y) * 0.55
             C.line(c0 - 1.5, sh_y - 0.3, c0 - 0.5, by - 1, 1, "lan", G_TORSO)
             C.line(c0 + 1.5, sh_y - 0.3, c0 + 0.5, by - 1, 1, "lan", G_TORSO)
-            C.rect(c0 - 0.5, by - 0.5, c0 + 0.5, by + (1.5 if big else 0.5), "badge", G_TORSO)
-            if big:
+            C.rect(c0 - 0.5, by - 0.5, c0 + 0.5, by + (1.5 if big and not cel else 0.5), "badge", G_TORSO)
+            if big and not cel:
                 C.px(c0, by + 1.5, "ink", G_TORSO)
     elif dd == 2:
         if not pose.get("badge_up"):
             by = sh_y + (hip_y - sh_y) * 0.5
             C.line(tcx + 0.5, sh_y, tcx + sw - 1, by, 1, "lan", G_TORSO)
             C.px(tcx + sw - 0.6, by + 0.5, "badge", G_TORSO)
+        if cel:  # side: the hem line of the jacket
+            C.rect(tcx - hw + 0.5, hip_y, tcx + hw - 0.5, hip_y, "seam", G_TORSO)
     else:  # back: the lanyard cord behind the neck
         C.rect(tcx - 1.5, sh_y - 0.2, tcx + 1.5, sh_y - 0.2, "lan", G_TORSO)
     if h["mark"] == 6:  # backpack
@@ -496,9 +559,10 @@ def figure(C, st, h, dd, pose, ox, oy, big):
         if hair == 4:  # spikes, swept back
             for k in range(-2, 3):
                 sx = hcx + k * 2.4 - (1 if side else 0)
-                C.line(sx, top + 2, sx - 1 - (1 if side else 0), max(oy - 0.4, top - 1.0 + abs(k) * 0.4), 2, "hair", G_HEAD)
+                C.line(sx, top + 2, sx - 1 - (1 if side else 0), max(oy + btop - 0.4, top - 1.0 + abs(k) * 0.4), 2, "hair",
+                       G_HEAD)
         # highlight streak: a short "/" sheen on the upper-left of the hair (2 mid + 1 light pixel)
-        if dd != 3 or True:
+        if not cel:
             sx0 = int(math.floor(hcx - hrx * (0.62 if dd in (0, 4) else 0.3)))
             sy0 = int(math.floor(top + 2.6))
             for k in range(3 if st["detail"] < 2 else 4):
@@ -547,8 +611,12 @@ def figure(C, st, h, dd, pose, ox, oy, big):
             C.px(cxi + 1, my, "ink" if mo in ("o", "yawn") else "mouth", G_HEAD)
         else:
             nx = int(math.floor(hcx + hrx + 0.4))
-            C.px(nx, ey + 1, "skin", G_HEAD)  # nose
-            C.px(nx - 1, my, "mouth", G_HEAD)
+            if not cel or C.name(nx - 1, ey + 1) == "skin":
+                C.px(nx, ey + 1, "skin", G_HEAD)  # nose (D: only where it touches the face, no stray pixel)
+            mx = nx - 1
+            while cel and mx > hcx and C.name(int(round(mx)), my) != "skin":
+                mx -= 1  # D: keep the mouth on the face where the jaw narrows
+            C.px(mx, my, "mouth", G_HEAD)
         if dd == 2 and hair in (0, 1, 4):  # ear on the side of the head
             C.ell(hcx - 0.8, ey + 0.8, 0.8, 1.2, "skin", G_HEAD)
             C.px(hcx - 0.8, ey + 1, "mouth", G_HEAD)
@@ -580,7 +648,7 @@ def figure(C, st, h, dd, pose, ox, oy, big):
         exx = hcx - hrx - 0.3 if dd == 0 else hcx - 0.8
         C.px(exx, ey + 3, "lan", G_HEAD)
     if mk == 7:  # visor shades pushed up on the hair
-        vy = int(math.floor(hairline)) - 1
+        vy = max(int(math.floor(hairline)) - 1, oy + wtop)  # a WEAR colour needs a WEAR cell under it
         if dd in (0, 1):
             C.rect(hcx - hrx + 0.5, vy, hcx + hrx - 0.5, vy, "acc", G_HEAD)
             C.rect(hcx - hrx + 1.5, vy + 1, hcx + hrx - 1.5, vy + 1, "accD", G_HEAD)
@@ -745,9 +813,11 @@ def shade(C, st, pose, mirror):
         return 0 <= x < wdt and 0 <= y < hgt and solid[y, x]
 
     dbias = [0, 0.04, -0.04, 0.08, -0.08, 0.0][min(5, st.get("_dith", 0))]
+    if st.get("cel"):
+        col = cel_pass(C, st, occ, solid, S)
     for y in range(hgt):
         for x in range(wdt):
-            if not occ[y, x]:
+            if not occ[y, x] or st.get("cel"):
                 continue
             m = MAT[C.name(x, y)]
             g = C.grp[y, x]
@@ -801,7 +871,7 @@ def shade(C, st, pose, mirror):
     if mode:
         rim = col.copy()
         wear_top = min(y for (_, y) in st["cover"]["WEAR"])
-        ytop = M + max(wear_top, int(st["H"] * 0.45) if mode == "soft" else 0)
+        ytop = M + max(wear_top, int(st["H"] * 0.45) if mode in ("soft", "cel") else 0)
 
         def cand(x, y):  # the column just inside (or on) the right edge of the silhouette
             if not S(x, y) or y >= M + H - 1 or y < ytop:
@@ -812,6 +882,8 @@ def shade(C, st, pose, mirror):
                 return False  # only the outermost right edge of the whole figure
             if C.grp[y, x] not in RIM_GROUPS[mode]:
                 return False
+            if mode == "cel" and (not MAT[C.name(x, y)]["wear"] or C.name(x, y) in ("lan", "buckle", "seam")):
+                return False  # cel: a thin biome edge on the cloth only, never on skin
             if mode == "strong":
                 return not S(x + 1, y)
             return S(x + 1, y) and not S(x + 2, y)
@@ -826,6 +898,8 @@ def shade(C, st, pose, mirror):
                     continue
                 run = (y > 0 and (mark[y - 1, x] or mark[y - 1, max(0, x - 1)] or mark[y - 1, min(wdt - 1, x + 1)])) or \
                       (y + 1 < hgt and (mark[y + 1, x] or mark[y + 1, max(0, x - 1)] or mark[y + 1, min(wdt - 1, x + 1)]))
+                if run and mode == "cel" and st["cel"]["rim"] == "dith" and not bayer(x, y, 0.5):
+                    continue
                 if run:
                     rim[y, x] = W3
                     if mode == "strong" and S(x - 1, y) and y > M + st["H"] * 0.4 and bayer(x - 1, y, 0.25):
@@ -874,6 +948,113 @@ def shade(C, st, pose, mirror):
                         col[y, x] = cc
     for f in pose.get("fx", []):
         fx_paint(col, st, f)
+    return col
+
+
+# ------------------------------------------------------------------------------------------------ cel shading (D)
+# per material: (shadow slot, lit slot); special cases below. Everything resolves to one of the 6 slots.
+CEL_TONES = {
+    "skin": (B3, B2), "top": (W1, W2), "sleeve": (W1, W2), "topP": (W1, W1), "pants": (W1, W2), "shoe": (W1, W1),
+    "hair": (B1, B1), "hairM": (B1, B1), "hairS": (B3, B3), "hatB": (B1, B3), "acc": (W1, W2), "wpn": (W1, W2),
+    "eye": (B1, B1), "eyeH": (W3, W3), "mouth": (B3, B3), "ink": (B1, B1), "lan": (W1, W1), "badge": (W3, W3),
+    "belt": (W1, W1), "seam": (W1, W1), "cuff": (W1, W1), "sole": (W1, W1), "accD": (W1, W1), "buckle": (W3, W3),
+    "shirt": (B3, B3), "wpnE": (W3, W3),
+}
+CEL_DETAIL = {"lan", "badge", "eye", "eyeH", "mouth", "ink", "seam", "buckle", "belt", "cuff"}  # cast no shadow
+SHINY = {"acc", "wpn"}  # hard top-left highlight in the rim colour
+
+
+def _run(mask, x, y, sx, k):
+    """steps from (x, y) along (sx, k*sx-per-step) until leaving the mask (1 = the next pixel is already outside)"""
+    hgt, wdt = mask.shape
+    o = 1
+    while o < 16:
+        X, Y = x + sx * o, y + int(round(o * k)) * (1 if sx > 0 else -1)
+        if not (0 <= X < wdt and 0 <= Y < hgt and mask[Y, X]):
+            break
+        o += 1
+    return o
+
+
+def cel_pass(C, st, occ, solid, S):
+    """hard cel bands with designed shadow shapes (styles D1-D3).
+
+    Each shading volume (head, torso, each arm, leg, shoe...) gets its shadow from its own silhouette: a pixel is in
+    shadow when it is within `w` px of the volume's edge measured toward the bottom right (away from the key light), so
+    the shadow follows the shape (a crescent on the head, a strip down the right of the torso and limbs, the bottom
+    rows of the head). Between light and shadow sits a terminator band of `term` px in ordered Bayer dither (50 %, then
+    25 %). On top of that: cast shadows where a part in front sits directly above a pixel (coloured inner lines),
+    the hair fringe shadow on the forehead, a hard highlight band on the hair (one pixel in from its lit edge), a
+    one-pixel glint on shiny gear, and (D2/D3) an ordered-dither cloth texture and hair midtone in the lit areas."""
+    P = st["cel"]
+    hgt, wdt = C.mat.shape
+    col = -np.ones((hgt, wdt), np.int16)
+    t = np.zeros((hgt, wdt))  # shadow fraction: 0 lit .. 1 shadow
+    hi = np.zeros((hgt, wdt), bool)
+    for g in np.unique(C.grp):
+        if g == 0 or g == G_FX:
+            continue
+        mask = (C.grp == g) & solid
+        ys, xs = np.nonzero(mask)
+        if not len(xs):
+            continue
+        w = xs.max() - xs.min() + 1
+        k = 0.0 if g in CYL else 0.5
+        frac = P["sw"] * (0.3 if g == G_HEAD else 1.0)
+        if g == G_HEAD:
+            k = 0.35
+        sw = max(1, int(round(w * frac))) + (1 if w >= 5 else 0)
+        for y, x in zip(ys, xs):
+            dn = _run(mask, x, y, 1, k)
+            if dn <= sw:
+                t[y, x] = 1.0
+            elif w >= 5 and P["term"] >= 1 and dn == sw + 1:
+                t[y, x] = 0.5
+            elif w >= 7 and P["term"] >= 2 and dn == sw + 2:
+                t[y, x] = 0.25
+            if g == G_HEAD and C.name(x, y) in ("hair", "hairM"):  # the sheen: a band 1 px in from the lit edge
+                up = _run(mask, x, y, -1, 0.5)
+                if t[y, x] == 0 and y < ys.min() + (ys.max() - ys.min()) * 0.45 and x <= xs.min() + w * 0.6:
+                    hi[y, x] = up == 2 or (P["hmid"] and up == 3 and bayer(x, y, P["hmid"]))
+            elif C.name(x, y) in SHINY:
+                hi[y, x] = _run(mask, x, y, -1, 1.0) == 1 and t[y, x] == 0
+    for y in range(hgt):
+        for x in range(wdt):
+            if not occ[y, x]:
+                continue
+            nm = C.name(x, y)
+            if nm not in CEL_TONES:  # FX: their own bands
+                for (lmax, a, b, fr) in MAT[nm]["bands"]:
+                    col[y, x] = b if (fr and bayer(x, y, fr)) else a
+                    break
+                continue
+            g = C.grp[y, x]
+            tt = t[y, x]
+            if nm not in CEL_DETAIL:
+                for (dx, dy) in ((0, -1),):  # cast shadow from a part in front, directly above (head on collar...)
+                    X, Y = x + dx, y + dy
+                    if S(X, Y) and C.grp[Y, X] not in (g, G_FX) and C.z[Y, X] > C.z[y, x] \
+                            and C.name(X, Y) not in CEL_DETAIL:
+                        tt = 1.0
+                        break
+                if nm == "skin" and y > 0 and C.name(x, y - 1) in ("hair", "hatB", "acc") and C.grp[y - 1, x] == g:
+                    tt = max(tt, P["cast"])  # the fringe shades the forehead
+            sh, lt = CEL_TONES[nm]
+            if nm == "lan" and g == G_HEAD:
+                sh = lt = W3  # earring, glasses lens: shiny
+            c = sh if (tt >= 1 or (tt > 0 and bayer(x, y, tt))) else lt
+            if c == lt:
+                if nm in ("top", "sleeve") and P["tex"] and bayer(x + 2, y, P["tex"]):
+                    c = W1  # ordered-dither cloth texture
+                elif nm == "pants" and bayer(x, y, P["pants"]):
+                    c = W1  # trousers a step darker than the jacket: an ordered-dither midtone
+                elif nm == "hatB" and x % 3 == 0:
+                    c = B1  # knit ribs
+                elif nm == "shoe" and _run((C.grp == g) & solid, x, y, -1, 1.0) == 1:
+                    c = W2  # toe cap catch-light
+            if hi[y, x]:
+                c = B3 if nm in ("hair", "hairM") else W3
+            col[y, x] = c
     return col
 
 
@@ -1045,9 +1226,10 @@ def render(st, h, d, pose=None, info=False):
         st = STYLES[st]
     st = dict(st, _dith=h["dith"])
     C, dd, mirror = rig(st, h, d, pose)
+    pal = style_pal(st, h)
     col = shade(C, st, pose, mirror)
-    col, fixes, cells = legalize(col, st, h["pal"], pose)
-    im = to_image(col, h["pal"], pose.get("flash"))
+    col, fixes, cells = legalize(col, st, pal, pose)
+    im = to_image(col, pal, pose.get("flash"))
     if info:
         return im, dict(cost(col, st, cells), fixes=fixes)
     return im
@@ -1058,10 +1240,11 @@ def layers(st, h, d, pose=None):
     pose = pose or {}
     st = dict(STYLES[st] if isinstance(st, str) else st, _dith=h["dith"])
     C, dd, mirror = rig(st, h, d, pose)
-    col, _, _ = legalize(shade(C, st, pose, mirror), st, h["pal"], pose)
+    pal = style_pal(st, h)
+    col, _, _ = legalize(shade(C, st, pose, mirror), st, pal, pose)
     b = np.where(col < 3, col, -1)
     w = np.where(col >= 3, col, -1)
-    return to_image(b, h["pal"]), to_image(w, h["pal"])
+    return to_image(b, pal), to_image(w, pal)
 
 
 # ------------------------------------------------------------------------------------------------ CURRENT sprite
@@ -1091,9 +1274,13 @@ def crop_char(im, st):
     return im
 
 
-def style_sheet(heirs, path):
-    """CURRENT vs A vs B vs C on the same 4 heirs: idle front, walk side, attack; 1x strip and 4x"""
-    cols = ["CURRENT", "A", "B", "C"]
+SUBS = {"A": "DITHERED", "B": "NEON CHIBI", "C": "TAILORED", "D1": "HARD CEL", "D2": "CEL+DITHER", "D3": "BALANCED"}
+RIM_NAMES = {"soft": "SOFT RIM", "strong": "NEON EDGE", "inner": "INNER RIM", "cel": "THIN RIM"}
+
+
+def style_sheet(heirs, path, cols=("CURRENT", "A", "B", "C")):
+    """CURRENT vs the styles on the same 4 heirs: idle front, walk side, attack; 1x strip and 4x"""
+    cols = list(cols)
     cw = 3 * 34 + 6  # per style block at 1x: 3 frames of 32 wide
     rowh = 48
     head = 22
@@ -1105,7 +1292,7 @@ def style_sheet(heirs, path):
         st = STYLES.get(c)
         label = "CURRENT 16X18" if c == "CURRENT" else f"{c}: {st['W']}X{st['H']}"
         text(im, x0, 2, label, PINK if c != "CURRENT" else (180, 160, 220))
-        sub = "3 COL 1 PAL" if c == "CURRENT" else {"A": "DITHERED", "B": "NEON CHIBI", "C": "TAILORED"}[c]
+        sub = "3 COL 1 PAL" if c == "CURRENT" else SUBS[c]
         text(im, x0, 11, sub, CYAN)
     costs = {}
     for r, h in enumerate(heirs):
@@ -1139,12 +1326,11 @@ def style_sheet(heirs, path):
             text(im, x0 + k * 34, y, lab.split()[0][:4], (150, 116, 210))
     y += 12
     lines = {"CURRENT": ["4 SPR 2/LINE", "1 PAL 3 COL", "NO SHADING"]}
-    for c in "ABC":
+    for c in cols[1:]:
         st = STYLES[c]
         sp = max(x["sprites"] for x in costs[c])
         pl = max(x["per_line"] for x in costs[c])
-        lines[c] = [f"{sp} SPR {pl}/LINE", "2 PAL 6 COL", {"soft": "SOFT RIM", "strong": "NEON EDGE",
-                                                          "inner": "INNER RIM"}[st["rim"]]]
+        lines[c] = [f"{sp} SPR {pl}/LINE", "2 PAL 6 COL", RIM_NAMES[st["rim"]]]
     for i, c in enumerate(cols):
         for j, s in enumerate(lines[c]):
             text(im, 64 + i * cw, y + j * 10, s, WHITE if j == 0 else (214, 190, 246))
@@ -1179,11 +1365,11 @@ def state_strip(h, st="B"):
     return im
 
 
-def layer_strip(h):
+def layer_strip(h, styles=("A", "B", "C")):
     """per style: BODY layer, WEAR layer and the composite, with the 8x16 OBJ grid (proves every pixel is legal)"""
-    im = Image.new("RGB", (3 * 3 * 34 + 40, 64), (20, 14, 46))
+    im = Image.new("RGB", (len(styles) * (3 * 34 + 12) + 4, 64), (20, 14, 46))
     text(im, 2, 2, "OBJ LAYERS (8X16 GRID): BODY PAL + WEAR PAL = 6 COLOURS", PINK)
-    for i, c in enumerate("ABC"):
+    for i, c in enumerate(styles):
         st = STYLES[c]
         b, w = layers(c, h, 0)
         comp = render(c, h, 0)
@@ -1206,7 +1392,7 @@ def check_legal(st, h, d, pose):
     """re-derive the layers from the final pixels: every pixel's colour must belong to a layer covering it"""
     st_ = dict(STYLES[st], _dith=h["dith"])
     C, dd, mirror = rig(st_, h, d, pose)
-    col, _, cells = legalize(shade(C, st_, pose, mirror), st_, h["pal"], pose)
+    col, _, cells = legalize(shade(C, st_, pose, mirror), st_, style_pal(st_, h), pose)
     cov, _ = cover_map(st_, pose)
     bad = 0
     for y in range(col.shape[0]):
@@ -1330,5 +1516,69 @@ def main():
     return hs
 
 
+def skin_panel(heirs):
+    """the BODY palette per heir: A (portrait ink, skin, skin light) vs D (ink, skin, hue-shifted skin shadow), each
+    with the 50 % terminator dither the cel bands use between skin and its shadow"""
+    im = Image.new("RGB", (160, 144), (20, 14, 46))
+    text(im, 2, 2, "SKIN UNDER CEL", PINK)
+    text(im, 2, 12, "A: INK SKIN LIGHT", (150, 116, 210))
+    text(im, 2, 21, "D: INK SKIN SHADOW", CYAN)
+    for i, h in enumerate(heirs):
+        y = 34 + i * 27
+        text(im, 2, y + 6, h["name"], WHITE)
+        for row, st in enumerate(("A", "D1")):
+            pal = style_pal(st, h)
+            for k, c in enumerate(pal[:3]):
+                ImageDraw.Draw(im).rectangle((44 + k * 14, y + row * 12, 44 + k * 14 + 12, y + row * 12 + 10), fill=c)
+            if row:  # skin -> shadow terminator: lit | 50 % Bayer | shadow
+                for yy in range(11):
+                    for xx in range(36):
+                        f = 0 if xx < 12 else 0.5 if xx < 24 else 1
+                        im.putpixel((90 + xx, y + 12 + yy), pal[2] if bayer(xx, yy, f) else pal[1])
+                # a few shadow pixels next to ink, as on a jaw line
+                ImageDraw.Draw(im).rectangle((128, y + 12, 131, y + 22), fill=pal[0])
+    return im
+
+
+def main_d():
+    """the D round (refinements of A): sprite_styles_D.png (1x sheet, 4x sheet, real-size rooms, layers) and
+    sprite_styles_D_room.png (the room views at 3x). A stays as it is, next to D1-D3, so the gain is visible."""
+    OUT.mkdir(parents=True, exist_ok=True)
+    hs = four_heirs()
+    by = {h["name"]: h for h in hs}
+    cols = ("CURRENT", "A") + tuple(D_STYLES)
+    sheet, costs = style_sheet(hs, OUT, cols)
+    S4 = sheet.resize((sheet.width * 4, sheet.height * 4), Image.NEAREST)
+    panels = [room_panel(by["OREN"], c, by["CORA"], c) for c in cols] + [skin_panel(hs)]
+    R = Image.new("RGB", (3 * 164 - 4, 2 * 148 - 4), (0, 0, 0))
+    for i, p_ in enumerate(panels):
+        R.paste(p_, ((i % 3) * 164, (i // 3) * 148))
+    R.resize((R.width * 3, R.height * 3), Image.NEAREST).save(OUT / "sprite_styles_D_room.png")
+    lay = layer_strip(by["CORA"], ("A",) + tuple(D_STYLES))
+    Wt = S4.width
+    Ht = sheet.height + 8 + S4.height + 8 + 12 + R.height * 2 + 8 + lay.height * 4
+    out = Image.new("RGB", (Wt, Ht), (20, 14, 46))
+    out.paste(sheet, (0, 0))
+    text(out, sheet.width + 8, 4, "<- 1X (REAL SIZE)", YEL)
+    text(out, sheet.width + 8, 14, "D1-D3 = A + CEL BANDS + DITHER + C DETAIL", CYAN)
+    out.paste(S4, (0, sheet.height + 8))
+    y = sheet.height + 8 + S4.height + 8
+    text(out, 2, y, "IN THE ROOM AT 1X (REAL SIZE) AND 2X: CURRENT, A, D1 / D2, D3, SKIN PALETTES", YEL)
+    out.paste(R, (0, y + 12))
+    out.paste(R.resize((R.width * 2, R.height * 2), Image.NEAREST), (R.width + 12, y + 12))
+    y += 12 + R.height * 2 + 8
+    out.paste(lay.resize((lay.width * 4, lay.height * 4), Image.NEAREST), (0, y))
+    out.save(OUT / "sprite_styles_D.png")
+    poses = SHEET_POSES + [("", 0, {})] + [(f"WALK {d}", d, WALK[k % 4]) for k, d in enumerate(range(8))]
+    for c in ("A",) + tuple(D_STYLES):
+        bad = sum(check_legal(c, h, d, p_) for h in hs for (_, d, p_) in poses)
+        print(c, "sprites", max(x["sprites"] for x in costs[c]), "per line", max(x["per_line"] for x in costs[c]),
+              "fx cells", max(x["fx"] for x in costs[c]), "fixes", sum(x["fixes"] for x in costs[c]),
+              "illegal after layering", bad)
+    for h in hs:
+        print(h["name"], "BODY D", style_pal("D1", h)[:3], "A", h["pal"][:3])
+    return hs
+
+
 if __name__ == "__main__":
-    main()
+    main_d() if "--d" in sys.argv else main()

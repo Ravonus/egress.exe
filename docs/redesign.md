@@ -1834,6 +1834,14 @@ the i-frame window, the footstep SFX). States:
 `anim.png` shows the player plan: 5 drawn directions plus 3 mirrored, walk, idle, combo, charge glow levels, roll,
 blink, hurt and death. The final frames are drawn per state and baked by the art tool.
 
+**Heir sprite style, round D (open; no style picked yet):** A, B, C and AB were rejected. A (16x20) was closest, so
+D1, D2 and D3 are refinements of A: same size and read in the room, plus hard cel bands lit from the top left, more
+ordered dither and C's outfit detail. D1 has the hardest bands, D2 the most dither and D3 is two rows taller (16x22).
+All stay at 4 sprites, 4 per line, in 2 palettes of 3 colours. In D the BODY palette is hair/ink, skin and a
+hue-shifted skin *shadow* (`skin_shadow` in `tools/mock/sprite_styles.py`), replacing the portrait's skin light, so
+deep-skin shadows are warm red-brown rather than ink dithered into the face. Shots: `docs/shots/sprite_styles_D.png`,
+`sprite_styles_D_room.png` and `sprite_styles_D_anim.gif`.
+
 ---
 
 ## 12. Text and screens (folded in from the M2 notes)
