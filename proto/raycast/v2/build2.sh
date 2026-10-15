@@ -56,7 +56,7 @@ $LCC -c -o "$B/fill2.o" "$B/fill2.s"; [ -f "$B/fill2.o" ] || exit 1
 $LCC -c -o "$B/cast2.o" "$B/cast2.s"
 LCDO=""
 DPAD=1; case " $* " in *NO_DMA_PAD*) DPAD=0;; esac
-if [ "$FS" = 1 ]; then { echo "VIEW_H = $H"; echo "TW = $((W / 8))"; echo "TH = $((H / 8))"; echo "OBJ_ON = $OBJ"; echo "DMA_PAD = $DPAD"; cat src/lcd2.s; } > "$B/lcd2.s"; $LCC -c -o "$B/lcd2.o" "$B/lcd2.s"; [ -f "$B/lcd2.o" ] || exit 1; LCDO="$B/lcd2.o"; fi
+if [ "$FS" = 1 ]; then { echo "VIEW_H = $H"; echo "TW = $((W / 8))"; echo "TH = $((H / 8))"; echo "OBJ_ON = $OBJ"; echo "DMA_PAD = $DPAD"; echo "TT = 0"; cat src/lcd2.s; } > "$B/lcd2.s"; $LCC -c -o "$B/lcd2.o" "$B/lcd2.s"; [ -f "$B/lcd2.o" ] || exit 1; LCDO="$B/lcd2.o"; fi
 $LCC -c -o "$B/bank2.o" "$B/bank2_walls.s"
 $LCC -c -o "$B/bank3.o" "$B/bank3_floors.s"
 $LCC -c -o "$B/bank4.o" "$B/bank4_walls1.s"

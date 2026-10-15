@@ -9,6 +9,9 @@
 ; writable outside mode 3); vbl_isr restores the view's palette 0.
 	.module lcd2
 	.globl _lyc_isr, _hud_pal
+.if TT
+	.globl _tt_scy_bad, _tt_pal_bad, _tt_dma_t, _tt_end_t, _tt_scy_mode, _tt_scy_ly
+.endif
 
 LASTL = 2 * VIEW_H - 1
 
@@ -17,7 +20,31 @@ _lyc_isr::
 	push	af
 	ldh	a, (0x42)	; SCY
 	dec	a
+.if TT
+	.rept	TT_DELAY	; trick test: delay the write to find the margin
+	nop
+	.endm
+.endif
 	ldh	(0x42), a
+.if TT
+	; trick test: the write must have landed in mode 2 (read after it, so a write in the last 3 cycles of
+	; mode 2 counts as a miss)
+	ldh	a, (0x41)
+	and	a, #3
+	cp	a, #2
+	jr	z, 7$
+	ld	(_tt_scy_mode), a
+	ldh	a, (0x44)
+	ld	(_tt_scy_ly), a
+	cp	a, #144		; the LY=144 entry (VBlank work) also passes here: not a doubled line
+	jr	nc, 7$
+	ld	a, (_tt_scy_bad)
+	inc	a
+	jr	z, 7$
+	ld	(_tt_scy_bad), a
+7$:
+	ldh	a, (0x42)
+.endif
 	ldh	a, (0x45)	; LYC += 2
 	add	a, #2
 	ldh	(0x45), a
@@ -29,7 +56,7 @@ _lyc_isr::
 	; two rare cases share the exit: LYC was LASTL (the HUD starts next line) or 144 (VBlank: the copy + flip;
 	; the VBlank interrupt itself stays off, so GBDK's dispatcher never costs VBlank time)
 	cp	a, #144 + 2
-	jr	z, 9$
+	jp	z, 9$
 	push	hl
 	ld	a, #144
 	ldh	(0x45), a
@@ -40,14 +67,34 @@ _lyc_isr::
 	ld	a, #0x80
 	ldh	(0x68), a	; BCPS: palette 0, colour 0, auto-increment
 	ld	hl, #_hud_pal
+.if TT
+	.rept	TT_PDELAY
+	nop
+	.endm
+.endif
 	.rept	8
 	ld	a, (hl+)
 	ldh	(0x69), a
 	.endm
+.if TT
+	ldh	a, (0x41)
+	and	a, #3
+	cp	a, #3
+	jr	nz, 8$
+	ld	a, (_tt_pal_bad)
+	inc	a
+	jr	z, 8$
+	ld	(_tt_pal_bad), a
+8$:
+.endif
 	pop	hl
 	pop	af
 	reti
 9$:
+.if TT
+	xor	a, a
+	ldh	(0x05), a	; trick test: TIMA = 0 at line 144 (16-cycle ticks)
+.endif
 	ld	a, #1
 	ldh	(0x45), a	; next frame starts again at line 1
 	push	bc
@@ -193,6 +240,14 @@ vbl_fs:
 	ld	a, c
 	dec	a
 	ldh	(0x55), a		; GDMA (the CPU is halted while it runs)
+.if TT
+	ldh	a, (0x05)
+	ld	hl, #_tt_dma_t
+	cp	a, (hl)
+	jr	c, 12$
+	ld	(hl), a
+12$:
+.endif
 	call	vf_pad
 	jr	31$
 30$:
@@ -313,4 +368,12 @@ vbl_fs:
 	inc	hl
 	inc	(hl)
 80$:
+.if TT
+	ldh	a, (0x05)
+	ld	hl, #_tt_end_t
+	cp	a, (hl)
+	jr	c, 81$
+	ld	(hl), a
+81$:
+.endif
 	ret
