@@ -1,6 +1,7 @@
 /* Raycaster v2 core (portable C reference; the GB build swaps the hot loops for asm with identical output). */
 #include "ray2.h"
 #include "tex_ids.h"
+/* SIDEK (tex_ids.h): y-face mid colour is fogged at least to this Bayer level (8 = 50% checker) */
 
 #ifndef __SDCC
 uint8_t map[MAPW * MAPW];
@@ -138,7 +139,7 @@ void walls_all(uint8_t *buf) {
       b = e > VEND ? VEND : e;
       if (b > a) {
         uint8_t lo, hi;
-        pat = &T_FOGPAT[(uint8_t)(((t & 1u) && c == 2u && k < 8u) ? 8u : k) * 4u];
+        pat = &T_FOGPAT[(uint8_t)(((t & 1u) && c == 2u && k < SIDEK) ? SIDEK : k) * 4u];
         c = sm[c];
         lo = (c & 1u) ? m : 0;
         hi = (c & 2u) ? m : 0;

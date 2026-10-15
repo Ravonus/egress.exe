@@ -360,6 +360,17 @@ CTH1 = 0xC8
 	call	w_p
 	jr	8$
 6$:
+	dec	a
+	jr	z, 61$
+	; mode 4: fixed pattern (HRAM 0xFFF0-3)
+	ld	a, l
+	rra
+	and	a, #3
+	or	a, #0xF0
+	ld	c, a
+	call	w_p
+	jr	8$
+61$:
 .if slot
 	ld	a, b
 	add	a, a
@@ -387,6 +398,16 @@ _walls_asm::
 	ldh	(W_STL), a
 	ld	a, (hl)
 	ldh	(W_STH), a
+	; y-face floor pattern (level SIDEK) into HRAM 0xFFF0-3 (the floors' row-pattern slots, free here)
+	ld	hl, #FOGPAT + SIDEK * 4
+	ld	a, (hl+)
+	ldh	(0xFFF0), a
+	ld	a, (hl+)
+	ldh	(0xFFF1), a
+	ld	a, (hl+)
+	ldh	(0xFFF2), a
+	ld	a, (hl)
+	ldh	(0xFFF3), a
 	xor	a, a
 	ldh	(W_I), a
 	dec	a
@@ -528,7 +549,7 @@ wcol:
 	ld	h, a
 	call	ws_zero
 110$:
-	; colour table key = slot * 128 + (side * 5 + kclass) * 16 ; copy when it changed
+	; colour table key = (side * 6 + kclass) * 16, cached per slot
 	ldh	a, (W_K)
 	add	a, #<KCLASS
 	ld	l, a
@@ -537,7 +558,7 @@ wcol:
 	ldh	a, (W_T)
 	and	a, #1
 	jr	z, 111$
-	ld	a, #5
+	ld	a, #6
 111$:
 	add	a, c
 	swap	a

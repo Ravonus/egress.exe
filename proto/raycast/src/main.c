@@ -19,6 +19,7 @@
 volatile uint16_t vbl;
 volatile uint8_t pend;
 volatile uint8_t freeze, frozen;
+volatile uint8_t cam_lock; /* measure tools: hold the camera they wrote (same-view stills) */
 uint8_t pend_chunk, front;
 uint8_t *pend_src;
 uint16_t pend_view;
@@ -312,6 +313,7 @@ static uint16_t trail(uint16_t a) {
 }
 
 static void walker_update(uint8_t dt) {
+  if (cam_lock) return;
   while (dt--) walker_step();
   path_pos(wk, wfrac, &cam_x, &cam_y);
   cam_x -= trail(cam_a);

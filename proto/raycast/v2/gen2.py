@@ -100,6 +100,7 @@ def main() -> None:
     ap.add_argument("--fr", type=int, default=2)
     ap.add_argument("--frfar", type=int, default=4)
     ap.add_argument("--split", type=int, default=32)
+    ap.add_argument("--sidek", type=int, default=4)
     a = ap.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
     W, H, FR = a.w, a.h, a.fr
@@ -259,23 +260,29 @@ def main() -> None:
     for o in woff[nmip0:]:
         o = base_runs + o - nr0
         woff_abs1 += [o & 255, o >> 8]
-    # colour tables for the walls asm: CTAB[slot * 256 + (side * 5 + kclass) * 16 + colour * 4] = (lo, hi, mode, 0)
-    # modes: 0 plain, 1 checker (level 8), 2 Bayer pattern, 3 zero/skip; kclass of fog level k: 0 | 1-7 | 8 | 9-15 | 16
+    # colour tables for the walls asm: CTAB[slot * 256 + (side * 6 + kclass) * 16 + colour * 4] = (lo, hi, mode, 0)
+    # modes: 0 plain, 1 checker (level 8), 2 Bayer pattern (level k), 3 zero/skip, 4 fixed pattern (level SIDEK, the
+    # y-face mid colour's floor); kclass of fog level k: 0 | 1..SIDEK-1 | SIDEK..7 | 8 | 9-15 | 16
     assert fogpat[32] == 0x55 and fogpat[33] == 0xAA and fogpat[34] == 0x55 and fogpat[35] == 0xAA
+    SK = a.sidek
     side1 = [0, 2, 2, 3]
     ct = bytearray(512)
     for slot in range(2):
         m = 0x0F if slot else 0xF0
         for side in range(2):
-            for kc in range(5):
+            for kc in range(6):
                 for c in range(4):
                     cc = side1[c] if side else c
-                    cls = 2 if (side and c == 2 and kc in (0, 1)) else kc
                     lo, hi = (m if cc & 1 else 0), (m if cc & 2 else 0)
-                    mode = 3 if (lo == 0 and hi == 0) else (0, 2, 1, 2, 3)[cls]
-                    off = slot * 256 + (side * 5 + kc) * 16 + c * 4
+                    mode = (0, 2, 2, 1, 2, 3)[kc]
+                    if side and c == 2 and kc in (0, 1):
+                        mode = 1 if SK == 8 else 4
+                    if lo == 0 and hi == 0:
+                        mode = 3
+                    off = slot * 256 + (side * 6 + kc) * 16 + c * 4
                     ct[off : off + 4] = bytes([lo, hi, mode, 0])
-    kclass = [0] + [1] * 7 + [2] + [3] * 7 + [4]
+    kclass = [0] + [1] * (SK - 1) + [2] * (8 - SK) + [3] + [4] * 7 + [5]
+    assert len(kclass) == 17
     lay2, n2 = blob("_CODE_2", [("HV2", 0x4000, hv2_flat), ("VTOP", 0x5000, vtop), ("FOGK", 0x5100, fog_k),
                                 ("FOGPAT", 0x5200, fogpat), ("KCLASS", 0x5280, kclass), ("CTAB", 0x5300, ct),
                                 ("V0T", 0x5500, v0t), ("WOFF", 0x5600, woff_abs), ("WRUNS", base_runs, wruns[:nr0])],
@@ -310,14 +317,14 @@ def main() -> None:
     for bl, bh in ((7, 3), (6, 2), (5, 1), (4, 0)):
         lut += [(0xF0 if x >> bl & 1 else 0) | (0x0F if x >> bh & 1 else 0) for x in range(256)]
     lay3, n3 = blob("_CODE_3", [("SQLO", 0x4000, [v & 255 for v in sq]), ("SQHI", 0x4200, [v >> 8 for v in sq]),
-                                ("FTEX", 0x4400, ftex0), ("FD", ftex_end, fd), ("FPAT", ftex_end + 0x40, fpat), ("FY0", ftex_end + 0x80, fy0),
-                                ("FN", ftex_end + 0xA0, fnr),
+                                ("FTEX", 0x4400, ftex0), ("FD", ftex_end, fd), ("FPAT", ftex_end + 0x40, fpat), ("FY0", ftex_end + 0xC0, fy0),
+                                ("FN", ftex_end + 0xE0, fnr),
                                 ("NLO", ftex_end + 0x100, lo16), ("NHI", ftex_end + 0x110, hi16),
                                 ("NIB", ftex_end + 0x120, nib), ("FTEX1", ftex_end + 0x200, ftex1),
                                 ("FLUT", ftex_end + 0x200 + len(ftex1), lut),
                                 ("LKT", 0x6000, lkt_flat)], "bank3_floors")
     inc = [f"{k} = 0x{v:04X}" for k, v in {**lay2, **lay3}.items()]
-    inc += [f"NFROW = {len(fd)}", f"FR = {FR}", f"MIPH = {MIPH}", "MIPOFF = 0"]
+    inc += [f"NFROW = {len(fd)}", f"FR = {FR}", f"MIPH = {MIPH}", "MIPOFF = 0", f"SIDEK = {a.sidek}"]
     (a.out / "layout.inc").write_text("\n".join(inc) + "\n")
     print(f"bank2 {n2} B, bank3 {n3} B")
 
@@ -327,6 +334,7 @@ def main() -> None:
     hdr.append(f"#define NWALLTEX {len(WALLS)}u")
     hdr.append(f"#define NFROWS {len(fd)}u")
     hdr.append(f"#define MIPH {MIPH}u")
+    hdr.append(f"#define SIDEK {a.sidek}u")
     hdr.append(f"#define MIPN {nmip0}u")
     for i, (name, _, _) in enumerate(SETS):
         hdr.append(f"#define {name} {i}u")
