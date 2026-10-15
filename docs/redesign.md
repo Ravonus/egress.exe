@@ -328,10 +328,10 @@ tile wobbles, drops into the void, and leaves a pit.
   Bosses can rip marked tiles out.
 - Luring a heavy mob across glass to drop it into the void is a valid kill. It joins the conditional-kill system
   (7.3) as "dies only if dropped".
-- **Protected cells:** the exit path's required cells, landing pads, door thresholds, and anything the solver marks
-  critical.
-  - They are never fragile, and nothing but the player's own reactions can break them.
-  - The generator enforces this, so a mob can never make a room unwinnable.
+- **Protected cells:** landing pads, door thresholds, and the cells the solver marks critical. They are never
+  fragile and mobs can never break them, so mobs alone never doom a room before you get a chance.
+- Mobs breaking tiles can still create a dead state, but only where the player could have prevented it, by luring
+  the mob or killing it first. The generator verifies that a player who handles the mobs can still win.
 
 **Puzzles (new trick types for 3.1)**
 - One-way glass path: each tile is usable once, so plan the route.
@@ -340,8 +340,17 @@ tile wobbles, drops into the void, and leaves a pit.
 - Glitched-glass rhythm crossing.
 - Treasure sometimes sits across a fragile path, as a risk tier (4b).
 
-**Solver.** It models step counts, the beat phase and pits. A room is accepted only if it stays solvable in the worst
-case, where mobs have broken every non-protected fragile tile.
+**Breaking is the puzzle (Sokoban-style, owner's correction).** Breaking the wrong tiles, or breaking them in the
+wrong order, can make the room unsolvable. Then you reset it.
+- **Solver.** It models step counts, the beat phase and pits. A room must be solvable from its start state, and the
+  order matters.
+- **The solver scores how unforgiving a room is.** It records the share of reachable states that are dead ends, and
+  the earliest move at which a fatal mistake is possible. Both feed the difficulty vector (3.5).
+- **Dead-state detection at runtime.** After a break or a push, a flood fill on the 16x14 grid checks the common dead
+  cases: the exit cut off, or a required item unreachable.
+  - On a dead state, a soft glitch hint shows `THE ROOM FORGETS`, with a hold-SELECT prompt.
+  - Holding SELECT resets the room, as it already does. The reset costs something small: a token, or the world
+    decays a little, plus one matrix trace. Never a death.
 
 **Memory.** One byte per cell of runtime state: a 3-bit step count, a broken flag, a protected flag and 3 spare bits.
 For the 16x14 room that is 224 bytes of WRAM, plus a per-kind ROM table of a few bytes per kind. The B1 puzzle branch
@@ -349,6 +358,44 @@ reports the measured cost.
 
 **Build.** B1 adds the office kinds (worn carpet, ceiling tile, glass, glitched glass), the protected-cell rule, and
 2–3 of the trick types. B2 adds the mob breakage and the lure trick. B4 adds the other biomes' kinds.
+
+### 3.5 The difficulty ramp: a designed curriculum
+
+Rooms are procedural, but the order you meet them in is designed. Each mechanic goes through four stages:
+
+| Stage | What the room is |
+| --- | --- |
+| **Introduce** | the new mechanic ALONE in a gentle room: readable, few dead states, one clear aha |
+| **Develop** | the same mechanic with a twist: more steps, or an order that matters |
+| **Combine** | mixed with mechanics learned earlier (glass + push, glitched glass + reaction, step count + mob lure) |
+| **Test** | a harder mixed room, or a stage-type variant |
+
+- **Seen mechanics.** The game tracks which mechanics the heir and the line have seen, using the seen history (9.5)
+  and the family tree. An unseen mechanic never goes into a hard combination.
+- **Difficulty is a vector** from the solver and the sim:
+  - solution length;
+  - branching;
+  - dead-state ratio;
+  - the number of distinct insights needed;
+  - the mechanic count;
+  - enemy pressure.
+- **The target rises with depth and generation, in waves, not monotonically:** tension → a release room → a spike →
+  rest/landing. Mixed rooms get more frequent with depth, and late floors mostly combine 2–3 mechanics plus a
+  twist.
+- **A light adaptive bias.** Several resets or deaths on one mechanic make the next room that uses it a notch
+  gentler. Fast clears make it a notch harder. The bias is bounded, so it never trivialises.
+- **No repeats.** Never the same trick at the same difficulty back to back, and the deck's seen-history rule stays.
+- **On the cartridge:**
+  - the baked seed table also stores each seed's difficulty vector and mechanic set;
+  - a run planner picks seeds to fit the curriculum and the target wave, deterministic from the run seed plus the seen
+    history;
+  - picking is a table lookup.
+- **Verification:**
+  - a host tool generates 1,000 runs headlessly;
+  - it plots the difficulty components by room index;
+  - it checks that introduce comes before combine in 100% of runs;
+  - it shows the wave shape and the mixed-puzzle share by depth.
+  The plots go here once B1's puzzle branch produces them (`docs/shots/b1_curve_*.png`).
 
 ---
 
