@@ -50,6 +50,7 @@ Single heirs: the biggest gain is +16 points over 32 runs (noise floor at 32 run
 | solstice or equinox | 58.8% | +0.0 | ok (<= 5) |
 | solar return (birthday) | 61.0% | +2.2 | ok (<= 5) |
 | lunar return | 58.8% | +0.0 | ok (<= 5) |
+| meteor shower | 58.8% | +0.0 | ok (<= 5) |
 | worst stack: Mercury Rx + Saturn station + super full moon | 55.1% | -3.7 | ok (<= 5) |
 | best stack: Jupiter station + birthday + new moon | 61.1% | +2.3 | ok (<= 5) |
 
@@ -61,7 +62,7 @@ Clear-rate change against charts-on-no-sky (1600 runs a moment, so about +-2.5 p
 |---|---|---|---|---|---|---|---|
 | -1.6 | -1.0 | -0.3 | +0.1 | +0.6 | -5.0 | +2.1 | 97.2% |
 
-How often each state held (share of all 7304 six-hour moments): Mercury Rx 19.4%, Venus Rx 6.9%, Mars Rx 8.8%, Jupiter station 1.0%, Saturn station 1.0%, solar eclipse 0.7%, lunar eclipse 0.7%, full moon 12.4%, new moon 12.4%, super 1.4%, void of course 28.4%, season day 12.5%.
+How often each state held (share of all 7304 six-hour moments): Mercury Rx 19.4%, Venus Rx 6.9%, Mars Rx 8.8%, Jupiter station 1.0%, Saturn station 1.0%, solar eclipse 0.7%, lunar eclipse 0.7%, full moon 12.4%, new moon 12.4%, super 1.4%, void of course 28.4%, season day 12.5%, meteor shower 4.5%.
 
 All heirs, runs on seeded moments across 2026-2030 (32 runs each): 58.3% (charts, no sky 58.8%; no charts 58.0%).
 
@@ -72,3 +73,41 @@ All heirs, runs on seeded moments across 2026-2030 (32 runs each): 58.3% (charts
 | blink | 58.7% | 58.9% | +0.2 |
 | fire | 59.8% | 60.3% | +0.5 |
 | power | 58.5% | 58.8% | +0.3 |
+
+## SKYBORN: event-born heirs (charts on, no sky; vs the same heirs without the mark: 58.8%)
+
+Each kind forced on every heir (a player who times every birth to that event), and the bound of +-3:
+
+| kind | trait | clear | delta | bound |
+|---|---|---|---|---|
+| Halley-born | a wish star from 1 elite in 20 (offering +1) | 58.8% | +0.0 | ok (<= 3) |
+| eclipse-born | 1 more hidden SHINY cell in dark rooms (dark x15/16) | 58.8% | +0.0 | ok (<= 3) |
+| ingress-born | 1 guided talk a run (no numbers) | 58.8% | +0.0 | ok (<= 3) |
+| retro-born | the last room's recipe hint once a floor (mix x13/16) | 59.4% | +0.6 | ok (<= 3) |
+| moon-born | +1 status | 58.8% | +0.0 | ok (<= 3) |
+| meteor-born | a wish star from 1 elite in 20 (offering +1) | 58.8% | +0.0 | ok (<= 3) |
+| season-born | +1 guard | 59.7% | +0.9 | ok (<= 3) |
+
+Largest forced move: +0.9 points.
+
+Natural births (each heir's own seeded minute, 2026..2126; the windows of 19.1, rarest first):
+
+| kind | heirs | without | with | delta |
+|---|---|---|---|---|
+| none | 823 | 58.2% | 58.2% | +0.0 |
+| Halley-born | 0 | 0.0% | 0.0% | +0.0 |
+| eclipse-born | 14 | 59.4% | 59.4% | +0.0 |
+| ingress-born | 14 | 58.2% | 58.2% | +0.0 |
+| retro-born | 45 | 62.1% | 62.8% | +0.7 |
+| moon-born | 58 | 57.2% | 57.2% | +0.0 |
+| meteor-born | 39 | 60.3% | 60.3% | +0.1 |
+| season-born | 7 | 54.6% | 56.3% | +1.7 |
+
+Sky-born share: 177 of 1000 heirs (17.7%); their clear rate 59.3% -> 59.6% (+0.3). All heirs: 58.8% -> 58.8% (+0.0).
+
+## Siblings: the Moon and the Rising across the three kids (20000 sets, death minutes seeded over 2026..2126)
+
+| rule | span, median / p95 / max (min) | Risings all 3 signs | Rising gap, min / median (deg) | Moon first->last, median / p95 (deg) | Moon signs 1 / 2 / 3 | probes, mean / max |
+|---|---|---|---|---|---|---|
+| old: 7..97 min apart | 104 / 166 / 194 | 9.8% | 1.4 / 7.8 | 0.94 / 1.55 | 96.8% / 3.2% / 0.0% | 0.0 / 0 |
+| new: Rising steps + Moon catch | 218 / 327 / 546 | 100.0% | 9.3 / 21.4 | 1.98 / 3.15 | 86.4% / 13.6% / 0.0% | 14.5 / 23 |

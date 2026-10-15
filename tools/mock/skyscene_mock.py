@@ -193,6 +193,79 @@ def kit(stars_seed=3, star_n=46, sun_block=None, top_band=0.32):
     return bg
 
 
+# =====================================================================================================================
+# The SKY TODAY captions every scene closes on (redesign 9.7.7 owns the effects; 19.4 lists them). Each page is two
+# window lines of at most 19 glyphs: l1 white, l2 yellow "|" pink (effect | value). The font has no %, so numbers are
+# the chart screen's points (FOES +2 = +2% foe strength) and fractions (DARK ROOMS +1/4 = x20/16).
+# =====================================================================================================================
+SIGN_NAMES = ["ARIES", "TAURUS", "GEMINI", "CANCER", "LEO", "VIRGO", "LIBRA", "SCORPIO", "SAGITTARIUS", "CAPRICORN",
+              "AQUARIUS", "PISCES"]
+SIGN_SHORT = ["ARI", "TAU", "GEM", "CAN", "LEO", "VIR", "LIB", "SCO", "SAG", "CAP", "AQU", "PIS"]
+STATION_CAPS = {
+    ("MERCURY", "R"): [("MERCURY BACKWARD", "MIX ROOMS |+1 STEP"), ("TALKERS MISREMEMBER", "GHOSTS COME BACK|")],
+    ("MERCURY", "D"): [("MERCURY FORWARD", "RECIPES HOLD AGAIN|")],
+    ("VENUS", "R"): [("VENUS BACKWARD", "PRICES |+-1 A VISIT"), ("FACTION WARMTH", "SWINGS |+-1 A VISIT")],
+    ("VENUS", "D"): [("VENUS FORWARD", "PRICES SETTLE|")],
+    ("MARS", "R"): [("MARS BACKWARD", "FIRE HITS |3/4"), ("PARRIES HOLD", "LONGER |+1 BEAT")],
+    ("MARS", "D"): [("MARS FORWARD", "FIRE HITS |FULL")],
+    ("JUPITER", "R"): [("JUPITER STATIONS", "PICKUPS |+3"), ("FOR THE RUN", "2 DAYS EITHER SIDE|")],
+    ("SATURN", "R"): [("SATURN STATIONS", "ELITES |+4"), ("FOR THE RUN", "2 DAYS EITHER SIDE|")],
+}
+for _p in ("JUPITER", "SATURN"):
+    STATION_CAPS[(_p, "D")] = STATION_CAPS[(_p, "R")]
+for _p in ("URANUS", "NEPTUNE", "PLUTO"):  # stations the scene shows but 9.7.7 gives no numbers
+    STATION_CAPS[(_p, "R")] = [(f"{_p} BACKWARD", "THE SKY TURNS|")]
+    STATION_CAPS[(_p, "D")] = [(f"{_p} FORWARD", "THE SKY TURNS|")]
+SEASON_NAMES = ["SPRING EQUINOX", "SUMMER SOLSTICE", "AUTUMN EQUINOX", "WINTER SOLSTICE"]
+CAPTIONS = {
+    "halley": [("HALLEY'S COMET", "DROP |HALLEY'S TAIL")],
+    "solar_eclipse": [("SOLAR ECLIPSE", "DARK ROOMS |+1/4"), ("BOSS VARIANT", "FOES |+2"),
+                      ("ECLIPSE-ONLY DROPS", "LIGHT PUZZLES|")],
+    "lunar_eclipse": [("LUNAR ECLIPSE", "MORE GHOSTS |FOES +2"), ("ECLIPSE-ONLY DROPS", "")],
+    "full_moon": [("FULL MOON", "FOES +3 |PICKUPS +2")],
+    "super_full_moon": [("SUPER FULL MOON", "FOES +5 |PICKUPS +3")],
+    "new_moon": [("NEW MOON", "DARK ROOMS |+1/8"), ("STARS BRIGHTEN", "PICKUPS |+1")],
+    "super_new_moon": [("SUPER NEW MOON", "DARK ROOMS |+3/16"), ("STARS BRIGHTEN", "PICKUPS |+1")],
+    "meteor_shower": [("{SHOWER}", "WISHES: PICKUPS |+1")],
+    "birthday": [("SOLAR RETURN", "HP THIS RUN |+6")],
+}
+for _i, _n in enumerate(SEASON_NAMES):
+    CAPTIONS[f"season_{_i}"] = [(_n, "NEW COLOURS, TUNE|")]
+for (_p, _d), _v in STATION_CAPS.items():
+    CAPTIONS[f"station_{_p.lower()}_{_d}"] = _v
+for _p in ("JUPITER", "SATURN"):  # ingresses: a guided talk on the next landing, no numbers (9.7.7)
+    for _k in range(12):
+        _l1 = f"{_p} INTO {SIGN_NAMES[_k]}"
+        CAPTIONS[f"ingress_{_p.lower()}_{_k}"] = [(_l1 if len(_l1) <= 19 else f"{_p} INTO {SIGN_SHORT[_k]}",
+                                                   "A TALKER NOTICES|")]
+SHOWER_NAMES = {"QUA": "QUADRANTIDS", "LYR": "LYRIDS", "ETA": "ETA AQUARIIDS", "SDA": "S. DELTA AQUARIIDS",
+                "PER": "PERSEIDS", "DRA": "DRACONIDS", "ORI": "ORIONIDS", "NTA": "N. TAURIDS", "LEO": "LEONIDS",
+                "GEM": "GEMINIDS", "URS": "URSIDS"}
+
+
+def check_captions():
+    """every page fits the window (19 glyphs a line) and uses only glyphs the game font has"""
+    bad = []
+    for k, pages in CAPTIONS.items():
+        for l1, l2 in pages:
+            for name in (SHOWER_NAMES.values() if "{SHOWER}" in l1 else [l1]):
+                line1 = l1.replace("{SHOWER}", name)
+                for ln in (line1, l2.replace("|", "")):
+                    if len(ln) > 19 or any(ch != " " and ch not in E.FONT for ch in ln.upper()):
+                        bad.append((k, ln))
+    assert not bad, bad
+    return {k: [list(p) for p in v] for k, v in CAPTIONS.items()}
+
+
+PAGE = 60  # ticks a SKY TODAY page holds (1 s)
+
+
+def sky_today_cap(key, t0, t, **fmt):
+    pages = CAPTIONS[key]
+    l1, l2 = pages[min(len(pages) - 1, max(0, (t - t0) // PAGE))]
+    return caption(l1.format(**fmt), l2)
+
+
 def wall_pals(light, tint=(10, 8, 30)):
     """the room palettes at a light level 0..1 (the room darkens towards a cool ink)"""
     w = [(46, 30, 92), (104, 72, 168), (150, 116, 212), (232, 214, 255)]
@@ -559,7 +632,7 @@ def moon_path(t, kind):
     if s < 4.5:
         u = (s - 2.7) / 1.8
         return end[0] - 0.6 + 1.2 * u, end[1] - 0.3 + 0.6 * u
-    u = (s - 4.5) / 1.5
+    u = min(1.3, (s - 4.5) / 1.5)  # the moon slides clear and stops beside the sun
     return end[0] + 0.6 + 11 * u * u, end[1] + 0.3 + 5 * u * u
 
 
@@ -595,13 +668,14 @@ def eclipse_frame(t, rec, kind="total"):
     wp, fp = wall_pals(light)
     pals = [sky_p, sun_p, hor_p, wp, fp, CAPS[0], CAPS[1], CAPS[0]]
     # fade in from the game (0.25 s) and back (last 0.25 s)
-    fin = min(1.0, s / 0.25, (6.0 - s) / 0.25)
+    fin = min(1.0, s / 0.25, (ECL_END / HZ - s) / 0.25)
     pals = [lerpp([INK] * 4, p, fin) if i < 5 else p for i, p in enumerate(pals)]
     spr = Spr()
     moon_col = lerp((150, 150, 210), (8, 6, 24), 0.4 + 0.6 * min(1, cov * 1.6))
     earth = lerp(moon_col, (70, 60, 120), 0.6 if tot else 0.2)
     m = disc(mr, moon_col, earth, 1.2)
-    spr.add(m, mx - 11.5, my - 11.5, "MOON")
+    if cov > 0:  # off the sun again, the new moon is lost in the day sky: the sprite goes
+        spr.add(m, mx - 11.5, my - 11.5, "MOON")
     # diamond ring at second and third contact (total only): the last bead of sunlight on the limb
     for tc, sgn in ((2.62, 1), (4.48, -1)):
         if kind == "total" and abs(s - tc) < 0.14:
@@ -618,7 +692,7 @@ def eclipse_frame(t, rec, kind="total"):
         ev = next(e for e in EVENTS["eclipses"] if e[1] == "solar" and e[2] == kind)  # its own real time
         cap = caption(name, f"{hhmm(ev[0])}  |B:SKIP")
     else:
-        cap = caption("SKY TODAY: ECLIPSE", "DARK ROOMS  |ECHO+1")
+        cap = sky_today_cap("solar_eclipse", 276, t)
     return rec.frame(ECL_BG, pals, cap, spr, fade=fin)
 
 
@@ -629,8 +703,11 @@ ECL_BEATS = [
     (170, 270, "TOTALITY", ["CORONA TILES WERE", "THERE ALL ALONG:", "PAL 1 TURNS THEM", "ON. STARS, STREET", "LIGHTS = PAL",
                              "WRITES. MUSIC HUSH"]),
     (270, 276, "THIRD CONTACT", ["SECOND RING"]),
-    (276, 360, "SKY TODAY", ["CAPTION ANNOUNCES", "THE DAY'S EFFECT;", "STING RESOLVES"]),
+    (276, 336, "SKY TODAY 1/3", ["THE PANEL'S LINES", "FROM 9.7.7: DARK", "ROOMS X20/16;", "STING RESOLVES"]),
+    (336, 396, "SKY TODAY 2/3", ["FOES +2 POINTS,", "BOSS VARIANT"]),
+    (396, 456, "SKY TODAY 3/3", ["ECLIPSE-ONLY", "DROPS, LIGHT", "PUZZLES"]),
 ]
+ECL_END = 456
 
 
 # =====================================================================================================================
@@ -672,7 +749,7 @@ def retro_pos(s):
         u = ease((s - 2.5) / 2.2)
         y0 = 48 - 12 * math.sin(math.pi * 0.55)
         return 106 - 50 * u, y0 + 16 * math.sin(u * math.pi * 0.9) + 2 * u
-    u = (s - 4.7) / 1.3
+    u = min(1.0, (s - 4.7) / 1.3)
     y0 = 48 - 12 * math.sin(math.pi * 0.55)
     return 56 - 6 * (1 - (1 - u) ** 2), y0 + 16 * math.sin(math.pi * 0.9) + 2
 
@@ -724,7 +801,7 @@ def retro_frame(t, rec, planet="MERCURY"):
         f = max(0.0, 1 - abs(s - 1.8) / 0.5)
         wp, fp = lerpp(wp, [lerp(c, body, 0.35) for c in wp], f), lerpp(fp, [lerp(c, body, 0.25) for c in fp], f)
     pals = [sky_p, sky_p, hor_p, wp, fp, CAPS[0], CAPS[1], sky_p]
-    fin = min(1.0, s / 0.25, (6.0 - s) / 0.25)
+    fin = min(1.0, s / 0.25, (RETRO_END / HZ - s) / 0.25)
     pals = [lerpp([INK] * 4, p, fin) if i < 5 or i == 7 else p for i, p in enumerate(pals)]
     spr = Spr()
     x, y = retro_pos(s)
@@ -743,7 +820,7 @@ def retro_frame(t, rec, planet="MERCURY"):
     if s < 4.7:
         cap = caption(f"{planet} STATIONS", f"RETROGRADE {hhmm(MERC[0])}")
     else:
-        cap = caption("SKY TODAY: MERC R", "TALK SCRAMBLES|")
+        cap = sky_today_cap(f"station_{planet.lower()}_R", 282, t)
     return rec.frame(bg, pals, cap, spr, shift, fade=fin)
 
 
@@ -752,8 +829,10 @@ RETRO_BEATS = [
     (18, 102, "DIRECT", ["GLYPH = 2 SPRITES;", "TRAIL IS DRAWN", "INTO SKY TILES", "(PLANET COLOUR)"]),
     (102, 150, "STATION", ["GLYPH HALTS AND", "JUDDERS; ROOM", "FLASHES COLD", "(PAL WRITES)"]),
     (150, 282, "REWIND", ["LOOPS BACK; VHS", "BAND = 20 MAP", "WRITES, TEARS =", "PER-LINE SCX,", "OSD = 3 SPRITES"]),
-    (282, 360, "SKY TODAY", ["EFFECT ON THE", "SKY TODAY PANEL"]),
+    (282, 342, "SKY TODAY 1/2", ["MIX ROOMS NEED", "ONE MORE STEP", "PER 9.7.7"]),
+    (342, 402, "SKY TODAY 2/2", ["TALKERS AND", "GHOSTS; NEVER", "THE CONTROLS"]),
 ]
+RETRO_END = 402
 
 
 # =====================================================================================================================
@@ -850,7 +929,7 @@ def meteor_frame(t, rec):
         wp = [lerp(c, col, 0.25 * flash) for c in wp]
         fp = [lerp(c, col, 0.2 * flash) for c in fp]
     pals = [sky_p, sky_p, hor_p, wp, fp, CAPS[0], CAPS[1], sky_p]
-    fin = min(1.0, s / 0.25, (6.5 - s) / 0.25)
+    fin = min(1.0, s / 0.25, (MET_END / HZ - s) / 0.25)
     pals = [lerpp([INK] * 4, p, fin) if i < 5 or i == 7 else p for i, p in enumerate(pals)]
     # the fireball's wish lands on the sill: a wish star (the day's drop), twinkling
     if s > 3.6:
@@ -865,7 +944,7 @@ def meteor_frame(t, rec):
         w = WISHES[min(3, int((s - 1.0) / 1.0))]
         cap = caption(w[0], w[1] + "|")
     else:
-        cap = caption("SKY TODAY: GEMINIDS", "WISH STAR  |+1 DROP")
+        cap = sky_today_cap("meteor_shower", 300, t, SHOWER=SHOWER_NAMES["GEM"])
     return rec.frame(bg, pals, cap, spr, fade=fin)
 
 
@@ -874,8 +953,9 @@ MET_BEATS = [
     (60, 168, "STREAKS", ["TILE WRITES: HEAD", "+ FADING TAIL", "IN SKY TILES;", "EACH WISH = A", "MATRIX TALK LINE"]),
     (168, 216, "FIREBALL", ["SPARK SPRITE HEAD,", "ROOM FLASH BY", "PALETTE"]),
     (216, 300, "WISH STAR", ["THE WISH DROPS", "TO THE SILL:", "THE DAY'S DROP"]),
-    (300, 390, "SKY TODAY", ["EFFECT ON THE", "SKY TODAY PANEL"]),
+    (300, 390, "SKY TODAY", ["WISH STARS: ONE", "MORE PICKUP ROLL", "A FLOOR: 9.7.7", "OFFERING +1"]),
 ]
+MET_END = 390
 
 
 # =====================================================================================================================
@@ -900,9 +980,10 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     report = {}
     recs = {}
-    recs["eclipse"] = run("eclipse", 360, lambda t, rec: eclipse_frame(t, rec, "total"), ECL_BEATS, ECL_BG)
-    recs["retrograde"] = run("retrograde", 360, retro_frame, RETRO_BEATS, RETRO_BG, NOISE)
-    recs["meteors"] = run("meteors", 390, meteor_frame, MET_BEATS, MET_BG)
+    caps = check_captions()
+    recs["eclipse"] = run("eclipse", ECL_END, lambda t, rec: eclipse_frame(t, rec, "total"), ECL_BEATS, ECL_BG)
+    recs["retrograde"] = run("retrograde", RETRO_END, retro_frame, RETRO_BEATS, RETRO_BG, NOISE)
+    recs["meteors"] = run("meteors", MET_END, meteor_frame, MET_BEATS, MET_BG)
     # the shared window kit: base tiles common to the scenes are stored once
     shared = set.intersection(*(r.base for r, _ in recs.values()))
     meta = dict(eclipse=(4, 48), retrograde=(3, 64), meteors=(3, 96))
@@ -917,6 +998,10 @@ def main():
         v["rom_total"] = v["tile_bytes"] + v["map_bytes"] + v["pal_key_bytes"] + v["script_bytes"]
         print(k, v)
     print("eclipse", hhmm(ECL[0]), "| mercury R", hhmm(MERC[0]), "| geminids", hhmm(GEM))
+    report["captions"] = caps
+    report["caption_pages"] = sum(len(v) for v in caps.values())
+    # upper bound for the caption text in ROM: every page's glyphs, one byte each, plus a length byte a line
+    report["caption_bytes"] = sum(len(l1) + len(l2.replace("|", "")) + 2 for v in caps.values() for l1, l2 in v)
     (OUT / "skyscene_report.json").write_text(json.dumps(report, indent=1))
 
 

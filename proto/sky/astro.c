@@ -1,5 +1,6 @@
 /* EGRESS birth charts (proto): see astro.h and redesign 9.7. */
 #include "astro.h"
+#include "meteor_tab.h"
 
 void astro_pack(const astro_birth *b, uint8_t *st, uint8_t *r) {
   uint32_t m = (uint32_t)b->date * 1440ul + b->mod;
@@ -54,6 +55,7 @@ void astro_fx_clear(astro_fx *f) {
   f->price_pct = 0; f->talk_extra = 0;
   f->g_dmg = f->g_def = f->g_avoid = f->g_spd = f->g_status = f->g_hp = 0;
   f->mix_pen = 0; f->foe_pct = 0; f->dark16 = 16; f->hot_pct = 100; f->parry_mag = 0; f->off = 0;
+  f->dark_b16 = f->mix_b16 = 16;
 }
 
 /* natal aspect pairs that touch play; the rest are words on the chart screen. Per kind (conj, square, trine, opp):
@@ -185,6 +187,7 @@ void astro_session_fx(uint16_t s, const astro_hit *hits, uint8_t nh, astro_fx *f
   if (s & AS_ECL_SUN) { f->dark16 = 20; f->foe_pct = (uint8_t)(f->foe_pct + 2); }
   if (s & AS_ECL_MOON) f->foe_pct = (uint8_t)(f->foe_pct + 2); /* more ghosts */
   if (s & AS_FULL) { f->foe_pct = (uint8_t)(f->foe_pct + ((s & AS_SUPER) ? 5u : 3u)); f->off = (int8_t)(f->off + ((s & AS_SUPER) ? 3 : 2)); }
+  if (s & AS_METEOR) f->off = (int8_t)(f->off + 1);          /* wish stars: one more pickup roll a floor */
   if (s & AS_NEW) { if (f->dark16 < 18u) f->dark16 = (s & AS_SUPER) ? 19u : 18u; f->off = (int8_t)(f->off + 1); }
   /* however the sky stacks, it leans one way only so far */
   if (f->foe_pct > 5u) f->foe_pct = 5u;
@@ -215,4 +218,113 @@ uint8_t astro_echo_of(const astro_birth *parent) {
   for (i = 0; i < AP_COUNT; i++)
     if (parent->tier[i] > bt) { bt = parent->tier[i]; best = i; }
   return best;
+}
+
+/* ---- meteors, event-born, siblings (redesign 9.7.2, 9.7.11, 19) ---- */
+uint8_t astro_meteor_on(uint32_t m) {
+  uint8_t sh, y;
+  uint32_t pk;
+  if (m >= SKY_RANGE_END) return 0;
+  y = (uint8_t)(m / 525949ul); /* a year in minutes, near enough to pick this year's or the next peak */
+  for (sh = 0; sh < METEOR_NSHOWER; sh++) {
+    uint8_t k;
+    for (k = 0; k < 3u; k++) { /* last year's, this year's and next year's peak */
+      int16_t yi = (int16_t)y - 1 + (int16_t)k;
+      if (yi < 0 || yi > 100) continue;
+      pk = meteor_peak(sh, (uint8_t)yi);
+      if (m + 1440ul >= pk && m <= pk + 720ul) return 1;
+    }
+  }
+  return 0;
+}
+
+/* an event within its window: from its minute to 24 h after it (19.1) */
+static uint8_t recent_(uint8_t stream, uint32_t m, sky_ev *p) {
+  sky_ev n;
+  sky_find(stream, m, p, &n);
+  return (uint8_t)(p->at != SKY_NO_EVENT && m - p->at < 1440u);
+}
+
+uint8_t astro_born_kind(uint32_t m) {
+  sky_ev p;
+  uint8_t b, k = AB_NONE;
+  int8_t off;
+  if (m >= SKY_RANGE_END) return AB_NONE;
+  if (m + 30ul * 1440ul >= ASTRO_HALLEY_M && m <= ASTRO_HALLEY_M + 30ul * 1440ul) return AB_HALLEY;
+  if (recent_(SKY_S_PHASE, m, &p) && !(p.state & 1u)) { /* a new or full moon in the last 24 h */
+    if (SKY_ECL_KIND(sky_mark(p.i, &off))) return AB_ECLIPSE;
+    k = AB_MOON;
+  }
+  if (recent_(SKY_S_IN_JUPITER, m, &p) || recent_(SKY_S_IN_SATURN, m, &p)) return AB_INGRESS;
+  for (b = 0; b < 8u; b++) if (recent_((uint8_t)(SKY_S_ST_MERCURY + b), m, &p)) return AB_RETRO;
+  if (k) return k;
+  if (astro_meteor_on(m)) return AB_METEOR;
+  if (recent_(SKY_S_IN_SUN, m, &p) && p.state % 3u == 0u) return AB_SEASON; /* the Sun into Aries, Cancer, Libra, Capricorn */
+  return AB_NONE;
+}
+
+void astro_skyborn_fx(uint8_t kind, astro_fx *f) {
+  switch (kind) {
+  case AB_HALLEY: case AB_METEOR: f->off = (int8_t)(f->off + 1); break; /* 1 elite in 20 drops a wish star */
+  case AB_ECLIPSE: f->dark_b16 = 15; break;  /* one more hidden SHINY cell in dark rooms */
+  case AB_RETRO: f->mix_b16 = 13; break;     /* the last room's recipe hint, once a floor */
+  case AB_MOON: f->g_status = (int8_t)(f->g_status < 4 ? f->g_status + 1 : 4); break; /* +1 status */
+  case AB_SEASON: f->g_def = (int8_t)(f->g_def < 4 ? f->g_def + 1 : 4); break;       /* +1 guard */
+  default: break; /* AB_INGRESS: one guided talk a run (no numbers) */
+  }
+}
+
+static uint8_t probes_;
+static uint16_t at_(uint32_t m, uint8_t pt) {
+  uint16_t p[SKY_NPOS];
+  sky_positions((uint16_t)(m / 1440ul), (uint16_t)(m % 1440ul), p);
+  probes_++;
+  return p[pt];
+}
+#define SIGN_(a) ((uint8_t)(((uint32_t)(a) * 12u) >> 16))
+/* the first minute after m0 when point pt (the Rising or the Moon: both only move forward) leaves its sign.
+ * rate16: a first guess of its speed, binary-angle units a minute x 16. Secant steps, then false position. */
+static uint32_t next_cusp_(uint32_t m0, uint8_t pt, uint16_t rate16) {
+  uint16_t plo = at_(m0, pt), phi = 0, p, cusp;
+  uint8_t s0 = SIGN_(plo), i;
+  uint32_t lo = m0, hi = 0, t;
+  cusp = (uint16_t)(((uint32_t)(s0 + 1u) * 65536ul + 11ul) / 12ul);
+  for (i = 0; i < 12u; i++) {
+    t = lo + (uint32_t)(uint16_t)(cusp - plo) * 16ul / rate16 + 1ul;
+    p = at_(t, pt);
+    if (SIGN_(p) != s0) { hi = t; phi = p; break; }
+    if ((uint16_t)(p - plo) > 0u) rate16 = (uint16_t)((uint32_t)(uint16_t)(p - plo) * 16ul / (t - lo) + 1ul);
+    lo = t; plo = p;
+  }
+  if (!hi) return lo + 1ul; /* never on real data */
+  for (i = 0; hi - lo > 1ul && i < 16u; i++) {
+    uint32_t span = hi - lo, d = (uint16_t)(phi - plo);
+    t = (i & 1u) || !d ? lo + span / 2ul : lo + (uint32_t)(uint16_t)(cusp - plo) * span / d; /* alternate with halving */
+    if (t <= lo) t = lo + 1ul;
+    if (t >= hi) t = hi - 1ul;
+    p = at_(t, pt);
+    if (SIGN_(p) != s0) { hi = t; phi = p; } else { lo = t; plo = p; }
+  }
+  return hi;
+}
+static uint32_t mix_(uint32_t x) { x ^= x >> 16; x *= 0x7feb352dul; x ^= x >> 15; x *= 0x846ca68bul; x ^= x >> 16; return x; }
+
+uint8_t astro_siblings(uint32_t d, uint32_t seed, uint32_t *o, uint8_t *slot) {
+  static const uint8_t PERM[6][3] = {{0, 1, 2}, {0, 2, 1}, {1, 0, 2}, {1, 2, 0}, {2, 0, 1}, {2, 1, 0}};
+  uint32_t h = mix_(seed ^ d), mc;
+  uint8_t k;
+  probes_ = 0;
+  o[0] = d;
+  for (k = 1; k < 3u; k++) {
+    h = mix_(h + k);
+    o[k] = next_cusp_(o[k - 1], SKY_ASC, 16u * 45u); /* the Rising: about 1 deg in 4 minutes */
+    if (o[k] < o[k - 1] + ASTRO_SIB_MIN_GAP) o[k] = o[k - 1] + ASTRO_SIB_MIN_GAP;
+    o[k] += 7ul + h % 31ul;
+  }
+  /* the Moon catch: about 0.55 deg an hour, 1.67 units a minute */
+  mc = next_cusp_(o[1], SKY_MOON, 27u);
+  if (mc <= o[1] + ASTRO_SIB_MOON_WAIT && mc > o[2]) o[2] = mc + 7ul + (h >> 8) % 31ul;
+  h = mix_(h + 3u);
+  for (k = 0; k < 3u; k++) slot[k] = PERM[h % 6u][k];
+  return probes_;
 }

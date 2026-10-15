@@ -18,6 +18,8 @@ static const uint8_t ELEM_TAG[4] = {MX_HOT, MX_STONE, MX_AIRY, MX_WET};
 static astro_birth g_birth[MAX_BRED];
 static astro_chart g_chart[MAX_BRED];
 static uint8_t g_policy[MAX_BRED];
+static uint8_t g_kind[MAX_BRED]; /* the heir's event-born kind (AB_*) at its seeded birth minute */
+static uint8_t g_sb_mode, g_sb_force; /* SKYBORN: 0 off, 1 each heir's own kind, 2 every heir forced to g_sb_force */
 #define NDAYS 1826 /* 2026-01-01 .. 2030-12-31 */
 static sky_now g_day[NDAYS * 4]; /* four moments a day: 00:00 06:00 12:00 18:00 UTC */
 
@@ -35,6 +37,7 @@ static void make_births(void) {
     for (k = 0; k < AP_COUNT; k++) b->tier[k] = 0;
     b->echo = 7; b->asp_pair = 15; b->asp_tier = 0;
     astro_chart_make(b->date, b->mod, &g_chart[i]);
+    g_kind[i] = astro_born_kind((uint32_t)b->date * 1440u + b->mod - 9497u * 1440u);
     h = hash32(h);
     g_policy[i] = (uint8_t)(h % 100u < 40u ? 0 : h % 100u < 75u ? 1 : 2);
     if (g_policy[i] == 1) b->tier[(h >> 8) % AP_COUNT] = 1;
@@ -71,12 +74,13 @@ static void astro_apply(uint32_t i, uint32_t run, mx_piece *pc, uint8_t *np, mx_
   if (g_mode == M_OFF) return;
   if (!(g_mode == M_FORCE && g_skip_fx)) astro_natal_fx(&g_chart[i], &g_birth[i], &f);
   else { f.aff_mag = 0; f.chg_mag = 0; }
+  if (g_sb_mode) astro_skyborn_fx(g_sb_mode == 1 ? g_kind[i] : g_sb_force, &f);
   if (g_mode == M_SKY) {
     uint32_t di = g_day_pin >= 0 ? (uint32_t)g_day_pin : hash32(i * 7919u + run * 104729u) % (NDAYS * 4u);
     const sky_now *n = &g_day[di];
     astro_hit hits[16];
     uint8_t nh = astro_transits(&g_chart[i], n->pos, hits, 16);
-    astro_session_fx(astro_states(n, &g_chart[i]), hits, nh, &f);
+    astro_session_fx(astro_states(n, &g_chart[i]) | (astro_meteor_on((di / 4u) * 1440u + (di % 4u) * 360u) ? AS_METEOR : 0u), hits, nh, &f);
   } else if (g_mode == M_FORCE) {
     astro_session_fx(g_force, 0, 0, &f);
   }
@@ -106,7 +110,8 @@ static void astro_apply(uint32_t i, uint32_t run, mx_piece *pc, uint8_t *np, mx_
   s->hp = (int16_t)(s->hp + f.g_hp);
   if (f.mix_pen > s->mix_pen) s->mix_pen = f.mix_pen;
   s->foe_pct = (uint8_t)(s->foe_pct + f.foe_pct);
-  s->st_mult[ST_DARK] = (uint8_t)(s->st_mult[ST_DARK] * f.dark16 / 16u);
+  s->st_mult[ST_DARK] = (uint8_t)(s->st_mult[ST_DARK] * f.dark16 / 16u * f.dark_b16 / 16u);
+  s->st_mult[ST_MIX] = (uint8_t)(s->st_mult[ST_MIX] * f.mix_b16 / 16u);
   if (f.opp16 != 16u) { uint8_t t2 = ELEM_TAG[f.opp_elem]; s->el_mult[t2] = (uint8_t)(s->el_mult[t2] * f.opp16 / 16u); }
 }
 
@@ -136,6 +141,100 @@ static uint32_t eval_astro(uint32_t nruns, uint8_t *rates, uint32_t *win_s, uint
   return tot;
 }
 
+static int pct10(uint32_t w, uint32_t n);
+static void pd(int v);
+static uint32_t eval_astro(uint32_t nruns, uint8_t *rates, uint32_t *win_s, uint32_t *n_s, uint32_t stride);
+static const char *const AB_NAME[AB_COUNT] = {"none", "Halley-born", "eclipse-born", "ingress-born", "retro-born",
+                                              "moon-born", "meteor-born", "season-born"};
+
+/* 5. SKYBORN (redesign 9.7.11, 19.4): the event-born third trait, against charts on with no sky (r1, tot1) */
+static void skyborn_section(uint32_t nr, uint32_t tot1, const uint8_t *r1) {
+  static uint8_t r2[MAX_BRED];
+  uint32_t ws[8], ns[8], t, i, k, n_all = n_bred * nr, cnt[AB_COUNT] = {0}, s1[AB_COUNT] = {0}, s2[AB_COUNT] = {0};
+  int dv, worst = 0;
+  g_mode = M_NATAL; g_day_pin = -1; g_run_mul = 1; g_run_ofs = 0;
+  printf("\n## SKYBORN: event-born heirs (charts on, no sky; vs the same heirs without the mark: %d.%d%%)\n\n", pct10(tot1, n_all) / 10, pct10(tot1, n_all) % 10);
+  printf("Each kind forced on every heir (a player who times every birth to that event), and the bound of +-3:\n\n| kind | trait | clear | delta | bound |\n|---|---|---|---|---|\n");
+  {
+    static const char *const TR[AB_COUNT] = {"", "a wish star from 1 elite in 20 (offering +1)", "1 more hidden SHINY cell in dark rooms (dark x15/16)",
+                                             "1 guided talk a run (no numbers)", "the last room's recipe hint once a floor (mix x13/16)",
+                                             "+1 status", "a wish star from 1 elite in 20 (offering +1)", "+1 guard"};
+    for (k = 1; k < AB_COUNT; k++) {
+      g_sb_mode = 2; g_sb_force = (uint8_t)k;
+      t = eval_astro(nr, 0, ws, ns, 1);
+      dv = pct10(t, n_all) - pct10(tot1, n_all);
+      if (abs(dv) > abs(worst)) worst = dv;
+      printf("| %s | %s | %d.%d%% | ", AB_NAME[k], TR[k], pct10(t, n_all) / 10, pct10(t, n_all) % 10); pd(dv);
+      printf(" | %s |\n", abs(dv) <= 30 ? "ok (<= 3)" : "**over 3**");
+    }
+  }
+  printf("\nLargest forced move: "); pd(worst); printf(" points.\n\n");
+  /* the real share: each heir's own seeded birth minute (2026..2126) */
+  g_sb_mode = 1;
+  t = eval_astro(nr, r2, ws, ns, 1);
+  for (i = 0; i < n_bred; i++) { cnt[g_kind[i]]++; s1[g_kind[i]] += r1[i]; s2[g_kind[i]] += r2[i]; }
+  printf("Natural births (each heir's own seeded minute, 2026..2126; the windows of 19.1, rarest first):\n\n| kind | heirs | without | with | delta |\n|---|---|---|---|---|\n");
+  for (k = 0; k < AB_COUNT; k++)
+    printf("| %s | %u | %.1f%% | %.1f%% | %+.1f |\n", AB_NAME[k], cnt[k], cnt[k] ? s1[k] / (double)cnt[k] : 0, cnt[k] ? s2[k] / (double)cnt[k] : 0,
+           cnt[k] ? (s2[k] - (double)s1[k]) / cnt[k] : 0);
+  {
+    uint32_t e1 = 0, e2 = 0, ne = 0;
+    for (k = 1; k < AB_COUNT; k++) { e1 += s1[k]; e2 += s2[k]; ne += cnt[k]; }
+    printf("\nSky-born share: %u of %u heirs (%.1f%%); their clear rate %.1f%% -> %.1f%% (%+.1f). All heirs: %d.%d%% -> %d.%d%% (",
+           ne, n_bred, ne * 100.0 / n_bred, ne ? e1 / (double)ne : 0, ne ? e2 / (double)ne : 0, ne ? (e2 - (double)e1) / ne : 0,
+           pct10(tot1, n_all) / 10, pct10(tot1, n_all) % 10, pct10(t, n_all) / 10, pct10(t, n_all) % 10);
+    pd(pct10(t, n_all) - pct10(tot1, n_all)); printf(").\n");
+  }
+  g_sb_mode = 0;
+}
+
+/* 6. siblings (redesign 9.7.2): the Moon and the Rising across the three kids, the new rule against the old one */
+static uint16_t adiff_(uint16_t a, uint16_t b) { uint16_t d = (uint16_t)(a - b); return d > 0x8000u ? (uint16_t)(0u - d) : d; }
+static int cmpd_(const void *a, const void *b) { double x = *(const double *)a, y = *(const double *)b; return x < y ? -1 : x > y; }
+static void sibling_section(void) {
+  enum { NS = 20000 };
+  static double moon[NS], rgap[NS], span[NS], prb[NS];
+  uint32_t r, k, j, o[3];
+  uint8_t sl[3];
+  printf("\n## Siblings: the Moon and the Rising across the three kids (%u sets, death minutes seeded over 2026..2126)\n\n", NS);
+  printf("| rule | span, median / p95 / max (min) | Risings all 3 signs | Rising gap, min / median (deg) | Moon first->last, median / p95 (deg) | Moon signs 1 / 2 / 3 | probes, mean / max |\n|---|---|---|---|---|---|---|\n");
+  for (r = 0; r < 2; r++) {
+    uint32_t rise3 = 0, ms[4] = {0}, pmax = 0;
+    double psum = 0;
+    for (k = 0; k < NS; k++) {
+      uint32_t h = hash32(k * 40503u + 99u), d = 9497u * 1440u + h % 53121000u;
+      uint16_t mo[3], as[3];
+      uint8_t np = 0, msg, i2;
+      if (r == 0) { /* the old rule: 7..97 seeded minutes after each other */
+        o[0] = d; o[1] = d + 7u + hash32(h) % 91u; o[2] = o[1] + 7u + hash32(h + 1u) % 91u;
+      } else np = astro_siblings(d, h, o, sl);
+      for (j = 0; j < 3; j++) {
+        uint16_t p[SKY_NPOS];
+        sky_positions((uint16_t)(o[j] / 1440u), (uint16_t)(o[j] % 1440u), p);
+        mo[j] = p[SKY_MOON]; as[j] = p[SKY_ASC];
+      }
+      {
+        uint8_t a0 = (uint8_t)((as[0] * 12u) >> 16), a1 = (uint8_t)((as[1] * 12u) >> 16), a2 = (uint8_t)((as[2] * 12u) >> 16);
+        uint8_t m0 = (uint8_t)((mo[0] * 12u) >> 16), m1 = (uint8_t)((mo[1] * 12u) >> 16), m2 = (uint8_t)((mo[2] * 12u) >> 16);
+        rise3 += (uint32_t)(a0 != a1 && a1 != a2 && a0 != a2);
+        msg = (uint8_t)(1u + (m1 != m0) + (m2 != m1 && m2 != m0));
+        ms[msg]++;
+      }
+      i2 = 0; (void)i2;
+      moon[k] = adiff_(mo[2], mo[0]) * 360.0 / 65536.0;
+      rgap[k] = (adiff_(as[1], as[0]) < adiff_(as[2], as[1]) ? adiff_(as[1], as[0]) : adiff_(as[2], as[1])) * 360.0 / 65536.0;
+      span[k] = (double)(o[2] - o[0]);
+      prb[k] = np; psum += np; if (np > pmax) pmax = np;
+    }
+    qsort(moon, NS, sizeof(double), cmpd_); qsort(rgap, NS, sizeof(double), cmpd_); qsort(span, NS, sizeof(double), cmpd_);
+    printf("| %s | %.0f / %.0f / %.0f | %.1f%% | %.1f / %.1f | %.2f / %.2f | %.1f%% / %.1f%% / %.1f%% | %.1f / %u |\n",
+           r ? "new: Rising steps + Moon catch" : "old: 7..97 min apart", span[NS / 2], span[NS * 95 / 100], span[NS - 1], rise3 * 100.0 / NS,
+           rgap[0], rgap[NS / 2], moon[NS / 2], moon[NS * 95 / 100], ms[1] * 100.0 / NS, ms[2] * 100.0 / NS, ms[3] * 100.0 / NS,
+           r ? psum / NS : 0.0, pmax);
+  }
+  (void)prb;
+}
+
 static int pct10(uint32_t w, uint32_t n) { return n ? (int)((w * 1000u + n / 2u) / n) : 0; }
 static void pd(int v) { printf("%s%d.%d", v < 0 ? "-" : "+", abs(v) / 10, abs(v) % 10); }
 
@@ -146,6 +245,7 @@ int main(int argc, char **argv) {
   uint32_t nr = argc > 1 ? (uint32_t)atoi(argv[1]) : 32u;
   nbr = 32;
   setvbuf(stdout, 0, _IOLBF, 0);
+  if (argc > 1 && !strcmp(argv[1], "sib")) { sibling_section(); return 0; } /* the sibling table alone */
   make_build_runs();
   load_bred("bred_lines.txt");
   if (!n_bred) { fprintf(stderr, "run from proto/matrix (bred_lines.txt)\n"); return 1; }
@@ -214,7 +314,7 @@ int main(int argc, char **argv) {
       {"Jupiter station", AS_JUP_STATION}, {"Saturn station", AS_SAT_STATION}, {"solar eclipse", AS_ECL_SUN | AS_NEW},
       {"lunar eclipse", AS_ECL_MOON | AS_FULL}, {"full moon", AS_FULL}, {"new moon", AS_NEW}, {"super full moon", AS_FULL | AS_SUPER},
       {"void-of-course moon", AS_VOC}, {"solstice or equinox", AS_SEASON}, {"solar return (birthday)", AS_SOLAR_RETURN},
-      {"lunar return", AS_LUNAR_RETURN}, {"worst stack: Mercury Rx + Saturn station + super full moon", AS_MERC_RX | AS_SAT_STATION | AS_FULL | AS_SUPER},
+      {"lunar return", AS_LUNAR_RETURN}, {"meteor shower", AS_METEOR}, {"worst stack: Mercury Rx + Saturn station + super full moon", AS_MERC_RX | AS_SAT_STATION | AS_FULL | AS_SUPER},
       {"best stack: Jupiter station + birthday + new moon", AS_JUP_STATION | AS_SOLAR_RETURN | AS_NEW}};
     uint32_t tn = tot1;
     printf("## Sky states, each forced on every run (charts on, no transits; vs charts on, no sky: %d.%d%%)\n\n| state | clear | delta | bound |\n|---|---|---|---|\n",
@@ -235,15 +335,15 @@ int main(int argc, char **argv) {
     static int dl[NDAYS * 4];
     uint32_t dsel = 0, w, n = 0, s0 = 0, nn = 0, within2 = 0, d;
     int lo = 1000, hi = -1000, sorted[NDAYS * 4];
-    uint16_t st_count[14] = {0};
+    uint16_t st_count[15] = {0};
     uint32_t b4[4];
     for (i = 0; i < n_bred; i += 5) nn++;
     g_mode = M_NATAL; g_run_mul = 4;
     for (k = 0; k < 4; k++) { g_run_ofs = k; b4[k] = eval_astro(8, 0, ws, ns, 5); } /* the same 8 runs as each moment */
     (void)s0;
     for (d = 0; d < NDAYS * 4u; d++) {
-      uint16_t s = astro_states(&g_day[d], 0);
-      for (k = 0; k < 14; k++) if (s & (1u << k)) st_count[k]++;
+      uint16_t s = (uint16_t)(astro_states(&g_day[d], 0) | (astro_meteor_on((d / 4u) * 1440u + (d % 4u) * 360u) ? AS_METEOR : 0u));
+      for (k = 0; k < 15; k++) if (s & (1u << k)) st_count[k]++;
     }
     g_mode = M_SKY;
     for (d = 0; d < NDAYS * 4u; d += 2) {
@@ -267,9 +367,9 @@ int main(int argc, char **argv) {
     printf(" | %.1f%% |\n\n", within2 * 100.0 / dsel);
     printf("How often each state held (share of all %u six-hour moments): ", NDAYS * 4u);
     {
-      static const char *const SN[14] = {"Mercury Rx", "Venus Rx", "Mars Rx", "Jupiter station", "Saturn station", "solar eclipse",
-                                         "lunar eclipse", "full moon", "new moon", "super", "void of course", "season day", "", ""};
-      for (k = 0; k < 12; k++) printf("%s %.1f%%%s", SN[k], st_count[k] * 100.0 / (NDAYS * 4u), k < 11 ? ", " : ".\n\n");
+      static const char *const SN[15] = {"Mercury Rx", "Venus Rx", "Mars Rx", "Jupiter station", "Saturn station", "solar eclipse",
+                                         "lunar eclipse", "full moon", "new moon", "super", "void of course", "season day", "", "", "meteor shower"};
+      for (k = 0; k < 15; k++) if (SN[k][0]) printf("%s %.1f%%%s", SN[k], st_count[k] * 100.0 / (NDAYS * 4u), k < 14 ? ", " : ".\n\n");
     }
     g_day_pin = -1;
     w = eval_astro(nr, 0, ws, ns, 1);
@@ -281,5 +381,7 @@ int main(int argc, char **argv) {
       pd(pct10(ws[k], ns[k]) - base[k]); printf(" |\n");
     }
   }
+  skyborn_section(nr, tot1, r1);
+  sibling_section();
   return 0;
 }

@@ -8,7 +8,7 @@
   "map_bytes": 600,
   "pal_key_bytes": 256,
   "script_bytes": 48,
-  "tiles_frame": 188,
+  "tiles_frame": 182,
   "tile_writes": 0,
   "map_writes": 0,
   "objs": 12,
@@ -16,7 +16,7 @@
   "obj_pals": 3,
   "bg_pals": 7,
   "cap_err": 0,
-  "gif_frames": 120,
+  "gif_frames": 152,
   "rom_total": 2056
  },
  "retrograde": {
@@ -36,7 +36,7 @@
   "obj_pals": 3,
   "bg_pals": 6,
   "cap_err": 0,
-  "gif_frames": 120,
+  "gif_frames": 134,
   "rom_total": 1784
  },
  "meteors": {
@@ -48,7 +48,7 @@
   "map_bytes": 600,
   "pal_key_bytes": 192,
   "script_bytes": 96,
-  "tiles_frame": 176,
+  "tiles_frame": 174,
   "tile_writes": 11,
   "map_writes": 13,
   "objs": 6,
@@ -62,5 +62,375 @@
  "kit": {
   "tiles": 59,
   "bytes": 944
- }
+ },
+ "captions": {
+  "halley": [
+   [
+    "HALLEY'S COMET",
+    "DROP |HALLEY'S TAIL"
+   ]
+  ],
+  "solar_eclipse": [
+   [
+    "SOLAR ECLIPSE",
+    "DARK ROOMS |+1/4"
+   ],
+   [
+    "BOSS VARIANT",
+    "FOES |+2"
+   ],
+   [
+    "ECLIPSE-ONLY DROPS",
+    "LIGHT PUZZLES|"
+   ]
+  ],
+  "lunar_eclipse": [
+   [
+    "LUNAR ECLIPSE",
+    "MORE GHOSTS |FOES +2"
+   ],
+   [
+    "ECLIPSE-ONLY DROPS",
+    ""
+   ]
+  ],
+  "full_moon": [
+   [
+    "FULL MOON",
+    "FOES +3 |PICKUPS +2"
+   ]
+  ],
+  "super_full_moon": [
+   [
+    "SUPER FULL MOON",
+    "FOES +5 |PICKUPS +3"
+   ]
+  ],
+  "new_moon": [
+   [
+    "NEW MOON",
+    "DARK ROOMS |+1/8"
+   ],
+   [
+    "STARS BRIGHTEN",
+    "PICKUPS |+1"
+   ]
+  ],
+  "super_new_moon": [
+   [
+    "SUPER NEW MOON",
+    "DARK ROOMS |+3/16"
+   ],
+   [
+    "STARS BRIGHTEN",
+    "PICKUPS |+1"
+   ]
+  ],
+  "meteor_shower": [
+   [
+    "{SHOWER}",
+    "WISHES: PICKUPS |+1"
+   ]
+  ],
+  "birthday": [
+   [
+    "SOLAR RETURN",
+    "HP THIS RUN |+6"
+   ]
+  ],
+  "season_0": [
+   [
+    "SPRING EQUINOX",
+    "NEW COLOURS, TUNE|"
+   ]
+  ],
+  "season_1": [
+   [
+    "SUMMER SOLSTICE",
+    "NEW COLOURS, TUNE|"
+   ]
+  ],
+  "season_2": [
+   [
+    "AUTUMN EQUINOX",
+    "NEW COLOURS, TUNE|"
+   ]
+  ],
+  "season_3": [
+   [
+    "WINTER SOLSTICE",
+    "NEW COLOURS, TUNE|"
+   ]
+  ],
+  "station_mercury_R": [
+   [
+    "MERCURY BACKWARD",
+    "MIX ROOMS |+1 STEP"
+   ],
+   [
+    "TALKERS MISREMEMBER",
+    "GHOSTS COME BACK|"
+   ]
+  ],
+  "station_mercury_D": [
+   [
+    "MERCURY FORWARD",
+    "RECIPES HOLD AGAIN|"
+   ]
+  ],
+  "station_venus_R": [
+   [
+    "VENUS BACKWARD",
+    "PRICES |+-1 A VISIT"
+   ],
+   [
+    "FACTION WARMTH",
+    "SWINGS |+-1 A VISIT"
+   ]
+  ],
+  "station_venus_D": [
+   [
+    "VENUS FORWARD",
+    "PRICES SETTLE|"
+   ]
+  ],
+  "station_mars_R": [
+   [
+    "MARS BACKWARD",
+    "FIRE HITS |3/4"
+   ],
+   [
+    "PARRIES HOLD",
+    "LONGER |+1 BEAT"
+   ]
+  ],
+  "station_mars_D": [
+   [
+    "MARS FORWARD",
+    "FIRE HITS |FULL"
+   ]
+  ],
+  "station_jupiter_R": [
+   [
+    "JUPITER STATIONS",
+    "PICKUPS |+3"
+   ],
+   [
+    "FOR THE RUN",
+    "2 DAYS EITHER SIDE|"
+   ]
+  ],
+  "station_saturn_R": [
+   [
+    "SATURN STATIONS",
+    "ELITES |+4"
+   ],
+   [
+    "FOR THE RUN",
+    "2 DAYS EITHER SIDE|"
+   ]
+  ],
+  "station_jupiter_D": [
+   [
+    "JUPITER STATIONS",
+    "PICKUPS |+3"
+   ],
+   [
+    "FOR THE RUN",
+    "2 DAYS EITHER SIDE|"
+   ]
+  ],
+  "station_saturn_D": [
+   [
+    "SATURN STATIONS",
+    "ELITES |+4"
+   ],
+   [
+    "FOR THE RUN",
+    "2 DAYS EITHER SIDE|"
+   ]
+  ],
+  "station_uranus_R": [
+   [
+    "URANUS BACKWARD",
+    "THE SKY TURNS|"
+   ]
+  ],
+  "station_uranus_D": [
+   [
+    "URANUS FORWARD",
+    "THE SKY TURNS|"
+   ]
+  ],
+  "station_neptune_R": [
+   [
+    "NEPTUNE BACKWARD",
+    "THE SKY TURNS|"
+   ]
+  ],
+  "station_neptune_D": [
+   [
+    "NEPTUNE FORWARD",
+    "THE SKY TURNS|"
+   ]
+  ],
+  "station_pluto_R": [
+   [
+    "PLUTO BACKWARD",
+    "THE SKY TURNS|"
+   ]
+  ],
+  "station_pluto_D": [
+   [
+    "PLUTO FORWARD",
+    "THE SKY TURNS|"
+   ]
+  ],
+  "ingress_jupiter_0": [
+   [
+    "JUPITER INTO ARIES",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_jupiter_1": [
+   [
+    "JUPITER INTO TAURUS",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_jupiter_2": [
+   [
+    "JUPITER INTO GEMINI",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_jupiter_3": [
+   [
+    "JUPITER INTO CANCER",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_jupiter_4": [
+   [
+    "JUPITER INTO LEO",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_jupiter_5": [
+   [
+    "JUPITER INTO VIRGO",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_jupiter_6": [
+   [
+    "JUPITER INTO LIBRA",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_jupiter_7": [
+   [
+    "JUPITER INTO SCO",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_jupiter_8": [
+   [
+    "JUPITER INTO SAG",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_jupiter_9": [
+   [
+    "JUPITER INTO CAP",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_jupiter_10": [
+   [
+    "JUPITER INTO AQU",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_jupiter_11": [
+   [
+    "JUPITER INTO PISCES",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_saturn_0": [
+   [
+    "SATURN INTO ARIES",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_saturn_1": [
+   [
+    "SATURN INTO TAURUS",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_saturn_2": [
+   [
+    "SATURN INTO GEMINI",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_saturn_3": [
+   [
+    "SATURN INTO CANCER",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_saturn_4": [
+   [
+    "SATURN INTO LEO",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_saturn_5": [
+   [
+    "SATURN INTO VIRGO",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_saturn_6": [
+   [
+    "SATURN INTO LIBRA",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_saturn_7": [
+   [
+    "SATURN INTO SCORPIO",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_saturn_8": [
+   [
+    "SATURN INTO SAG",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_saturn_9": [
+   [
+    "SATURN INTO CAP",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_saturn_10": [
+   [
+    "SATURN INTO AQU",
+    "A TALKER NOTICES|"
+   ]
+  ],
+  "ingress_saturn_11": [
+   [
+    "SATURN INTO PISCES",
+    "A TALKER NOTICES|"
+   ]
+  ]
+ },
+ "caption_pages": 65,
+ "caption_bytes": 2075
 }

@@ -58,6 +58,7 @@ typedef struct {
   uint8_t talk_extra;          /* Mercury: one talk in N gets an extra option (0 never) */
   int8_t g_dmg, g_def, g_avoid, g_spd, g_status, g_hp; /* aspect and transit nudges, percent points */
   uint8_t mix_pen, foe_pct, dark16, hot_pct, parry_mag; int8_t off; /* the sky today (session) */
+  uint8_t dark_b16, mix_b16;   /* SKYBORN: dark-room and mix-room pressure, x / 16 (16 = none) */
 } astro_fx;
 void astro_fx_clear(astro_fx *f);
 /* the natal part: placements, tiers, the echo and the chart's own aspects */
@@ -81,8 +82,33 @@ uint8_t astro_transits(const astro_chart *natal, const uint16_t *now, astro_hit 
 #define AS_SEASON 2048u
 #define AS_SOLAR_RETURN 4096u
 #define AS_LUNAR_RETURN 8192u
+#define AS_METEOR 16384u /* a shower's window (24 h before its peak .. 12 h after); the caller sets it: astro_meteor_on */
 uint16_t astro_states(const sky_now *n, const astro_chart *natal);
 void astro_session_fx(uint16_t states, const astro_hit *hits, uint8_t nhits, astro_fx *f);
+
+/* minutes since 2026-01-01: 1 while a meteor shower's window is open (proto/skyscenes meteor table) */
+uint8_t astro_meteor_on(uint32_t m2026);
+
+/* Event-born (redesign 9.7.11, 19.4). The genome's spare flag (9.2) is SKYBORN: set at birth when an event is active
+ * at the birth minute, never chosen, never inherited. The kind is not stored: it is recomputed from the stamp. One
+ * kind per heir, the rarest active event wins (19.1's order). In 2026..2126 only (an approx birth is never sky-born). */
+enum { AB_NONE, AB_HALLEY, AB_ECLIPSE, AB_INGRESS, AB_RETRO, AB_MOON, AB_METEOR, AB_SEASON, AB_COUNT };
+#define ASTRO_HALLEY_M 18708480ul /* 2061-07-28 00:00 UTC, minutes since 2026-01-01 (perihelion, about) */
+uint8_t astro_born_kind(uint32_t m2026);
+/* the small third trait of a sky-born heir (never one of the 2 expressed traits) */
+void astro_skyborn_fx(uint8_t kind, astro_fx *f);
+
+/* Siblings (redesign 9.7.2). The first-born takes the death minute; each later child is born just after the Rising
+ * has crossed into the next sign (and at least 40 minutes after the last child), plus 7..37 seeded minutes, so the three Risings are always three signs (three
+ * elements). Moon catch: when the Moon changes sign within 6 h after the second-born, the third-born waits for it,
+ * so the Moons differ too. The slots on the pick screen hold the three in a seeded order (slot_order[slot] = birth
+ * order). Times in minutes since 2000-01-01 UTC. Returns the number of sky_positions probes (about 84 ms each on
+ * the cart; the work runs behind the death sequence). */
+#ifndef ASTRO_SIB_MOON_WAIT
+#define ASTRO_SIB_MOON_WAIT 360u
+#endif
+#define ASTRO_SIB_MIN_GAP 40u /* minutes: with the 7..37 offset, adjacent Risings sit at least ~8 deg apart */
+uint8_t astro_siblings(uint32_t death_m2000, uint32_t seed, uint32_t *born_m2000, uint8_t *slot_order);
 
 /* alignment: 0 allowed, else why not (1 at the cap, 2 tier 2 needs the sky, 3 the Moon is void of course, 4 maxed) */
 uint8_t astro_can_align(const astro_birth *b, const astro_chart *natal, uint8_t placement, const sky_now *now);
