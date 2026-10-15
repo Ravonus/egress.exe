@@ -1,9 +1,10 @@
-/* Drawing the floor's sprites into shadow OAM (8x16 mode): the player in two layers (head palette over body palette),
+/* Drawing the floor's sprites into shadow OAM (8x16 mode): the heir in two layers (BODY palette over WEAR palette),
  * the lead's arcs, enemies, the boss (32x32), orbs and puffs. */
 #pragma bank 255
 #include <gb/gb.h>
 #include <gb/cgb.h>
 #include "play.h"
+#include "heir.h"
 
 static uint8_t oam_n, oam_last;
 
@@ -11,6 +12,7 @@ void sprites_reset(void) BANKED {
   uint8_t i;
   for (i = 0; i != 40u; i++) move_sprite(i, 0, 0);
   oam_last = 0;
+  heir_reset(); /* the floor's art was reloaded over the heir's tiles */
 }
 
 static void spr16(int16_t wx, int16_t wy, uint8_t tile, uint8_t pal, uint8_t flip) {
@@ -34,6 +36,25 @@ static void spr8(int16_t wx, int16_t wy, uint8_t tile, uint8_t pal) {
   move_sprite(oam_n, (uint8_t)sx, (uint8_t)sy);
   oam_n++;
 }
+/* room for one more 8x16 sprite at OAM y `oy` without an 11th on any of its lines (the hardware would drop it):
+ * the busiest of its lines is its top line or the top line of a sprite already placed over it */
+static uint8_t line_room(uint8_t oy) {
+  uint8_t ys[16], n = 0, k, j, c, top;
+  for (k = 0; k != oam_n; k++) {
+    uint8_t y = shadow_OAM[k].y;
+    if (y && (uint8_t)(y - oy + 15u) < 31u && n != 16u) ys[n++] = y; /* |y - oy| < 16: shares a line */
+  }
+  if (n < 10u) return 1;
+  for (j = 0; j <= n; j++) {
+    top = j == n ? oy : (ys[j] > oy ? ys[j] : oy); /* a candidate line, as the OAM y of a sprite starting there */
+    c = 1;
+    for (k = 0; k != n; k++)
+      if (ys[k] <= top && (uint8_t)(top - ys[k]) < 16u) c++;
+    if (c > 10u) return 0;
+  }
+  return 1;
+}
+
 /* 32x32: four columns of two 8x16 rows */
 static void spr32(int16_t wx, int16_t wy, uint8_t tile, uint8_t pal) {
   uint8_t r, c;
@@ -51,40 +72,18 @@ static void spr32(int16_t wx, int16_t wy, uint8_t tile, uint8_t pal) {
     }
 }
 
-static const uint8_t dir_base[4] = {ST_P_UP, ST_P_DOWN, ST_P_SIDE, ST_P_SIDE};
 static const int8_t bob[8] = {0, 0, -1, -1, 0, 0, 1, 1};
 
 void draw_sprites(void) BANKED {
   uint8_t k, base, fr, flip, pal;
   int16_t x, y;
   oam_n = 0;
-  /* the player: head layer over body layer */
-  if (pl_hp && (!(pl_inv && (pl_inv & 4u)) || pl_state == PS_HURT)) {
-    x = (int16_t)pl_x - 8;
-    y = (int16_t)pl_y - 9;
-    flip = (uint8_t)(pl_face == F_LEFT);
-    if (pl_state == PS_ROLL) {
-      base = (uint8_t)(ST_P_ROLL + (((pl_t >> 2) & 1u) << 3));
-      flip = (uint8_t)(roll_dx < 0);
-    } else {
-      fr = 0;
-      if (pl_state == PS_LASH && pl_t >= 2u && pl_t <= 9u) fr = 3u;
-      else if (walk_t) fr = (uint8_t)(1u + ((walk_t >> 3) & 1u));
-      base = (uint8_t)(dir_base[pl_face] + (fr << 3));
-      if (pl_state == PS_SPIN) {
-        base = (uint8_t)(dir_base[(pl_t >> 2) & 3u] + 24u);
-        flip = (uint8_t)(((pl_t >> 2) & 3u) == F_LEFT);
-      }
-    }
-    spr16(x, y, base, 0, flip);
-    spr16(x, y, (uint8_t)(base + 4u), 1, flip);
-  } else if (!pl_hp) {
-    /* down: the roll frame, still */
-    spr16((int16_t)pl_x - 8, (int16_t)pl_y - 6, ST_P_ROLL, 0, 0);
-    spr16((int16_t)pl_x - 8, (int16_t)pl_y - 6, ST_P_ROLL + 4u, 1, 0);
-  }
-  /* the lead */
-  if (pl_state == PS_LASH && pl_t >= 2u && pl_t <= 9u) {
+  /* the player: the heir (heir.c), BODY layer over WEAR layer, its box 16x22 with the feet at pl_y + 6 */
+  heir_tick();
+  if (!pl_hp || !(pl_inv && (pl_inv & 4u)) || pl_state == PS_HURT || ha_state == HA_SPAWN)
+    oam_n = (uint8_t)(oam_n + heir_draw(oam_n, (int16_t)pl_x - 8 - cam_x, (int16_t)pl_y - 15 - cam_y + 8));
+  /* the lead: an arc toward the cardinal facing while a strike is out, four around during the spin */
+  if (pl_arc == 1u) {
     uint8_t reach = (mods & MOD_LONG) ? 16u : 13u;
     fr = (uint8_t)(pl_t >= 5u ? 4u : 0u);
     x = (int16_t)pl_x - 8 + fdx[pl_face] * (int8_t)reach;
@@ -92,7 +91,7 @@ void draw_sprites(void) BANKED {
     if (pl_face == F_UP) spr16(x, y, (uint8_t)(ST_ARC_UP + fr), 4, 0);
     else if (pl_face == F_DOWN) spr16(x, y, (uint8_t)(ST_ARC_DOWN + fr), 4, 0);
     else spr16(x, y, (uint8_t)(ST_ARC_SIDE + fr), 4, (uint8_t)(pl_face == F_LEFT));
-  } else if (pl_state == PS_SPIN && pl_t <= 16u) {
+  } else if (pl_arc == 2u) {
     k = (uint8_t)((pl_t >> 1) & 3u);
     x = (int16_t)pl_x - 8 + fdx[k] * 14;
     y = (int16_t)pl_y - 8 + fdy[k] * 14;
@@ -150,8 +149,9 @@ void draw_sprites(void) BANKED {
     if (orbs[k].live)
       spr8((int16_t)(orbs[k].x >> 4) - 4, (int16_t)(orbs[k].y >> 4) - 4, ST_ORB, orbs[k].friendly ? 4u : 5u);
   for (k = 0; k != MAXP; k++)
-    if (puffs[k].t) {
+    if (puffs[k].t) { /* cosmetic: left out where it would be an 11th sprite on a line */
       puffs[k].t--;
+      if (!line_room((uint8_t)((int16_t)puffs[k].y - 4 - (int16_t)((14u - puffs[k].t) >> 2) - cam_y + 12))) continue;
       spr8((int16_t)puffs[k].x - 4, (int16_t)puffs[k].y - 4 - (int16_t)((14u - puffs[k].t) >> 2), puffs[k].tile,
            puffs[k].pal);
     }

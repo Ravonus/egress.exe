@@ -32,6 +32,8 @@ enum { EG_C_FREE = 0, EG_C_WALL = 1, EG_C_BLOCK = 2 }; /* grid cells: nonzero is
 typedef struct {
   const uint8_t *cells; /* row-major, w*h; outside the grid counts as wall */
   uint8_t w, h;
+  uint8_t wshift; /* nonzero: w == 1 << wshift, rows are indexed by a shift (no multiply on the SM83) */
+  const uint8_t *map; /* nonzero: cells are the game's own bytes and map[byte] is the EG_C_* cell (no copy per step) */
 } eg_grid_t;
 
 typedef struct {

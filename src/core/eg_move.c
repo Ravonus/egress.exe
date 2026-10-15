@@ -3,36 +3,63 @@
 
 #define BOX_SUB ((int16_t)(EG_BOX_PX << EG_FIX))
 
-static const uint8_t face_of[9] = {EG_FACE_NW, EG_FACE_N, EG_FACE_NE, EG_FACE_W, 0xffu,
-                                   EG_FACE_E,  EG_FACE_SW, EG_FACE_S, EG_FACE_SE};
+/* facing by the resolved d-pad bits (R 1, L 2, U 4, D 8; never both of a pair) */
+static const uint8_t face_of[16] = {0xffu,      EG_FACE_E,  EG_FACE_W,  0xffu, EG_FACE_N, EG_FACE_NE,
+                                    EG_FACE_NW, 0xffu,      EG_FACE_S,  EG_FACE_SE, EG_FACE_SW, 0xffu,
+                                    0xffu,      0xffu,      0xffu,      0xffu};
 
 uint8_t eg_grid_cell(const eg_grid_t *g, int16_t cx, int16_t cy) {
-  if (cx < 0 || cy < 0 || cx >= (int16_t)g->w || cy >= (int16_t)g->h) return EG_C_WALL;
-  return g->cells[(uint16_t)cy * g->w + (uint16_t)cx];
+  uint8_t c;
+  const uint8_t *map = g->map;
+  /* unsigned compares: a negative coordinate is out too */
+  if ((uint16_t)cx >= g->w || (uint16_t)cy >= g->h) return EG_C_WALL;
+  if (g->wshift == 4u) c = g->cells[(uint8_t)(((uint8_t)cy << 4) | (uint8_t)cx) + ((uint16_t)((uint8_t)cy >> 4) << 8)];
+  else if (g->wshift) c = g->cells[((uint16_t)cy << g->wshift) + (uint16_t)cx];
+  else c = g->cells[(uint16_t)cy * g->w + (uint16_t)cx];
+  return map ? map[c] : c;
+}
+
+/* The step's own reads: the grid's fields copied to statics once per step, cells as 8-bit indices (a coordinate
+ * of -1 arrives as 0xff, past any width, so it reads as wall). With 16-pixel cells and 4 fraction bits, a cell index
+ * is the high byte of a sub-pixel coordinate: SM83 code without 16-bit shifts. */
+#if EG_CELL_PX != 16 || EG_FIX != 4
+#error "eg_move: cell index = high byte assumes 16-pixel cells and 12.4 fixed point"
+#endif
+static const uint8_t *g_cells, *g_map;
+static uint8_t g_w, g_h, g_shift;
+#define HI(v) ((uint8_t)((uint16_t)(v) >> 8))
+#define FAR_EDGE ((int16_t)((EG_BOX_PX - 1) << EG_FIX)) /* the box's last pixel row/column, in sub-pixels */
+
+static uint8_t cell8(uint8_t cx, uint8_t cy) {
+  uint8_t c;
+  if (cx >= g_w || cy >= g_h) return EG_C_WALL;
+  if (g_shift == 4u) c = g_cells[((uint16_t)cy << 4) | cx];
+  else if (g_shift) c = g_cells[((uint16_t)cy << g_shift) + cx];
+  else c = g_cells[(uint16_t)cy * g_w + cx];
+  return g_map ? g_map[c] : c;
 }
 
 /* axis 0: along = x, across = y; axis 1: along = y, across = x. */
-static uint8_t cell_ax(const eg_grid_t *g, uint8_t axis, int16_t along, int16_t across) {
-  return axis ? eg_grid_cell(g, across, along) : eg_grid_cell(g, along, across);
+static uint8_t cell_ax(uint8_t axis, uint8_t along, uint8_t across) {
+  return axis ? cell8(across, along) : cell8(along, across);
 }
 
-/* Move *p by d (|d| < 16 px) with the box's across coordinate q; on a hit, snap flush and return 1 with the
- * blocking column/row index in *hit. */
-static uint8_t move_axis(const eg_grid_t *g, uint8_t axis, int16_t *p, int16_t q, int16_t d, int16_t *hit) {
-  int16_t np = (int16_t)(*p + d), col;
-  int16_t qpx = (int16_t)(q >> EG_FIX);
-  int16_t r0 = (int16_t)(qpx >> 4), r1 = (int16_t)((qpx + EG_BOX_PX - 1) >> 4);
+/* Move *p by d (|d| < 16 px) with the box's across coordinate q (>= 0); on a hit, snap flush and return 1 with the
+ * blocking column/row index in *hit (0xff: the column left of the grid). */
+static uint8_t move_axis(uint8_t axis, int16_t *p, int16_t q, int16_t d, uint8_t *hit) {
+  int16_t np = (int16_t)(*p + d);
+  uint8_t r0 = HI(q), r1 = HI(q + FAR_EDGE), col;
   if (d > 0) {
-    col = (int16_t)(((np >> EG_FIX) + EG_BOX_PX - 1) >> 4);
-    if (cell_ax(g, axis, col, r0) || cell_ax(g, axis, col, r1)) {
-      *p = (int16_t)((col * EG_CELL_PX - EG_BOX_PX) << EG_FIX);
+    col = HI(np + FAR_EDGE);
+    if (cell_ax(axis, col, r0) || (r1 != r0 && cell_ax(axis, col, r1))) {
+      *p = (int16_t)(((int16_t)col << 8) - BOX_SUB);
       *hit = col;
       return 1u;
     }
   } else if (d < 0) {
-    col = np < 0 ? (int16_t)-1 : (int16_t)((np >> EG_FIX) >> 4);
-    if (cell_ax(g, axis, col, r0) || cell_ax(g, axis, col, r1)) {
-      *p = (int16_t)(((col + 1) * EG_CELL_PX) << EG_FIX);
+    col = np < 0 ? 0xffu : HI(np);
+    if (cell_ax(axis, col, r0) || (r1 != r0 && cell_ax(axis, col, r1))) {
+      *p = np < 0 ? 0 : (int16_t)(((uint16_t)col + 1u) << 8);
       *hit = col;
       return 1u;
     }
@@ -91,34 +118,39 @@ static uint8_t resolve_dir(eg_mover_t *m, uint8_t dpad) {
 
 /* Corner nudge after a cardinal block on `axis` against column `col`: if the box straddles two lanes and only one
  * of them is solid with <= EG_NUDGE_PX of overlap, slide across toward the open lane (never past the edge). */
-static void nudge(eg_mover_t *m, const eg_grid_t *g, uint8_t axis, int16_t col, uint8_t speed) {
+static void nudge(eg_mover_t *m, uint8_t axis, uint8_t col, uint8_t speed) {
   int16_t *q = axis ? &m->x : &m->y;
   int16_t p = axis ? m->y : m->x;
-  int16_t qpx = (int16_t)(*q >> EG_FIX), hit;
-  int16_t r0 = (int16_t)(qpx >> 4), r1 = (int16_t)((qpx + EG_BOX_PX - 1) >> 4);
-  int16_t lane = (int16_t)((r1 * EG_CELL_PX) << EG_FIX), over, step;
-  uint8_t s0, s1;
+  uint8_t r0 = HI(*q), r1 = HI(*q + FAR_EDGE), s0, s1, hit;
+  int16_t lane = (int16_t)((int16_t)r1 << 8), over, step;
   if (r0 == r1) return;
-  s0 = cell_ax(g, axis, col, r0) != EG_C_FREE;
-  s1 = cell_ax(g, axis, col, r1) != EG_C_FREE;
+  s0 = cell_ax(axis, col, r0) != EG_C_FREE;
+  s1 = cell_ax(axis, col, r1) != EG_C_FREE;
   if (s0 == s1) return;
   over = s0 ? (int16_t)(lane - *q) : (int16_t)(*q + BOX_SUB - lane);
   if (over > (int16_t)(EG_NUDGE_PX << EG_FIX)) return;
   step = over < (int16_t)speed ? over : (int16_t)speed;
-  (void)move_axis(g, (uint8_t)(axis ^ 1u), q, p, s0 ? step : (int16_t)-step, &hit);
+  (void)move_axis((uint8_t)(axis ^ 1u), q, p, s0 ? step : (int16_t)-step, &hit);
 }
 
 void eg_move_step(eg_mover_t *m, uint8_t dpad, uint8_t speed, const eg_grid_t *g) {
   uint8_t d = resolve_dir(m, (uint8_t)(dpad & EG_DP_MASK)), f, cand = 0u, ccx = 0u, ccy = 0u, cdir = 0u;
+  uint8_t hx = 0u, hy = 0u, c;
   int8_t sx = (d & EG_DP_RIGHT) ? 1 : ((d & EG_DP_LEFT) ? -1 : 0);
   int8_t sy = (d & EG_DP_DOWN) ? 1 : ((d & EG_DP_UP) ? -1 : 0);
-  int16_t step = (int16_t)speed, hx = 0, hy = 0, c;
+  int16_t step = (int16_t)speed;
   uint16_t t;
+
+  g_cells = g->cells;
+  g_map = g->map;
+  g_w = g->w;
+  g_h = g->h;
+  g_shift = g->wshift;
 
   m->dir = d;
   m->blocked = 0u;
   m->req = 0u;
-  f = face_of[(sy + 1) * 3 + (sx + 1)];
+  f = face_of[d];
   if (f != 0xffu) m->facing = f;
 
   if (sx && sy) {
@@ -129,28 +161,28 @@ void eg_move_step(eg_mover_t *m, uint8_t dpad, uint8_t speed, const eg_grid_t *g
     m->acc = 0u;
   }
 
-  if (sx && move_axis(g, 0u, &m->x, m->y, sx > 0 ? step : (int16_t)-step, &hx)) m->blocked |= EG_BLK_X;
-  if (sy && move_axis(g, 1u, &m->y, m->x, sy > 0 ? step : (int16_t)-step, &hy)) m->blocked |= EG_BLK_Y;
+  if (sx && move_axis(0u, &m->x, m->y, sx > 0 ? step : (int16_t)-step, &hx)) m->blocked |= EG_BLK_X;
+  if (sy && move_axis(1u, &m->y, m->x, sy > 0 ? step : (int16_t)-step, &hy)) m->blocked |= EG_BLK_Y;
 
-  if (sx && !sy && (m->blocked & EG_BLK_X)) nudge(m, g, 0u, hx, speed);
-  if (sy && !sx && (m->blocked & EG_BLK_Y)) nudge(m, g, 1u, hy, speed);
+  if (sx && !sy && (m->blocked & EG_BLK_X)) nudge(m, 0u, hx, speed);
+  if (sy && !sx && (m->blocked & EG_BLK_Y)) nudge(m, 1u, hy, speed);
 
   /* Push candidate: the blocked axis only, the block in the lane holding the box centre. X wins an inside corner. */
   if (m->blocked & EG_BLK_X) {
-    c = (int16_t)(((m->y >> EG_FIX) + EG_BOX_PX / 2) >> 4);
-    if (eg_grid_cell(g, hx, c) == EG_C_BLOCK) {
+    c = HI(m->y + (EG_BOX_PX / 2 << EG_FIX));
+    if (cell8(hx, c) == EG_C_BLOCK) {
       cand = 1u;
-      ccx = (uint8_t)hx;
-      ccy = (uint8_t)c;
+      ccx = hx;
+      ccy = c;
       cdir = sx > 0 ? EG_DP_RIGHT : EG_DP_LEFT;
     }
   }
   if (!cand && (m->blocked & EG_BLK_Y)) {
-    c = (int16_t)(((m->x >> EG_FIX) + EG_BOX_PX / 2) >> 4);
-    if (eg_grid_cell(g, c, hy) == EG_C_BLOCK) {
+    c = HI(m->x + (EG_BOX_PX / 2 << EG_FIX));
+    if (cell8(c, hy) == EG_C_BLOCK) {
       cand = 1u;
-      ccx = (uint8_t)c;
-      ccy = (uint8_t)hy;
+      ccx = c;
+      ccy = hy;
       cdir = sy > 0 ? EG_DP_DOWN : EG_DP_UP;
     }
   }

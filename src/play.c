@@ -9,6 +9,7 @@
 #include <string.h>
 #include "play.h"
 #include "run.h"
+#include "heir.h"
 #include "gen/eg_seeds.h"
 
 uint8_t tokens, keys_held, door_open, board_busy, cam_x, cam_y;
@@ -17,13 +18,9 @@ static uint8_t was_falling, paused, sel_t, floor_tokens0;
 
 static const uint8_t floor_tiers[RUN_FLOORS - 1u] = {0, 0, 1, 1, 2, 2, 3, 4, 5};
 
-static void people_colours(void) {
-  uint8_t s = (uint8_t)(run_seed & 7u), h = (uint8_t)((run_seed >> 3) & 7u), c = (uint8_t)((run_seed >> 6) & 7u),
-          t = (uint8_t)((run_seed >> 9) % ART_TROUSERS);
-  pal_sp[0 * 4 + 2] = people[s];
-  pal_sp[0 * 4 + 3] = people[ART_SKINS + h];
-  pal_sp[1 * 4 + 2] = people[ART_SKINS + ART_HAIRS + c];
-  pal_sp[1 * 4 + 3] = people[ART_SKINS + ART_HAIRS + ART_HOODIES + t];
+static void people_colours(void) { /* B1: the heir's palettes (heir.c), rolled from the run's seed */
+  heir_roll(dbg_heir ? dbg_heir : run_seed);
+  heir_colours();
 }
 
 static void floor_build(void) {
@@ -62,6 +59,7 @@ static void floor_build(void) {
   pl_charge = 0;
   pl_combo = 0;
   roll_cd = 0;
+  player_floor_start(); /* B1: the resolver, the mover, the spawn */
   freeze = shake = 0;
   grav_t = GRAVITY_FRAMES;
   if (!boss_floor) actors_spawn();
@@ -140,10 +138,10 @@ static void palette_life(void) {
 static void gravity_tick(void) {
   uint8_t occ[4], n = 0, c, k, g, a, b;
   uint8_t xs[2], ys[2];
-  xs[0] = (uint8_t)(pl_x - 5u);
-  xs[1] = (uint8_t)(pl_x + 4u);
-  ys[0] = (uint8_t)(pl_y - 5u);
-  ys[1] = (uint8_t)(pl_y + 4u);
+  xs[0] = (uint8_t)(pl_x - 6u); /* the mover's 12x12 box (eg_move) */
+  xs[1] = (uint8_t)(pl_x + 5u);
+  ys[0] = (uint8_t)(pl_y - 6u);
+  ys[1] = (uint8_t)(pl_y + 5u);
   for (a = 0; a != 2u; a++)
     for (b = 0; b != 2u; b++) {
       c = cell_at(xs[b], ys[a]);

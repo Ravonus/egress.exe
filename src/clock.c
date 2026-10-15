@@ -6,6 +6,7 @@
 #include "egress.h"
 #include "mapper.h"
 #include "clock.h"
+#include "heir.h"
 #include "play.h"
 #include "gen/art.h"
 
@@ -424,14 +425,15 @@ void setup_screen(void) BANKED {
     screen_open();
     text_at(0, 2, 2, "SETUP", 7);
     text_at(0, 3, 6, "CLOCK", 4);
-    text_at(0, 3, 8, "BACK", 4);
+    text_at(0, 3, 8, opt_move4 ? "MOVE  4-WAY" : "MOVE  8-WAY", 4); /* B1: the heir's d-pad (heir.h opt_move4) */
+    text_at(0, 3, 10, "BACK", 4);
     text_at(0, 1, 16, "A PICK  B BACK", 5);
     /* help: saves move between the plain and the clock-chip cartridge both ways; set the clock once after a move */
     text_at(0, 1, 13, "MOVED THE SAVE? SET", 4);
     text_at(0, 1, 14, "THE CLOCK ONCE.", 4);
     n = 0;
     while (1) {
-      for (k = 0; k != 2u; k++) text_at(0, 1, (uint8_t)(6u + k * 2u), k == sel ? ">" : " ", 5);
+      for (k = 0; k != 3u; k++) text_at(0, 1, (uint8_t)(6u + k * 2u), k == sel ? ">" : " ", 5);
       if (!(n & 31u)) { /* the clock row, twice a second */
         clock_poll();
         egc_local(&clk_now, clk_off, &v);
@@ -446,7 +448,7 @@ void setup_screen(void) BANKED {
         } else {
           memcpy(s, "NOT SET", 7);
         }
-        text_at(0, 3, 11, s, 5);
+        text_at(0, 3, 12, s, 5);
         if (!n) screen_show();
       }
       n = (uint8_t)((n + 1u) | 0x80u); /* never 0 again */
@@ -454,13 +456,19 @@ void setup_screen(void) BANKED {
       sound_tick();
       input_poll();
       if ((joy_pressed & J_UP) && sel) sel--;
-      if ((joy_pressed & J_DOWN) && !sel) sel++;
+      if ((joy_pressed & J_DOWN) && sel != 2u) sel++;
       if (joy_pressed & (J_UP | J_DOWN)) sfx(SFX_STEP);
-      if (joy_pressed & J_B) sel = 1u;
+      if (joy_pressed & J_B) sel = 2u;
+      if (sel == 1u && (joy_pressed & J_A)) { /* B1: MOVE flips in place (this power-on; no settings record yet) */
+        opt_move4 ^= 1u;
+        text_at(0, 3, 8, opt_move4 ? "MOVE  4-WAY" : "MOVE  8-WAY", 4);
+        sfx(SFX_STEP);
+        continue;
+      }
       if (joy_pressed & (J_A | J_B | J_START)) break;
     }
     fade_to(8, 0);
-    if (sel == 1u) return;
+    if (sel == 2u) return;
     clock_screen(0);
   }
 }
