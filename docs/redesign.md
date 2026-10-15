@@ -3092,37 +3092,35 @@ seconds. The cart only ever writes DH (to start a halted chip or clear carry), s
 3. **Moving an RTC save to another MBC3 chip** can carry a wrong base when the new counter reads later (16b.5).
    Re-asking whenever the RTC block's chip looks foreign would need a chip signature that MBC3 does not have.
 
-## 16c. Target hardware and LCD modes
+## 16c. Target hardware and LCD tricks
 
 **Priority (owner, 2026-10-15)**
 1. **The ModRetro Chromatic.** It is the primary hardware: most players will use it.
 2. **SameBoy-accurate emulators.** SameBoy models the real-hardware quirks from test ROMs.
-3. **Original GBCs, other flash carts and looser emulators**, through SAFE mode.
+3. **Original GBCs, other flash carts and looser emulators.** Best effort.
 
-**One ROM, two LCD paths.** SETUP has a row, "LCD MODE: FAST / SAFE"; the default is FAST.
-- **SAFE** uses only documented CGB features (Pan Docs), and it must still meet the fps floors:
-  - double speed;
-  - HDMA/GDMA in mode 0/1;
-  - LY/SCY row doubling;
-  - mid-frame palette writes inside their safe windows.
-- **FAST** may also use undocumented or tight-timing tricks that buy real fps.
-- A quick boot self-test measures the LY/STAT timing the fast path relies on, and auto-switches to SAFE when it falls
-  outside the expected window.
-- There is no separate experimental ROM.
+**One ROM, no runtime mode.** There is no FAST/SAFE switch and no boot self-test (owner, 2026-10-15). Tricks are
+built, then tested headless in SameBoy as they go. A trick stays when it works in SameBoy and on the owner's
+Chromatic; one that fails either is replaced with an approach that works. Documented CGB features are preferred:
+- double speed;
+- HDMA/GDMA in mode 0/1;
+- LY/SCY row doubling;
+- palette writes inside their safe windows (Pan Docs).
 
-**The ship rule.** A FAST trick ships when it passes in BOTH SameBoy and on the owner's Chromatic, using the trick
-test ROM. Agreement with an original GBC is not required, since SAFE covers it. Caveat: the Chromatic is an FPGA, and
-a trick verified on it is not guaranteed on an original GBC on undocumented edges. That is why SAFE stays in the ROM.
+Undocumented or tight-timing tricks are allowed only when they buy real fps and pass both checks. Caveat: the
+Chromatic is an FPGA, so a trick verified on it is not guaranteed on an original GBC on undocumented edges.
+
+**SameBoy runs.** The tester is `sameboy_tester` v1.0.4 (built from source; `--cgb --length N [--sav]`, last frame
+to `.bmp`). The fullscreen 3D and the title are checked in it, and their frames are compared with PyBoy's. PyBoy is
+not the judge of timing: it isn't cycle-accurate for HDMA, mid-scanline writes or STAT/LY interrupt latency.
 
 **Trick test ROM.** Each trick runs on its own with a pass/fail pattern on screen. It runs headless in SameBoy with a
 screenshot compare against reference PNGs. A person can also read it by eye on the Chromatic in under a minute.
 
-**PyBoy is not the judge of timing.** It isn't cycle-accurate for HDMA, mid-scanline writes or STAT/LY interrupt
-latency. Every fullscreen 3D and title change is checked in SameBoy too, and its frames are compared with PyBoy's.
-
-**The trick ledger.** The renderer reports name each trick, the hardware feature it relies on, its path
-(SAFE/FAST) and the timing margin left in cycles. That ledger is folded in here when the fullscreen work lands
-(15.1/15.2).
+**The trick ledger.** The renderer reports name each trick, the hardware feature it relies on and the timing margin
+left in cycles. The ledger is folded in here when the fullscreen work lands (15.1/15.2).
+- **The title (B1):** documented features only: double speed, GDMA of pre-baked records from ROM in VBlank, palettes in
+  VBlank, and an HBlank STAT wait before each logo-glitch SCX write.
 
 ---
 
