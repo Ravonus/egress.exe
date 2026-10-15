@@ -7,7 +7,7 @@ HOSTCC ?= cc
 HOSTCFLAGS := -O2 -std=c99 -Wall -Wextra -Werror
 
 SRC := src/main.c src/screens.c src/play.c src/grid.c src/hud.c src/player.c src/actors.c src/sprites.c src/boss.c \
-	src/run.c src/sound.c src/core/eg_room.c src/gen/art.c src/gen/art_pics.c src/gen/eg_seeds.c
+	src/run.c src/sound.c src/boot/keel_boot.c src/core/eg_room.c src/gen/art.c src/gen/art_pics.c src/gen/eg_seeds.c
 OBJ := $(patsubst src/%.c,build/obj/%.o,$(SRC))
 CFLAGS := -c -Isrc -Wf--Werror -Wf--disable-warning -Wf110 -Wf--disable-warning -Wf126
 # MBC5 + RAM + battery, CGB only, 2 MiB declared (trimmed afterwards), 8 KiB SRAM. Autobank stops at bank 114: bank
@@ -16,7 +16,7 @@ LDFLAGS := -Wm-yC -Wm-yt0x1B -Wm-ya1 -Wm-yo128 -autobank -Wb-ext=.rel -Wb-max=11
 
 all: build/egress.gbc
 
-build/obj/%.o: src/%.c $(wildcard src/*.h src/core/*.h src/gen/*.h)
+build/obj/%.o: src/%.c $(wildcard src/*.h src/core/*.h src/gen/*.h src/boot/*.h)
 	@mkdir -p $(dir $@)
 	$(LCC) $(CFLAGS) -o $@ $<
 

@@ -33,7 +33,8 @@ extern uint8_t hud_line; /* LY at which sprites turn off; 144 = never */
 void frame_wait(void);
 
 /* screens.c */
-void boot_screen(void) BANKED;
+void keel_boot(void) BANKED; /* src/boot/keel_boot.c: CRUCIBLE's KEEL start-up */
+extern uint8_t screen_dark; /* the LCD is on with every palette black: the next screen loads under it */
 void title_screen(void) BANKED;
 void dead_screen(void) BANKED;
 

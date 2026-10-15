@@ -149,7 +149,8 @@ void main(void) {
   }
   set_interrupts(VBL_IFLAG | LCD_IFLAG);
   sound_init();
-  boot_screen();
+  game_mode = MODE_BOOT;
+  keel_boot();
   while (1) {
     title_screen();
     play_run();

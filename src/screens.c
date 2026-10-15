@@ -1,4 +1,4 @@
-/* The KEEL boot card, the title, and the screen after a run ends. */
+/* The title and the screen after a run ends (the KEEL start-up is src/boot/keel_boot.c). */
 #pragma bank 255
 #include <gb/gb.h>
 #include <gb/cgb.h>
@@ -7,7 +7,10 @@
 #include "gen/art.h"
 
 static void screen_reset(void) {
-  DISPLAY_OFF;
+  if (screen_dark)
+    screen_dark = 0;
+  else
+    DISPLAY_OFF;
   HIDE_SPRITES;
   HIDE_WIN;
   hud_line = 144u;
@@ -26,19 +29,6 @@ static uint8_t wait_frames(uint8_t n, uint8_t skip_on_press) {
     if (skip_on_press && (joy_pressed & (J_A | J_START))) return 1;
   }
   return 0;
-}
-
-void boot_screen(void) BANKED {
-  game_mode = MODE_BOOT;
-  screen_reset();
-  art_show_picture(0, pal_bg);
-  memset(pal_sp, 0, sizeof pal_sp);
-  pal_commit(0);
-  SHOW_BKG;
-  DISPLAY_ON;
-  fade_to(0, 8);
-  wait_frames(100u, 1);
-  fade_to(8, 0);
 }
 
 void title_screen(void) BANKED {
