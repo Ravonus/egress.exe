@@ -11,10 +11,10 @@ tick across the KEEL boot (about 2.5 s).
   rtc_carry      MBC3: 520 days off: the 9-bit day counter wraps and sets carry; the boot folds 512 days into the
                  RTC block (folds = 1) and clears the chip's carry; the date is right
   rtc_no_chip    MBC3 header without the timer (0x13): the RTC selects read SRAM; it never ticks: the set-once
-                 fallback, stale, with the drift prompt, and no write reaches the missing chip
+                 fallback, stale (the drift prompt waits for the 2nd power-on), and no write reaches the missing chip
   rtc_open_bus   MBC3 with the dbg_rtc hook (every RTC read 0xFF) poked during the boot: the fallback
   rtc_reset      MBC3 whose chip lost power (counter back at 0): it reads earlier than the kept clock: the fallback
-  set_once       MBC5: the same HOST CLOCK; after a power-off the clock resumes where it stopped, stale, with the drift
+  set_once       MBC5: the same HOST CLOCK; after a power-off the clock resumes where it stopped, stale, and on the 2nd power-on the drift
                  prompt; SETUP > CLOCK re-sets it (an hour on) and the prompt goes
   first_ask      MBC5, blank save: PRESS START asks WHAT IS TODAY? once; A keeps it and the run starts
   move_5_to_3    the MBC5 save boots on the RTC build: the kept clock carries over (stale) until it is set; a set
@@ -249,8 +249,8 @@ def main() -> int:
         report["rtc_no_chip"] = k
         kk = kept(sram_rtc_later)
         want = utc_secs(kk["days"], 0, 0) + kk["minute"] * 60 + kk["sec"]
-        check(k["rtc"] == RTC_DEAD and k["quality"] == CLK_STALE and k["drift"] == 1 and near(k, want, 30),
-              f"rtc_no_chip: the set-once fallback resumes the kept clock, stale, with the prompt: {k}")
+        check(k["rtc"] == RTC_DEAD and k["quality"] == CLK_STALE and k["drift"] == 0 and near(k, want, 30),
+              f"rtc_no_chip: the set-once fallback resumes the kept clock, stale, no prompt on the 1st power-on since the last good time: {k}")
         c.shot(a.shots / "rtc_no_chip_title.png")
         c.stop()
 
@@ -263,7 +263,7 @@ def main() -> int:
     check(c.boot(poke_bus), "rtc_open_bus: boots")
     k = c.clock()
     report["rtc_open_bus"] = k
-    check(k["rtc"] == RTC_DEAD and k["quality"] == CLK_STALE and k["drift"] == 1,
+    check(k["rtc"] == RTC_DEAD and k["quality"] == CLK_STALE and k["drift"] == 0,
           f"rtc_open_bus: RTC reads of 0xFF fall back to the set-once clock: {k}")
     c.stop()
 
@@ -289,8 +289,16 @@ def main() -> int:
     check(c.boot(), "set_once: boots again")
     k = c.clock()
     report["set_once_resumed"] = k
-    check(k["quality"] == CLK_STALE and k["drift"] == 1 and near(k, noon, 60),
-          f"set_once: after a power-off it resumes where it stopped (stale, drift prompt): {k}, kept {stopped}")
+    check(k["quality"] == CLK_STALE and k["drift"] == 0 and near(k, noon, 60),
+          f"set_once: after a power-off it resumes where it stopped (stale, no prompt on the 1st power-on): {k}, "
+          f"kept {stopped}")
+    sram, _ = c.stop()
+    c = Cart(a.rom5, sram)
+    check(c.boot(), "set_once: boots a 3rd time")
+    k = c.clock()
+    report["set_once_resumed2"] = k
+    check(k["quality"] == CLK_STALE and k["drift"] == 1,
+          f"set_once: the 2nd power-on after the set shows the gentle prompt: {k}")
     for _ in range(3):  # the clock row cycles: date, MAY HAVE DRIFTED, SELECT TO SET IT
         c.tick(64)
         c.shot(a.shots / f"mbc5_drift_{_}.png")
@@ -336,7 +344,7 @@ def main() -> int:
     check(c.boot(), "move_5_to_3: the MBC5 save boots on the RTC build")
     k = c.clock()
     report["move_5_to_3"] = k
-    check(k["rtc"] == RTC_UNANCHORED and k["quality"] == CLK_STALE and k["drift"] == 1 and near(k, noon, 60),
+    check(k["rtc"] == RTC_UNANCHORED and k["quality"] == CLK_STALE and k["drift"] == 0 and near(k, noon, 60),
           f"move_5_to_3: the kept clock carries over, stale, until it is set: {k}")
     sram, rtc = c.stop()
     sram = bytearray(sram)
@@ -359,7 +367,7 @@ def main() -> int:
     kk = kept(sram_rtc_later)
     want = utc_secs(kk["days"], 0, 0) + kk["minute"] * 60 + kk["sec"]
     sram, _ = c.stop()
-    check(k["quality"] == CLK_STALE and k["drift"] == 1 and near(k, want, 30),
+    check(k["quality"] == CLK_STALE and k["drift"] == 0 and near(k, want, 30),
           f"move_3_to_5: the kept clock carries over, stale: {k}")
     check(sram[SRAM_RTC:SRAM_RTC + 16] == sram_rtc_later[SRAM_RTC:SRAM_RTC + 16] and sram[:0x40] == sram_rtc_later[:0x40],
           "move_3_to_5: the RTC block and the meta records are left alone")
