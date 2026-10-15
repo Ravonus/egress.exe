@@ -1,0 +1,14 @@
+
+Running 9 tests using 1 worker
+
+  ✓  1 [desktop] › browser-tests/chromatic.spec.ts:3:1 › Chromatic preview selects by capability and never calls hardware or uploads data (518ms)
+  ✓  2 [desktop] › browser-tests/chromatic.spec.ts:34:1 › On glass opens the preview in another tab and keeps the existing room (3.9s)
+  ✓  3 [desktop] › browser-tests/chromatic.spec.ts:47:1 › leaving Play offers Chromatic in the action strip without changing its controls (8.8s)
+  ✓  4 [tablet] › browser-tests/chromatic.spec.ts:3:1 › Chromatic preview selects by capability and never calls hardware or uploads data (398ms)
+  ✓  5 [tablet] › browser-tests/chromatic.spec.ts:34:1 › On glass opens the preview in another tab and keeps the existing room (2.7s)
+  ✓  6 [tablet] › browser-tests/chromatic.spec.ts:47:1 › leaving Play offers Chromatic in the action strip without changing its controls (9.0s)
+  ✓  7 [phone] › browser-tests/chromatic.spec.ts:3:1 › Chromatic preview selects by capability and never calls hardware or uploads data (465ms)
+  ✓  8 [phone] › browser-tests/chromatic.spec.ts:34:1 › On glass opens the preview in another tab and keeps the existing room (2.2s)
+  ✓  9 [phone] › browser-tests/chromatic.spec.ts:47:1 › leaving Play offers Chromatic in the action strip without changing its controls (6.1s)
+
+  9 passed (51.4s)

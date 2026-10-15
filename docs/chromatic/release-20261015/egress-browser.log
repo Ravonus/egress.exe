@@ -1,0 +1,86 @@
+[WebServer] (node:89269) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 78 tests using 1 worker
+
+(node:89282) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [desktop] › browser-tests/entrypoints.spec.ts:17:3 › the Play game action boots the real cartridge on the room's handheld (17.3s)
+  ✓   2 [desktop] › browser-tests/entrypoints.spec.ts:17:3 › clicking the handheld in PLAY boots the real cartridge on the room's handheld (20.0s)
+  ✓   3 [desktop] › browser-tests/entrypoints.spec.ts:17:3 › clicking the waiting cartridge in ASSEMBLE boots the real cartridge on the room's handheld (16.0s)
+  ✓   4 [desktop] › browser-tests/entrypoints.spec.ts:17:3 › Play now in WHERE TO PLAY boots the real cartridge on the room's handheld (10.8s)
+  ✓   5 [desktop] › browser-tests/entrypoints.spec.ts:32:1 › How to Play goes to the notes, and the header reaches How it works (3.6s)
+  ✓   6 [desktop] › browser-tests/entrypoints.spec.ts:43:1 › the first screen is the room with Play in reach, and the rooms below the tour are all there (4.8s)
+  ✓   7 [desktop] › browser-tests/package.spec.ts:7:1 › the rail lists the seven chapters and jumps to each one (30.7s)
+  ✓   8 [desktop] › browser-tests/package.spec.ts:20:1 › scrolling plays the tour forward and back, chapter by chapter (32.8s)
+  ✓   9 [desktop] › browser-tests/package.spec.ts:32:1 › a shell colour is chosen on the tour and remembered (7.5s)
+  ✓  10 [desktop] › browser-tests/package.spec.ts:49:1 › Find the Door glides from WAKE to EGRESS, and the door does not start the game (7.9s)
+  ✓  11 [desktop] › browser-tests/package.spec.ts:56:1 › Play from WAKE plays the tour to PLAY first, Back to tour and Esc return there (20.2s)
+  ✓  12 [desktop] › browser-tests/package.spec.ts:75:1 › keys drive the cartridge, the save backup is egress-<sha12>.sav and volume is kept (26.8s)
+  ✓  13 [desktop] › browser-tests/package.spec.ts:105:1 › the ROM downloads as EGRESS.EXE.gbc with the exact trimmed cartridge bytes (2.8s)
+  ✓  14 [desktop] › browser-tests/package.spec.ts:119:1 › full screen keeps the 160x144 aspect with the controls outside the picture, and Esc steps back out (18.2s)
+  ✓  15 [desktop] › browser-tests/package.spec.ts:146:1 › a cancelled emulator download can be retried, and the stale download cannot start play (13.4s)
+  ✓  16 [desktop] › browser-tests/package.spec.ts:162:1 › reduced motion: the rail jumps, Play still enters the same game (7.9s)
+  ✓  17 [desktop] › browser-tests/package.spec.ts:173:1 › without WebGL the room falls back to the plain handheld and the real emulator (2.6s)
+  ✓  18 [desktop] › browser-tests/package.spec.ts:195:1 › standard gamepad polling releases inputs on disconnect and accepts a reconnect (12.7s)
+  -  19 [desktop] › browser-tests/package.spec.ts:215:1 › two native touches on the on-screen pad stay independently held and cancel cleanly
+  ✓  20 [desktop] › browser-tests/recovery.spec.ts:4:1 › the room survives a full-page capture, a resize and going offscreen, on the same chapter (34.9s)
+  ✓  21 [desktop] › browser-tests/recovery.spec.ts:38:1 › a failed cartridge download offers Retry game, and the retry plays (17.4s)
+  ✓  22 [desktop] › browser-tests/recovery.spec.ts:52:1 › leaving play by Back to tour or a hidden tab pauses, and play resumes the same session (30.2s)
+  ✓  23 [desktop] › browser-tests/user-flow.spec.ts:7:1 › a visitor tours the room, plays the cartridge from the handheld and comes back out (2.4m)
+  -  24 [desktop] › browser-tests/user-flow.spec.ts:95:1 › the trailer opens over the tour and Esc closes it to exactly the same spot
+  ✓  25 [desktop] › browser-tests/user-flow.spec.ts:128:1 › until the trailer is cut there is no trailer to open, and /trailer/ says so (8.1s)
+  ✓  26 [desktop] › browser-tests/user-flow.spec.ts:145:1 › the How it works page stands on its own and leads back to the room (4.0s)
+(node:1130) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  27 [tablet] › browser-tests/entrypoints.spec.ts:17:3 › the Play game action boots the real cartridge on the room's handheld (19.7s)
+  ✘  28 [tablet] › browser-tests/entrypoints.spec.ts:17:3 › clicking the handheld in PLAY boots the real cartridge on the room's handheld (23.5s)
+
+
+  1) [tablet] › browser-tests/entrypoints.spec.ts:17:3 › clicking the handheld in PLAY boots the real cartridge on the room's handheld 
+
+    Test was interrupted.
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  locator('.package-canvas')
+    Expected: "handheld"
+    Received: ""
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 15000ms
+      - waiting for locator('.package-canvas')
+      - Protocol error (Runtime.callFunctionOn): Internal server error, session closed.
+
+
+       at egress.ts:77
+
+      75 | export async function expectPlaying(page: Page) {
+      76 |   await expect(page.locator(".package-experience")).toHaveClass(/\bis-playing\b/);
+    > 77 |   await expect(stage(page)).toHaveAttribute("data-tour-phase", "handheld");
+         |                             ^
+      78 |   await expect(playButton(page)).toHaveText("Pause game", { timeout: 60_000 });
+      79 | }
+      80 |
+        at expectPlaying (/private/tmp/chromatic-release/egress/browser-tests/egress.ts:77:29)
+        at /private/tmp/chromatic-release/egress/browser-tests/entrypoints.spec.ts:22:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/entrypoints-clicking-the-h-0785f-idge-on-the-room-s-handheld-tablet/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/entrypoints-clicking-the-h-0785f-idge-on-the-room-s-handheld-tablet/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/entrypoints-clicking-the-h-0785f-idge-on-the-room-s-handheld-tablet/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/entrypoints-clicking-the-h-0785f-idge-on-the-room-s-handheld-tablet/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 interrupted
+    [tablet] › browser-tests/entrypoints.spec.ts:17:3 › clicking the handheld in PLAY boots the real cartridge on the room's handheld 
+  2 skipped
+  50 did not run
+  25 passed (9.1m)

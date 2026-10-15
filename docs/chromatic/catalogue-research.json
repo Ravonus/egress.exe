@@ -1,0 +1,386 @@
+{
+  "schemaVersion": 1,
+  "status": "research-only; not an install allowlist",
+  "observedAt": "2026-10-15",
+  "historyComplete": false,
+  "gaps": [
+    "Historical Shiny releases lack a located public image index",
+    "Official download hashes need normalized chip-payload hashes",
+    "Unknown images must never be inferred stock"
+  ],
+  "entries": [
+    {
+      "publisher": "ModRetro",
+      "component": "mcu",
+      "releaseTag": "v4.6",
+      "source": "https://github.com/ModRetro/oss-chromatic-console-mcu/releases/tag/v4.6",
+      "sourceLicense": "GPL-3.0 with component-specific notices",
+      "redistribution": "not-approved",
+      "assets": [
+        {
+          "name": "merged-flash_117777e.bin",
+          "bytes": 846608,
+          "sha256": "d65884c9f73c1d26d9ffeffe12808e7495b1058e6cb643fab76e4fcc5bf80d77",
+          "hashScope": "download-file",
+          "evidence": "GitHub release asset digest; binary not downloaded",
+          "url": "https://github.com/ModRetro/oss-chromatic-console-mcu/releases/download/v4.6/merged-flash_117777e.bin",
+          "flashPayloadSha256": null
+        }
+      ],
+      "status": "metadata-only"
+    },
+    {
+      "publisher": "ModRetro",
+      "component": "mcu",
+      "releaseTag": "v4.5",
+      "source": "https://github.com/ModRetro/oss-chromatic-console-mcu/releases/tag/v4.5",
+      "sourceLicense": "GPL-3.0 with component-specific notices",
+      "redistribution": "not-approved",
+      "assets": [
+        {
+          "name": "merged-flash_bf29f3f.bin",
+          "bytes": 846608,
+          "sha256": "34bfdb6dcdaacd51ec94790ed5dd6db15742033719b2e19b72b93f8295035cbb",
+          "hashScope": "download-file",
+          "evidence": "GitHub release asset digest; binary not downloaded",
+          "url": "https://github.com/ModRetro/oss-chromatic-console-mcu/releases/download/v4.5/merged-flash_bf29f3f.bin",
+          "flashPayloadSha256": null
+        }
+      ],
+      "status": "metadata-only"
+    },
+    {
+      "publisher": "ModRetro",
+      "component": "mcu",
+      "releaseTag": "v4.2",
+      "source": "https://github.com/ModRetro/oss-chromatic-console-mcu/releases/tag/v4.2",
+      "sourceLicense": "GPL-3.0 with component-specific notices",
+      "redistribution": "not-approved",
+      "assets": [
+        {
+          "name": "v0.13.4.bin",
+          "bytes": 797776,
+          "sha256": "f936c98b7d5e07299c0e0441d1f99dd88c4be875188e5cda14fc66a3f4ca84a8",
+          "hashScope": "download-file",
+          "evidence": "GitHub release asset digest; binary not downloaded",
+          "url": "https://github.com/ModRetro/oss-chromatic-console-mcu/releases/download/v4.2/v0.13.4.bin",
+          "flashPayloadSha256": null
+        }
+      ],
+      "status": "metadata-only"
+    },
+    {
+      "publisher": "ModRetro",
+      "component": "mcu",
+      "releaseTag": "v0.13.4",
+      "source": "https://github.com/ModRetro/oss-chromatic-console-mcu/releases/tag/v0.13.4",
+      "sourceLicense": "GPL-3.0 with component-specific notices",
+      "redistribution": "not-approved",
+      "assets": [
+        {
+          "name": "v0.13.4.bin",
+          "bytes": 759536,
+          "sha256": "e9c521a6ed50226746b2d04cd5e6ed6b6539f4bef347e6289eaa7830fbd95d90",
+          "hashScope": "download-file",
+          "evidence": "GitHub release asset digest; binary not downloaded",
+          "url": "https://github.com/ModRetro/oss-chromatic-console-mcu/releases/download/v0.13.4/v0.13.4.bin",
+          "flashPayloadSha256": null
+        }
+      ],
+      "status": "metadata-only"
+    },
+    {
+      "publisher": "ModRetro",
+      "component": "mcu",
+      "releaseTag": "v0.13.3",
+      "source": "https://github.com/ModRetro/oss-chromatic-console-mcu/releases/tag/v0.13.3",
+      "sourceLicense": "GPL-3.0 with component-specific notices",
+      "redistribution": "not-approved",
+      "assets": [
+        {
+          "name": "v0.13.3.bin",
+          "bytes": 792048,
+          "sha256": "765248e997f50195f2c9b24a8ddb2bde8c2043f1f485778ebffe8005c89d797a",
+          "hashScope": "download-file",
+          "evidence": "GitHub release asset digest; binary not downloaded",
+          "url": "https://github.com/ModRetro/oss-chromatic-console-mcu/releases/download/v0.13.3/v0.13.3.bin",
+          "flashPayloadSha256": null
+        }
+      ],
+      "status": "metadata-only"
+    },
+    {
+      "publisher": "ModRetro",
+      "component": "mcu",
+      "releaseTag": "v0.13.2",
+      "source": "https://github.com/ModRetro/oss-chromatic-console-mcu/releases/tag/v0.13.2",
+      "sourceLicense": "GPL-3.0 with component-specific notices",
+      "redistribution": "not-approved",
+      "assets": [
+        {
+          "name": "v0.13.2.bin",
+          "bytes": 758912,
+          "sha256": "f8d0b5487c44b9efa5e6716074ef10b3bd4728ebfaf8e185d5df56fea315d5b1",
+          "hashScope": "download-file",
+          "evidence": "GitHub release asset digest; binary not downloaded",
+          "url": "https://github.com/ModRetro/oss-chromatic-console-mcu/releases/download/v0.13.2/v0.13.2.bin",
+          "flashPayloadSha256": null
+        }
+      ],
+      "status": "metadata-only"
+    },
+    {
+      "publisher": "ModRetro",
+      "component": "mcu",
+      "releaseTag": "v0.13.0",
+      "source": "https://github.com/ModRetro/oss-chromatic-console-mcu/releases/tag/v0.13.0",
+      "sourceLicense": "GPL-3.0 with component-specific notices",
+      "redistribution": "not-approved",
+      "assets": [
+        {
+          "name": "v0.13.0.bin",
+          "bytes": 758160,
+          "sha256": "a6049997bdd3541a96be749b6c250abc2a9247ea24961c28192b4c2af8d0ccca",
+          "hashScope": "download-file",
+          "evidence": "GitHub release asset digest; binary not downloaded",
+          "url": "https://github.com/ModRetro/oss-chromatic-console-mcu/releases/download/v0.13.0/v0.13.0.bin",
+          "flashPayloadSha256": null
+        }
+      ],
+      "status": "metadata-only"
+    },
+    {
+      "publisher": "ModRetro",
+      "component": "fpga",
+      "releaseTag": "v18.14",
+      "source": "https://github.com/ModRetro/oss-chromatic-console-fpga/releases/tag/v18.14",
+      "sourceLicense": "GPL-3.0 with component-specific notices",
+      "redistribution": "not-approved",
+      "assets": [
+        {
+          "name": "V18_14_14d4d7ba30da12477dd8f0af739b6e5ef7653805.fs",
+          "bytes": 7465794,
+          "sha256": "3e37ee1f3b3aa8bce2075f6e8217053023114ce21c46492c65269577f0277fde",
+          "hashScope": "download-file",
+          "evidence": "GitHub release asset digest; binary not downloaded",
+          "url": "https://github.com/ModRetro/oss-chromatic-console-fpga/releases/download/v18.14/V18_14_14d4d7ba30da12477dd8f0af739b6e5ef7653805.fs",
+          "flashPayloadSha256": null
+        }
+      ],
+      "status": "metadata-only"
+    },
+    {
+      "publisher": "ModRetro",
+      "component": "fpga",
+      "releaseTag": "v18.13",
+      "source": "https://github.com/ModRetro/oss-chromatic-console-fpga/releases/tag/v18.13",
+      "sourceLicense": "GPL-3.0 with component-specific notices",
+      "redistribution": "not-approved",
+      "assets": [
+        {
+          "name": "18_13_7b51d328f51e6e2de0ece05c60e4426588501897.fs",
+          "bytes": 7465794,
+          "sha256": "e34168129d43e00a789d82bae2501b33ecf4e0055762e12799fbd70afc31ba51",
+          "hashScope": "download-file",
+          "evidence": "GitHub release asset digest; binary not downloaded",
+          "url": "https://github.com/ModRetro/oss-chromatic-console-fpga/releases/download/v18.13/18_13_7b51d328f51e6e2de0ece05c60e4426588501897.fs",
+          "flashPayloadSha256": null
+        }
+      ],
+      "status": "metadata-only"
+    },
+    {
+      "publisher": "ModRetro",
+      "component": "fpga",
+      "releaseTag": "v18.8",
+      "source": "https://github.com/ModRetro/oss-chromatic-console-fpga/releases/tag/v18.8",
+      "sourceLicense": "GPL-3.0 with component-specific notices",
+      "redistribution": "not-approved",
+      "assets": [
+        {
+          "name": "v18.8_20251224.fs",
+          "bytes": 7394393,
+          "sha256": "7f5c7811d260f850dfba408178748a5c1aab803f7419bcb34adde70395a7a8af",
+          "hashScope": "download-file",
+          "evidence": "GitHub release asset digest; binary not downloaded",
+          "url": "https://github.com/ModRetro/oss-chromatic-console-fpga/releases/download/v18.8/v18.8_20251224.fs",
+          "flashPayloadSha256": null
+        }
+      ],
+      "status": "metadata-only"
+    },
+    {
+      "publisher": "ModRetro",
+      "component": "fpga",
+      "releaseTag": "v18.7",
+      "source": "https://github.com/ModRetro/oss-chromatic-console-fpga/releases/tag/v18.7",
+      "sourceLicense": "GPL-3.0 with component-specific notices",
+      "redistribution": "not-approved",
+      "assets": [
+        {
+          "name": "20251017_v18_7.fs",
+          "bytes": 7447429,
+          "sha256": "9428538abb02e701273bb1b4626f003ac995e267993ae4e70319fac2cdb06ceb",
+          "hashScope": "download-file",
+          "evidence": "GitHub release asset digest; binary not downloaded",
+          "url": "https://github.com/ModRetro/oss-chromatic-console-fpga/releases/download/v18.7/20251017_v18_7.fs",
+          "flashPayloadSha256": null
+        }
+      ],
+      "status": "metadata-only"
+    },
+    {
+      "publisher": "ModRetro",
+      "component": "fpga",
+      "releaseTag": "v18.6",
+      "source": "https://github.com/ModRetro/oss-chromatic-console-fpga/releases/tag/v18.6",
+      "sourceLicense": "GPL-3.0 with component-specific notices",
+      "redistribution": "not-approved",
+      "assets": [
+        {
+          "name": "20250926_v18.6.fs",
+          "bytes": 7394225,
+          "sha256": "4d3fc39ba93e91f8963cf326fe1fc4ab109620054d2ce40d4f5810d03ba69455",
+          "hashScope": "download-file",
+          "evidence": "GitHub release asset digest; binary not downloaded",
+          "url": "https://github.com/ModRetro/oss-chromatic-console-fpga/releases/download/v18.6/20250926_v18.6.fs",
+          "flashPayloadSha256": null
+        }
+      ],
+      "status": "metadata-only"
+    },
+    {
+      "publisher": "ModRetro",
+      "component": "fpga",
+      "releaseTag": "v18.5",
+      "source": "https://github.com/ModRetro/oss-chromatic-console-fpga/releases/tag/v18.5",
+      "sourceLicense": "GPL-3.0 with component-specific notices",
+      "redistribution": "not-approved",
+      "assets": [
+        {
+          "name": "20250430_v18_5.fs",
+          "bytes": 7340761,
+          "sha256": "e949010c36cde1489612fa52d44b114b694fa4789b8c12e8b554f301eacfe78b",
+          "hashScope": "download-file",
+          "evidence": "GitHub release asset digest; binary not downloaded",
+          "url": "https://github.com/ModRetro/oss-chromatic-console-fpga/releases/download/v18.5/20250430_v18_5.fs",
+          "flashPayloadSha256": null
+        }
+      ],
+      "status": "metadata-only"
+    },
+    {
+      "publisher": "ModRetro",
+      "component": "fpga",
+      "releaseTag": "v18.4",
+      "source": "https://github.com/ModRetro/oss-chromatic-console-fpga/releases/tag/v18.4",
+      "sourceLicense": "GPL-3.0 with component-specific notices",
+      "redistribution": "not-approved",
+      "assets": [
+        {
+          "name": "20250220_v18_4.fs",
+          "bytes": 7394409,
+          "sha256": "523d65acbed11b41cc9422c1a52b828102fe3c1a93bad5d2f98b69a5d17a54b0",
+          "hashScope": "download-file",
+          "evidence": "GitHub release asset digest; binary not downloaded",
+          "url": "https://github.com/ModRetro/oss-chromatic-console-fpga/releases/download/v18.4/20250220_v18_4.fs",
+          "flashPayloadSha256": null
+        }
+      ],
+      "status": "metadata-only"
+    },
+    {
+      "publisher": "ModRetro",
+      "component": "fpga",
+      "releaseTag": "v18.0",
+      "source": "https://github.com/ModRetro/oss-chromatic-console-fpga/releases/tag/v18.0",
+      "sourceLicense": "GPL-3.0 with component-specific notices",
+      "redistribution": "not-approved",
+      "assets": [],
+      "status": "source-release-no-binary-asset"
+    },
+    {
+      "publisher": "ModRetro",
+      "component": "fpga",
+      "releaseTag": "v17.0",
+      "source": "https://github.com/ModRetro/oss-chromatic-console-fpga/releases/tag/v17.0",
+      "sourceLicense": "GPL-3.0 with component-specific notices",
+      "redistribution": "not-approved",
+      "assets": [],
+      "status": "source-release-no-binary-asset"
+    },
+    {
+      "publisher": "Shiny Relay",
+      "releaseTag": "shiny-relay-esp1.0.2-fpga18.21",
+      "source": "https://install.shinyrelay.com/download/shiny-relay-src-1.0.2.tar.gz",
+      "sourceSha256": "b7a7c60f56b47f97f0f98898f0303e5225216900fc7086d8bac2f3777e3eb22f",
+      "sourceLicense": "GPL-3.0 with component-specific notices",
+      "redistribution": "not-approved",
+      "manifestUrl": "https://install.shinyrelay.com/images/manifest.json",
+      "manifestSha256": "66d5405a55c8825e97a4bb2a01daeb508e5ac6c9d91dfedf2ea4b4ad0c84df80",
+      "assets": [
+        {
+          "component": "esp32",
+          "offset": "0x1000",
+          "file": "esp/bootloader.bin",
+          "size": 26752,
+          "sha256": "ee0acbb903bf8b4cd9161cedf95f4cb721acbaafb21715908a5914049764cbbc",
+          "hashScope": "download-file-and-exact-length-flash-region"
+        },
+        {
+          "component": "esp32",
+          "offset": "0x8000",
+          "file": "esp/partition-table.bin",
+          "size": 3072,
+          "sha256": "73c0b5c3e5fcba3a151cc70c453c93dd5f4798899e7f2f8cca76da1f32ffc501",
+          "hashScope": "download-file-and-exact-length-flash-region"
+        },
+        {
+          "component": "esp32",
+          "offset": "0x10000",
+          "file": "esp/mcu_fw.bin",
+          "size": 1688000,
+          "sha256": "6c3ba555621b2d5ecba975a5d8f236e693323d475bb18067e16c2cdbf1b93465",
+          "hashScope": "download-file-and-exact-length-flash-region"
+        },
+        {
+          "component": "fpga",
+          "file": "fpga/evt1_x2_nwin.fs",
+          "size": 7447490,
+          "sha256": "e3aaa3f0ef3db6e4997b3692156c1ee91d3da694e1a2e684ebf63c3d7d54a83e",
+          "payload_size": 928574,
+          "payload_sha256": "44d90aa880f3ba0c32eb43f30d772c0f3e48ebdd9990bda27cfb70baf6674b7e",
+          "version": "18.21",
+          "debug_bit": 1,
+          "tool": "V1.9.12.04 (89079)",
+          "source": {
+            "commit": "9136eb73ca175ff0caaed6bc7cc5143195a8f6a0",
+            "branch": "cwl1",
+            "dirty": false,
+            "upstream": "https://github.com/ModRetro/oss-chromatic-console-fpga.git"
+          },
+          "hashScope": "download-file; payload_sha256 is flash payload only"
+        }
+      ],
+      "status": "publisher-manifest; only partition-table bytes independently checked"
+    },
+    {
+      "publisher": "Shiny Relay",
+      "component": "cart-engine-sram",
+      "releaseTag": "c4aebde587b8",
+      "source": "https://install.shinyrelay.com/download/shiny-relay-src-cart-engine-c4aebde587b8.tar.gz",
+      "sourceSha256": "d2b28c95647c479106ca07691924139624226e8f87b78e823a5e1d4b937841e3",
+      "sourceLicense": "GPL-3.0 and component-specific notices",
+      "redistribution": "not-approved",
+      "assets": [
+        {
+          "sha256": "6e30f490e9d4702f5a96f63e368afb56802ba7c9e38544428302b8fbd10204ee",
+          "bytes": 7341130,
+          "hashScope": "download-file",
+          "evidence": "cart/config.js; image not downloaded"
+        }
+      ],
+      "status": "owner archive equals published source archive"
+    }
+  ]
+}

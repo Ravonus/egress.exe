@@ -1,0 +1,10 @@
+{
+  "egress": {
+    "homepageSha256": "06350e50456818f5135c20c51b1d514627ac4404047308b7ac5b80b62fb0e387",
+    "matchesBuild": true
+  },
+  "crucible": {
+    "homepageSha256": "aeae088b6e7b85f733fd203358639d24524cf7e86b203337b3a9a5ac920e3e07",
+    "matchesBuild": true
+  }
+}

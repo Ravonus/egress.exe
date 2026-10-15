@@ -1,0 +1,118 @@
+[WebServer] (node:98161) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 36 tests using 1 worker
+
+(node:98205) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   1 [desktop] › browser-tests/entrypoints.spec.ts:3:1 › record the served build's visible Play and physical booklet entrypoints (1.1m)
+(node:99794) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   2 [desktop] › browser-tests/package.spec.ts:34:1 › illustrated physical pages remain visible through all six page turns and viewport captures (1.1m)
+(node:1908) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   3 [desktop] › browser-tests/package.spec.ts:47:1 › one KEEL scene opens, extracts its booklet, turns pages and starts the real cartridge (12.0s)
+
+
+  1) [desktop] › browser-tests/entrypoints.spec.ts:3:1 › record the served build's visible Play and physical booklet entrypoints 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('link', { name: 'Play', exact: true })
+
+
+       9 |   const snap=async(name:string)=>events.push({name,requests:[...requests],state:await page.evaluate(()=>({scrollY,viewport:innerHeight,canvas:document.querySelector(".package-canvas")!.getBoundingClientRect().toJSON(),active:document.activeElement?.className,heading:document.querySelector("#booklet-title")?.textContent,player:document.querySelector(".player-status")?.textContent,video:document.querySelector(".game-canvas")?.getAttribute("data-video-revision")}))});
+      10 |   await snap("initial-first-screen");
+    > 11 |   await page.getByRole("link",{name:"Play",exact:true}).click();
+         |                                                         ^
+      12 |   await snap("navigation-Play");
+      13 |   expect(requests).toEqual([]);
+      14 |   await page.getByRole("button",{name:/Read the booklet/}).click();
+        at /private/tmp/chromatic-release/crucible/browser-tests/entrypoints.spec.ts:11:57
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/entrypoints-record-the-ser-f7d2f-hysical-booklet-entrypoints-desktop/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/entrypoints-record-the-ser-f7d2f-hysical-booklet-entrypoints-desktop/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/entrypoints-record-the-ser-f7d2f-hysical-booklet-entrypoints-desktop/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/entrypoints-record-the-ser-f7d2f-hysical-booklet-entrypoints-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [desktop] › browser-tests/package.spec.ts:34:1 › illustrated physical pages remain visible through all six page turns and viewport captures 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: /Read the booklet/ })
+
+
+      34 | test("illustrated physical pages remain visible through all six page turns and viewport captures",async({page},testInfo)=>{
+      35 |   await page.goto("/");await expect(stage(page)).toHaveAttribute("data-scene-status","ready");
+    > 36 |   await page.getByRole("button",{name:/Read the booklet/}).click();
+         |                                                            ^
+      37 |   for(let index=0;index<6;index++){
+      38 |     if(index)await page.getByRole("button",{name:"Next →",exact:true}).click();
+      39 |     await stage(page).scrollIntoViewIfNeeded();await expect(stage(page)).toHaveAttribute("data-animation-settled","true");
+        at /private/tmp/chromatic-release/crucible/browser-tests/package.spec.ts:36:60
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/package-illustrated-physic-53af6-turns-and-viewport-captures-desktop/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/package-illustrated-physic-53af6-turns-and-viewport-captures-desktop/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/package-illustrated-physic-53af6-turns-and-viewport-captures-desktop/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/package-illustrated-physic-53af6-turns-and-viewport-captures-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [desktop] › browser-tests/package.spec.ts:47:1 › one KEEL scene opens, extracts its booklet, turns pages and starts the real cartridge 
+
+    Test was interrupted.
+
+    Error: locator.click: Test ended.
+    Call log:
+      - waiting for getByRole('button', { name: /Open the box/ })
+
+
+      56 |   await stage(page).scrollIntoViewIfNeeded();await expect(stage(page)).toHaveAttribute("data-animation-settled","true");
+      57 |   await page.screenshot({ path: testInfo.outputPath("box.png"), fullPage: true });
+    > 58 |   await page.getByRole("button", { name: /Open the box/ }).click();
+         |                                                            ^
+      59 |   await expect(page.getByRole("button", { name: /Box open/ })).toHaveAttribute("aria-pressed", "true");
+      60 |   await page.getByRole("button", { name: /Read the booklet/ }).click();
+      61 |   await expect(page.getByRole("heading", { name: "Welcome to the bench." })).toBeVisible();
+        at /private/tmp/chromatic-release/crucible/browser-tests/package.spec.ts:58:60
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/package-one-KEEL-scene-ope-98229-d-starts-the-real-cartridge-desktop/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/package-one-KEEL-scene-ope-98229-d-starts-the-real-cartridge-desktop/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/package-one-KEEL-scene-ope-98229-d-starts-the-real-cartridge-desktop/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/package-one-KEEL-scene-ope-98229-d-starts-the-real-cartridge-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [desktop] › browser-tests/entrypoints.spec.ts:3:1 › record the served build's visible Play and physical booklet entrypoints 
+    [desktop] › browser-tests/package.spec.ts:34:1 › illustrated physical pages remain visible through all six page turns and viewport captures 
+  1 interrupted
+    [desktop] › browser-tests/package.spec.ts:47:1 › one KEEL scene opens, extracts its booklet, turns pages and starts the real cartridge 
+  33 did not run

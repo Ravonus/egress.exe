@@ -1,0 +1,180 @@
+
+Running 58 tests using 2 workers
+
+  ✓   1 [tablet] › browser-tests/chromatic.spec.ts:3:1 › Chromatic preview selects by capability and never calls hardware or uploads data (970ms)
+  ✓   3 [tablet] › browser-tests/chromatic.spec.ts:34:1 › On glass opens the preview in another tab and keeps the existing room (2.5s)
+  ✓   2 [tablet] › browser-tests/entrypoints.spec.ts:17:3 › the Play game action boots the real cartridge on the room's handheld (9.6s)
+  ✘   4 [tablet] › browser-tests/chromatic.spec.ts:47:1 › leaving Play offers Chromatic below the game without changing its controls (16.4s)
+  ✓   5 [tablet] › browser-tests/entrypoints.spec.ts:17:3 › clicking the handheld in PLAY boots the real cartridge on the room's handheld (15.2s)
+  ✓   7 [tablet] › browser-tests/entrypoints.spec.ts:17:3 › clicking the waiting cartridge in ASSEMBLE boots the real cartridge on the room's handheld (13.8s)
+  ✓   8 [tablet] › browser-tests/entrypoints.spec.ts:17:3 › Play now in WHERE TO PLAY boots the real cartridge on the room's handheld (8.9s)
+  ✓   9 [tablet] › browser-tests/entrypoints.spec.ts:32:1 › How to Play goes to the notes, and the header reaches How it works (3.4s)
+  ✓  10 [tablet] › browser-tests/entrypoints.spec.ts:43:1 › the first screen is the room with Play in reach, and the rooms below the tour are all there (4.9s)
+  ✓   6 [tablet] › browser-tests/package.spec.ts:7:1 › the rail lists the seven chapters and jumps to each one (39.1s)
+  ✓  11 [tablet] › browser-tests/recovery.spec.ts:4:1 › the room survives a full-page capture, a resize and going offscreen, on the same chapter (48.1s)
+  ✓  13 [tablet] › browser-tests/recovery.spec.ts:38:1 › a failed cartridge download offers Retry game, and the retry plays (15.9s)
+  ✘  12 [tablet] › browser-tests/package.spec.ts:20:1 › scrolling plays the tour forward and back, chapter by chapter (1.1m)
+  ✓  15 [tablet] › browser-tests/package.spec.ts:32:1 › a shell colour is chosen on the tour and remembered (17.3s)
+  ✓  14 [tablet] › browser-tests/recovery.spec.ts:52:1 › leaving play by Back to tour or a hidden tab pauses, and play resumes the same session (29.1s)
+  ✓  16 [tablet] › browser-tests/package.spec.ts:49:1 › Find the Door glides from WAKE to EGRESS, and the door does not start the game (14.8s)
+  ✓  18 [tablet] › browser-tests/package.spec.ts:56:1 › Play from WAKE plays the tour to PLAY first, Back to tour and Esc return there (28.5s)
+  ✓  19 [tablet] › browser-tests/package.spec.ts:75:1 › keys drive the cartridge, the save backup is egress-<sha12>.sav and volume is kept (24.4s)
+  ✓  20 [tablet] › browser-tests/package.spec.ts:105:1 › the ROM downloads as EGRESS.EXE.gbc with the exact trimmed cartridge bytes (4.7s)
+  ✓  21 [tablet] › browser-tests/package.spec.ts:119:1 › full screen keeps the 160x144 aspect with the controls outside the picture, and Esc steps back out (40.7s)
+  ✓  22 [tablet] › browser-tests/package.spec.ts:146:1 › a cancelled emulator download can be retried, and the stale download cannot start play (15.3s)
+  ✓  23 [tablet] › browser-tests/package.spec.ts:162:1 › reduced motion: the rail jumps, Play still enters the same game (7.8s)
+  ✓  24 [tablet] › browser-tests/package.spec.ts:173:1 › without WebGL the room falls back to the plain handheld and the real emulator (2.6s)
+  ✓  25 [tablet] › browser-tests/package.spec.ts:195:1 › standard gamepad polling releases inputs on disconnect and accepts a reconnect (13.0s)
+  -  26 [tablet] › browser-tests/package.spec.ts:215:1 › two native touches on the on-screen pad stay independently held and cancel cleanly
+  ✓  27 [phone] › browser-tests/chromatic.spec.ts:3:1 › Chromatic preview selects by capability and never calls hardware or uploads data (386ms)
+  ✓  28 [phone] › browser-tests/chromatic.spec.ts:34:1 › On glass opens the preview in another tab and keeps the existing room (2.4s)
+  ✓  17 [tablet] › browser-tests/user-flow.spec.ts:7:1 › a visitor tours the room, plays the cartridge from the handheld and comes back out (2.7m)
+  -  30 [tablet] › browser-tests/user-flow.spec.ts:95:1 › the trailer opens over the tour and Esc closes it to exactly the same spot
+  ✓  31 [tablet] › browser-tests/user-flow.spec.ts:128:1 › until the trailer is cut there is no trailer to open, and /trailer/ says so (5.2s)
+  ✘  29 [phone] › browser-tests/chromatic.spec.ts:47:1 › leaving Play offers Chromatic below the game without changing its controls (16.0s)
+  ✓  32 [tablet] › browser-tests/user-flow.spec.ts:145:1 › the How it works page stands on its own and leads back to the room (2.1s)
+  ✓  33 [phone] › browser-tests/entrypoints.spec.ts:17:3 › the Play game action boots the real cartridge on the room's handheld (7.4s)
+  ✓  35 [phone] › browser-tests/entrypoints.spec.ts:17:3 › clicking the handheld in PLAY boots the real cartridge on the room's handheld (13.4s)
+  ✓  34 [phone] › browser-tests/package.spec.ts:7:1 › the rail lists the seven chapters and jumps to each one (26.9s)
+  ✓  36 [phone] › browser-tests/entrypoints.spec.ts:17:3 › clicking the waiting cartridge in ASSEMBLE boots the real cartridge on the room's handheld (12.1s)
+  ✓  38 [phone] › browser-tests/entrypoints.spec.ts:17:3 › Play now in WHERE TO PLAY boots the real cartridge on the room's handheld (6.8s)
+  ✓  39 [phone] › browser-tests/entrypoints.spec.ts:32:1 › How to Play goes to the notes, and the header reaches How it works (3.2s)
+  ✓  40 [phone] › browser-tests/entrypoints.spec.ts:43:1 › the first screen is the room with Play in reach, and the rooms below the tour are all there (3.7s)
+  ✓  37 [phone] › browser-tests/package.spec.ts:20:1 › scrolling plays the tour forward and back, chapter by chapter (29.0s)
+  ✓  42 [phone] › browser-tests/package.spec.ts:32:1 › a shell colour is chosen on the tour and remembered (5.4s)
+  ✓  41 [phone] › browser-tests/recovery.spec.ts:4:1 › the room survives a full-page capture, a resize and going offscreen, on the same chapter (19.9s)
+  ✓  43 [phone] › browser-tests/package.spec.ts:49:1 › Find the Door glides from WAKE to EGRESS, and the door does not start the game (7.1s)
+  ✓  44 [phone] › browser-tests/recovery.spec.ts:38:1 › a failed cartridge download offers Retry game, and the retry plays (8.1s)
+  ✓  45 [phone] › browser-tests/package.spec.ts:56:1 › Play from WAKE plays the tour to PLAY first, Back to tour and Esc return there (10.4s)
+  ✓  46 [phone] › browser-tests/recovery.spec.ts:52:1 › leaving play by Back to tour or a hidden tab pauses, and play resumes the same session (11.2s)
+  ✓  47 [phone] › browser-tests/package.spec.ts:75:1 › keys drive the cartridge, the save backup is egress-<sha12>.sav and volume is kept (8.0s)
+  ✓  49 [phone] › browser-tests/package.spec.ts:105:1 › the ROM downloads as EGRESS.EXE.gbc with the exact trimmed cartridge bytes (2.3s)
+  ✓  50 [phone] › browser-tests/package.spec.ts:119:1 › full screen keeps the 160x144 aspect with the controls outside the picture, and Esc steps back out (14.0s)
+  ✓  51 [phone] › browser-tests/package.spec.ts:146:1 › a cancelled emulator download can be retried, and the stale download cannot start play (7.0s)
+  ✓  52 [phone] › browser-tests/package.spec.ts:162:1 › reduced motion: the rail jumps, Play still enters the same game (7.0s)
+  ✓  53 [phone] › browser-tests/package.spec.ts:173:1 › without WebGL the room falls back to the plain handheld and the real emulator (2.4s)
+  ✓  54 [phone] › browser-tests/package.spec.ts:195:1 › standard gamepad polling releases inputs on disconnect and accepts a reconnect (9.1s)
+  ✓  55 [phone] › browser-tests/package.spec.ts:215:1 › two native touches on the on-screen pad stay independently held and cancel cleanly (9.6s)
+  ✓  48 [phone] › browser-tests/user-flow.spec.ts:7:1 › a visitor tours the room, plays the cartridge from the handheld and comes back out (56.3s)
+  -  56 [phone] › browser-tests/user-flow.spec.ts:95:1 › the trailer opens over the tour and Esc closes it to exactly the same spot
+  ✓  57 [phone] › browser-tests/user-flow.spec.ts:128:1 › until the trailer is cut there is no trailer to open, and /trailer/ says so (3.4s)
+  ✓  58 [phone] › browser-tests/user-flow.spec.ts:145:1 › the How it works page stands on its own and leads back to the room (1.5s)
+
+
+  1) [tablet] › browser-tests/chromatic.spec.ts:47:1 › leaving Play offers Chromatic below the game without changing its controls 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator: locator('.package-stage')
+    Expected: "ready"
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 15000ms
+      - waiting for locator('.package-stage')
+
+
+      48 |   test.setTimeout(120000);
+      49 |   await page.goto('/');
+    > 50 |   await expect(page.locator('.package-stage')).toHaveAttribute('data-scene-status','ready');
+         |                                                ^
+      51 |   await page.getByRole('button',{name:'Play game',exact:true}).click();
+      52 |   await expect(page.getByRole('button',{name:'Pause game',exact:true})).toBeEnabled({timeout:90000});
+      53 |   await page.getByRole('button',{name:'← Back to tour',exact:true}).click();
+        at /Users/chad/work/chromatic-preview-check-20261015/egress/browser-tests/chromatic.spec.ts:50:48
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/chromatic-leaving-Play-off-8cfe2-thout-changing-its-controls-tablet/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/chromatic-leaving-Play-off-8cfe2-thout-changing-its-controls-tablet/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/chromatic-leaving-Play-off-8cfe2-thout-changing-its-controls-tablet/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/chromatic-leaving-Play-off-8cfe2-thout-changing-its-controls-tablet/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [tablet] › browser-tests/package.spec.ts:20:1 › scrolling plays the tour forward and back, chapter by chapter 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.evaluate: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for locator('.package-canvas')
+
+
+       at egress.ts:55
+
+      53 |   await page.evaluate((y) => { document.documentElement.style.scrollBehavior = "auto"; window.scrollTo(0, y); }, top);
+      54 | }
+    > 55 | export const tourProgress = (page: Page) => stage(page).evaluate((node) => Number((node as HTMLCanvasElement).dataset.tourProgress));
+         |                                                         ^
+      56 |
+      57 | /** Chapter `index` is the one shown: the rail marks it, the stage carries its class, and the scene has reached its shot. */
+      58 | export async function expectChapter(page: Page, index: number) {
+        at tourProgress (/Users/chad/work/chromatic-preview-check-20261015/egress/browser-tests/egress.ts:55:57)
+        at expect.poll.message (/Users/chad/work/chromatic-preview-check-20261015/egress/browser-tests/egress.ts:61:27)
+        at expectChapter (/Users/chad/work/chromatic-preview-check-20261015/egress/browser-tests/egress.ts:61:3)
+        at /Users/chad/work/chromatic-preview-check-20261015/egress/browser-tests/package.spec.ts:25:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/package-scrolling-plays-th-26bdd-and-back-chapter-by-chapter-tablet/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/package-scrolling-plays-th-26bdd-and-back-chapter-by-chapter-tablet/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/package-scrolling-plays-th-26bdd-and-back-chapter-by-chapter-tablet/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/package-scrolling-plays-th-26bdd-and-back-chapter-by-chapter-tablet/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [phone] › browser-tests/chromatic.spec.ts:47:1 › leaving Play offers Chromatic below the game without changing its controls 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator: locator('.package-stage')
+    Expected: "ready"
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 15000ms
+      - waiting for locator('.package-stage')
+
+
+      48 |   test.setTimeout(120000);
+      49 |   await page.goto('/');
+    > 50 |   await expect(page.locator('.package-canvas')).toHaveAttribute('data-scene-status','ready');
+         |                                                ^
+      51 |   await page.getByRole('button',{name:'Play game',exact:true}).click();
+      52 |   await expect(page.locator('#package-play')).toHaveText('Pause game',{timeout:90000});
+      53 |   await page.getByRole('button',{name:'← Back to tour',exact:true}).click();
+        at /Users/chad/work/chromatic-preview-check-20261015/egress/browser-tests/chromatic.spec.ts:50:48
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/chromatic-leaving-Play-off-8cfe2-thout-changing-its-controls-phone/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/chromatic-leaving-Play-off-8cfe2-thout-changing-its-controls-phone/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/chromatic-leaving-Play-off-8cfe2-thout-changing-its-controls-phone/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/chromatic-leaving-Play-off-8cfe2-thout-changing-its-controls-phone/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    [tablet] › browser-tests/chromatic.spec.ts:47:1 › leaving Play offers Chromatic below the game without changing its controls 
+    [tablet] › browser-tests/package.spec.ts:20:1 › scrolling plays the tour forward and back, chapter by chapter 
+    [phone] › browser-tests/chromatic.spec.ts:47:1 › leaving Play offers Chromatic below the game without changing its controls 
+  3 skipped
+  52 passed (7.8m)

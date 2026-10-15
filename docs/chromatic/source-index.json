@@ -1,0 +1,152 @@
+{
+  "app.js": {
+    "bytes": 24194,
+    "sha256": "55a648d11683b15d6a229144e2d86c81585a90bae12e2d73cb2a638f4dc0d596",
+    "url": "https://install.shinyrelay.com/app.js"
+  },
+  "cart/cart.js": {
+    "bytes": 86439,
+    "sha256": "b0e818c7df1fef7a2ffc0a5c146b79fffd926329713fe0f14552ad49f76e91cb",
+    "url": "https://install.shinyrelay.com/cart/cart.js"
+  },
+  "config.js": {
+    "bytes": 376,
+    "sha256": "4c07a5e3e8001b32c7eea349c0813a1d6ea71256edf308fe89df21761919e9ee",
+    "url": "https://install.shinyrelay.com/config.js"
+  },
+  "lib/webdevices.js": {
+    "bytes": 4629,
+    "sha256": "34919c5d6e8f993c0971d80288514953d9476e68af1856d2a75ea93b681b7e3c",
+    "url": "https://install.shinyrelay.com/lib/webdevices.js"
+  },
+  "lib/manifest.js": {
+    "bytes": 2360,
+    "sha256": "41aab679ea00a2b118930b8b613c775046d06ddb7b9306972389dda72532a3a8",
+    "url": "https://install.shinyrelay.com/lib/manifest.js"
+  },
+  "lib/console.js": {
+    "bytes": 4449,
+    "sha256": "0477a1274d19d1dad62a7fc412b093acf27ed5bb5f314a4e12404cb2d478a70e",
+    "url": "https://install.shinyrelay.com/lib/console.js"
+  },
+  "lib/esp.js": {
+    "bytes": 8248,
+    "sha256": "0cefddf0c7f6cae46fd0ec874ad4c7f5ac5270699a1e378c657e3d6e09640ddc",
+    "url": "https://install.shinyrelay.com/lib/esp.js"
+  },
+  "lib/redact.js": {
+    "bytes": 1837,
+    "sha256": "65333a5bcd21ed619005f9262efda3fc2d11b5de9ca5b419edfb13c1e12399a4",
+    "url": "https://install.shinyrelay.com/lib/redact.js"
+  },
+  "lib/digest.js": {
+    "bytes": 2068,
+    "sha256": "f76b4dd45229df8ed96e0f7d92ddfc164bf98efbf1497d4b0931295c3572a083",
+    "url": "https://install.shinyrelay.com/lib/digest.js"
+  },
+  "lib/installer.js": {
+    "bytes": 38449,
+    "sha256": "f7bb74aa0fe8c01658b73b715a2cbd4d81b110b10b7e187f169fed69b6eeaf78",
+    "url": "https://install.shinyrelay.com/lib/installer.js"
+  },
+  "lib/plain.js": {
+    "bytes": 25059,
+    "sha256": "ca14e9db9dad69b186dd49aabf10d5d4120aaad23bc20ecaab4bde7a34053f93",
+    "url": "https://install.shinyrelay.com/lib/plain.js"
+  },
+  "lib/view.js": {
+    "bytes": 17180,
+    "sha256": "8982a31b1c2947cdf594b0761b2f91340825de7bfb73d0925092a6d2b5bb9f32",
+    "url": "https://install.shinyrelay.com/lib/view.js"
+  },
+  "lib/report.js": {
+    "bytes": 10011,
+    "sha256": "7ba7d04c915511871c99e686b8846b3310846296e9cf56132daf035305152253",
+    "url": "https://install.shinyrelay.com/lib/report.js"
+  },
+  "cart/config.js": {
+    "bytes": 516,
+    "sha256": "334a4b8a1c1ec6b3ba5f3e39bc21306dec93612964e8cfbfcdececa4cbf8ae50",
+    "url": "https://install.shinyrelay.com/cart/config.js"
+  },
+  "lib/cartserial.js": {
+    "bytes": 5771,
+    "sha256": "6121bdb360403d7fc4a1913da015f2abe7845e6b7aedc608eea75e3406558859",
+    "url": "https://install.shinyrelay.com/lib/cartserial.js"
+  },
+  "lib/cartprep.js": {
+    "bytes": 7111,
+    "sha256": "706a84150dc5f52beb4d36f454caa4a59c66bac3dc55bc873959f0444833f643",
+    "url": "https://install.shinyrelay.com/lib/cartprep.js"
+  },
+  "lib/cartusb.js": {
+    "bytes": 59869,
+    "sha256": "fd7e3ed4142fa1cd2d1b729cdc6df77cf8a820b316e5fbb58d8c05f1c818fa12",
+    "url": "https://install.shinyrelay.com/lib/cartusb.js"
+  },
+  "lib/cartstage.js": {
+    "bytes": 5617,
+    "sha256": "4d466ec393b02f9d4b51abf99dacec1ac30cf2ae865ec409e4b4c6ef2e21d23e",
+    "url": "https://install.shinyrelay.com/lib/cartstage.js"
+  },
+  "lib/rompatch.js": {
+    "bytes": 7716,
+    "sha256": "7d7e150663c05963f3f4c98680e3539e038c829c6cf0421a46bea10c0bed39d6",
+    "url": "https://install.shinyrelay.com/lib/rompatch.js"
+  },
+  "lib/ids.js": {
+    "bytes": 996,
+    "sha256": "1b04942c78a59a4884fb1166a98972a6300fe82c685d7704c07ae9c1aebdb6fc",
+    "url": "https://install.shinyrelay.com/lib/ids.js"
+  },
+  "cart/gbc_cart.js": {
+    "bytes": 12823,
+    "sha256": "7c0aa60ed62a52f51461f9ed53c9233a108214ee25017bfd78fa6a5f71d9b789",
+    "url": "https://install.shinyrelay.com/cart/gbc_cart.js"
+  },
+  "lib/fs.js": {
+    "bytes": 6617,
+    "sha256": "6b0dee5a6bbd8e931e8d244100c3b96ecfe93048c795fb222e062162ce47537a",
+    "url": "https://install.shinyrelay.com/lib/fs.js"
+  },
+  "lib/espimages.js": {
+    "bytes": 4593,
+    "sha256": "6e4a6da63189b7f9b18935127a42906fbfb07b2e3b8c4d322163820810e347f5",
+    "url": "https://install.shinyrelay.com/lib/espimages.js"
+  },
+  "lib/serialmode.js": {
+    "bytes": 3475,
+    "sha256": "7d82985b5c78102bc7d0c46867561ca5778dcb3d8bdd9dcbec81973d29c5af24",
+    "url": "https://install.shinyrelay.com/lib/serialmode.js"
+  },
+  "lib/serialquiet.js": {
+    "bytes": 2786,
+    "sha256": "a771fa6b9134e5cb000e0c0af6919a95288cb437c4e7e25059a2d378a865116e",
+    "url": "https://install.shinyrelay.com/lib/serialquiet.js"
+  },
+  "lib/fpga.js": {
+    "bytes": 3908,
+    "sha256": "7aeeb3d74cb9ed8777665bb1451cb6f35b58007325848dedbe2c31fb72a6d513",
+    "url": "https://install.shinyrelay.com/lib/fpga.js"
+  },
+  "lib/gwu2x.js": {
+    "bytes": 6476,
+    "sha256": "776eadc23dbe4a43509809eeafbc5c5d63750ecce57bff1444784598b5a97f01",
+    "url": "https://install.shinyrelay.com/lib/gwu2x.js"
+  },
+  "lib/jtag.js": {
+    "bytes": 7103,
+    "sha256": "0a324e4f537dd325efa107991716da0e7b98ddd8203f262bf89338f07bcd90ee",
+    "url": "https://install.shinyrelay.com/lib/jtag.js"
+  },
+  "lib/gowin.js": {
+    "bytes": 12014,
+    "sha256": "6dc59d0a7633dd944a64871ee9ae8088ab1dd53a6c609d40754bf696860e305c",
+    "url": "https://install.shinyrelay.com/lib/gowin.js"
+  },
+  "lib/spiflash.js": {
+    "bytes": 8403,
+    "sha256": "f8cdd7c48ed50f4a47ffe27b36da30cbac344922ec3df5e158105a1a16662d80",
+    "url": "https://install.shinyrelay.com/lib/spiflash.js"
+  }
+}

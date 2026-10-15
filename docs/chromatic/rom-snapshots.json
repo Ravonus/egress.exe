@@ -1,0 +1,42 @@
+{
+  "observedAt": "2026-10-15",
+  "scope": "local files; remote link paths observed, remote bytes not re-downloaded",
+  "roms": [
+    {
+      "site": "egress",
+      "manifestPath": "/Users/ravonus/dev/wt/egress-site/data/release.json",
+      "file": "/Users/ravonus/dev/wt/egress-site/public/game/egress-72a14c35a8b766ce.gbc",
+      "bytes": 81920,
+      "sha256": "72a14c35a8b766cedf61718cb3ceafcd5313b3c139b2ee547d98079dcc20bcb0",
+      "manifestMatches": true,
+      "cgbFlag": 192,
+      "cartridgeType": 27,
+      "declaredRomBytes": 2097152,
+      "ramBytes": 8192,
+      "headerChecksumValid": true,
+      "globalChecksumStored": 40863,
+      "actualFileGlobalChecksum": 40863,
+      "paddedGlobalChecksum": 57247,
+      "paddedSha256": "de428cd2f095f158ea2b931ce76f7468b7f871278b8e8e12a8b6b2cdec5411be",
+      "last64KiBDesiredFF": true
+    },
+    {
+      "site": "crucible",
+      "manifestPath": "/Users/ravonus/dev/wt/crucible-site/data/release.json",
+      "file": "/Users/ravonus/dev/wt/crucible-site/public/game/crucible-57b7f1e3c2df960f.gbc",
+      "bytes": 8388608,
+      "sha256": "57b7f1e3c2df960f05df615b9ad00544edc1eacad3dbfe176a6c38425734b540",
+      "manifestMatches": true,
+      "cgbFlag": 192,
+      "cartridgeType": 27,
+      "declaredRomBytes": 8388608,
+      "ramBytes": 131072,
+      "headerChecksumValid": true,
+      "globalChecksumStored": 39859,
+      "actualFileGlobalChecksum": 39859,
+      "paddedGlobalChecksum": 39859,
+      "paddedSha256": "57b7f1e3c2df960f05df615b9ad00544edc1eacad3dbfe176a6c38425734b540",
+      "last64KiBDesiredFF": false
+    }
+  ]
+}
