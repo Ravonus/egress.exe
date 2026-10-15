@@ -7,7 +7,8 @@
 #include <stdio.h>
 #include <string.h>
 
-const char *const eg_trick_name[TRICK_COUNT] = {"burn", "cold", "short", "weight", "glass", "rhythm"};
+const char *const eg_trick_name[TRICK_COUNT] = {"burn", "cold", "short", "weight", "glass", "rhythm",
+                                                "rush", "steer", "mirror", "stare"};
 
 enum { ACT_ENTER = 0, ACT_COMBINE = 1, ACT_USE = 2 };
 

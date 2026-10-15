@@ -108,12 +108,21 @@ enum { TRICK_BURN = 0, TRICK_COLD = 1, TRICK_SHORT = 2, TRICK_WEIGHT = 3, /* the
                             crossing, and the keycard lies behind you: take what you need before you cross */
        TRICK_RHYTHM = 5, /* glitched glass: the top lock is a band of void with a glitched-glass bridge, floor only
                             on the beat: cross on the beat (at most EG_GLITCH_RUN cells in one beat) */
-       TRICK_COUNT = 6 };
+       /* B2 living obstacles (src/core/eg_ogen.c): rush hour, steer the heavy, the mirror, the stare */
+       TRICK_RUSH = 6, TRICK_STEER = 7, TRICK_MIRROR = 8, TRICK_STARE = 9,
+       TRICK_COUNT = 10 };
+#define TRICK_OBSTACLE(t) ((t) >= TRICK_RUSH)
 #define EG_GLITCH_RUN 3u /* the longest glitched-glass run a room may hold: crossed inside one on-beat */
 
 /* Generation. Deterministic in (seed, tier); returns 0 when the layout failed its own checks (the caller reseeds).
  * Solvability is not checked here: the host solver accepts seeds and the cartridge plays only accepted seeds. */
 uint8_t eg_generate(eg_room *r, uint16_t seed, uint8_t tier) EG_BANKED;
+/* B2 part B: one wall structure (ST_*) in rows y0..y1, placed on carpet that isn't protected and never cutting the
+ * rows in two; 1 when placed. The generator's own building block (eg_gen.c, eg_ogen.c). */
+enum { ST_LINE = 0, ST_L, ST_U, ST_RING, ST_COUNTER, ST_KINDS };
+uint8_t eg_structure(eg_room *r, uint8_t y0, uint8_t y1, uint8_t kind) EG_BANKED;
+/* B2: the obstacle rooms (eg_ogen.c), once eg_generate has dealt an obstacle trick */
+uint8_t eg_gen_obstacles(eg_room *r, uint8_t tier) EG_BANKED;
 
 /* One gravity step. occ[0..nocc) are cells the player's body covers: a resting CRT does not move into them, a
  * falling one stops and reports a hit. Returns EG_G_* flags. Cells that changed are listed in eg_dirty. */

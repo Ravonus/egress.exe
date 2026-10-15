@@ -131,7 +131,7 @@ src/gen/look_art.c src/gen/look_art.h: tools/bake_look.py tools/bake_art.py
 src/gen/music_data.h: tools/compose.py
 	$(PY) tools/compose.py $@
 
-ROOM_SRC := src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c src/core/eg_obst.c host/eg_osolve.c
+ROOM_SRC := src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c src/core/eg_obst.c src/core/eg_ogen.c host/eg_osolve.c
 ROOM_HDR := src/core/eg_room.h src/core/eg_piece.h host/eg_solve.h src/core/eg_obst.h host/eg_osolve.h
 build/host/egtool: host/egtool.c host/eg_solve.c host/eg_walls.c $(ROOM_SRC) $(ROOM_HDR)
 	@mkdir -p $(dir $@)
