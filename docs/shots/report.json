@@ -1,6 +1,6 @@
 {
   "rom": "build/egress.gbc",
-  "size": 65536,
+  "size": 81920,
   "boot_mode_at_150": 0,
   "solve_started": true,
   "floor_seed": 40,
@@ -13,7 +13,7 @@
   "keys_held_at_end": 0,
   "combat_started": true,
   "enemies_at_start": 2,
-  "combat_strikes": 10,
+  "combat_strikes": 8,
   "enemies_killed": 2,
   "enemy_hp_removed": 5,
   "tokens_gained": 3,
@@ -47,7 +47,7 @@
     "wins": 0,
     "best_floor": 1,
     "unlocked": 7,
-    "seen": 0,
+    "seen": 2,
     "trace": [
       0,
       0,
@@ -98,18 +98,16 @@
     ]
   ],
   "landing_reached_floor4": true,
-  "boss_strikes": 49,
+  "boss_strikes": 43,
   "boss_dead": true,
   "boss_hp_left": 0,
-  "boss_frames": 1935,
+  "boss_frames": 1978,
   "boss_shots": {
     "tell": true,
     "orbs": true,
     "stun": true
   },
-  "boss_log": [
-    "stuck moving U from cell 87 toward 71 at (119, 85)"
-  ],
+  "boss_log": [],
   "ending_back_to_title": true,
   "save_after_win": {
     "gen": 1,

@@ -134,13 +134,12 @@ def slab(seed: int, kind: str = "plain") -> np.ndarray:
     # carpet flecks: a few seeded dark and bright specks
     for k, (px, py) in enumerate(rng_points(seed, 4, 3, 12)):
         idx[py, px] = 0 if k % 2 == 0 else 3
-    if kind == "scuff":  # a dragged-chair scuff
-        for t in range(6):
-            idx[9 + t // 3, 4 + t] = 0 if t % 2 == 0 else 1
-            idx[10 + t // 3, 4 + t] = 1
-    elif kind == "seam":  # carpet tiles meet: a faint seam with a lifted corner
-        idx[2:14, 8] = np.where(idx[2:14, 8] == 2, 1, idx[2:14, 8])
-        idx[10:13, 10:13] = [[1, 1, 0], [1, 2, 1], [0, 1, 1]]
+    if kind == "scuff":  # a dragged-chair scuff, faint
+        for t in range(5):
+            idx[10 + t // 3, 5 + t] = 1
+        idx[10, 5] = 0
+    elif kind == "seam":  # carpet tiles meet: a faint seam
+        idx[3:13, 8] = np.where(idx[3:13, 8] >= 2, 1, idx[3:13, 8])
     elif kind == "stain":  # a coffee ring
         d = np.hypot(x - 9.5, y - 9.0)
         ring = (d > 2.0) & (d < 3.2)

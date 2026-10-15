@@ -80,9 +80,8 @@ static uint8_t meta_for(uint8_t i) {
   }
   switch (t) {
     case T_EMPTY:
-      if ((uint8_t)(h % 5u) < 2u) return M_SLAB_A;
-      h = (uint8_t)((h >> 2) % 3u);
-      return h == 0u ? M_SLAB_B : (h == 1u ? M_SLAB_C : M_SLAB_D);
+      h = (uint8_t)(h % 20u); /* A 50%, B 20%, C 15%, D 15% */
+      return h < 10u ? M_SLAB_A : (h < 14u ? M_SLAB_B : (h < 17u ? M_SLAB_C : M_SLAB_D));
     case T_DIRT:
       return (h & 2u) ? M_FOAM_A : M_FOAM_B;
     case T_WALL:
