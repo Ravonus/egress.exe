@@ -552,8 +552,11 @@ So the mid-run continue is essential (B3). It saves at every floor start and eve
 - **Open (the cost).** A found door is opened at a landing by **LOCK's toll keeper** for 40 x (k − 1) tokens (40 for
   door 2, 240 for door 7). Partial payments are kept, so a poor heir can pay toward it and a later one finishes it.
 - **Use (the trade-off).** An heir who takes door k:
-  - skips biomes 1..k−1 and everything they hold: the kit, heart shards and pieces a front-door heir would have
-    gathered (the model's run-kit term starts at zero);
+  - skips biomes 1..k−1 and everything they hold: the heart shards, pieces and finds a front-door heir would have
+    gathered. **The toll buys a stake:** the keeper hands the heir a starter pack worth about 20 floors of finds (about
+    three quarters of a full run's kit; the model's run-kit term starts at 0.76, not 1). Without the stake a deep door
+    is a trap: in the model, lines that never took a door cleared more often than lines that did (5.5% against 1.3% a
+    run at generation 20);
   - finds **half the treasure budget** in the first biome after the door ("the stairs are picked clean");
   - takes a **matrix trace**: REVERSIBLE leans one step toward "it can't be undone" (taking the stairs is fleeing,
     section 10), and the run is marked SHORTCUT in the stats.
@@ -612,12 +615,15 @@ the real layout (`eg_run_build`) and the real capped nudge.
 - **Death on a floor:** `P = 0.006 + 0.85·logistic((challenge − ability) / 1.345)`.
 - **Challenge:** 0.607 x the level after the nudge, plus the stage type's pressure (holdout and chase +0.8, escort and
   mix-under-pressure +0.9, a 3D stage +1.0, a rift +1.6), +0.4 per theme, and +0.7 per mechanic the line hasn't met.
-  A mid-boss adds 1.22, a boss 2.99 (less what the line has learned of that fight), the final room 2.6.
+  A mid-boss adds 1.22, a boss 2.99 (less what the line has learned of that fight), the final room 4.2 (it passes 40%
+  of the heirs who reach it at generation 20 and 50% at 40).
 - **Ability:** the player's skill (6.2, growing by up to 2.45 over 200 floors played), biome familiarity (up to +1),
-  the line's strength (inherited mods, recipes and bounded genes: up to +3.2, time constant 6 generations), the run's
-  kit (up to +1 over 14 floors; 0 after a door), and the heir's build (σ 0.35; the best bred strategy adds 9.4's +3.7
-  points as +0.21).
+  the line's strength (inherited mods, recipes and bounded genes: up to +3.0, time constant 6 generations), the run's
+  kit (up to +1 over 14 floors; a door start begins at the toll's stake, 20 floors' worth), and the heir's build
+  (σ 0.35; the best bred strategy adds +0.21 on a young line, falling to 0 as the line reaches full strength: 9.4's
+  shared ceiling).
 - **Doors:** found on a boss kill, paid at landings (7 tokens a floor), and the deepest open one is taken.
+- **The front-door arm:** 4,000 more lines (random picks) that never take a door, for the front-door clear rate.
 
 The knobs were tuned to the targets by a random search, then by hand. They are constants at the top of the model in
 `host/egrun.c`, and `EGSURV="NAME=value,..."` overrides them for tuning.
@@ -628,36 +634,50 @@ The knobs were tuned to the targets by a random search, then by hand. They are c
 
 | Generation | biome 2 | 3 | 4 | 5 | 6 | 7 | 8 | **egress** |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 48.5 | 17.6 | 5.0 | 0.8 | 0.0 | 0.0 | 0.0 | **0.00** |
-| 5 | 98.3 | 89.0 | 60.5 | 26.3 | 8.1 | 1.3 | 0.1 | **0.00** |
-| 10 | 100 | 100 | 97.0 | 73.7 | 39.6 | 11.6 | 2.3 | **0.17** |
-| 20 | 100 | 100 | 100 | 99.6 | 89.4 | 41.4 | 13.9 | **2.1** |
-| 30 | 100 | 100 | 100 | 100 | 99.1 | 79.5 | 34.0 | **8.3** |
-| 40 | 100 | 100 | 100 | 100 | 100 | 96.7 | 50.0 | **18.6** |
+| 1 | 49.2 | 18.9 | 5.3 | 0.7 | 0.0 | 0.0 | 0.0 | **0.00** |
+| 5 | 98.7 | 91.1 | 66.7 | 31.9 | 11.2 | 2.0 | 0.2 | **0.00** |
+| 10 | 100 | 100 | 97.9 | 81.8 | 49.5 | 14.9 | 2.9 | **0.07** |
+| 20 | 100 | 100 | 100 | 99.9 | 94.2 | 53.5 | 20.2 | **2.1** |
+| 30 | 100 | 100 | 100 | 100 | 99.8 | 90.0 | 45.5 | **8.1** |
+| 40 | 100 | 100 | 100 | 100 | 100 | 99.2 | 58.9 | **16.2** |
 
-- **A first heir** dies in biome 1 half the time. 17.6% reach biome 3 and 5.0% reach biome 4.
-- **The full-clear rate per run** is 0.03% over generations 1–10, 1.1% over 11–20, 5.3% over 21–30 and 14.2% over
+- **A first heir** dies in biome 1 half the time. 18.9% reach biome 3 and 5.3% reach biome 4.
+- **The full-clear rate per run** is 0.02% over generations 1–10, 0.9% over 11–20, 5.3% over 21–30 and 13.7% over
   31–40.
-- **The first egress** comes at generation 26 / 32 / 39 (quartiles); 22% of lines have none by generation 40.
-- **Doors carry the line** (`run50_doors.png`): by generation 5, 86% of heirs start at a door (52% at door 3); by 10,
-  door 4 (58%); by 20, door 6 (64%); by 40, door 7 (93%). Nobody in the model takes the front door once a door is
-  open, so a front-door full clear (all ~52 floors in one run) is a feat for a strong line that chooses it. The
-  STATS page counts it separately.
+- **The first egress** comes at generation 26 / 32 / 38 (quartiles); 19% of lines have none by generation 40.
+- **Doors carry the line** (`run50_doors.png`): the most-taken door is door 3 at generation 5 (51%), door 4 at 10
+  (53%), door 6 at 20 (68%) and door 7 at 30 (76%) and 40 (98%).
+- **A front-door full clear** (all ~52 floors in one run, about 3 hours) is counted on its own by the front-door arm:
+
+  | Generation | 10 | 15 | 20 | 25 | 30 | 35 | 40 |
+  | --- | --- | --- | --- | --- | --- | --- | --- |
+  | never takes a door | 0.10 | 0.83 | 2.3 | 3.6 | 5.2 | 5.9 | **7.5** |
+  | takes the deepest open door | 0.07 | 0.65 | 2.1 | 5.1 | 8.1 | 14.1 | **16.2** |
+
+  Up to about generation 22 the two are level (a line that never pays a toll has the same floors of experience in
+  one long run). After that the doors pull ahead, and by generation 40 they double the rate. So most lines clear
+  through the doors, and a front-door clear stays the feat the STATS page counts separately.
 - **The nudge** softens 0.5% of the stage slots in the waves sim, and never under the floor.
 
 ![doors taken by generation](shots/run50_doors.png)
 
-**Build fairness over a long run.** On one stage, the best bred strategy is +3.7 points over random picks (9.4). Over
-a 52-floor run that edge compounds:
+**Build fairness over a long run.** On one stage the best bred strategy is +3.7 points over random picks (the 9.3
+bred-lines table). Over a 52-floor run a constant edge compounds, and it grows with the clear rate, so the late
+generations show it most. Best bred minus random on the egress rate per run, 8,000 lines x 40 generations (the first
+four rows before the door stake, with the final room at 2.6):
 
-| Bred edge per stage | Egress per run, gens 16–25 (random / bred) | Gens 26–35 (random / bred) |
+| Bred edge in the model | Worst single generation, 10–40 | Worst 5-generation window |
 | --- | --- | --- |
-| +3.7 points (9.4 as measured) | 1.75% / 3.71% | 6.6% / **11.7%** (+5.1) |
-| +1.8 points (half) | 1.73% / 2.71% | 6.4% / **9.4%** (+3.0) |
+| constant +0.21 (+3.7 a stage, as measured) | +9.0 points (generation 37) | +7.7 |
+| constant +0.105 (halved) | +4.2 | +3.4 |
+| constant +0.05 (a quarter) | +3.3 | +1.9 |
+| +0.21 on a young line, falling to 0 at full strength | +1.4 | +1.0 |
+| **the same, with the adopted knobs (4,000 lines)** | **+2.0** (generation 26) | **+0.9** |
 
-So the per-stage bar (≤ 60%, within +4 of random) is not enough on its own at this length. **New target (13): a bred
-strategy stays within +3 points of random on the run's egress rate at generation 30, which needs the 9.4 gap halved
-(≤ +2 per stage).** The B3 balance pass retunes 9.4's caps against both measures.
+Halving the edge is not enough on its own. **The lever is 9.4's shared ceiling:** breeding decides how an heir
+reaches the line's ceiling, not how high it is. A young line's picks matter in full; by the time lines clear, a
+random line has caught up. The adopted model meets the target (13): within +3 points of random at every generation
+from 10 to 40. Over generations 26–35 the two egress at 9.6% and 8.9% a run.
 
 #### 3.6.8 The capped nudge
 
@@ -685,12 +705,12 @@ sets instead needs 7,135 room cells and about 490 KB, which doesn't fit.
 
 | Repeat target (a line's first 30 generations) | Puzzle-family rooms (puzzle, mix under pressure, dark) | Stage seeds (holdout, chase, hunt, escort, heist) | Total |
 | --- | --- | --- | --- |
-| ≤ 10% repeats | 561 cells, effective pool 3,244 → **2,403 records x 6 B = 14.4 KB** | 839 cells, pool 4,678 → **6,238 x 5 B = 31.2 KB** | **45.6 KB** |
-| ≤ 5% repeats (**recommended**) | pool 5,649 → **4,185 x 6 B = 25.1 KB** | pool 8,252 → **11,003 x 5 B = 55.0 KB** | **80.1 KB** (+ a 2 KB directory) |
+| ≤ 10% repeats | 564 cells, effective pool 3,306 → **2,449 records x 6 B = 14.7 KB** | 845 cells, pool 4,739 → **6,319 x 5 B = 31.6 KB** | **46.3 KB** |
+| ≤ 5% repeats (**recommended**) | pool 5,796 → **4,294 x 6 B = 25.8 KB** | pool 8,397 → **11,196 x 5 B = 56.0 KB** | **81.7 KB** (+ a 2 KB directory) |
 
-- A line draws about 128 puzzle-family rooms and 70 other stages in 30 generations.
-- **Rooms by tier** (10% target): 110 / 422 / 414 / 740 / 801 / 757. **By class:** introduce 227, develop 827, mix
-  2,190. The deep tiers need the most, because that is where long lines spend their runs.
+- A line draws about 132 puzzle-family rooms and 74 other stages in 30 generations.
+- **Rooms by tier** (10% target): 109 / 416 / 410 / 734 / 820 / 817. **By class:** introduce 227, develop 827, mix
+  2,252. The deep tiers need the most, because that is where long lines spend their runs.
 - **A room record, 6 B:** seed 2; mechanic-set index 1 (into a table of the sets that occur, at most 256); level and
   insights 1; trick (5 bits) and variant mask (3 bits) 1; biome mask 1. The bake verifies each record's transforms (an X mirror, a
   herring swap) and its biome reskins (which biomes' fragile kinds map onto its own). The estimate assumes 1.8
@@ -698,32 +718,28 @@ sets instead needs 7,135 room cells and about 490 KB, which doesn't fit.
   so a 2 KB directory gives each set's range and the pick stays a table scan of one range.
 - **A stage record, 5 B:** seed 2, the stage sim's budget and condition count 1, type and tier 1, a biome mask 1.
 - **Generated on the cart, no bank:** 3D mazes (the world generator's mazes are solvable by construction; a flood fill
-  checks the exit), glitch rifts (a stage seed plus rift modifiers), sky stages (built on the event). That is 16.5
+  checks the exit), glitch rifts (a stage seed plus rift modifiers), sky stages (built on the event). That is 17.3
   plays per line in 30 generations.
 - **Descent** reuses the deep tiers in every biome with stacked themes. Repeats there are expected and fine.
 - **The B1 table** (768 x 12 B = 9.2 KB) is replaced by the B4 bank.
 
-**ROM ledger** (gate 1,900,000 bytes). The owner's brief and the integrator's split (from the B3 STATS session) give
-two different title budgets, so both are shown:
+**ROM ledger** (gate 1,900,000 bytes; settled with the B3 STATS session on 2026-10-15):
 
-| Item | Owner's figures | Integrator's split |
-| --- | --- | --- |
-| current ROM (code, heir data and art, office look, B1 seeds), measured | 475,136 | 475,136 |
-| title (pre-baked records) | ~1,150,000 | ≤ 524,288 |
-| 3D stage tables | (not separated) | ≤ 393,216 |
-| **left for B2–B7 plus the bank** | **274,864** | **507,360** |
-| seed bank (recommended, 5%), net of the B1 table it replaces | 82,000 − 9,216 = 72,784 | 72,784 |
-| left for B2–B7 code, art and music | 202,080 | 434,576 |
+| Item | Bytes |
+| --- | --- |
+| current ROM (code, heir data and art, office look, B1 seeds), measured | 475,136 |
+| title (3 pre-baked walks), 479 KB | 490,496 |
+| 3D stage tables (cap) | ≤ 393,216 |
+| seed bank (5% target) plus its directory | 81,744 + 2,048 = 83,792 |
+| less the B1 seed table it replaces | −9,216 |
+| **total** | **1,433,424** (~1.42 MB) |
+| **left for B2–B7 code, art and music** | **466,576** (about 456 KB; the STATS session's round figure is ~480 KB) |
 
 - **Estimates for B2–B7** (not measured): 7 biome looks at ~6 KB each (the office's is 4.6 KB), 42 KB; the mob look
   generator and families ~24 KB; 16 boss and mid-boss templates and arenas ~40 KB; music ~16 KB; sky scenes 14 KB
   (19.5); talk and lore text ~12 KB; the full-run planner 7.2 KB (measured under sdcc); the stage generator ~8 KB.
-  That is about **163 KB** before the 3D stages.
-- **Under the integrator's split** everything fits, with room to spare, at the 5% bank, inside its ~200 KB cap for
-  the bank.
-- **Under the owner's figures** the 3D stages' own tables (38 KB measured in 15.1, plus billboard frames at 9–10.5 KB
-  a mob variant) would have to share the remaining ~39 KB. So either the title shrinks toward the integrator's budget,
-  or the bank drops to the 10% target (45.6 KB, which frees 34 KB).
+  That is about **163 KB**, which leaves about 300 KB of margin. The 3D stages' own tables (38 KB measured in 15.1,
+  plus billboard frames at 9–10.5 KB a mob variant) sit inside their 384 KB cap.
 - **If the bank ever has to go:** generate puzzles on the cart with a lightweight verify. The backwards generator
   already runs on the cart. The cart replays the generator's own plan forward under the cart's rules, running the 3.4
   flood fill after each step (≤ 80 steps x ~9,000 M-cycles ≈ 0.72 M M-cycles ≈ 21 frames at double speed, inside the
@@ -1927,6 +1943,13 @@ Reading it:
 - **Recessives reappear through the pool**: blink still shows up at 13–18% in lines that never picked for it.
 - **About 6% of children carry a new trait.**
 
+**One shared ceiling (the run50 fairness rule, 3.6.7).** What a bred line gains (its traits, affinities and stat
+genes) and what every line gains (inherited mods, recipes) fill one ceiling per heir. Breeding decides how an heir
+reaches it, not how high it is: the bred bonus an heir can express is clamped to the ceiling less the line's strength.
+On a young line the picks matter in full (+3.7 points a stage for the best strategy, the 9.3 table). By the time lines
+reach the egress, a random line has nearly caught up. Over the ~52-floor run the best bred strategy then stays within
++2 points of random picks on the egress rate at every generation from 10 to 40 (survival model, 4,000 lines). A
+constant edge would compound to +9.
 
 The face trees (`proto/genetics/out/tree_heavy.png`, `tree_random.png`) show 3 siblings per generation over 30
 generations, with the played heir outlined. Siblings resemble each other and their parent, and skin and hair drift
@@ -3364,10 +3387,13 @@ The run is ~52 floors (3.6). The targets are for a skilled player and are checke
 (`egplan survive`, 3.6.7), then by the harness bot once the biomes exist.
 - **HARD, in absolute terms:**
   - a first heir dies in biome 1 about half the time, reaches biome 3 about 1 run in 6 and biome 4 about 1 in 20
-    (model: 48.5% / 17.6% / 5.0%);
+    (model: 49.2% / 18.9% / 5.3%);
   - the egress (a full clear, from any door) per run: under 0.5% before generation 10, about 1–2% at 20, about
-    5–9% at 30 (model: 0.17%, 2.1%, 8.3%); the first egress comes around generation 25–40 (quartiles 26 / 32 / 39);
-  - a full clear needs the shortcut doors: by generation 20 most heirs start at door 5–6.
+    5–9% at 30 (model: 0.07%, 2.1%, 8.1%); the first egress comes around generation 25–40 (quartiles 26 / 32 / 38);
+  - a full clear needs the shortcut doors: by generation 20 most heirs start at door 6, and from about generation 23 a
+    line that takes the doors clears more often than one that doesn't (16.2% against 7.5% a run at 40);
+  - the front-door clear (no shortcuts) is reported on its own (model: 0.1%, 2.3%, 5.2% and 7.5% a run at
+    generations 10, 20, 30 and 40). It is a 3-hour run, the feat the STATS page counts.
 - **Fair:** every boss attack has a 24-frame tell and the no-hit bot clears every template untouched; every puzzle is
   solver-verified; an unseen mechanic only ever arrives alone.
 - **The nudge never makes it easy:** at most one level softer, only after two failures running, never under the
@@ -3377,14 +3403,14 @@ The run is ~52 floors (3.6). The targets are for a skilled player and are checke
 - **Hearts** start at 4; the SMALL trait costs 1; a heart shard drops from each mid-boss and boss (4 make a heart). No
   healing between floors; a landing restores 2.
 - **Prices:** tune so that a run that reaches the egress from a door can buy 2 of 3 shop items; a door toll costs a
-  generous heir's whole purse (40 x (k − 1) tokens).
+  generous heir's whole purse (40 x (k − 1) tokens) and buys a stake of about 20 floors of finds (3.6.4).
 - **Pacing:** a stage 2–4 minutes; a front-door full run about 3 h 10 min; a run from door 7 about 45 minutes.
 - **Bot runs without invincibility.** A harness bot plays generated runs and reports the floor reached, the deaths
   by cause, and the tokens over time; prices, hearts and the model's knobs are tuned from it.
 - **Build spread:** no archetype above ≈ 60% clear rate per stage in the sim (the same bar CRUCIBLE used), none
   useless. **And over the whole run:** a bred strategy stays within +3 points of random picks on the egress rate at
-  generation 30. The 9.4 gap as measured (+3.7 per stage) compounds to +5.1 there, so B3's balance pass halves it
-  (3.6.7).
+  every generation from 10 to 40 (model: at most +2.0). A constant edge compounds (+3.7 a stage gives +9 by
+  generation 37), so the bred edge falls with the line's strength: 9.4's shared ceiling (3.6.7).
 
 ---
 
@@ -3930,7 +3956,8 @@ left in cycles. The ledger is folded in here when the fullscreen work lands (15.
    final stretch. Until then the cart plays the B1 slice.
 5. **Heirs, lineage, save, tree screen**; story fragments and the truth matrix.
    - **B3 (run50's half)** includes the mid-run continue record and the line progress record (3.6.10), the shortcut
-     doors and their toll (3.6.4).
+     doors, their toll and the stake it buys (3.6.4), and 9.4's shared ceiling (the bred bonus clamped to the ceiling
+     less the line's strength), checked against the survival model's fairness line (3.6.7).
    - **B3 (saves)** includes the STATS record at `0xBC00`–`0xBEFF`, the stage accumulator and its commit at stage end
      and death, the STATS screen (title and pause menus) and the record toasts (9.8). The checks:
      `stats_save.py` (layout, CRC, A/B, saturation, favourites, SRAM map) and `stats_mock.py` (CGB limits).

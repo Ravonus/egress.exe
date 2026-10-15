@@ -39,8 +39,9 @@ def main(path, outdir):
             continue
         ys = [at(g - 1, b) for b in range(9)]
         ax.plot(xs, ys, "o-", color=SEQ[gi], lw=2, ms=5, label=f"generation {g}")
-        ax.annotate(f"{ys[-1]:.1f}%", (9, ys[-1]), xytext=(6, 0), textcoords="offset points", va="center",
-                    fontsize=8, color=INK)
+        if ys[-1] >= 1.0:  # the near-zero generations sit on the axis; their labels would pile up
+            ax.annotate(f"{ys[-1]:.1f}%", (9, ys[-1]), xytext=(6, 0), textcoords="offset points", va="center",
+                        fontsize=8, color=INK)
     ax.set_xticks(xs, [f"biome {b}" for b in range(1, 9)] + ["EGRESS"], rotation=30, ha="right")
     ax.set_ylabel("% of that generation's runs reaching it")
     ax.set_ylim(0, 103)
@@ -58,11 +59,14 @@ def main(path, outdir):
         return [sum(v[max(0, i - k):i + k + 1]) / len(v[max(0, i - k):i + k + 1]) for i in range(len(v))]
 
     gx = list(range(1, G + 1))
-    ax.plot(gx, smooth(eg), "-", color=C[0], lw=2, label="egress per run, any door (5-gen mean)")
+    ax.plot(gx, smooth(eg), "-", color=C[0], lw=2, label="all lines, any door (5-gen mean)")
     s = d["strategy_egress"]
     ax.plot(gx, smooth([100 * v for v in s["bred"]]), ":", color=C[2], lw=1.5,
-            label="egress, best bred strategy (9.4's +3.7 pt gap)")
-    ax.plot(gx, smooth([100 * v for v in s["random"]]), ":", color=C[6], lw=1.5, label="egress, random picks")
+            label="best bred strategy (9.4)")
+    ax.plot(gx, smooth([100 * v for v in s["random"]]), ":", color=C[6], lw=1.5, label="random picks")
+    fo = d["front_only"]["egress"]
+    ax.plot(gx, smooth([100 * v for v in fo]), "--", color=C[1], lw=1.5,
+            label="never takes a shortcut")
     fe = d["first_egress"]
     cum, c = [], 0
     for g in range(G):
@@ -79,8 +83,8 @@ def main(path, outdir):
     ax.set_ylabel("% of runs")
     ax.set_ylim(0, max(12, max(smooth(eg)) * 1.2))
     ax.grid(axis="y", alpha=0.2)
-    ax.legend(frameon=False, fontsize=7.5, loc="upper right")
-    ax.set_title("Full-clear rate per run by generation")
+    ax.legend(frameon=False, fontsize=7.5, loc="lower left", bbox_to_anchor=(0.02, 0.12))
+    ax.set_title("Full-clear (egress) rate per run by generation")
     fig.tight_layout()
     fig.savefig(out / "run50_survival.png", dpi=110)
 
