@@ -13,6 +13,7 @@
 #include <gb/cgb.h>
 #include <string.h>
 #include "play.h"
+#include "stage.h" /* B2 */
 
 static uint8_t msg_t, top, shown_top = 0xffu, rows_dirty, vbl_on;
 static volatile uint8_t vbl_rows, vbl_move, vbl_top; /* for hud_vbl: rows to copy, the window's new place */
@@ -159,6 +160,8 @@ void hud_draw(void) NONBANKED {
   hud_num(6, y, tokens, 3);
   if (boss_floor) {
     sh[y][10] = sh[y][11] = sh[y][12] = sh[y][13] = BT_FONT;
+  } else if (stage_hud[0]) { /* B2: the stage's counter */
+    hud_text(10, y, stage_hud);
   } else {
     sh[y][10] = BT_ICON_KEY;
     hud_num(11, y, keys_held, 1);

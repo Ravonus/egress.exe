@@ -16,6 +16,7 @@ SRC := src/main.c src/screens.c src/play.c src/grid.c src/hud.c src/player.c src
 	src/sound.c src/boot/keel_boot.c src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c src/core/eg_plan.c \
 	src/core/eg_clock.c src/gen/art.c src/gen/art_pics.c \
 	src/gen/look_art.c src/look.c src/gen/eg_seeds.c src/puzzle.c \
+	src/stage.c src/stage_spawn.c src/stage_rest.c src/stage_boss_stub.c src/core/eg_stage.c \
 	src/core/eg_input.c src/core/eg_move.c src/core/eg_idle.c src/heir.c src/gen/heir_tab.c src/gen/heir_banks.c \
 	$(sort $(wildcard src/gen/heir_data_*.c))
 MAPPER_SRC := src/run.c src/clock.c src/heir_draw.c
@@ -127,6 +128,10 @@ src/gen/art.c src/gen/art_pics.c src/gen/art.h: tools/bake_art.py
 # the floor's look: the office cards, the biome palettes (tools/bake_look.py borrows bake_art.py's helpers)
 src/gen/look_art.c src/gen/look_art.h: tools/bake_look.py tools/bake_art.py
 	$(PY) tools/bake_look.py src/gen --sheet docs/shots/b1_look_tiles.png --fragile docs/shots/b1_fragile_tiles.png --items docs/shots/b1_items_tiles.png
+
+# B2 stages: the temp and the shopkeeper (BG cards, src/stage.c)
+src/gen/stage_art.h: tools/bake_stage.py
+	$(PY) tools/bake_stage.py src/gen --sheet docs/shots/b2_stage_cards.png
 
 src/gen/music_data.h: tools/compose.py
 	$(PY) tools/compose.py $@

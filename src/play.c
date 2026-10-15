@@ -13,6 +13,8 @@
 #include "heir.h"
 #include "gen/eg_seeds.h"
 #include "look.h"
+#include "stage.h"       /* B2 */
+#include "stage_spawn.h" /* B2 */
 
 uint8_t tokens, keys_held, door_open, board_busy, cam_x, cam_y;
 uint8_t freeze, shake, hud_dirty, grav_t, boss_floor;
@@ -34,8 +36,8 @@ static void floor_build(void) {
   if (boss_floor) {
     floor_tier = 5u;
     floor_seed = 0;
-    boss_build();
-  } else {
+    if (!boss_arena_enter(1u, 15u)) boss_build(); /* B2: b2-boss's arena, else the Watchman */
+  } else if (!stage_build()) { /* B2: a stage room, else the planner's puzzle room */
     /* B1: the run planner chose floor_seed and floor_tier (puzzle_plan_floor); a reset regenerates the same room */
     if (!eg_generate(&room, floor_seed, floor_tier))
       for (i = 0;; i++) {
@@ -66,6 +68,7 @@ static void floor_build(void) {
   if (!boss_floor) actors_spawn();
   cells_reset();
   pocket_reset(); /* B1 */
+  stage_start();  /* B2 */
 }
 
 static void camera(uint8_t snap) {
@@ -102,6 +105,7 @@ static void floor_show(void) {
   art_load_game();
   /* look: the office's cards and palettes; the room on screen will assemble around the player */
   look_load(BIOME_OFFICE);
+  stage_show(); /* B2: the stage's cards and skins */
   camera(1);
   look_assemble(room.start);
   for (i = 0; i != (uint8_t)EG_N; i++) draw_cell(i);
@@ -169,7 +173,7 @@ static void assemble_wait(void) {
 static uint8_t floor_play(void) {
   uint8_t end_t = 0;
   floor_tokens0 = tokens;
-  if (floor_no < RUN_FLOORS) puzzle_plan_floor(); /* B1 */
+  if (floor_no < RUN_FLOORS) stage_plan_floor(); /* B1, B2: the slot, the stage type, the room */
   floor_build();
   floor_show();
   music_play(boss_floor ? SONG_BOSS : SONG_FLOOR);
@@ -178,6 +182,7 @@ static uint8_t floor_play(void) {
   assemble_wait();
   game_mode = MODE_PLAY;
   if (boss_floor) hud_msg("IT SEES YOU.");
+  else if (stage_announce()) {} /* B2: the stage's objective */
   else if (floor_no == 1u) hud_msg("FIND THE DOOR");
   else hud_msg("ANOTHER FLOOR");
   while (1) {
@@ -237,7 +242,7 @@ static uint8_t floor_play(void) {
       }
     } else {
       if (sel_t && sel_t < 20u && !boss_floor && pl_state == PS_FREE) { /* B1: a tap of SELECT opens the bench */
-        bench_run();
+        if (!stage_select()) bench_run(); /* B2: the heist's desk, the ring's bench */
         sel_t = 61u;
         continue;
       }
@@ -249,6 +254,7 @@ static uint8_t floor_play(void) {
       continue;
     }
     player_update();
+    stage_tick(); /* B2 */
     puzzle_tick(); /* B1: fragile floor, the beat, the dead-room hint */
     enemies_update();
     orbs_update();
@@ -271,6 +277,7 @@ void play_run(void) BANKED {
   people_colours();
   run_begin();
   puzzle_plan_begin(); /* B1 */
+  stage_run_begin();   /* B2 */
   floor_no = (dbg_floor && dbg_floor <= RUN_FLOORS) ? dbg_floor : 1u;
   tokens = 0;
   paused = 0;
@@ -282,7 +289,7 @@ void play_run(void) BANKED {
       dead_screen();
       return;
     }
-    if (floor_no < RUN_FLOORS) puzzle_plan_done(); /* B1 */
+    if (floor_no < RUN_FLOORS) stage_floor_done(); /* B1, B2 */
     run_floor_done();
     if (floor_no >= RUN_FLOORS) {
       HIDE_WIN;
@@ -295,7 +302,7 @@ void play_run(void) BANKED {
     if (floor_no % 3u == 0u) {
       HIDE_WIN;
       hud_line = 144u;
-      landing_screen();
+      stage_landing(); /* B2: the landing, then the rest */
       art_copy_tables(&meta_tile[0][0], meta_pal, pal_bg, pal_sp, people);
       people_colours();
     }
