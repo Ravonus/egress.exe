@@ -26,6 +26,13 @@ Canonical source: keel-engine/packages/chromatic-wireless; shared UI: packages/c
 - Canonical-only input prototype f1508b6: exclusive console lease, fixed self-releasing 80 ms game-button taps, no retries or queued overlap. Not vendored or enabled on public sites pending physical acceptance.
 - User was asked to restore normal gameplay with a power cycle after temporary cartridge access. No answer yet; current browser reports no labelled capture device; permission state and normal gameplay still need checking. No private default camera or microphone was opened by the agent.
 
+## Signed Mac helper and public source delivered
+
+- Helper v0.2.0 is published at https://github.com/Ravonus/chromatic-helper/releases/tag/v0.2.0 with complete public source, exact revision, hashes and runtime/license notices.
+- Replaced the invalidly signed command-line download with a native double-clickable app: Developer ID signed, Apple notarization accepted, ticket stapled, Gatekeeper accepted, rechecked after downloading the public release.
+- Both live sites link the new app and GitHub source. Prior broken executable URLs are withdrawn; backups remain outside the web root. All 75 deployed file hashes verified.
+- Both builds and packaged-helper browser/UDP fixture checks pass. Native app starts; Quit closes its loopback listener. Physical Wi-Fi gameplay remains unverified. Details: `mac-helper-20261015/VERIFICATION.md`.
+
 ## Remaining requested work
 
 1. Optional in-site Shiny Relay firmware setup with verified fresh backups, exact-region confirmation, verified writes and recoverable operation records. Official firmware fetched directly; never rehost images. No persistent physical flash has been approved for a particular image/device yet.

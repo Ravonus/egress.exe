@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "sourceRepository": "https://github.com/Ravonus/chromatic-helper",
+  "sourceRevision": "9b5bbc157f7be712d31345cf9be0e8da7f35b120",
+  "artifact": "Chromatic-Helper-macOS-arm64.zip",
+  "sha256": "7146fbdb0da1cafadb9dbc3b4a616c08b45d5c748e54b31d6c7cff57c8ff723c",
+  "notarization": {
+    "id": "47b3a6a2-60f1-43fc-803e-ada25815474c",
+    "status": "Accepted",
+    "stapled": true
+  },
+  "gatekeeper": "accepted"
+}
