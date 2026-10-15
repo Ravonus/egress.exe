@@ -29,9 +29,23 @@ static void mark(uint8_t i) {
   if (eg_ndirty != 255u) eg_ndirty++;
 }
 
+#define ROCK_LEFT(v) ((uint8_t)(((v) & F_PLATE) ? T_PLATE : T_EMPTY))
+
+/* drop a CRT from i into b (open floor or a pit) */
+static void move_rock(uint8_t *c, uint8_t i, uint8_t b) {
+  uint8_t t = c[b];
+  c[i] = ROCK_LEFT(c[i]);
+  if (t == T_PIT)
+    c[b] = T_EMPTY | F_MOVED; /* it fills the pit */
+  else
+    c[b] = (uint8_t)(T_ROCK | F_FALL | F_MOVED | (t == T_PLATE ? F_PLATE : 0u));
+  mark(i);
+  mark(b);
+}
+
 uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) {
   uint8_t *c = r->c;
-  uint8_t res = 0u, y, x, i, v, b, s;
+  uint8_t res = 0u, y, x, i, v, b, s, w, gates;
   eg_ndirty = 0u;
   /* bottom-up, so a stack of CRTs falls together; F_MOVED keeps a CRT from moving twice in one step */
   for (y = (uint8_t)(EG_H - 2u); y != 0u; y--) {
@@ -40,45 +54,82 @@ uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) {
       v = c[i];
       if ((uint8_t)(v & (T_MASK | F_MOVED)) != T_ROCK) continue;
       b = (uint8_t)(i + EG_W);
-      if (c[b] == T_EMPTY) {
+      if (EG_ROCK_OPEN(c[b]) || c[b] == T_PIT) {
         if (is_occ(b, occ, nocc)) {
           if (v & F_FALL) res |= EG_G_HIT | EG_G_CHANGED;
-          c[i] = T_ROCK;
+          c[i] = (uint8_t)(v & (uint8_t)~F_FALL);
           continue;
         }
-        c[b] = T_ROCK | F_FALL | F_MOVED;
-        c[i] = T_EMPTY;
-        mark(i);
-        mark(b);
+        move_rock(c, i, b);
         res |= EG_G_CHANGED | EG_G_FALLING;
         continue;
       }
-      if (c[b] == T_ROCK) { /* resting on a resting CRT: roll left, else right */
+      if ((uint8_t)(c[b] & (T_MASK | F_FALL)) == T_ROCK) { /* resting on a resting CRT: roll left, else right */
         s = (uint8_t)(i - 1u);
-        if (c[s] != T_EMPTY || c[(uint8_t)(s + EG_W)] != T_EMPTY || is_occ(s, occ, nocc) ||
+        if (!EG_ROCK_OPEN(c[s]) || !EG_ROCK_OPEN(c[(uint8_t)(s + EG_W)]) || is_occ(s, occ, nocc) ||
             is_occ((uint8_t)(s + EG_W), occ, nocc)) {
           s = (uint8_t)(i + 1u);
-          if (c[s] != T_EMPTY || c[(uint8_t)(s + EG_W)] != T_EMPTY || is_occ(s, occ, nocc) ||
+          if (!EG_ROCK_OPEN(c[s]) || !EG_ROCK_OPEN(c[(uint8_t)(s + EG_W)]) || is_occ(s, occ, nocc) ||
               is_occ((uint8_t)(s + EG_W), occ, nocc))
             s = i;
         }
         if (s != i) {
-          c[s] = T_ROCK | F_FALL | F_MOVED;
-          c[i] = T_EMPTY;
-          mark(i);
-          mark(s);
+          move_rock(c, i, s);
           res |= EG_G_CHANGED | EG_G_FALLING;
           continue;
         }
       }
       if (v & F_FALL) { /* landed */
-        c[i] = T_ROCK;
+        c[i] = (uint8_t)(v & (uint8_t)~F_FALL);
         res |= EG_G_CHANGED;
       }
     }
   }
-  for (i = 0u; i != (uint8_t)EG_N; i++) c[i] &= (uint8_t)~F_MOVED;
+  /* shutters follow the plates: up while any plate carries a CRT (a shutter doesn't drop on the player) */
+  w = 0u;
+  gates = 0u;
+  for (i = 0u; i != (uint8_t)EG_N; i++) {
+    v = (uint8_t)(c[i] & (uint8_t)~F_MOVED);
+    c[i] = v;
+    if ((uint8_t)(v & (T_MASK | F_PLATE)) == (T_ROCK | F_PLATE)) w = 1u;
+    if (v == T_GATE || v == T_GATE_OPEN) gates = 1u;
+  }
+  if (gates)
+    for (i = 0u; i != (uint8_t)EG_N; i++) {
+      v = c[i];
+      if (w && v == T_GATE) {
+        c[i] = T_GATE_OPEN;
+        mark(i);
+        res |= EG_G_CHANGED;
+      } else if (!w && v == T_GATE_OPEN && !is_occ(i, occ, nocc)) {
+        c[i] = T_GATE;
+        mark(i);
+        res |= EG_G_CHANGED;
+      }
+    }
   return res;
+}
+
+uint8_t eg_push(eg_room *r, uint8_t rock, uint8_t to) {
+  uint8_t t = r->c[to];
+  if (!EG_ROCK_OPEN(t) && t != T_PIT) return 0u;
+  r->c[to] = t == T_PIT ? T_EMPTY : (uint8_t)(T_ROCK | (t == T_PLATE ? F_PLATE : 0u));
+  r->c[rock] = ROCK_LEFT(r->c[rock]);
+  return 1u;
+}
+
+uint8_t eg_leave(eg_room *r, uint8_t cell) {
+  if (r->c[cell] != T_CRUMBLE) return 0u;
+  r->c[cell] = T_PIT;
+  return 1u;
+}
+
+uint8_t eg_count(const eg_room *r, uint8_t type) {
+  uint8_t i = 0u, n = 0u;
+  do {
+    if ((r->c[i] & T_MASK) == type) n++;
+  } while (++i != (uint8_t)EG_N);
+  return n;
 }
 
 static uint8_t absd(uint8_t a, uint8_t b) { return a > b ? (uint8_t)(a - b) : (uint8_t)(b - a); }
@@ -161,6 +212,41 @@ uint8_t eg_generate(eg_room *r, uint16_t seed, uint8_t tier) {
   }
   c[s] = T_EMPTY;
   r->start = s;
+  settle(r);
+  if (c[s] != T_EMPTY) return 0u;
+  /* tier 2 up: a shutter under the door, opened by a CRT on a plate somewhere below */
+  if (tier >= 2u && (tier >= 4u || (eg_rnd() & 1u))) {
+    x = EG_X(r->door);
+    c[EG_IDX(x, 1u)] = T_GATE;
+    c[EG_IDX(x - 1u, 1u)] = T_WALL;
+    c[EG_IDX(x + 1u, 1u)] = T_WALL;
+    if (c[EG_IDX(x, 2u)] == T_WALL || c[EG_IDX(x, 2u)] == T_ROCK) c[EG_IDX(x, 2u)] = T_DIRT;
+    for (tries = 0u;; tries++) {
+      if (tries == 80u) return 0u;
+      i = EG_IDX(1u + eg_rndn(14u), 4u + eg_rndn(9u));
+      t = c[i];
+      if ((t != T_EMPTY && t != T_DIRT) || i == s || dist(i, r->door) < 5u) continue;
+      t = c[(uint8_t)(i + EG_W)];
+      if (t == T_EMPTY || t == T_PIT) continue; /* a CRT must be able to rest on it */
+      c[i] = T_PLATE;
+      break;
+    }
+  }
+  /* tier 1 up: rotten carpet; tier 3 up: pits to fill */
+  n = tier ? (uint8_t)(2u + tier) : 0u;
+  for (tries = 0u; n && tries != 100u; tries++) {
+    i = interior();
+    if (c[i] != T_EMPTY || i == s || dist(i, s) < 2u || i == (uint8_t)(r->door + EG_W)) continue;
+    c[i] = T_CRUMBLE;
+    n--;
+  }
+  n = tier >= 3u ? (uint8_t)(tier - 2u) : 0u;
+  for (tries = 0u; n && tries != 100u; tries++) {
+    i = interior();
+    if (c[i] != T_EMPTY || dist(i, s) < 3u || EG_Y(i) < 2u) continue;
+    c[i] = T_PIT;
+    n--;
+  }
   settle(r);
   if (c[s] != T_EMPTY) return 0u;
   /* keycards */

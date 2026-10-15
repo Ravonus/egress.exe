@@ -39,6 +39,10 @@ static void parse(eg_room *r, const char *const *rows) {
         case 'k': t = T_KEY; r->keys++; break;
         case 'D': t = T_DOOR; r->door = i; break;
         case '@': r->start = i; break;
+        case '~': t = T_CRUMBLE; break;
+        case '_': t = T_PIT; break;
+        case 'p': t = T_PLATE; break;
+        case 'G': t = T_GATE; break;
         default: break;
       }
       r->c[i] = t;
@@ -117,6 +121,57 @@ static void test_solver(void) {
   CHECK(!eg_replay(&r, "UUUUUUUUUU"), "a bogus plan does not replay");
 }
 
+static void test_features(void) {
+  static char moves[4096];
+  eg_stats st;
+  eg_room r;
+  /* a pit and a plate: the CRT pushed into the pit fills it; a CRT on the plate opens the shutter */
+  static const char *const pit[EG_H] = {
+      "################", "#..............#", "#..............#", "#..............#", "#..............#",
+      "#..............#", "#..............#", "#..............#", "#..............#", "#..............#",
+      "#.....O_..O.p..#", "################", "################", "################"};
+  parse(&r, pit);
+  CHECK(eg_push(&r, EG_IDX(6, 10), EG_IDX(7, 10)) && r.c[EG_IDX(7, 10)] == T_EMPTY && r.c[EG_IDX(6, 10)] == T_EMPTY,
+        "a CRT pushed into a pit fills it");
+  CHECK(eg_push(&r, EG_IDX(10, 10), EG_IDX(11, 10)) && eg_push(&r, EG_IDX(11, 10), EG_IDX(12, 10)) &&
+            r.c[EG_IDX(12, 10)] == (T_ROCK | F_PLATE),
+        "a CRT pushed onto a plate rests on it");
+  CHECK(eg_push(&r, EG_IDX(12, 10), EG_IDX(13, 10)) && r.c[EG_IDX(12, 10)] == T_PLATE, "the plate comes back");
+  /* rotten carpet gives way behind you */
+  r.c[EG_IDX(3, 10)] = T_CRUMBLE;
+  CHECK(eg_leave(&r, EG_IDX(3, 10)) && r.c[EG_IDX(3, 10)] == T_PIT, "rotten carpet becomes a pit");
+  CHECK(!eg_leave(&r, EG_IDX(4, 10)), "plain carpet stays");
+
+  /* the shutter puzzle: the door is behind a shutter; push the CRT onto the plate, then walk out */
+  static const char *const gate[EG_H] = {
+      "#######D########", "######.G.######", "######...######", "#..............#", "#..............#",
+      "#..............#", "#..............#", "#..............#", "#..............#", "#..............#",
+      "#..@O.p........#", "################", "################", "################"};
+  parse(&r, gate);
+  r.c[EG_IDX(6, 1)] = T_WALL;
+  r.c[EG_IDX(8, 1)] = T_WALL;
+  CHECK(!eg_trivial(&r), "the shutter room is not trivial");
+  int ok = eg_solve(&r, 40000, moves, sizeof moves, &st);
+  CHECK(ok && st.pushes >= 2, "the shutter room solves with pushes (%d): %s", st.pushes, moves);
+  CHECK(ok && eg_replay(&r, moves), "the shutter plan replays");
+
+  /* rotten carpet as a one-way bridge over a pit row: crossing back is impossible, so the keycard first */
+  static const char *const bridge[EG_H] = {
+      "#####D##########", "#....#.........#", "#....#.........#", "#....#.........#", "#....#.........#",
+      "#....#.........#", "#....#.........#", "#....#.........#", "#....#.........#", "#k...~...@.....#",
+      "#____#.........#", "################", "################", "################"};
+  parse(&r, bridge);
+  ok = eg_solve(&r, 40000, moves, sizeof moves, &st);
+  CHECK(!ok, "a one-way bridge with no way back up does not solve");
+  r.c[EG_IDX(4, 1)] = T_EMPTY;
+  r.c[EG_IDX(5, 1)] = T_EMPTY; /* now the far side reaches the door */
+  r.c[EG_IDX(5, 0)] = T_WALL;
+  r.c[EG_IDX(3, 0)] = T_DOOR;
+  r.door = EG_IDX(3, 0);
+  ok = eg_solve(&r, 40000, moves, sizeof moves, &st);
+  CHECK(ok && eg_replay(&r, moves), "over the bridge to the keycard, then out the far side: %s", moves);
+}
+
 static void test_determinism(void) {
   eg_room a, b;
   for (unsigned s = 1; s < 200; s += 7)
@@ -180,6 +235,7 @@ static void test_baked(const char *path) {
 int main(int argc, char **argv) {
   test_gravity();
   test_solver();
+  test_features();
   test_determinism();
   if (argc > 1) test_baked(argv[1]);
   printf("%d checks, %d failures\n", checks, failures);

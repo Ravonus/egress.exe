@@ -25,11 +25,17 @@ enum {
   T_ROCK = 4,  /* a CRT set: falls, rolls, pushed sideways */
   T_TOKEN = 5, /* an arcade token: collected on entry, like foam */
   T_KEY = 6,   /* a keycard: collected on entry */
-  T_DOOR = 7   /* the egress door: solid until every keycard is held */
+  T_DOOR = 7,  /* the egress door: solid until every keycard is held */
+  T_CRUMBLE = 8, /* rotten carpet: holds you once; it gives way to a pit when you step off */
+  T_PIT = 9,     /* a hole: nobody crosses it; a CRT that drops or is pushed in fills it (carpet again) */
+  T_PLATE = 10,  /* a pressure plate: floor; a CRT resting on it opens every shutter in the room */
+  T_GATE = 11,   /* a shutter, down: solid */
+  T_GATE_OPEN = 12 /* a shutter, up: the player walks through; CRTs don't enter it */
 };
 #define T_MASK 0x0fu
 #define F_FALL 0x80u  /* the CRT moved down or rolled on the last step */
 #define F_MOVED 0x40u /* scratch inside eg_gravity */
+#define F_PLATE 0x20u /* on a CRT: it rests on a pressure plate (the plate comes back when it leaves) */
 
 #define EG_MAX_SPAWN 6u
 enum { SPAWN_MITE = 0, SPAWN_EYE = 1 };
@@ -66,6 +72,20 @@ uint8_t eg_rnd(void);
 uint8_t eg_rndn(uint8_t n); /* 0..n-1 */
 
 /* Cell kinds a body may stand in */
-#define EG_PASSABLE(t) ((t) == T_EMPTY || (t) == T_DIRT || (t) == T_TOKEN || (t) == T_KEY)
+#define EG_PASSABLE(t)                                                                                              \
+  ((t) == T_EMPTY || (t) == T_DIRT || (t) == T_TOKEN || (t) == T_KEY || (t) == T_CRUMBLE || (t) == T_PLATE ||       \
+   (t) == T_GATE_OPEN)
+/* open floor (a whole cell value): walked without changing the board */
+#define EG_FLOOR(v) ((v) == T_EMPTY || (v) == T_PLATE || (v) == T_GATE_OPEN)
+/* where a CRT may move (fall, roll, be pushed) */
+#define EG_ROCK_OPEN(v) ((v) == T_EMPTY || (v) == T_PLATE)
+
+/* Push the resting CRT at `rock` into `to` (a neighbour): into open floor or a pit (which it fills). Returns 0 if
+ * `to` can't take it. */
+uint8_t eg_push(eg_room *r, uint8_t rock, uint8_t to);
+/* The player stepped off `cell`: rotten carpet gives way. Returns 1 if a pit opened. */
+uint8_t eg_leave(eg_room *r, uint8_t cell);
+/* how many shutters / plates the room has (the generator places at most a few) */
+uint8_t eg_count(const eg_room *r, uint8_t type);
 
 #endif

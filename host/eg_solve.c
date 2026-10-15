@@ -56,7 +56,7 @@ static int region(const uint8_t *c, uint8_t p, uint8_t *out, uint8_t *prev) {
     uint8_t q = out[h++];
     for (int d = 0; d < 4; d++) {
       int s = q + step4[d];
-      if (s < 0 || s >= (int)EG_N || seen[s] || c[s] != T_EMPTY) continue;
+      if (s < 0 || s >= (int)EG_N || seen[s] || !EG_FLOOR(c[s])) continue;
       seen[s] = 1;
       if (prev) prev[s] = q;
       out[n++] = (uint8_t)s;
@@ -65,9 +65,12 @@ static int region(const uint8_t *c, uint8_t p, uint8_t *out, uint8_t *prev) {
   return n;
 }
 
+/* the player can't walk freely: holding a CRT up, or standing on rotten carpet */
+static int pinned(const uint8_t *c, uint8_t p) { return c[p] == T_CRUMBLE || holding(c); }
+
 static uint8_t canon(const uint8_t *c, uint8_t p) {
   uint8_t reg[EG_N];
-  if (holding(c)) return p;
+  if (pinned(c, p)) return p;
   int n = region(c, p, reg, NULL);
   uint8_t m = p;
   for (int i = 0; i < n; i++)
@@ -95,7 +98,13 @@ static int heuristic(const uint8_t *c, uint8_t p, uint8_t keys, uint8_t door) {
         int s = q + step4[d];
         if (s < 0 || s >= (int)EG_N) continue;
         uint8_t u = c[s] & T_MASK;
-        int w = u == T_WALL ? 0 : u == T_ROCK ? 4 : u == T_BRICK ? 2 : u == T_DOOR ? (keys ? 0 : 1) : 1;
+        int w = u == T_WALL ? 0
+                : u == T_ROCK ? 4
+                : u == T_BRICK ? 2
+                : u == T_PIT ? 5
+                : u == T_GATE ? 6
+                : u == T_DOOR ? (keys ? 0 : 1)
+                              : 1;
         if (!w) continue;
         int nd = b + w;
         if (nd < 64 && nd < dist[s]) {
@@ -152,7 +161,10 @@ static int apply(const node *s, uint8_t from, int d, node *out, int *goal) {
   uint8_t t = r.c[n] & T_MASK, p = n, keys = s->keys;
   switch (t) {
     case T_EMPTY:
-      break; /* only offered when the player holds something up */
+    case T_PLATE:
+    case T_GATE_OPEN:
+    case T_CRUMBLE:
+      break; /* open floor: an act only when the player is pinned (or onto rotten carpet) */
     case T_DIRT:
     case T_TOKEN:
       r.c[n] = T_EMPTY;
@@ -163,10 +175,7 @@ static int apply(const node *s, uint8_t from, int d, node *out, int *goal) {
       break;
     case T_ROCK: {
       if (d < 2) return 0;
-      int b = n + step4[d];
-      if (r.c[b] != T_EMPTY) return 0;
-      r.c[b] = T_ROCK;
-      r.c[n] = T_EMPTY;
+      if (!eg_push(&r, n, (uint8_t)(n + step4[d]))) return 0;
       break;
     }
     case T_BRICK:
@@ -180,6 +189,7 @@ static int apply(const node *s, uint8_t from, int d, node *out, int *goal) {
     default:
       return 0;
   }
+  if (p != from) eg_leave(&r, from);
   if (!settle_at(&r, p)) return 0;
   memcpy(out->c, r.c, EG_N);
   out->land = p;
@@ -287,7 +297,7 @@ int eg_solve(const eg_room *r, int budget, char *moves, size_t cap, eg_stats *st
     st->nodes++;
     node s = nodes[id];
     uint8_t reg[EG_N];
-    int rn, single = holding(s.c);
+    int rn, single = pinned(s.c, s.land);
     if (single) {
       reg[0] = s.land;
       rn = 1;
@@ -297,7 +307,7 @@ int eg_solve(const eg_room *r, int budget, char *moves, size_t cap, eg_stats *st
       for (int d = 0; d < 4; d++) {
         int ni = reg[i] + step4[d];
         if (ni < 0 || ni >= (int)EG_N) continue;
-        if (!single && s.c[ni] == T_EMPTY) continue; /* free walking */
+        if (!single && EG_FLOOR(s.c[ni])) continue; /* free walking */
         node nx;
         int goal;
         if (!apply(&s, reg[i], d, &nx, &goal)) continue;
@@ -390,13 +400,13 @@ int eg_replay(const eg_room *r0, const char *moves) {
     } else if (t == T_DOOR) {
       return keys == 0 && m[1] == 0;
     } else if (t == T_ROCK) {
-      if (d < 2 || r.c[(uint8_t)(n + step4[d])] != T_EMPTY) return 0;
-      r.c[(uint8_t)(n + step4[d])] = T_ROCK;
-      r.c[n] = T_EMPTY;
+      if (d < 2 || (r.c[n] & F_FALL) || !eg_push(&r, n, (uint8_t)(n + step4[d]))) return 0;
+      eg_leave(&r, p);
       p = n;
     } else if (EG_PASSABLE(t)) {
       if (t == T_KEY) keys--;
-      r.c[n] = T_EMPTY;
+      if (t == T_DIRT || t == T_TOKEN || t == T_KEY) r.c[n] = T_EMPTY;
+      eg_leave(&r, p);
       p = n;
     } else
       return 0;
