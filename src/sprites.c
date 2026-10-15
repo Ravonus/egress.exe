@@ -40,6 +40,7 @@ static void spr8(int16_t wx, int16_t wy, uint8_t tile, uint8_t pal) {
  * the busiest of its lines is its top line or the top line of a sprite already placed over it */
 static uint8_t line_room(uint8_t oy) {
   uint8_t ys[16], n = 0, k, j, c, top;
+  if (oam_n < 10u) return 1; /* fewer than 10 placed: no line can hold 10 yet */
   for (k = 0; k != oam_n; k++) {
     uint8_t y = shadow_OAM[k].y;
     if (y && (uint8_t)(y - oy + 15u) < 31u && n != 16u) ys[n++] = y; /* |y - oy| < 16: shares a line */
@@ -145,16 +146,20 @@ void draw_sprites(void) BANKED {
     if (e->flash) pal = (e->flash & 2u) ? 6u : pal;
     spr16(x, y, base, pal, flip);
   }
-  for (k = 0; k != MAXO; k++)
-    if (orbs[k].live)
-      spr8((int16_t)(orbs[k].x >> 4) - 4, (int16_t)(orbs[k].y >> 4) - 4, ST_ORB, orbs[k].friendly ? 4u : 5u);
-  for (k = 0; k != MAXP; k++)
-    if (puffs[k].t) { /* cosmetic: left out where it would be an 11th sprite on a line */
-      puffs[k].t--;
-      if (!line_room((uint8_t)((int16_t)puffs[k].y - 4 - (int16_t)((14u - puffs[k].t) >> 2) - cam_y + 12))) continue;
-      spr8((int16_t)puffs[k].x - 4, (int16_t)puffs[k].y - 4 - (int16_t)((14u - puffs[k].t) >> 2), puffs[k].tile,
-           puffs[k].pal);
-    }
+  { /* pointers, not orbs[k] / puffs[k]: SDCC multiplies the index on every access */
+    orb_t *o = orbs;
+    puff_t *p = puffs;
+    int16_t py;
+    for (k = MAXO; k; k--, o++)
+      if (o->live) spr8((int16_t)(o->x >> 4) - 4, (int16_t)(o->y >> 4) - 4, ST_ORB, o->friendly ? 4u : 5u);
+    for (k = MAXP; k; k--, p++)
+      if (p->t) { /* cosmetic: left out where it would be an 11th sprite on a line */
+        p->t--;
+        py = (int16_t)p->y - 4 - (int16_t)((14u - p->t) >> 2);
+        if (!line_room((uint8_t)(py - cam_y + 12))) continue;
+        spr8((int16_t)p->x - 4, py, p->tile, p->pal);
+      }
+  }
   for (k = oam_n; k < oam_last; k++) move_sprite(k, 0, 0);
   oam_last = oam_n;
 }
