@@ -1,34 +1,75 @@
 # EGRESS.EXE build. `make` builds build/egress.gbc (finished, trimmed, gated); `make test` runs the host tests;
 # `make shots` runs the PyBoy harness. Needs GBDK-2020 4.5.0 (GBDK_HOME) and the .venv (pyboy, pillow, numpy).
+#
+# Two ROMs from the same source; MAPPER picks which one `make` (`make rom`) builds:
+#   MAPPER=mbc5 (default)  build/egress.gbc      MBC5 + RAM + battery (0x1B), the set-once VBlank clock
+#   MAPPER=mbc3            build/egress-rtc.gbc  MBC3 + timer + RAM + battery (0x10), the RTC clock with the fallback
+# `make rtc` builds the RTC ROM, `make all` both. Only the sources that include src/mapper.h are compiled per mapper.
 GBDK_HOME ?= $(HOME)/.cache/gbdk-4.5.0
 LCC := $(GBDK_HOME)/bin/lcc
 PY := .venv/bin/python
 HOSTCC ?= cc
 HOSTCFLAGS := -O2 -std=c99 -Wall -Wextra -Werror
+MAPPER ?= mbc5
 
 SRC := src/main.c src/screens.c src/play.c src/grid.c src/hud.c src/player.c src/actors.c src/sprites.c src/boss.c \
-	src/run.c src/sound.c src/boot/keel_boot.c src/core/eg_room.c src/gen/art.c src/gen/art_pics.c src/gen/eg_seeds.c
+	src/sound.c src/boot/keel_boot.c src/core/eg_room.c src/core/eg_clock.c src/gen/art.c src/gen/art_pics.c \
+	src/gen/eg_seeds.c
+MAPPER_SRC := src/run.c src/clock.c
 OBJ := $(patsubst src/%.c,build/obj/%.o,$(SRC))
+OBJ_mbc5 := $(OBJ) $(patsubst src/%.c,build/obj-mbc5/%.o,$(MAPPER_SRC))
+OBJ_mbc3 := $(OBJ) $(patsubst src/%.c,build/obj-mbc3/%.o,$(MAPPER_SRC))
+ROM_mbc5 := build/egress.gbc
+ROM_mbc3 := build/egress-rtc.gbc
+CART_mbc5 := 0x1B
+CART_mbc3 := 0x10
+DEFS_mbc5 :=
+DEFS_mbc3 := -DEG_MBC3
+ifeq ($(ROM_$(MAPPER)),)
+$(error MAPPER must be mbc5 or mbc3)
+endif
 CFLAGS := -c -Isrc -Wf--Werror -Wf--disable-warning -Wf110 -Wf--disable-warning -Wf126
-# MBC5 + RAM + battery, CGB only, 2 MiB declared (trimmed afterwards), 8 KiB SRAM. Autobank stops at bank 114: bank
-# 115 would end past the 1,900,000-byte gate.
-LDFLAGS := -Wm-yC -Wm-yt0x1B -Wm-ya1 -Wm-yo128 -autobank -Wb-ext=.rel -Wb-max=114 -Wl-j -Wl-m
+# RAM + battery, CGB only, 2 MiB declared (trimmed afterwards), 8 KiB SRAM declared on both mappers. Autobank stops at
+# bank 114: bank 115 would end past the 1,900,000-byte gate. MBC3 addresses 128 banks of 16 KiB, so the same gate holds.
+LDFLAGS := -Wm-yC -Wm-ya1 -Wm-yo128 -autobank -Wb-ext=.rel -Wb-max=114 -Wl-j -Wl-m
+HDRS := $(wildcard src/*.h src/core/*.h src/gen/*.h src/boot/*.h)
 
-all: build/egress.gbc
+.SECONDEXPANSION:
+.SECONDARY:
 
-build/obj/%.o: src/%.c $(wildcard src/*.h src/core/*.h src/gen/*.h src/boot/*.h)
+rom: $(ROM_$(MAPPER))
+
+all: build/egress.gbc build/egress-rtc.gbc
+
+rtc: build/egress-rtc.gbc
+
+build/obj/%.o: src/%.c $(HDRS)
 	@mkdir -p $(dir $@)
 	$(LCC) $(CFLAGS) -o $@ $<
 
+build/obj-mbc5/%.o: src/%.c $(HDRS)
+	@mkdir -p $(dir $@)
+	$(LCC) $(CFLAGS) $(DEFS_mbc5) -o $@ $<
+
+build/obj-mbc3/%.o: src/%.c $(HDRS)
+	@mkdir -p $(dir $@)
+	$(LCC) $(CFLAGS) $(DEFS_mbc3) -o $@ $<
+
 build/obj/sound.o: src/gen/music_data.h
 
-build/linked.gbc: $(OBJ)
-	$(LCC) $(LDFLAGS) -o $@ $(OBJ)
+build/linked-%.gbc: $$(OBJ_$$*)
+	$(LCC) $(LDFLAGS) -Wm-yt$(CART_$*) -o $@ $(OBJ_$*)
 
-build/egress.gbc: build/linked.gbc tools/finish_rom.py
-	$(PY) tools/finish_rom.py build/linked.gbc build/linked.map $@
-	cp build/linked.noi build/egress.noi
-	cp build/linked.map build/egress.map
+build/egress.gbc: build/linked-mbc5.gbc tools/finish_rom.py
+	$(PY) tools/finish_rom.py build/linked-mbc5.gbc build/linked-mbc5.map $@ --mapper mbc5
+	cp build/linked-mbc5.noi build/egress.noi
+	cp build/linked-mbc5.map build/egress.map
+	shasum -a 256 $@
+
+build/egress-rtc.gbc: build/linked-mbc3.gbc tools/finish_rom.py
+	$(PY) tools/finish_rom.py build/linked-mbc3.gbc build/linked-mbc3.map $@ --mapper mbc3
+	cp build/linked-mbc3.noi build/egress-rtc.noi
+	cp build/linked-mbc3.map build/egress-rtc.map
 	shasum -a 256 $@
 
 # generated sources (committed; rebuilt when their tools change)
@@ -57,9 +98,22 @@ build/host/avatar_dump: host/avatar_dump.c $(AVATAR_SRC) $(wildcard src/avatar/*
 	@mkdir -p $(dir $@)
 	$(HOSTCC) $(HOSTCFLAGS) -Wno-unused-function -DAVATAR_HOST -Isrc/avatar -o $@ host/avatar_dump.c $(AVATAR_SRC)
 
-test: build/host/test_room build/egress.gbc
+build/host/test_clock: host/test_clock.c src/core/eg_clock.c src/core/eg_clock.h
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_clock.c src/core/eg_clock.c
+
+# the clock: host rules, then both ROMs in PyBoy (RTC across a power-off, the carry fold, a dead chip, the set-once
+# clock, moving a save between the builds) and the mapper-write audit of both links
+test-rtc: build/host/test_clock build/egress.gbc build/egress-rtc.gbc
+	build/host/test_clock
+	$(PY) tools/mapper_audit.py --self-test
+	$(PY) tools/mapper_audit.py build/linked-mbc5.map build/linked-mbc3.map
+	$(PY) test/rtc_test.py build/egress.gbc build/egress-rtc.gbc
+
+test: build/host/test_room build/egress.gbc build/egress-rtc.gbc test-rtc
 	build/host/test_room src/gen/eg_seeds.c
-	$(PY) tools/test_finish_rom.py
+	$(PY) tools/test_finish_rom.py build/egress.gbc
+	$(PY) tools/test_finish_rom.py build/egress-rtc.gbc
 
 shots: build/egress.gbc build/host/egtool
 	$(PY) test/harness/play.py build/egress.gbc docs/shots
@@ -67,4 +121,4 @@ shots: build/egress.gbc build/host/egtool
 clean:
 	rm -rf build
 
-.PHONY: all test shots clean seeds
+.PHONY: rom all rtc test test-rtc shots clean seeds

@@ -8,7 +8,7 @@
 #include "core/eg_room.h"
 
 /* game modes (game_mode) */
-enum { MODE_BOOT = 0, MODE_TITLE = 1, MODE_PLAY = 2, MODE_CLEAR = 3, MODE_DEAD = 4 };
+enum { MODE_BOOT = 0, MODE_TITLE = 1, MODE_PLAY = 2, MODE_CLEAR = 3, MODE_DEAD = 4, MODE_SETUP = 5 };
 
 extern uint8_t game_mode;
 extern uint16_t run_seed;

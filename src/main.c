@@ -4,6 +4,7 @@
 #include <string.h>
 #include "egress.h"
 #include "gen/art.h"
+#include "clock.h"
 
 uint8_t game_mode;
 uint16_t run_seed;
@@ -35,6 +36,7 @@ static void vbl_isr(void) NONBANKED {
 void frame_wait(void) {
   vsync();
   frame_count++;
+  if (!((uint8_t)frame_count & 63u)) clock_poll(); /* the clock counts VBlanks; any gap up to 18 minutes is exact */
 }
 
 static uint16_t scale(uint16_t c, uint8_t level) {
@@ -150,7 +152,9 @@ void main(void) {
   set_interrupts(VBL_IFLAG | LCD_IFLAG);
   sound_init();
   game_mode = MODE_BOOT;
+  clock_init(); /* the RTC build reads the chip once here and again after the boot: it must have ticked */
   keel_boot();
+  clock_probe();
   while (1) {
     title_screen();
     play_run();

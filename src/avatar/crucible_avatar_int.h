@@ -15,11 +15,10 @@ extern uint8_t base_[AVATAR_BYTES];
 #define BASE_ON
 #define BASE_OFF
 #else
+#include "../mapper.h" /* the one mapper macro set (both builds) */
 #define base_ ((uint8_t *)0xB500u)
-#define BASE_ON                                                                                                        \
-  ENABLE_RAM;                                                                                                          \
-  SWITCH_RAM(0)
-#define BASE_OFF DISABLE_RAM
+#define BASE_ON EG_SRAM_OPEN()
+#define BASE_OFF EG_SRAM_CLOSE()
 #endif
 extern uint8_t work_[AVATAR_BYTES];
 extern uint16_t rng_;

@@ -1,8 +1,10 @@
 """Tests for the ROM finish and its 1,900,000-byte gate: `python tools/test_finish_rom.py [build/egress.gbc]`.
+(`make test` runs it on both ROMs: build/egress.gbc, MBC5, and build/egress-rtc.gbc, MBC3 + RTC.)
 
   - a small link is trimmed to its last bank, keeps the 2 MiB size code, and both checksums verify on the trimmed file
   - a link that reaches bank 115 (ending past the gate) fails
-  - a stray byte past the cut fails
+  - a stray byte past the cut fails; a link that declares the other mapper fails; the MBC3 finish writes 0x10
+  - the real ROM's cartridge type matches its name (egress-rtc: 0x10, otherwise 0x1B)
   - the real trimmed ROM's header verifies and it boots in PyBoy to the title screen
 """
 
@@ -32,6 +34,7 @@ def fake_link(banks_used: int) -> bytearray:
     rom = bytearray(b"\xff" * (128 * BANK))
     rom[0x100:0x150] = bytes(0x50)
     rom[0x148] = 0x06
+    rom[0x147] = 0x1B
     for b in range(banks_used):
         rom[b * BANK : b * BANK + 16] = bytes(range(1, 17))
     return rom
@@ -78,12 +81,24 @@ def main() -> int:
         (t / "d.map").write_text(fake_map(3))
         check(finish_rom.finish(t / "d.gbc", t / "d.map", t / "d.out") == 1, "a stray byte past the cut fails")
 
+        check(finish_rom.finish(t / "a.gbc", t / "a.map", t / "e.out", "mbc3") == 1,
+              "an MBC5 link finished as MBC3 fails")
+        rom = fake_link(4)
+        rom[0x147] = 0x10
+        (t / "f.gbc").write_bytes(rom)
+        rc = finish_rom.finish(t / "f.gbc", t / "a.map", t / "f.out", "mbc3")
+        out = (t / "f.out").read_bytes() if rc == 0 else b""
+        check(rc == 0 and out[0x147] == 0x10 and verify_header(out), "an MBC3 link finishes as 0x10, checksums verify")
+
     real = Path(sys.argv[1] if len(sys.argv) > 1 else "build/egress.gbc")
     if real.exists():
         data = real.read_bytes()
         check(len(data) <= finish_rom.GATE and len(data) % BANK == 0, f"{real} is {len(data)} bytes, whole banks, "
               f"under the gate")
         check(verify_header(data), f"{real} header and global checksums verify")
+        want = 0x10 if "rtc" in real.name else 0x1B
+        check(data[0x147] == want and data[0x148] == 0x06 and data[0x149] == 0x02,
+              f"{real} cartridge type 0x{data[0x147]:02x} (want 0x{want:02x}), 2 MiB declared, 8 KiB SRAM")
         from pyboy import PyBoy
 
         pb = PyBoy(str(real), window="null", cgb=True, sound_emulated=False, log_level="ERROR",
