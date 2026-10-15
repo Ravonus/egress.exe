@@ -626,6 +626,216 @@ def burn(seed: int, phase: int) -> np.ndarray:
     return idx.astype(np.uint8)
 
 
+# --- fragile floors (the puzzle workstream's rules; docs/redesign.md): worn carpet (3 steps), a ceiling tile laid as
+# floor (2 steps), glass over the void (1 step), glitched glass (on a beat: solid, flicker, gone), and the pit a break
+# leaves. Each stage reads at 1x: hairline, split, then the fall ----------------------------------------------------
+def line_px(pts: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    out = []
+    for (ax, ay), (bx, by) in zip(pts, pts[1:]):
+        n = max(abs(bx - ax), abs(by - ay), 1)
+        for t in range(n + 1):
+            q = (round(ax + (bx - ax) * t / n), round(ay + (by - ay) * t / n))
+            if q not in out:
+                out.append(q)
+    return out
+
+
+def carpet_worn(seed: int, stage: int) -> np.ndarray:
+    """a worn carpet tile (FLOOR): sunk into the floor (the bevel turned inward: shadowed top and left, lit bottom and
+    right), matte and tufted, a threadbare patch, frayed corners; stage 1 a hairline, stage 2 a split with the halves
+    sagging apart"""
+    x, y = grid()
+    xi, yi = x.astype(int), y.astype(int)
+    tuft = ((xi // 2 + yi // 2) % 2 == 0)
+    v = 1.0 + 0.5 * np.clip(1.0 - (x + y) / 26.0, 0, 1) + np.where(tuft, 0.7, 0.0)
+    bald = np.hypot(x - 10.0, y - 6.5) < 3.2  # the threadbare patch: the weave gone flat
+    v = np.where(bald, 1.2 + (vnoise(16, 4, seed) - 0.5) * 0.3, v)
+    v[0, :] = 0.0  # sunk: the rim's shadow falls inside along the top and left
+    v[:, 0] = 0.0
+    v[1, 1:15] = np.minimum(v[1, 1:15], 1.0)
+    v[1:15, 1] = np.minimum(v[1:15, 1], 1.0)
+    v[15, :] = 3.0
+    v[:, 15] = 3.0
+    v[14, 1:15] = np.maximum(v[14, 1:15], 2.0)
+    v[1:15, 14] = np.maximum(v[1:15, 14], 2.0)
+    idx = dither(v)
+    for (px, py) in ((11, 5), (9, 8), (12, 7)):  # loose threads in the bald patch
+        idx[py, px] = 0
+    for (px, py) in ((14, 14), (13, 15), (15, 2)):  # frayed edges
+        idx[py, px] = 1
+    if stage >= 1:  # the hairline: one dark pixel wide, a light lip under it
+        path = line_px([(2, 9), (5, 8), (7, 9), (10, 7), (13, 8)])
+        for (px, py) in path:
+            idx[py, px] = 0
+            if stage == 1 and py + 1 < 15 and idx[py + 1, px] != 0:
+                idx[py + 1, px] = 3
+    if stage >= 2:  # the split: the hairline opens into a gap, a branch runs out, the lower half sags into shadow
+        path = line_px([(0, 10), (2, 9), (5, 8), (7, 9), (10, 7), (13, 8), (15, 7)])
+        for (px, py) in path:
+            idx[py, px] = 0
+            if py + 1 < 16:
+                idx[py + 1, px] = 0
+            if py - 1 >= 0 and idx[py - 1, px] != 0:
+                idx[py - 1, px] = 3
+        for (px, py) in line_px([(7, 10), (6, 12), (8, 14), (7, 15)]):
+            idx[py, px] = 0
+        lower = np.zeros((16, 16), bool)
+        for (px, py) in path:
+            lower[py + 2:, px] = True
+        shade = lower & ((xi + yi) % 2 == 0) & (idx == 2)
+        idx = np.where(shade, 1, idx)
+        idx = np.where(lower & (idx == 3) & (yi > 11), 2, idx)
+    return idx.astype(np.uint8)
+
+
+def ceiling_tile(seed: int, stage: int) -> np.ndarray:
+    """an acoustic ceiling tile laid as floor (WALL: 0 deep, 1 dark, 2 mid, 3 pale): a pale fissured face in its
+    T-bar, an old water stain; stage 1 cracked through with a corner sagging"""
+    x, y = grid()
+    xi, yi = x.astype(int), y.astype(int)
+    v = 3.0 - np.clip((x + y - 20) / 10.0, 0, 1) * 0.5 + (vnoise(16, 4, seed) - 0.5) * 0.15
+    idx = dither(np.clip(v, 2, 3), 2, 3)
+    # the acoustic pinholes, in staggered rows, and a few fissures
+    pin = ((yi % 3) == 1) & (((xi + (yi // 3) * 2) % 4) == 1) & (xi > 1) & (xi < 14) & (yi < 14)
+    idx = np.where(pin, 1, idx)
+    for k in range(2):
+        px = 3 + int(hsh(k, 3, seed) * 9)
+        py = 2 + int(hsh(k, 4, seed) * 10)
+        idx[py, px] = 1
+        idx[py, px + 1] = 1
+    d = np.hypot(x - 5.0, y - 10.5)  # a water stain ring
+    ring = (d > 2.4) & (d < 3.3) & ((xi + yi) % 2 == 0)
+    idx = np.where(ring, 2, idx)
+    # the T-bar it sits in
+    idx[0, :] = 3
+    idx[:, 0] = 3
+    idx[15, :] = 0
+    idx[:, 15] = 0
+    idx[14, 1:15] = 1
+    idx[1:15, 14] = 1
+    idx[1, 1:14] = np.where(idx[1, 1:14] == 3, 2, idx[1, 1:14])
+    idx[15, 0] = idx[0, 15] = 1
+    if stage >= 1:  # cracked through: a corner breaks and drops a little, the void shows in the gap
+        path = line_px([(15, 5), (12, 7), (11, 10), (8, 12), (6, 15)])
+        corner = np.zeros((16, 16), bool)
+        for (px, py) in path:
+            corner[py, px + 1:] = True
+        for (px, py) in path:
+            idx[py, px] = 0
+            if px - 1 >= 0 and idx[py, px - 1] >= 2:
+                idx[py, px - 1] = 1
+        sag = corner & ~np.isin(idx, [0])
+        idx = np.where(sag & (idx == 3), 2, idx)
+        idx = np.where(sag & (idx == 2) & ((xi + yi) % 2 == 1), 1, idx)
+        for (px, py) in path[1:]:  # the gap: the dropped corner shifted down a pixel
+            if py + 1 < 16:
+                idx[py + 1, px] = 0
+        for (px, py) in line_px([(12, 7), (9, 6), (7, 3)]):  # and a hairline running back into the face
+            idx[py, px] = 1
+    return idx.astype(np.uint8)
+
+
+def glass(seed: int, kind: str = "plain") -> np.ndarray:
+    """a glass floor panel over the void (VOID: 0 deepest, 1 deep, 2 frame / sheen, 3 glint): the void and its
+    far grid show through, a thin frame, two diagonal glints and a dithered sheen"""
+    x, y = grid()
+    xi, yi = x.astype(int), y.astype(int)
+    idx = void(seed, 1)
+    thr = np.tile(BA.BAYER, (4, 4))
+    sheen = np.clip(1.0 - (x + y) / 22.0, 0, 1)
+    idx = np.where((thr < sheen * 0.4) & (idx == 0), 1, idx)  # the pane's faint sheen, dithered over the dark
+    dd = x + y
+    span = (np.abs(x - y) < 9)  # the glints stop short of the corners
+    band = (np.abs(dd - 11) < 2.2) & span
+    idx = np.where(band & (thr < 0.6), 2, idx)
+    idx = np.where((np.abs(dd - 11) < 0.6) & span, 3, idx)  # the long glint, crisp
+    band2 = (np.abs(dd - 16) < 1.0) & (np.abs(x - y) < 5)
+    idx = np.where(band2, np.where((xi % 2) == 0, 3, 2), idx)
+    idx = np.where((np.abs(dd - 24) < 0.6) & (np.abs(x - y) < 3), 2, idx)  # a glint low right, faint
+    idx[0, 1:15] = 3
+    idx[1:15, 0] = 3
+    idx[1, 1:14] = 2
+    idx[1:14, 1] = 2
+    idx[15, 1:16] = 2  # the frame's far sides, in shade
+    idx[1:16, 15] = 2
+    idx[14, 2:14] = np.where(xi[14, 2:14] % 2 == 0, 1, idx[14, 2:14])
+    idx[0, 0] = idx[0, 15] = idx[15, 0] = 3
+    idx[1, 1] = 3
+    if kind == "glitch":  # torn: rows slid sideways, a doubled frame, scan dashes
+        for r0, r1, sh in ((3, 5, 3), (9, 11, -4), (12, 13, 2)):
+            idx[r0:r1 + 1] = np.roll(idx[r0:r1 + 1], sh, axis=1)
+        idx[6, 2:14] = np.where(xi[6, 2:14] % 3 == 0, 3, np.where(xi[6, 2:14] % 3 == 1, 2, 0))
+        idx[1:15, 1] = np.where(yi[1:15, 1] % 2 == 0, 3, idx[1:15, 1])
+        idx[10, 13:16] = 3
+        idx[4, 0:2] = 0
+    elif kind == "flicker":  # half there: every other line, the rest dropped to the void
+        g = glass(seed, "glitch")
+        vd = void(seed + 3, 0)
+        idx = np.where(yi % 2 == 0, np.roll(g, 1, axis=1), vd)
+        idx[7:9, 3:9] = np.where((xi[7:9, 3:9] + yi[7:9, 3:9]) % 2 == 0, 2, 0)
+    elif kind == "gone":  # only the void, and the corners of where it was
+        idx = void(seed + 5, 1)
+        for cx, cy, sx, sy in ((1, 1, 1, 1), (14, 1, -1, 1), (1, 14, 1, -1), (14, 14, -1, -1)):
+            idx[cy, cx] = 2
+            idx[cy, cx + sx] = 2
+            idx[cy + sy, cx] = 2
+        idx[1, 5] = idx[1, 10] = 1
+        idx[14, 7] = 1
+        idx[8, 6] = 3
+    return idx.astype(np.uint8)
+
+
+def pit(seed: int) -> np.ndarray:
+    """the hole a break leaves (VOID): the void deep inside, the torn underside of the floor along the top, ragged
+    edges down the sides, threads hanging"""
+    x, y = grid()
+    xi, yi = x.astype(int), y.astype(int)
+    idx = void(seed, 1)
+    idx = np.where(idx == 1, np.where((xi + yi) % 3 == 0, 1, 0), idx)
+    thr = np.tile(BA.BAYER, (4, 4))
+    depth = np.array([5, 6, 5, 4, 6, 7, 5, 4, 5, 6, 4, 5, 6, 5, 4, 5])  # the torn lip's depth, column by column
+    for cx in range(16):
+        d = depth[(cx + seed) % 16]
+        for r in range(d):
+            t = 1.0 - r / d
+            idx[r, cx] = 2 if thr[r % 4, cx % 4] < t * 1.05 else (1 if thr[r % 4, cx % 4] < t * 1.5 else idx[r, cx])
+        idx[0, cx] = 3 if cx % 5 == 2 else 2
+    for cx in (3, 9, 12):  # threads hanging off the torn edge
+        d = depth[(cx + seed) % 16]
+        idx[d:d + 2, cx] = 2
+        idx[d + 2, cx] = 1
+    for cy in range(16):  # ragged sides
+        w = 1 + int(hsh(cy, 1, seed) * 2)
+        idx[cy, :w] = np.where(idx[cy, :w] < 2, 2 if cy % 3 else 1, idx[cy, :w])
+        w = 1 + int(hsh(cy, 2, seed) * 2)
+        idx[cy, 16 - w:] = np.where(idx[cy, 16 - w:] < 2, 1, idx[cy, 16 - w:])
+    idx[15, :] = np.where(idx[15, :] < 2, 0, idx[15, :])
+    return idx.astype(np.uint8)
+
+
+def shard(variant: int) -> np.ndarray:
+    """an 8x16 sprite of falling glass (VOID: 0 clear, 1 deep, 2 sheen, 3 glint): slivers, dithered"""
+    o = np.zeros((16, 8), np.uint8)
+    if variant == 0:
+        tris = [((0, 1), (6, 0), (2, 6)), ((4, 9), (7, 8), (5, 14)), ((1, 11), (3, 10), (2, 13))]
+    else:
+        tris = [((1, 0), (7, 3), (3, 5)), ((0, 8), (4, 7), (1, 12)), ((5, 11), (7, 12), (6, 15))]
+    ys, xs = np.mgrid[0:16, 0:8]
+    for (ax, ay), (bx, by), (cx, cy) in tris:
+        def side(px, py, qx, qy, rx, ry):
+            return (px - rx) * (qy - ry) - (qx - rx) * (py - ry)
+        d1 = side(xs, ys, ax, ay, bx, by)
+        d2 = side(xs, ys, bx, by, cx, cy)
+        d3 = side(xs, ys, cx, cy, ax, ay)
+        inside = ~(((d1 < 0) | (d2 < 0) | (d3 < 0)) & ((d1 > 0) | (d2 > 0) | (d3 > 0)))
+        fill = np.where((xs + ys) % 2 == 0, 2, 1)
+        o = np.where(inside, fill, o)
+        for (px, py) in line_px([(ax, ay), (bx, by)]):
+            if 0 <= py < 16 and 0 <= px < 8:
+                o[py, px] = 3
+    return o
+
+
 # --- the cards: (name, palette, builder, what it is) ----------------------------------------------------------------
 METAS: list[tuple[str, int, object]] = [
     ("SLAB_A", PAL_FLOOR, lambda: slab(1)),
@@ -674,6 +884,29 @@ REACTS: list[tuple[str, int, object]] = [
 ]
 
 
+# fragile floors and the pit (the puzzle workstream owns the rules): ids follow the reaction range, each kind's stages
+# consecutive so a cell shows M_<KIND>0 + steps taken. BANK0 cards live in VRAM bank 0 (tiles B0_BASE ..), where a
+# sprite can show them too: they wobble and fall as themselves
+FRAGILE: list[tuple[str, int, object]] = [
+    ("CARPET0", PAL_FLOOR, lambda: carpet_worn(50, 0)),
+    ("CARPET1", PAL_FLOOR, lambda: carpet_worn(50, 1)),
+    ("CARPET2", PAL_FLOOR, lambda: carpet_worn(50, 2)),
+    ("CEIL0", PAL_WALL, lambda: ceiling_tile(52, 0)),
+    ("CEIL1", PAL_WALL, lambda: ceiling_tile(52, 1)),
+    ("GLASS", PAL_VOID, lambda: glass(54)),
+    ("GLITCH0", PAL_VOID, lambda: glass(54, "glitch")),
+    ("GLITCH1", PAL_VOID, lambda: glass(54, "flicker")),
+    ("GLITCH2", PAL_VOID, lambda: glass(54, "gone")),
+    ("PIT", PAL_VOID, lambda: pit(56)),
+]
+FRAG_STEPS = {"CARPET": 3, "CEIL": 2, "GLASS": 1, "GLITCH": 1}
+# VRAM bank 0 above the sprites (bake_art's sprite set ends at 210): the flying fragile cards, the glass shards, and
+# the two cards that also fly during assembly and collapse (a floor slab, a wall top) at SPR_BASE
+B0_BASE = 210
+BANK0 = {"CARPET0", "CARPET1", "CARPET2", "CEIL0", "CEIL1", "GLASS", "GLITCH0", "GLITCH2"}
+FIXED0 = {"SLAB_A": SPR_BASE, "WALL_TOP": SPR_BASE + 4}
+
+
 def meta_tiles(m: np.ndarray) -> list[bytes]:
     """8x16 sprite order: TL, BL, TR, BR"""
     return [encode(m[0:8, 0:8]), encode(m[8:16, 0:8]), encode(m[0:8, 8:16]), encode(m[8:16, 8:16])]
@@ -685,18 +918,67 @@ def build() -> tuple[list[np.ndarray], list[int], list[np.ndarray], list[int]]:
     return cores, [p for _, p, _ in METAS], reacts, [p for _, p, _ in REACTS]
 
 
+def layout() -> tuple[list, dict[int, bytes], dict[int, bytes], int, int, int]:
+    """every metatile id in order: (name, palette | 0x80 if in bank 0, image); the bank 1 and bank 0 tiles by index;
+    the first reaction tile and the end of the bank 1 range"""
+    cores, cpals, reacts, rpals = build()
+    ms: list[tuple[str, int, np.ndarray | None]] = [(n, p, im) for (n, _, _), p, im in zip(METAS, cpals, cores)]
+    ms += [(n, p, im) for (n, _, _), p, im in zip(REACTS, rpals, reacts)]
+    ms += [(f"REACT{k}", PAL_FLOOR, None) for k in range(len(reacts), REACT_METAS)]
+    ms += [(n, p, fn()) for n, p, fn in FRAGILE]
+    b1: dict[int, bytes] = {}
+    b0: dict[int, bytes] = {}
+    t1, t0 = T_BASE, B0_BASE
+    out, react_t = [], 0
+    for k, (n, p, im) in enumerate(ms):
+        if k == len(METAS):
+            react_t = t1
+        if n in FIXED0 or n in BANK0:
+            base = FIXED0.get(n, t0)
+            if n not in FIXED0:
+                t0 += 4
+            for j, t in enumerate(meta_tiles(im)):
+                b0[base + j] = t
+            out.append((n, p | 0x80, im, base))
+        else:
+            if im is not None:
+                for j, t in enumerate(meta_tiles(im)):
+                    b1[t1 + j] = t
+            out.append((n, p, im, t1))
+            t1 += 4
+    shard_t = t0
+    for v in (0, 1):
+        sh = shard(v)
+        b0[t0] = encode(sh[0:8])
+        b0[t0 + 1] = encode(sh[8:16])
+        t0 += 2
+    if t1 > FIXED_BASE:
+        raise SystemExit(f"look tiles overrun the font block: {t1} > {FIXED_BASE}")
+    if t0 > SPR_BASE:
+        raise SystemExit(f"bank 0 look tiles overrun the flying cards: {t0} > {SPR_BASE}")
+    n_spr = len(BA.build_sprites()[0].tiles)
+    if n_spr > B0_BASE:
+        raise SystemExit(f"the sprite set ({n_spr} tiles) runs into the bank 0 look range at {B0_BASE}")
+    return out, b1, b0, react_t, t1, shard_t
+
+
 def mix(a: tuple[int, int, int], b: tuple[int, int, int], t: float) -> tuple[int, int, int]:
     return tuple(round(a[i] + (b[i] - a[i]) * t) for i in range(3))  # type: ignore[return-value]
 
 
 def write(out: Path) -> None:
-    cores, cpals, reacts, rpals = build()
-    n_core = len(cores)
+    ms, b1, b0, react_t, t1_end, shard_t = layout()
+    n_core = len(METAS)
     react_m = n_core  # reaction metas follow the core set
-    if T_BASE + 4 * (n_core + REACT_METAS) > FIXED_BASE:
-        raise SystemExit(f"look tiles overrun the font block: {T_BASE + 4 * (n_core + REACT_METAS)} > {FIXED_BASE}")
-    tiles = b"".join(b"".join(meta_tiles(m)) for m in cores + reacts)
-    pals = cpals + rpals + [PAL_FLOOR] * (REACT_METAS - len(reacts))
+    frag_m = n_core + REACT_METAS
+    t1_lo, t1_hi = T_BASE, t1_end
+    tiles1 = b"".join(b1.get(t, bytes(16)) for t in range(t1_lo, t1_hi))
+    t0_lo, t0_hi = B0_BASE, SPR_BASE + 8
+    tiles0 = b"".join(b0.get(t, bytes(16)) for t in range(t0_lo, t0_hi))
+    pals = [p for _, p, _, _ in ms]
+    mtile = []
+    for _, _, _, base in ms:  # the 2x2 map order: TL, TR, BL, BR (the tiles are in 8x16 order: TL, BL, TR, BR)
+        mtile += [base, base + 2, base + 1, base + 3]
     names = list(BIOMES)
     biome_words = []
     for nm in names:
@@ -707,7 +989,7 @@ def write(out: Path) -> None:
         "#define EG_LOOK_ART_H",
         "#include <gb/gb.h>",
         "#include <stdint.h>",
-        f"#define LOOK_T_BASE {T_BASE}u /* VRAM bank 1: metatile m = tiles LOOK_T_BASE + 4m .. +3 (TL, BL, TR, BR) */",
+        f"#define LOOK_T_BASE {T_BASE}u /* VRAM bank 1: the cards from here, 4 tiles each in 8x16 order (TL, BL, TR, BR) */",
     ]
     for i, (name, _, _) in enumerate(METAS):
         h.append(f"#define M_{name} {i}u")
@@ -716,10 +998,19 @@ def write(out: Path) -> None:
     h.append(f"#define LOOK_REACT_METAS {REACT_METAS}u")
     for i, (name, _, _) in enumerate(REACTS):
         h.append(f"#define M_{name} {react_m + i}u /* placeholder */")
-    h.append(f"#define M_COUNT {n_core + REACT_METAS}u")
-    h.append(f"#define LOOK_SPR_BASE {SPR_BASE}u /* VRAM bank 0: +0 the floor card, +4 the wall card (8x16 pairs) */")
-    h.append(f"#define LOOK_T_REACT {T_BASE + 4 * react_m}u")
-    h.append(f"#define LOOK_T_END {T_BASE + 4 * (n_core + REACT_METAS)}u /* first tile past the reaction range */")
+    h.append(f"#define M_FRAG0 {frag_m}u /* fragile floors and the pit: M_<KIND>0 + steps taken */")
+    for i, (name, _, _) in enumerate(FRAGILE):
+        h.append(f"#define M_{name} {frag_m + i}u")
+    for k, n in FRAG_STEPS.items():
+        h.append(f"#define LOOK_{k}_STEPS {n}u")
+    h.append(f"#define M_COUNT {len(ms)}u")
+    h.append(f"#define LOOK_SPR_BASE {SPR_BASE}u /* VRAM bank 0: +0 the floor card (M_SLAB_A), +4 the wall card (M_WALL_TOP) */")
+    h.append(f"#define LOOK_T_REACT {react_t}u")
+    h.append(f"#define LOOK_T_END {react_t + 4 * REACT_METAS}u /* first tile past the reaction range */")
+    h.append(f"#define LOOK_T1_END {t1_hi}u /* first bank 1 tile past the look */")
+    h.append(f"#define LOOK_B0_BASE {B0_BASE}u /* VRAM bank 0: the flying fragile cards from here */")
+    h.append(f"#define LOOK_SHARD {shard_t}u /* VRAM bank 0: two 8x16 glass shard sprites (+0, +2) */")
+    h.append("#define LOOK_META_BANK0 0x80u /* meta_pal bit: the card's tiles are in VRAM bank 0 */")
     for i, nm in enumerate(PAL_NAMES):
         h.append(f"#define LOOK_PAL_{nm} {i}u")
     for i, nm in enumerate(names):
@@ -727,9 +1018,9 @@ def write(out: Path) -> None:
     h.append(f"#define BIOME_COUNT {len(names)}u")
     h += [
         "extern const uint8_t look_ambient_kind[];",
-        "/* loads the cards into VRAM bank 1, a biome's 8 BG palettes into pal_out[32], each metatile's palette into",
-        " * meta_pal[M_COUNT] */",
-        "void look_art_load(uint8_t biome, uint16_t *pal_out, uint8_t *meta_pal) BANKED;",
+        "/* loads the cards into VRAM banks 1 and 0, a biome's 8 BG palettes into pal_out[32], each card's palette into",
+        " * meta_pal[M_COUNT] (| LOOK_META_BANK0) and its 2x2 map tiles into meta_tile[M_COUNT * 4] */",
+        "void look_art_load(uint8_t biome, uint16_t *pal_out, uint8_t *meta_pal, uint8_t *meta_tile) BANKED;",
         "#endif",
     ]
     (out / "look_art.h").write_text("\n".join(h) + "\n")
@@ -741,25 +1032,29 @@ def write(out: Path) -> None:
         "#include <string.h>",
         '#include "look_art.h"',
         "BANKREF(look_art_bank)",
-        BA.c_bytes("look_tiles", tiles),
+        BA.c_bytes("look_tiles1", tiles1),
+        BA.c_bytes("look_tiles0", tiles0),
         "static const uint8_t look_meta_pal[] = {" + ", ".join(map(str, pals)) + "};",
+        "static const uint8_t look_meta_tile[] = {" + ", ".join(map(str, mtile)) + "};",
         BA.c_words("look_biome_pal", biome_words),
         "const uint8_t look_ambient_kind[] = {" + ", ".join(str(AMBIENT[n]) for n in names) + "};",
-        f"#define LOOK_NTILES {len(tiles) // 16}u",
+        f"#define LOOK_NT1 {len(tiles1) // 16}u",
+        f"#define LOOK_NT0 {len(tiles0) // 16}u",
         """
-void look_art_load(uint8_t biome, uint16_t *pal_out, uint8_t *meta_pal) BANKED {
+void look_art_load(uint8_t biome, uint16_t *pal_out, uint8_t *meta_pal, uint8_t *meta_tile) BANKED {
   VBK_REG = 1;
-  set_bkg_data(LOOK_T_BASE, LOOK_NTILES, look_tiles);
+  set_bkg_data(LOOK_T_BASE, LOOK_NT1, look_tiles1);
   VBK_REG = 0;
-  set_sprite_data(LOOK_SPR_BASE, 4, look_tiles + (uint16_t)M_SLAB_A * 64u);
-  set_sprite_data(LOOK_SPR_BASE + 4u, 4, look_tiles + (uint16_t)M_WALL_TOP * 64u);
+  set_sprite_data(LOOK_B0_BASE, LOOK_NT0, look_tiles0);
   memcpy(pal_out, &look_biome_pal[(uint16_t)biome * 32u], 64);
   memcpy(meta_pal, look_meta_pal, M_COUNT);
+  memcpy(meta_tile, look_meta_tile, (uint16_t)M_COUNT * 4u);
 }
 """,
     ]
     (out / "look_art.c").write_text("\n".join(c))
-    print(f"look: {n_core} core cards + {len(reacts)}/{REACT_METAS} reaction, tiles {T_BASE}..{T_BASE + 4 * (n_core + REACT_METAS) - 1}")
+    print(f"look: {len(ms)} cards; bank 1 tiles {t1_lo}..{t1_hi - 1} (reaction {react_t}..{react_t + 4 * REACT_METAS - 1}),"
+          f" bank 0 tiles {t0_lo}..{t0_hi - 1} (shards {shard_t}..{shard_t + 3})")
 
 
 # --- review renders ---------------------------------------------------------------------------------------------------
@@ -771,7 +1066,9 @@ def paint(idx: np.ndarray, p: list[tuple[int, int, int]]) -> Image.Image:
 def sheet(path: Path) -> None:
     cores, cpals, reacts, rpals = build()
     office = BIOMES["OFFICE"]
-    allm = list(zip(cores + reacts, cpals + rpals, [n for n, _, _ in METAS] + [n for n, _, _ in REACTS]))
+    frs = [fn() for _, _, fn in FRAGILE]
+    allm = list(zip(cores + reacts + frs, cpals + rpals + [p for _, p, _ in FRAGILE],
+                    [n for n, _, _ in METAS] + [n for n, _, _ in REACTS] + [n for n, _, _ in FRAGILE]))
     cols = 10
     rows = (len(allm) + cols - 1) // cols
     cw = 18
@@ -793,6 +1090,50 @@ def sheet(path: Path) -> None:
     out = Image.new("RGB", (w + 8 + w * 4, max(h, h * 4)), (24, 22, 32))
     out.paste(base, (0, 0))
     out.paste(big, (w + 8, 0))
+    out.save(path)
+
+
+def fragile_sheet(path: Path) -> None:
+    """every fragile stage, alone and set into the floor (a 3x3 of slabs), with the shards: 1x on top, 4x below"""
+    from PIL import ImageDraw
+    office = BIOMES["OFFICE"]
+    rows = [["CARPET0", "CARPET1", "CARPET2", "PIT"], ["CEIL0", "CEIL1", "PIT"], ["GLASS", "PIT"],
+            ["GLITCH0", "GLITCH1", "GLITCH2", "GLITCH1"]]
+    labels = ["worn carpet: 3 steps", "ceiling tile: 2 steps", "glass: 1 step", "glitched glass: solid, flicker, gone"]
+    fr = {n: (fn(), p) for n, p, fn in FRAGILE}
+    slabs = [slab(1), slab(2, "scuff"), slab(3, "seam"), slab(4, "stain"), slab(1)]
+    cell = 52  # a stage in its 3x3 of floor, plus a gap
+    w = 2 + 4 * cell + 8 + 4 * 18 + 2
+    h = 2 + len(rows) * (cell + 10) + 20
+    base = Image.new("RGB", (w, h), (24, 22, 32))
+    for r, names in enumerate(rows):
+        y0 = 2 + r * (cell + 10)
+        for k, nm in enumerate(names):
+            im, p = fr[nm]
+            x0 = 2 + k * cell
+            for yy in range(3):
+                for xx in range(3):
+                    if (xx, yy) == (1, 1):
+                        base.paste(paint(im, office[p]), (x0 + 16, y0 + 16))
+                    else:
+                        base.paste(paint(slabs[(xx * 3 + yy + k + r) % 5], office[PAL_FLOOR]), (x0 + xx * 16, y0 + yy * 16))
+            base.paste(paint(im, office[p]), (2 + 4 * cell + 8 + k * 18, y0 + 16))  # alone
+    y0 = 2 + len(rows) * (cell + 10)
+    for v in (0, 1):  # the shards over the void, as they fall
+        bg = paint(void(17, 0), office[PAL_VOID])
+        sh = shard(v)
+        a = np.array(bg)
+        col = np.array(office[PAL_VOID], np.uint8)
+        a[0:16, 4:12] = np.where(sh[..., None] > 0, col[sh], a[0:16, 4:12])
+        base.paste(Image.fromarray(a), (2 + v * 18, y0))
+    big = base.resize((w * 4, h * 4), Image.NEAREST)
+    d = ImageDraw.Draw(big)
+    for r, lab in enumerate(labels):
+        d.text((8, (2 + r * (cell + 10) + 49) * 4 + 4), lab, fill=(236, 220, 255))
+    d.text((8 + 40 * 4, (y0 + 4) * 4), "glass shards (sprites)", fill=(236, 220, 255))
+    out = Image.new("RGB", (w * 4, h + 8 + h * 4), (24, 22, 32))
+    out.paste(base, (0, 0))
+    out.paste(big, (0, h + 8))
     out.save(path)
 
 
@@ -865,6 +1206,7 @@ def main() -> None:
     ap.add_argument("out", type=Path)
     ap.add_argument("--sheet", type=Path)
     ap.add_argument("--preview", type=Path)
+    ap.add_argument("--fragile", type=Path, help="the fragile floors' sheet")
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--tier", type=int, default=0)
     ap.add_argument("--egtool", type=Path, default=Path("build/host/egtool"))
@@ -873,6 +1215,8 @@ def main() -> None:
     write(a.out)
     if a.sheet:
         sheet(a.sheet)
+    if a.fragile:
+        fragile_sheet(a.fragile)
     if a.preview:
         preview(a.preview, a.seed, a.tier, a.egtool)
 

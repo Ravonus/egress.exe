@@ -30,7 +30,8 @@ typedef struct {
 #define END 0
 enum {
   C4 = 24, D4 = 26, E4 = 28, F4 = 29, G4 = 31, A4 = 33, B4 = 35, C5 = 36, D5 = 38, E5 = 40, F5 = 41, G5 = 43,
-  A5 = 45, B5 = 47, C6 = 48, D6 = 50, E6 = 52, G6 = 55, B6 = 59, C7 = 60, F3 = 17, C3 = 12
+  A5 = 45, B5 = 47, C6 = 48, D6 = 50, E6 = 52, G6 = 55, B6 = 59, C7 = 60, F3 = 17, C3 = 12,
+  D3 = 14, A3 = 21, FS4 = 30, FS5 = 42, FS6 = 54, A6 = 57, D7 = 62
 };
 static const uint8_t s_step4[] = {NZ(2, 0x21, 0x6c), END};
 static const uint8_t s_dig4[] = {NZ(3, 0x51, 0x5d), NZ(4, 0x31, 0x6e), END};
@@ -56,11 +57,26 @@ static const uint8_t s_kill1[] = {NOTE(3, 0x81, G5, 2), NOTE(8, 0x73, D6, 2), EN
 static const uint8_t s_deny1[] = {NOTE(4, 0x82, C4, 3), NOTE(6, 0x72, C4, 3), END};
 static const uint8_t s_exit1[] = {NOTE(6, 0x93, C5, 2), NOTE(6, 0x93, E5, 2), NOTE(6, 0x93, G5, 2),
                                   NOTE(6, 0x93, B5, 2), NOTE(20, 0x95, C6, 2), END};
+/* the fragile floors give way, in the floors' D major: worn carpet a low thud and a tearing rasp; a ceiling tile a
+ * gritty crunch over a dull knock; glass a bright shatter with falling D-major glints; glitched glass a zap that
+ * stutters down an arpeggio */
+static const uint8_t s_tear1[] = {NOTE(3, 0xa1, D3, 2), NOTE(6, 0x72, A3, 2), END};
+static const uint8_t s_tear4[] = {NZ(3, 0xb1, 0x75), NZ(3, 0x72, 0x45), NZ(4, 0x62, 0x55), NZ(8, 0x43, 0x46), END};
+static const uint8_t s_crunch1[] = {NOTE(3, 0x81, A3, 1), NOTE(5, 0x61, D4, 1), END};
+static const uint8_t s_crunch4[] = {NZ(2, 0xc1, 0x53), NZ(3, 0x91, 0x64), NZ(2, 0x81, 0x52), NZ(8, 0x63, 0x65), END};
+static const uint8_t s_shatter1[] = {NOTE(2, 0x91, A6, 0), NOTE(2, 0x81, FS6, 0), NOTE(2, 0x81, D7, 0), NOTE(3, 0x71, A6, 0),
+                                     NOTE(3, 0x61, FS6, 0), NOTE(8, 0x53, D6, 0), END};
+static const uint8_t s_shatter4[] = {NZ(2, 0xd1, 0x10), NZ(6, 0x93, 0x21), NZ(10, 0x54, 0x22), END};
+static const uint8_t s_zap1[] = {NOTE(1, 0xa1, D7, 3), NOTE(1, 0xa1, A6, 3), NOTE(1, 0x91, FS6, 3), NOTE(1, 0x91, D6, 3),
+                                 NOTE(2, 0x81, A5, 3), NOTE(1, 0x81, D7, 3), NOTE(2, 0x71, FS5, 3), NOTE(6, 0x63, D5, 3),
+                                 END};
+static const uint8_t s_zap4[] = {NZ(2, 0x91, 0x1b), NZ(2, 0x00, 0x1b), NZ(3, 0x72, 0x2b), END};
 static const sfx_def sfx_table[SFX_COUNT] = {
     {0, 0},          {0, s_step4},        {0, s_dig4},     {s_token1, 0}, {s_key1, 0},    {s_door1, 0},
     {0, s_lash4},    {s_hit1, s_hit4},    {s_hurt1, 0},    {0, s_roll4},  {s_charged1, 0}, {0, s_spin4},
     {0, s_break4},   {0, s_thud4},        {0, s_push4},    {s_tell1, 0},  {s_shot1, 0},   {s_kill1, s_kill4},
     {s_deny1, 0},    {s_exit1, 0},
+    {s_tear1, s_tear4}, {s_crunch1, s_crunch4}, {s_shatter1, s_shatter4}, {s_zap1, s_zap4},
 };
 static const uint8_t *fx[2];
 static uint8_t fx_left[2];

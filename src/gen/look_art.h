@@ -3,7 +3,7 @@
 #define EG_LOOK_ART_H
 #include <gb/gb.h>
 #include <stdint.h>
-#define LOOK_T_BASE 2u /* VRAM bank 1: metatile m = tiles LOOK_T_BASE + 4m .. +3 (TL, BL, TR, BR) */
+#define LOOK_T_BASE 2u /* VRAM bank 1: the cards from here, 4 tiles each in 8x16 order (TL, BL, TR, BR) */
 #define M_SLAB_A 0u
 #define M_SLAB_B 1u
 #define M_SLAB_C 2u
@@ -47,10 +47,29 @@
 #define M_ICE 37u /* placeholder */
 #define M_BURN_A 38u /* placeholder */
 #define M_BURN_B 39u /* placeholder */
-#define M_COUNT 47u
-#define LOOK_SPR_BASE 248u /* VRAM bank 0: +0 the floor card, +4 the wall card (8x16 pairs) */
-#define LOOK_T_REACT 146u
-#define LOOK_T_END 190u /* first tile past the reaction range */
+#define M_FRAG0 47u /* fragile floors and the pit: M_<KIND>0 + steps taken */
+#define M_CARPET0 47u
+#define M_CARPET1 48u
+#define M_CARPET2 49u
+#define M_CEIL0 50u
+#define M_CEIL1 51u
+#define M_GLASS 52u
+#define M_GLITCH0 53u
+#define M_GLITCH1 54u
+#define M_GLITCH2 55u
+#define M_PIT 56u
+#define LOOK_CARPET_STEPS 3u
+#define LOOK_CEIL_STEPS 2u
+#define LOOK_GLASS_STEPS 1u
+#define LOOK_GLITCH_STEPS 1u
+#define M_COUNT 57u
+#define LOOK_SPR_BASE 248u /* VRAM bank 0: +0 the floor card (M_SLAB_A), +4 the wall card (M_WALL_TOP) */
+#define LOOK_T_REACT 138u
+#define LOOK_T_END 182u /* first tile past the reaction range */
+#define LOOK_T1_END 190u /* first bank 1 tile past the look */
+#define LOOK_B0_BASE 210u /* VRAM bank 0: the flying fragile cards from here */
+#define LOOK_SHARD 242u /* VRAM bank 0: two 8x16 glass shard sprites (+0, +2) */
+#define LOOK_META_BANK0 0x80u /* meta_pal bit: the card's tiles are in VRAM bank 0 */
 #define LOOK_PAL_FLOOR 0u
 #define LOOK_PAL_FOAM 1u
 #define LOOK_PAL_WALL 2u
@@ -69,7 +88,7 @@
 #define BIOME_GLITCH 7u
 #define BIOME_COUNT 8u
 extern const uint8_t look_ambient_kind[];
-/* loads the cards into VRAM bank 1, a biome's 8 BG palettes into pal_out[32], each metatile's palette into
- * meta_pal[M_COUNT] */
-void look_art_load(uint8_t biome, uint16_t *pal_out, uint8_t *meta_pal) BANKED;
+/* loads the cards into VRAM banks 1 and 0, a biome's 8 BG palettes into pal_out[32], each card's palette into
+ * meta_pal[M_COUNT] (| LOOK_META_BANK0) and its 2x2 map tiles into meta_tile[M_COUNT * 4] */
+void look_art_load(uint8_t biome, uint16_t *pal_out, uint8_t *meta_pal, uint8_t *meta_tile) BANKED;
 #endif

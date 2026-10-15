@@ -78,6 +78,7 @@ static uint8_t meta_for(uint8_t i) {
     if (y && solid_ground((uint8_t)(i - EG_W))) return M_VOID_UNDER;
     return (h & 2u) ? M_VOID_C : ((h & 1u) ? M_VOID_B : M_VOID_A);
   }
+  if (look_skin[i]) return (uint8_t)(look_skin[i] - 1u); /* a fragile stage or a pit (src/look.h) */
   switch (t) {
     case T_EMPTY:
       h = (uint8_t)(h % 20u); /* A 50%, B 20%, C 15%, D 15% */
@@ -109,7 +110,9 @@ uint8_t cell_meta(uint8_t i) NONBANKED { return meta_for(i); }
 
 void draw_meta(uint8_t i, uint8_t m) NONBANKED {
   uint8_t a[4];
-  a[0] = a[1] = a[2] = a[3] = (uint8_t)(meta_pal[m] | 0x08u);
+  uint8_t p = meta_pal[m];
+  /* the attribute: the palette, and VRAM bank 1 unless the card lives in bank 0 (the fragile floors, the flying cards) */
+  a[0] = a[1] = a[2] = a[3] = (p & LOOK_META_BANK0) ? (uint8_t)(p & 7u) : (uint8_t)(p | 0x08u);
   VBK_REG = 1;
   set_bkg_tiles((uint8_t)(EG_X(i) << 1), (uint8_t)(EG_Y(i) << 1), 2, 2, a);
   VBK_REG = 0;

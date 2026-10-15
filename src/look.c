@@ -8,13 +8,21 @@
 
 uint8_t look_present[EG_N / 8u];
 uint8_t look_busy_n;
+uint8_t look_skin[EG_N];
+uint8_t look_glitch_phase, look_glitch_period = 48u;
+uint8_t look_dbg_cell, look_dbg_kind;
 
 static uint8_t queued[EG_N / 8u];
 static uint8_t q[256], q_head, q_n; /* the wave: cells in order, a ring */
 
 /* cards in flight (assembly) and pieces falling (collapse) */
-enum { K_FREE = 0, K_DROP, K_RISE, K_SLIDE_L, K_SLIDE_R, K_GLITCH, K_CRACK, K_FALL };
+enum { K_FREE = 0, K_DROP, K_RISE, K_SLIDE_L, K_SLIDE_R, K_GLITCH, K_CRACK, K_FALL, K_WOBBLE, K_SHATTER };
 static uint8_t c_kind[LOOK_MAX_CARDS], c_cell[LOOK_MAX_CARDS], c_t[LOOK_MAX_CARDS], c_meta[LOOK_MAX_CARDS];
+static uint8_t c_brk[LOOK_MAX_CARDS]; /* a break's fragile kind (LOOK_FRAG_*), 0 for the wave's cards */
+static uint8_t n_break;
+static uint16_t brk_obj[8]; /* OBJ 6 and 7 while a break is in the air: the card's palette, and darker */
+static uint8_t redraw[EG_N / 8u], rd_any;
+static uint8_t gl_any, gl_t, gl_step;
 static int16_t c_top[LOOK_MAX_CARDS], c_bot[LOOK_MAX_CARDS]; /* the vertical span its path covers (world px) */
 static uint8_t n_flying;
 
@@ -50,18 +58,11 @@ static uint16_t mix(uint16_t a, uint16_t b, uint8_t w16) {
 }
 
 void look_load(uint8_t biome) BANKED {
-  uint8_t m, b, k;
+  uint8_t b, k;
   if (!on) memcpy(saved_bg, pal_bg, sizeof saved_bg);
   on = 1u;
   biome_now = biome;
-  look_art_load(biome, pal_bg, meta_pal);
-  for (m = 0; m != M_COUNT; m++) {
-    b = (uint8_t)(LOOK_T_BASE + (m << 2));
-    meta_tile[m][0] = b;
-    meta_tile[m][1] = (uint8_t)(b + 2u);
-    meta_tile[m][2] = (uint8_t)(b + 1u);
-    meta_tile[m][3] = (uint8_t)(b + 3u);
-  }
+  look_art_load(biome, pal_bg, meta_pal, &meta_tile[0][0]);
   for (k = 0; k != 4u; k++) {
     obj_pal[0][k] = pal_bg[LOOK_PAL_FLOOR * 4u + k];
     obj_pal[1][k] = pal_bg[LOOK_PAL_WALL * 4u + k];
@@ -78,6 +79,12 @@ void look_load(uint8_t biome) BANKED {
   memset(look_present, 0xff, sizeof look_present);
   memset(queued, 0, sizeof queued);
   memset(c_kind, 0, sizeof c_kind);
+  memset(c_brk, 0, sizeof c_brk);
+  memset(look_skin, 0, sizeof look_skin);
+  memset(redraw, 0, sizeof redraw);
+  rd_any = gl_any = gl_t = gl_step = 0;
+  look_glitch_phase = 0;
+  n_break = 0;
   q_n = 0;
   n_flying = 0;
   look_busy_n = 0;
@@ -96,8 +103,10 @@ void look_freeze(void) BANKED {
   uint8_t k;
   for (k = 0; k != LOOK_MAX_CARDS; k++) {
     c_kind[k] = K_FREE;
+    c_brk[k] = 0;
     hide_card(k);
   }
+  n_break = 0;
   q_n = 0;
   n_flying = 0;
   look_busy_n = 0;
@@ -243,7 +252,7 @@ static void sprite_pair(uint8_t k, int16_t wx, int16_t wy, uint8_t tile, uint8_t
 }
 
 static uint8_t is_wallish(uint8_t m) {
-  uint8_t p = meta_pal[m];
+  uint8_t p = (uint8_t)(meta_pal[m] & 7u);
   return (uint8_t)(p == LOOK_PAL_WALL || p == LOOK_PAL_HUD);
 }
 
@@ -298,10 +307,16 @@ static uint8_t launch(uint8_t i) {
     c_meta[k] = is_wallish(cell_meta(i)) ? M_WALL_TOP : M_SLAB_A;
     draw_meta(i, c_meta[k] == M_WALL_TOP ? M_DRY_CRACK : M_SLAB_CRACK);
   } else {
-    c_meta[k] = M_SLAB_A;
     look_present[i >> 3] |= BIT(i); /* what it will be */
-    if (is_wallish(cell_meta(i))) c_meta[k] = M_WALL_TOP;
+    h = cell_meta(i);
     look_present[i >> 3] &= (uint8_t)~BIT(i);
+    if (meta_pal[h] & LOOK_META_BANK0) {
+      /* a card in bank 0 flies as itself (worn carpet, a ceiling tile); glass glitches in unseen (its palette is
+       * not one of the assembly's two) */
+      c_meta[k] = h;
+      if ((meta_pal[h] & 7u) == LOOK_PAL_VOID) c_kind[k] = K_GLITCH;
+    } else
+      c_meta[k] = is_wallish(h) ? M_WALL_TOP : M_SLAB_A;
     draw_meta(i, M_VOID_OUTLINE);
   }
   budget--;
@@ -309,15 +324,80 @@ static uint8_t launch(uint8_t i) {
 }
 
 static void finish(uint8_t k) {
+  if (c_brk[k]) {
+    c_brk[k] = 0;
+    n_break--;
+  }
   c_kind[k] = K_FREE;
   n_flying--;
   hide_card(k);
 }
 
+/* --- fragile floors: the break (src/look.h) --- */
+static void step_card(uint8_t k);
+static const int8_t wobble[8] = {1, -1, 1, -1, 1, 0, -1, 0};
+#define WOBBLE_FRAMES 8u
+#define SHATTER_FRAMES 16u
+
+static void spr1(uint8_t a, int16_t wx, int16_t wy, uint8_t tile, uint8_t prop) {
+  int16_t sx = wx - (int16_t)cam_x + 8, sy = wy - (int16_t)cam_y + 16;
+  if (sy <= 0 || sy >= 160 || sx <= 0 || sx >= 168) {
+    move_sprite(a, 0, 0);
+    return;
+  }
+  set_sprite_tile(a, tile);
+  set_sprite_prop(a, prop);
+  move_sprite(a, (uint8_t)sx, (uint8_t)sy);
+}
+
+static void step_break(uint8_t k, int16_t wx, int16_t wy, uint8_t tile) {
+  uint8_t t = c_t[k], a = (uint8_t)(LOOK_OAM_TOP - (k << 1)), glassy = (uint8_t)(c_brk[k] >= LOOK_FRAG_GLASS);
+  uint8_t dy, d;
+  if (c_kind[k] == K_WOBBLE) {
+    if (t >= WOBBLE_FRAMES) {
+      c_t[k] = 0;
+      if (glassy) {
+        c_kind[k] = K_SHATTER;
+        puff((uint8_t)(wx + 8), (uint8_t)(wy + 6), 6u, ST_SPARK);
+      } else {
+        c_kind[k] = K_FALL; /* the collapse's own fall: split, drift apart, darken, flicker out */
+        puff((uint8_t)(wx + 8), (uint8_t)(wy + 10), 6u, ST_PUFF);
+      }
+      step_card(k);
+      return;
+    }
+    /* it shifts under the feet; a darker blink on the 3rd and 6th frames */
+    sprite_pair(k, wx + wobble[t], wy, tile, (uint8_t)((t == 2u || t == 5u) ? 7u : 6u), 0);
+    c_t[k]++;
+    return;
+  }
+  /* K_SHATTER: two shard sprites burst apart and fall, a second sparkle; glitched glass stutters as it goes */
+  if (t >= SHATTER_FRAMES) {
+    finish(k);
+    return;
+  }
+  if (t == 2u) puff((uint8_t)(wx + 3), (uint8_t)(wy + 11), 6u, ST_SPARK);
+  if (c_brk[k] == LOOK_FRAG_GLITCH && (t & 1u)) {
+    hide_card(k);
+    c_t[k]++;
+    return;
+  }
+  dy = fall_dy[t < FALL_FRAMES ? t : FALL_FRAMES - 1u];
+  d = (uint8_t)(t + (t >> 1));
+  spr1(a, wx - (int16_t)d, wy + (int16_t)(dy >> 1), LOOK_SHARD, (uint8_t)(t < 8u ? 6u : 7u));
+  spr1((uint8_t)(a - 1u), wx + 8 + (int16_t)d, wy + (int16_t)dy - 2, (uint8_t)(LOOK_SHARD + 2u),
+       (uint8_t)((t < 6u ? 6u : 7u) | S_FLIPX));
+  c_t[k]++;
+}
+
 static void step_card(uint8_t k) {
   uint8_t i = c_cell[k], t = c_t[k], kind = c_kind[k];
-  uint8_t tile = (uint8_t)(LOOK_SPR_BASE + (c_meta[k] == M_WALL_TOP ? 4u : 0u)), prop;
+  uint8_t tile = meta_tile[c_meta[k]][0], prop;
   int16_t wx = (int16_t)((uint16_t)EG_X(i) << 4), wy = (int16_t)((uint16_t)EG_Y(i) << 4);
+  if (kind >= K_WOBBLE) {
+    step_break(k, wx, wy, tile);
+    return;
+  }
   if (kind == K_CRACK) {
     if (t + 1u >= CRACK_FRAMES) {
       if (budget < 2u) return; /* wait for room in this frame's writes */
@@ -351,7 +431,7 @@ static void step_card(uint8_t k) {
     finish(k);
     return;
   }
-  prop = (uint8_t)(c_meta[k] == M_WALL_TOP ? 7u : 6u);
+  prop = (uint8_t)(is_wallish(c_meta[k]) ? 7u : 6u);
   switch (kind) {
     case K_DROP:
       wy += ease_in[t];
@@ -365,8 +445,8 @@ static void step_card(uint8_t k) {
     case K_SLIDE_R:
       wx -= ease_in[t];
       break;
-    default: /* glitching in: torn, gone, torn the other way, gone, there */
-      if (t & 1u) {
+    default: /* glitching in: torn, gone, torn the other way, gone, there (glass: unseen, then there) */
+      if ((t & 1u) || (meta_pal[c_meta[k]] & 7u) == LOOK_PAL_VOID) {
         hide_card(k);
         c_t[k]++;
         return;
@@ -405,19 +485,110 @@ static void ambient(void) {
   }
 }
 
+static void mark(uint8_t i) {
+  redraw[i >> 3] |= BIT(i);
+  rd_any = 1u;
+}
+void look_redraw(uint8_t i) BANKED { mark(i); }
+
+static uint8_t is_glitch(uint8_t m) { return (uint8_t)(m >= M_GLITCH0 && m <= M_GLITCH2); }
+
+void look_skin_set(uint8_t i, uint8_t m) BANKED {
+  look_skin[i] = m == LOOK_SKIN_NONE ? 0u : (uint8_t)(m + 1u);
+  if (m != LOOK_SKIN_NONE && is_glitch(m)) {
+    gl_any = 1u;
+    look_skin[i] = (uint8_t)(M_GLITCH0 + 1u + look_glitch_phase);
+  }
+  mark(i);
+}
+
+static void glitch_show(uint8_t ph) {
+  uint8_t i = 0, sk;
+  if (ph == look_glitch_phase) return;
+  look_glitch_phase = ph;
+  do {
+    sk = look_skin[i];
+    if (sk > M_GLITCH0 && sk <= M_GLITCH2 + 1u) {
+      look_skin[i] = (uint8_t)(M_GLITCH0 + 1u + ph);
+      mark(i);
+    }
+  } while (++i != (uint8_t)EG_N);
+}
+void look_glitch_beat(uint8_t phase) BANKED { glitch_show(phase); }
+
+/* the beat: solid, flickering (16), gone, flickering (16); a flicker blinks the card every 4 frames */
+static void glitch_tick(void) {
+  uint8_t len = (gl_step & 1u) ? 16u : look_glitch_period, ph;
+  if (++gl_t >= len) {
+    gl_t = 0;
+    gl_step = (uint8_t)((gl_step + 1u) & 3u);
+  }
+  if (gl_step == 0u) ph = 0;
+  else if (gl_step == 2u) ph = 2u;
+  else ph = (gl_t & 4u) ? (gl_step == 1u ? 0u : 2u) : 1u;
+  glitch_show(ph);
+}
+
+void look_break_tile(uint8_t i, uint8_t kind) BANKED {
+  uint8_t k, m, p, y;
+  if (!on || !look_here(i) || look_void_cell(i) || (queued[i >> 3] & BIT(i))) return;
+  for (k = 0; k != LOOK_MAX_CARDS; k++)
+    if (c_kind[k] && c_cell[k] == i) return;
+  m = cell_meta(i);
+  if (m == M_PIT) return;
+  if (!kind)
+    kind = is_glitch(m) ? LOOK_FRAG_GLITCH
+                        : (m == M_GLASS ? LOOK_FRAG_GLASS : ((m == M_CEIL0 || m == M_CEIL1) ? LOOK_FRAG_CEIL : LOOK_FRAG_CARPET));
+  sfx(kind == LOOK_FRAG_CARPET ? SFX_TEAR
+                               : (kind == LOOK_FRAG_CEIL ? SFX_CRUNCH : (kind == LOOK_FRAG_GLASS ? SFX_SHATTER : SFX_ZAP)));
+  /* the card that goes: the cell's own when it lives in bank 0, else the kind's last stage */
+  if (!(meta_pal[m] & LOOK_META_BANK0) || is_glitch(m))
+    m = kind == LOOK_FRAG_CARPET ? M_CARPET2 : (kind == LOOK_FRAG_CEIL ? M_CEIL1 : (kind == LOOK_FRAG_GLASS ? M_GLASS : M_GLITCH0));
+  look_skin[i] = (uint8_t)(M_PIT + 1u);
+  redraw[i >> 3] &= (uint8_t)~BIT(i);
+  draw_meta(i, M_PIT);
+  for (k = 0; k != LOOK_MAX_CARDS; k++)
+    if (!c_kind[k]) break;
+  if (k == LOOK_MAX_CARDS) return; /* no room in the air: the pit, at once */
+  p = (uint8_t)((meta_pal[m] & 7u) << 2);
+  for (y = 0; y != 4u; y++) {
+    brk_obj[y] = pal_bg[p + y];
+    brk_obj[4u + y] = mix(pal_bg[p + y], pal_bg[LOOK_PAL_VOID * 4u + 1u], 8u);
+  }
+  obj_mode = 0xfeu; /* rewrite OBJ 6/7 on the next tick */
+  y = EG_Y(i);
+  c_kind[k] = K_WOBBLE;
+  c_cell[k] = i;
+  c_meta[k] = m;
+  c_t[k] = 0;
+  c_brk[k] = kind;
+  c_top[k] = (int16_t)((uint16_t)y << 4);
+  c_bot[k] = (int16_t)(((uint16_t)y << 4) + 16u + 38u);
+  n_flying++;
+  n_break++;
+  look_busy_n = (uint8_t)(q_n + n_flying);
+}
+
 void look_tick(void) BANKED {
   uint8_t k, i, launches = 0, scan;
   if (!on) return;
-  /* palettes first, while VBlank lasts */
-  if (obj_want != obj_mode && obj_want) {
-    set_sprite_palette(6, 2, obj_want == 1u ? obj_pal[0] : obj_pal[2]);
-    obj_mode = obj_want;
+  /* palettes first, while VBlank lasts (a break in the air takes OBJ 6/7 for its card's colours) */
+  k = n_break ? 3u : obj_want;
+  if (k && k != obj_mode) {
+    set_sprite_palette(6, 2, k == 3u ? brk_obj : (k == 1u ? obj_pal[0] : obj_pal[2]));
+    obj_mode = k;
   } else if (obj_mode && !look_busy_n) {
     set_sprite_palette(6, 2, &pal_sp[24]);
     obj_mode = obj_want = 0;
   }
   ambient();
   budget = LOOK_COMMITS_PER_FRAME;
+  if (look_dbg_kind) { /* the harness: 0x80 applies a poked skin, else a break of that kind */
+    if (look_dbg_kind == 0x80u) look_skin_set(look_dbg_cell, (uint8_t)(look_skin[look_dbg_cell] - 1u));
+    else look_break_tile(look_dbg_cell, look_dbg_kind);
+    look_dbg_kind = 0;
+  }
+  if (gl_any && look_glitch_period) glitch_tick();
   for (k = 0; k != LOOK_MAX_CARDS; k++)
     if (c_kind[k]) step_card(k);
   /* the wave: off-screen cells at once, cards on screen as there is room for them */
@@ -447,6 +618,23 @@ void look_tick(void) BANKED {
     queued[i >> 3] &= (uint8_t)~BIT(i);
     q_head++;
     q_n--;
+  }
+  /* skins and stages changed: redraw with what is left of the budget */
+  if (rd_any) {
+    rd_any = 0;
+    for (k = 0; k != EG_N / 8u; k++) {
+      while (redraw[k]) {
+        if (!budget) {
+          rd_any = 1u;
+          break;
+        }
+        for (scan = 0; !(redraw[k] & (uint8_t)(1u << scan)); scan++)
+          ;
+        redraw[k] &= (uint8_t)~(1u << scan);
+        i = (uint8_t)((k << 3) | scan);
+        if (!(queued[k] & (uint8_t)(1u << scan))) draw(i);
+      }
+    }
   }
   look_busy_n = (uint8_t)(q_n + n_flying);
 }
