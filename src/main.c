@@ -16,6 +16,8 @@ uint16_t frame_count;
 uint8_t joy, joy_prev, joy_pressed;
 uint8_t dbg_god, dbg_no_enemies, dbg_floor;
 uint16_t dbg_seed;
+uint16_t dbg_fseed; /* B1 */
+uint8_t dbg_ftier;
 uint8_t hud_line = 144u;
 uint16_t pal_bg[32], pal_sp[32];
 uint8_t pal_dirty;

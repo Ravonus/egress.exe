@@ -1,4 +1,4 @@
-/* EGRESS room generation and gravity (see eg_room.h). Shared verbatim by the cartridge and the host tools. */
+/* EGRESS room gravity, pushes and rotten carpet (see eg_room.h; the generator is eg_gen.c). Shared verbatim by the cartridge and the host tools. */
 #include "eg_room.h"
 
 uint16_t eg_rs = 1u;
@@ -34,7 +34,7 @@ static void mark(uint8_t i) {
  * next CRT that may move, and the F_MOVED clear. The host builds the same C as before. */
 static const uint8_t *scan_p;
 static uint8_t scan_n;
-static uint8_t scan_rock(void) __naked { /* cells skipped from scan_p before one with (v & 0x4f) == T_ROCK; scan_n if none */
+static uint8_t scan_rock(void) __naked { /* cells skipped from scan_p before one with (v & 0x5f) == T_ROCK; scan_n if none */
   __asm
     ld hl, #_scan_p
     ld a, (hl+)
@@ -48,7 +48,7 @@ static uint8_t scan_rock(void) __naked { /* cells skipped from scan_p before one
     cp a, c
     ret z
     ld a, (hl+)
-    and a, #0x4f
+    and a, #0x5f
     cp a, #0x04
     jr z, 2$
     inc b
@@ -74,15 +74,29 @@ static void clear_moved(void) __naked { /* EG_N cells from scan_p: F_MOVED off *
     ret
   __endasm;
 }
-#if EG_N != 224u || F_MOVED != 0x40u || T_MASK != 0x0fu /* and T_ROCK == 4 (an enum: checked by eye) */
+#if EG_N != 224u || F_MOVED != 0x40u || T_MASK != 0x1fu /* and T_ROCK == 4 (an enum: checked by eye) */
 #error "eg_gravity: the SM83 loops hard-code EG_N, F_MOVED, T_MASK and T_ROCK"
 #endif
 #define EG_GRAV_ASM 1
 #endif
 
+#define ROCK_LEFT(v) ((uint8_t)(((v) & F_PLATE) ? T_PLATE : T_EMPTY))
+
+/* drop a CRT from i into b (open floor or a pit) */
+static void move_rock(uint8_t *c, uint8_t i, uint8_t b) {
+  uint8_t t = c[b];
+  c[i] = ROCK_LEFT(c[i]);
+  if (t == T_PIT)
+    c[b] = T_EMPTY | F_MOVED; /* it fills the pit */
+  else
+    c[b] = (uint8_t)(T_ROCK | F_FALL | F_MOVED | (t == T_PLATE ? F_PLATE : 0u));
+  mark(i);
+  mark(b);
+}
+
 uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) {
   uint8_t *c = r->c;
-  uint8_t res = 0u, y, x, i, v, b, s;
+  uint8_t res = 0u, y, x, i, v, b, s, w, gates;
   eg_ndirty = 0u;
   /* bottom-up, so a stack of CRTs falls together; F_MOVED keeps a CRT from moving twice in one step */
   for (y = (uint8_t)(EG_H - 2u); y != 0u; y--) {
@@ -100,39 +114,41 @@ uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) {
       v = c[i];
       if ((uint8_t)(v & (T_MASK | F_MOVED)) != T_ROCK) goto next;
       b = (uint8_t)(i + EG_W);
-      if (c[b] == T_EMPTY) {
+      if (EG_ROCK_OPEN(c[b]) || c[b] == T_PIT) {
         if (is_occ(b, occ, nocc)) {
           if (v & F_FALL) res |= EG_G_HIT | EG_G_CHANGED;
-          c[i] = T_ROCK;
+          c[i] = (uint8_t)(v & (uint8_t)~F_FALL);
           goto next;
         }
-        c[b] = T_ROCK | F_FALL | F_MOVED;
-        c[i] = T_EMPTY;
-        mark(i);
-        mark(b);
+        move_rock(c, i, b);
         res |= EG_G_CHANGED | EG_G_FALLING;
         goto next;
       }
-      if (c[b] == T_ROCK) { /* resting on a resting CRT: roll left, else right */
+      if ((uint8_t)(c[b] & (T_MASK | F_FALL)) == T_ROCK) { /* resting on a resting CRT: roll left, else right */
         s = (uint8_t)(i - 1u);
-        if (c[s] != T_EMPTY || c[(uint8_t)(s + EG_W)] != T_EMPTY || is_occ(s, occ, nocc) ||
+        if (!EG_ROCK_OPEN(c[s]) || !EG_ROCK_OPEN(c[(uint8_t)(s + EG_W)]) || is_occ(s, occ, nocc) ||
             is_occ((uint8_t)(s + EG_W), occ, nocc)) {
           s = (uint8_t)(i + 1u);
-          if (c[s] != T_EMPTY || c[(uint8_t)(s + EG_W)] != T_EMPTY || is_occ(s, occ, nocc) ||
+          if (!EG_ROCK_OPEN(c[s]) || !EG_ROCK_OPEN(c[(uint8_t)(s + EG_W)]) || is_occ(s, occ, nocc) ||
               is_occ((uint8_t)(s + EG_W), occ, nocc))
             s = i;
         }
         if (s != i) {
-          c[s] = T_ROCK | F_FALL | F_MOVED;
-          c[i] = T_EMPTY;
-          mark(i);
-          mark(s);
+          move_rock(c, i, s);
           res |= EG_G_CHANGED | EG_G_FALLING;
           goto next;
         }
       }
+      if ((v & F_FALL) && (c[b] == T_GLASS || c[b] == T_CEIL || c[b] == T_CEIL_1)) { /* through it, into the void */
+        c[b] = T_PIT;
+        c[i] = ROCK_LEFT(v);
+        mark(i);
+        mark(b);
+        res |= EG_G_CHANGED | EG_G_BROKE;
+        goto next;
+      }
       if (v & F_FALL) { /* landed */
-        c[i] = T_ROCK;
+        c[i] = (uint8_t)(v & (uint8_t)~F_FALL);
         res |= EG_G_CHANGED;
       }
     next:
@@ -146,134 +162,146 @@ uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) {
 #else
   for (i = 0u; i != (uint8_t)EG_N; i++) c[i] &= (uint8_t)~F_MOVED;
 #endif
+  /* shutters follow the plates: up while any plate carries a CRT (a shutter doesn't drop on the player) */
+  w = 0u;
+  gates = 0u;
+  for (i = 0u; i != (uint8_t)EG_N; i++) {
+    v = c[i];
+    if ((uint8_t)(v & (T_MASK | F_PLATE)) == (T_ROCK | F_PLATE) || v == T_BLOCK_PLATE) w = 1u;
+    if (v == T_GATE || v == T_GATE_OPEN) gates = 1u;
+  }
+  if (gates)
+    for (i = 0u; i != (uint8_t)EG_N; i++) {
+      v = c[i];
+      if (w && v == T_GATE) {
+        c[i] = T_GATE_OPEN;
+        mark(i);
+        res |= EG_G_CHANGED;
+      } else if (!w && v == T_GATE_OPEN && !is_occ(i, occ, nocc)) {
+        c[i] = T_GATE;
+        mark(i);
+        res |= EG_G_CHANGED;
+      }
+    }
   return res;
 }
 
-static uint8_t absd(uint8_t a, uint8_t b) { return a > b ? (uint8_t)(a - b) : (uint8_t)(b - a); }
-static uint8_t dist(uint8_t a, uint8_t b) {
-  return (uint8_t)(absd(EG_X(a), EG_X(b)) + absd(EG_Y(a), EG_Y(b)));
-}
-static uint8_t interior(void) { return EG_IDX(1u + eg_rndn(14u), 1u + eg_rndn(12u)); }
-static void settle(eg_room *r) {
-  uint8_t n = 96u;
-  while (n-- && (eg_gravity(r, 0, 0u) & EG_G_CHANGED)) {
+uint8_t eg_push(eg_room *r, uint8_t rock, uint8_t to) {
+  uint8_t t = r->c[to];
+  if (t == T_GLASS || t == T_CEIL || t == T_CEIL_1) { /* it smashes through into the void: both gone */
+    r->c[to] = T_PIT;
+    r->c[rock] = ROCK_LEFT(r->c[rock]);
+    return 1u;
   }
-}
-
-static const int8_t step4[4] = {-16, 16, -1, 1};
-
-uint8_t eg_generate(eg_room *r, uint16_t seed, uint8_t tier) {
-  uint8_t *c = r->c;
-  uint8_t i, k, n, x, y, t, len, s, tries, d;
-  eg_rs = (uint16_t)(seed ^ 0x5a3cu ^ ((uint16_t)tier << 11));
-  if (!eg_rs) eg_rs = 0x1234u;
-  eg_rnd();
-  eg_rnd();
-  eg_rnd();
-  for (i = 0u; i != (uint8_t)EG_N; i++) {
-    x = EG_X(i);
-    y = EG_Y(i);
-    c[i] = (x == 0u || y == 0u || x == EG_W - 1u || y == EG_H - 1u) ? T_WALL : T_DIRT;
-  }
-  /* concrete wall runs */
-  n = (uint8_t)(5u + tier);
-  if (n > 10u) n = 10u;
-  for (k = 0u; k != n; k++) {
-    len = (uint8_t)(3u + eg_rndn(5u));
-    s = interior();
-    d = (eg_rnd() & 1u) ? 1u : 16u;
-    while (len--) {
-      x = EG_X(s);
-      y = EG_Y(s);
-      if (x == 0u || x >= EG_W - 1u || y == 0u || y >= EG_H - 1u) break;
-      c[s] = T_WALL;
-      s = (uint8_t)(s + d);
-    }
-  }
-  /* open pockets: the spaces CRTs fall into and mites walk */
-  n = (uint8_t)(3u + (tier >> 1));
-  for (k = 0u; k != n; k++) {
-    s = interior();
-    len = (uint8_t)(5u + eg_rndn(10u));
-    while (len--) {
-      if (c[s] != T_WALL) c[s] = T_EMPTY;
-      t = (uint8_t)(s + step4[eg_rnd() & 3u]);
-      x = EG_X(t);
-      y = EG_Y(t);
-      if (x != 0u && x < EG_W - 1u && y != 0u && y < EG_H - 1u) s = t;
-    }
-  }
-  /* CRT sets and drywall */
-  for (i = EG_W; i != (uint8_t)(EG_N - EG_W); i++) {
-    t = c[i];
-    if (t == T_WALL) continue;
-    if (eg_rndn(100u) < (uint8_t)(16u + 2u * tier))
-      c[i] = T_ROCK;
-    else if (t == T_DIRT && eg_rndn(100u) < 5u)
-      c[i] = T_BRICK;
-  }
-  settle(r);
-  /* the egress door in the north wall, with something walkable below it */
-  x = (uint8_t)(2u + eg_rndn(12u));
-  r->door = EG_IDX(x, 0u);
-  c[r->door] = T_DOOR;
-  s = EG_IDX(x, 1u);
-  if (c[s] != T_EMPTY) c[s] = T_DIRT;
-  /* the start, in the south half, with no CRT over it */
-  for (tries = 0u;; tries++) {
-    if (tries == 48u) return 0u;
-    s = EG_IDX(1u + eg_rndn(14u), 8u + eg_rndn(5u));
-    t = c[s];
-    if (t == T_WALL || t == T_ROCK || c[(uint8_t)(s - EG_W)] == T_ROCK) continue;
-    break;
-  }
-  c[s] = T_EMPTY;
-  r->start = s;
-  settle(r);
-  if (c[s] != T_EMPTY) return 0u;
-  /* keycards */
-  n = tier == 0u ? 1u : (tier < 3u ? 2u : 3u);
-  r->keys = 0u;
-  for (tries = 0u; r->keys != n && tries != 120u; tries++) {
-    i = interior();
-    t = c[i];
-    if ((t != T_DIRT && t != T_EMPTY) || dist(i, s) < 6u || i == (uint8_t)(r->door + EG_W)) continue;
-    for (k = 0u; k != (uint8_t)EG_N; k++)
-      if (c[k] == T_KEY && dist(i, k) < 4u) break;
-    if (k != (uint8_t)EG_N) continue;
-    c[i] = T_KEY;
-    r->keys++;
-  }
-  if (r->keys != n) return 0u;
-  /* tokens */
-  n = (uint8_t)(8u + tier);
-  r->tokens = 0u;
-  for (tries = 0u; r->tokens != n && tries != 120u; tries++) {
-    i = interior();
-    t = c[i];
-    if ((t != T_DIRT && t != T_EMPTY) || dist(i, s) < 2u) continue;
-    c[i] = T_TOKEN;
-    r->tokens++;
-  }
-  /* enemies: mites walk open floor, eyes float anywhere that is not concrete */
-  n = (uint8_t)(2u + tier);
-  if (n > EG_MAX_SPAWN) n = EG_MAX_SPAWN;
-  r->nspawn = 0u;
-  for (d = 0u; d != EG_MAX_SPAWN; d++) r->spawn[d] = r->spawn_kind[d] = 0u;
-  for (tries = 0u; r->nspawn != n && tries != 160u; tries++) {
-    i = interior();
-    t = c[i];
-    k = (r->nspawn & 1u) ? SPAWN_EYE : SPAWN_MITE;
-    if (k == SPAWN_MITE && tries > 100u) k = SPAWN_EYE;
-    if (dist(i, s) < 6u) continue;
-    if (k == SPAWN_MITE ? t != T_EMPTY : (t == T_WALL || t == T_ROCK)) continue;
-    for (d = 0u; d != r->nspawn; d++)
-      if (dist(i, r->spawn[d]) < 3u) break;
-    if (d != r->nspawn) continue;
-    r->spawn[r->nspawn] = i;
-    r->spawn_kind[r->nspawn] = k;
-    r->nspawn++;
-  }
-  settle(r);
+  if (!EG_ROCK_OPEN(t) && t != T_PIT) return 0u;
+  r->c[to] = t == T_PIT ? T_EMPTY : (uint8_t)(T_ROCK | (t == T_PLATE ? F_PLATE : 0u));
+  r->c[rock] = ROCK_LEFT(r->c[rock]);
   return 1u;
+}
+
+uint8_t eg_leave(eg_room *r, uint8_t cell) { return eg_step_off(r, cell, BB_PLAYER, 1u); }
+
+/* --- fragile floor --- */
+#define ALL_MOBS (BB_MOB_WALKER | BB_MOB_HEAVY | BB_MOB_BURROWER)
+const eg_frag_kind eg_frag[FK_COUNT] = {
+    /* base       steps reset    ticks breakby                                                              flags */
+    {T_CRUMBLE, 1u, FR_ROOM, 0u, BB_PLAYER | BB_HEAVY | BB_FALLING | BB_BOSS | ALL_MOBS, 0u},
+    {T_WORN, 3u, FR_ROOM, 0u, BB_PLAYER | BB_HEAVY | BB_MOB_HEAVY | BB_MOB_BURROWER | BB_BOSS | BB_REACTION, 0u},
+    {T_CEIL, 2u, FR_ROOM, 0u, BB_PLAYER | BB_HEAVY | BB_FALLING | BB_BOSS | ALL_MOBS | BB_REACTION, 0u},
+    {T_GLASS, 1u, FR_ROOM, 0u, BB_PLAYER | BB_HEAVY | BB_FALLING | BB_MOB_HEAVY | BB_BOSS, FF_SEE},
+    {T_GLITCH, 0u, FR_TIMED, 30u, BB_FALLING | BB_MOB_HEAVY | BB_BOSS, FF_SEE | FF_PHASED},
+    {T_ICE, 2u, FR_ROOM, 0u, BB_PLAYER | BB_HEAVY | BB_FALLING | BB_MOB_HEAVY | BB_BOSS | BB_REACTION, 0u},
+};
+
+uint8_t eg_frag_kind_of(uint8_t t) {
+  if (t == T_CRUMBLE) return FK_CRUMBLE;
+  if (t == T_GLITCH) return FK_GLITCH;
+  if (t >= T_WORN && t <= T_WORN_2) return FK_WORN;
+  if (t == T_CEIL || t == T_CEIL_1) return FK_CEIL;
+  if (t == T_GLASS) return FK_GLASS;
+  if (t == T_ICE || t == T_ICE_1) return FK_ICE;
+  return FK_NONE;
+}
+
+uint8_t eg_step_off(eg_room *r, uint8_t cell, uint8_t who, uint8_t weight) {
+  uint8_t t = r->c[cell], k = eg_frag_kind_of(t), stage;
+  if (k == FK_NONE || !eg_frag[k].steps || !(eg_frag[k].breakby & who)) return 0u;
+  stage = (uint8_t)(t - eg_frag[k].base + weight);
+  if (stage >= eg_frag[k].steps) {
+    r->c[cell] = T_PIT;
+    return 1u;
+  }
+  r->c[cell] = (uint8_t)(eg_frag[k].base + stage);
+  return 0u;
+}
+
+uint8_t eg_frag_hit(eg_room *r, uint8_t cell, uint8_t who) {
+  uint8_t k = eg_frag_kind_of(r->c[cell]);
+  if (k == FK_NONE || EG_PROT(r, cell) || !(eg_frag[k].breakby & who)) return 0u;
+  r->c[cell] = T_PIT;
+  return 1u;
+}
+
+uint8_t eg_dead(const eg_room *r, uint8_t from, const uint8_t *pocket, uint8_t npocket) {
+  static uint8_t seen[EG_N / 8u], q[EG_N];
+  uint8_t pass, n, h, i, s, t, d, rock = 0u, k, j, p;
+  static const int8_t st[4] = {-16, 16, -1, 1};
+  /* pass 0 floods without crossing pits; if it reached a CRT, pass 1 floods again letting pits through */
+  for (pass = 0u; pass != 2u; pass++) {
+    for (i = 0u; i != (uint8_t)(EG_N / 8u); i++) seen[i] = 0u;
+    n = h = 0u;
+    q[n++] = from;
+    seen[from >> 3] |= (uint8_t)(1u << (from & 7u));
+    while (h != n) {
+      i = q[h++];
+      for (d = 0u; d != 4u; d++) {
+        s = (uint8_t)(i + (uint8_t)st[d]);
+        if ((d == 0u && i < EG_W) || (d == 1u && i >= (uint8_t)(EG_N - EG_W)) || (d == 2u && !(i & 15u)) ||
+            (d == 3u && (i & 15u) == 15u))
+          continue;
+        if (seen[s >> 3] & (uint8_t)(1u << (s & 7u))) continue;
+        t = (uint8_t)(r->c[s] & T_MASK);
+        if (t == T_WALL || t == T_SOCKET || t == T_SOCKET_ON || (t == T_PIT && !rock)) continue;
+        seen[s >> 3] |= (uint8_t)(1u << (s & 7u));
+        if (t == T_ROCK) rock = 1u;
+        if (t != T_DOOR) q[n++] = s; /* the door is a goal, not a way through */
+      }
+    }
+    if (!rock || pass) break;
+  }
+#define SEEN(c) (seen[(uint8_t)(c) >> 3] & (uint8_t)(1u << ((c) & 7u)))
+  if (!SEEN(r->door)) return EG_DEAD_DOOR;
+  i = 0u;
+  do {
+    if ((r->c[i] & T_MASK) == T_KEY && !SEEN(i)) return EG_DEAD_KEY;
+  } while (++i != (uint8_t)EG_N);
+  /* a piece the room needs (not a herring) out of reach, with no twin in reach and none in the pocket */
+  for (k = 0u; k != (uint8_t)(r->nitem - r->herrings); k++) {
+    i = r->item_cell[k];
+    if ((r->c[i] & T_MASK) != T_ITEM || SEEN(i)) continue;
+    p = r->item_piece[k];
+    for (j = 0u; j != npocket; j++)
+      if (pocket[j] == p) break;
+    if (j != npocket) continue;
+    for (j = 0u; j != r->nitem; j++)
+      if (r->item_piece[j] == p && (r->c[r->item_cell[j]] & T_MASK) == T_ITEM && SEEN(r->item_cell[j])) break;
+    if (j == r->nitem) return EG_DEAD_ITEM;
+  }
+#undef SEEN
+  return 0u;
+}
+
+uint8_t eg_count(const eg_room *r, uint8_t type) {
+  uint8_t i = 0u, n = 0u;
+  do {
+    if ((r->c[i] & T_MASK) == type) n++;
+  } while (++i != (uint8_t)EG_N);
+  return n;
+}
+
+uint8_t eg_item_at(const eg_room *r, uint8_t cell) {
+  uint8_t k;
+  for (k = 0u; k != r->nitem; k++)
+    if (r->item_cell[k] == cell) return r->item_piece[k];
+  return 0u;
 }

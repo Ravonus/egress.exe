@@ -8,6 +8,7 @@
 #include <gb/cgb.h>
 #include <string.h>
 #include "play.h"
+#include "puzzle.h"
 #include "run.h"
 #include "heir.h"
 #include "gen/eg_seeds.h"
@@ -17,7 +18,6 @@ uint8_t tokens, keys_held, door_open, board_busy, cam_x, cam_y;
 uint8_t freeze, shake, hud_dirty, grav_t, boss_floor;
 static uint8_t was_falling, paused, sel_t, floor_tokens0;
 
-static const uint8_t floor_tiers[RUN_FLOORS - 1u] = {0, 0, 1, 1, 2, 2, 3, 4, 5};
 
 static void people_colours(void) { /* B1: the heir's palettes (heir.c), rolled from the run's seed */
   heir_roll(dbg_heir ? dbg_heir : run_seed);
@@ -25,7 +25,7 @@ static void people_colours(void) { /* B1: the heir's palettes (heir.c), rolled f
 }
 
 static void floor_build(void) {
-  uint8_t i, k;
+  uint8_t i;
   boss_floor = (uint8_t)(floor_no >= RUN_FLOORS);
   memset(&acts, 0, sizeof acts);
   memset(cracked, 0, sizeof cracked);
@@ -36,12 +36,12 @@ static void floor_build(void) {
     floor_seed = 0;
     boss_build();
   } else {
-    floor_tier = floor_tiers[floor_no - 1u];
-    k = (uint8_t)(run_seed * 5u + (run_seed >> 8) + floor_no * 37u);
-    for (i = 0;; i++) {
-      floor_seed = eg_seed_pick(floor_tier, (uint8_t)(k + i));
-      if (eg_generate(&room, floor_seed, floor_tier)) break;
-    }
+    /* B1: the run planner chose floor_seed and floor_tier (puzzle_plan_floor); a reset regenerates the same room */
+    if (!eg_generate(&room, floor_seed, floor_tier))
+      for (i = 0;; i++) {
+        floor_seed = eg_seed_pick(floor_tier, i);
+        if (eg_generate(&room, floor_seed, floor_tier)) break;
+      }
   }
   /* game randomness from here on: seeded by the run and the floor */
   eg_rs = (uint16_t)(run_seed ^ floor_seed ^ ((uint16_t)floor_no << 8));
@@ -65,6 +65,7 @@ static void floor_build(void) {
   grav_t = GRAVITY_FRAMES;
   if (!boss_floor) actors_spawn();
   cells_reset();
+  pocket_reset(); /* B1 */
 }
 
 static void camera(uint8_t snap) {
@@ -136,6 +137,7 @@ static void gravity_tick(void) {
   } else
     for (k = 0; k != eg_ndirty; k++) queue_cell(eg_dirty[k]);
   if (g & EG_G_HIT) player_hurt(2u, pl_x, (uint8_t)(pl_y - 16u));
+  if (g & EG_G_BROKE) puzzle_dirty = 1u; /* B1 */
   board_busy = (uint8_t)((g & EG_G_FALLING) ? 1u : 0u);
   if (was_falling && !board_busy) {
     sfx(SFX_THUD);
@@ -167,6 +169,7 @@ static void assemble_wait(void) {
 static uint8_t floor_play(void) {
   uint8_t end_t = 0;
   floor_tokens0 = tokens;
+  if (floor_no < RUN_FLOORS) puzzle_plan_floor(); /* B1 */
   floor_build();
   floor_show();
   music_play(boss_floor ? SONG_BOSS : SONG_FLOOR);
@@ -217,12 +220,12 @@ static uint8_t floor_play(void) {
       else hud_msg("");
     }
     if (paused) continue;
-    /* hold SELECT to put the floor back the way it was (it costs half a heart) */
+    /* hold SELECT to put the floor back the way it was (B1: it costs a token, never a heart) */
     if ((joy & J_SELECT) && !boss_floor) {
-      if (++sel_t == 60u) {
+      if (sel_t != 61u && ++sel_t == 60u) { /* 61: still held from closing the bench */
         sel_t = 0;
         tokens = floor_tokens0;
-        if (pl_hp > 1u) pl_hp--;
+        puzzle_reset_cost(); /* B1: a token and a lean of the matrix, never a heart */
         look_freeze();
         fade_to(8, 0);
         floor_build();
@@ -232,14 +235,21 @@ static uint8_t floor_play(void) {
         hud_msg("IT RESETS.");
         continue;
       }
-    } else
+    } else {
+      if (sel_t && sel_t < 20u && !boss_floor && pl_state == PS_FREE) { /* B1: a tap of SELECT opens the bench */
+        bench_run();
+        sel_t = 61u;
+        continue;
+      }
       sel_t = 0;
+    }
     if (acts.frames != 0xffffu) acts.frames++;
     if (freeze) {
       freeze--;
       continue;
     }
     player_update();
+    puzzle_tick(); /* B1: fragile floor, the beat, the dead-room hint */
     enemies_update();
     orbs_update();
     if (!--grav_t) {
@@ -260,6 +270,7 @@ void play_run(void) BANKED {
   art_copy_tables(&meta_tile[0][0], meta_pal, pal_bg, pal_sp, people);
   people_colours();
   run_begin();
+  puzzle_plan_begin(); /* B1 */
   floor_no = (dbg_floor && dbg_floor <= RUN_FLOORS) ? dbg_floor : 1u;
   tokens = 0;
   paused = 0;
@@ -271,6 +282,7 @@ void play_run(void) BANKED {
       dead_screen();
       return;
     }
+    if (floor_no < RUN_FLOORS) puzzle_plan_done(); /* B1 */
     run_floor_done();
     if (floor_no >= RUN_FLOORS) {
       HIDE_WIN;

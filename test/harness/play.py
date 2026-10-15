@@ -33,7 +33,13 @@ from pyboy import PyBoy
 
 MODE_BOOT, MODE_TITLE, MODE_PLAY, MODE_CLEAR, MODE_DEAD = range(5)
 EG_W, EG_N = 16, 224
-T_MASK, T_EMPTY, T_DIRT, T_BRICK, T_ROCK = 0x0F, 0, 1, 3, 4
+T_MASK, T_EMPTY, T_DIRT, T_BRICK, T_ROCK = 0x1F, 0, 1, 3, 4
+# B1: cells a body may stand in (EG_PASSABLE in src/core/eg_room.h): carpet, foam, token, keycard, rotten carpet,
+# plate, open shutter, glitched glass, plank, a piece lying on the floor, fragile floor (worn, ceiling, glass, ice)
+PASSABLE = {0, 1, 5, 6, 8, 10, 12, 14, 16, 17, 23, 24, 25, 26, 27, 28, 29, 30}
+T_GLITCH, T_GLASS = 14, 28
+TRICK_RX = {"burn": 5, "cold": 10, "short": 37, "weight": 38}  # RX_BURN RX_FREEZE RX_SHORT RX_WEIGHT
+TRICKS = ["burn", "cold", "short", "weight", "glass", "rhythm"]
 DIRS = {"U": (0, -1, "up"), "D": (0, 1, "down"), "L": (-1, 0, "left"), "R": (1, 0, "right")}
 SEED = 0x5EED
 
@@ -115,7 +121,7 @@ class Game:
         return out.getvalue()[:8192]
 
 
-def start_run(g: Game, god: bool, no_enemies: bool, seed: int = SEED, floor: int = 0) -> bool:
+def start_run(g: Game, god: bool, no_enemies: bool, seed: int = SEED, floor: int = 0, fade: int = 40) -> bool:
     if not g.wait_mode(MODE_TITLE, 1500):
         return False
     g.tick(30)
@@ -129,7 +135,7 @@ def start_run(g: Game, god: bool, no_enemies: bool, seed: int = SEED, floor: int
             break
     else:
         return False
-    g.tick(40)  # the fade in
+    g.tick(fade)  # the fade in
     return True
 
 
@@ -185,7 +191,15 @@ def step(g: Game, mv: str, log: list[str]) -> bool:
     target = cur + dx + dy * EG_W
     tx, ty = cell_center(target)
     cx, cy = cell_center(cur)
-    align(g, cx, cy, "y" if dx else "x")
+    cells = g.room()
+    if cells[target] & T_MASK == T_GLITCH and cells[cur] & T_MASK != T_GLITCH:
+        align(g, cx, cy, "y" if dx else "x")
+        for _ in range(140):  # onto glitched glass on the beat (EG_BEAT_LEN 128, floor for EG_BEAT_ON 80 frames)
+            if g.peek16("frame_count") & 127 < 2:
+                break
+            g.tick()
+    else:
+        align(g, cx, cy, "y" if dx else "x")
     floor0 = g.peek("floor_no")
     for _ in range(240):
         x, y = g.player()
@@ -203,16 +217,136 @@ def step(g: Game, mv: str, log: list[str]) -> bool:
     return False
 
 
-def drive_plan(g: Game, moves: str, log: list[str], shots_at: dict[int, Path] | None = None) -> None:
+def plan_acts(moves: str) -> list[str]:
+    """splits a solver plan into acts: one-letter steps and strikes, 'C' a b combines, 'P' a D uses"""
+    acts, i = [], 0
+    while i < len(moves):
+        n = 3 if moves[i] in "CP" else 1
+        acts.append(moves[i:i + n])
+        i += n
+    return acts
+
+
+def pocket(g: Game) -> list[int]:
+    return [g.peek("pocket", k) for k in range(g.peek("pocket_n"))]
+
+
+def bench_open(g: Game, log: list[str]) -> bool:
+    for _ in range(3):
+        g.press("select", 3)
+        for _ in range(40):
+            if g.peek("bench_on") == 1:
+                g.tick(2)
+                return True
+            g.tick()
+    log.append("the bench did not open")
+    return False
+
+
+def bench_cursor(g: Game, slot: int) -> None:
+    for _ in range(12):
+        if g.peek("bench_cur") == slot:
+            return
+        g.press("down", 4)
+        g.tick(12)
+
+
+def bench_act(g: Game, act: str, log: list[str], shot: Path | None = None) -> bool:
+    """drives the cartridge's bench: 'C' a b makes a recipe, 'P' a D uses piece a on the cell in direction D"""
+    a = ord(act[1]) - ord("a") + 1
+    if act[0] == "P":  # face the cell first (a one-frame tap turns without leaving the cell)
+        want = "UDLR".index(act[2])  # F_UP F_DOWN F_LEFT F_RIGHT
+        x, y = g.player()
+        cx, cy = cell_center((y // 16) * EG_W + x // 16)
+        align(g, cx, cy, "y")
+        align(g, cx, cy, "x")
+        for _ in range(4):
+            g.hold({DIRS[act[2]][2]})
+            g.tick(1)
+            g.hold(set())
+            g.tick(2)
+            if g.peek("pl_face") == want:
+                break
+    if not bench_open(g, log):
+        return False
+    inv = pocket(g)
+    if a not in inv:
+        log.append(f"{act}: piece {a} not in the pocket {inv}")
+        return False
+    sa = inv.index(a)
+    bench_cursor(g, sa)
+    if act[0] == "C":
+        b = ord(act[2]) - ord("a") + 1
+        rest = [k for k, p in enumerate(inv) if p == b and k != sa]
+        if not rest:
+            log.append(f"{act}: piece {b} not in the pocket {inv}")
+            return False
+        g.press("a", 4)
+        g.tick(12)
+        bench_cursor(g, rest[0])
+        g.press("a", 4)
+        g.tick(12)
+        if shot:
+            g.shot(shot)
+        n0 = g.peek("pocket_n")
+        g.press("a", 4)
+        g.tick(12)
+        ok = g.peek("pocket_n") == n0 - 1
+        g.press("b", 4)  # close
+        g.tick(12)
+        if not ok:
+            log.append(f"{act}: the bench made nothing (pocket {pocket(g)})")
+        return ok and not g.peek("bench_on")
+    n0 = g.peek("pocket_n")
+    g.press("start", 4)
+    for _ in range(600):  # the reaction plays out inside the use
+        if not g.peek("bench_on"):
+            break
+        g.tick()
+    g.tick(4)
+    ok = g.peek("pocket_n") == n0 - 1
+    if not ok:
+        log.append(f"{act}: nothing happened at {g.player()} facing {g.peek('pl_face')}")
+    return ok
+
+
+def drive_plan(g: Game, moves: str, log: list[str], shots_at: dict[int, Path] | None = None,
+               after_rx: dict[int, Path] | None = None, frames: list | None = None, after_act=None) -> None:
+    """after_rx: {RX id: shot path} taken right after a use sets that reaction off; frames: collects every
+    4th frame for a GIF"""
     floor0 = g.peek("floor_no")
-    for i, mv in enumerate(moves):
-        settle_board(g)
-        if shots_at and i in shots_at:
-            g.shot(shots_at[i])
-        if not step(g, mv, log):
-            break
-        if g.peek("game_mode") != MODE_PLAY or g.peek("floor_no") != floor0:
-            break
+    if frames is not None:
+        tick0 = g.tick
+
+        def tick_rec(n: int = 1) -> None:
+            for _ in range(n):
+                tick0(1)
+                if g.frames % 4 == 0:
+                    frames.append(g.pb.screen.image.convert("RGB"))
+        g.tick = tick_rec  # type: ignore[method-assign]
+    try:
+        for i, mv in enumerate(plan_acts(moves)):
+            x, y = g.player()
+            if g.room()[(y // 16) * EG_W + x // 16] & T_MASK != T_GLITCH:  # never wait on glitched glass
+                settle_board(g)
+            if shots_at and i in shots_at:
+                g.shot(shots_at[i])
+            if mv[0] in "CP":
+                ok = bench_act(g, mv, log, shots_at.get(-1) if shots_at and mv[0] == "C" else None)
+                if ok and mv[0] == "P" and after_rx and g.peek("last_rx") in after_rx:
+                    g.tick(10)
+                    g.shot(after_rx.pop(g.peek("last_rx")))
+            else:
+                ok = step(g, mv, log)
+            if after_act:
+                after_act(g)
+            if not ok:
+                break
+            if g.peek("game_mode") != MODE_PLAY or g.peek("floor_no") != floor0:
+                break
+    finally:
+        if frames is not None:
+            del g.tick
 
 
 def solve_here(g: Game, egtool: Path, log: list[str]) -> str:
@@ -240,7 +374,8 @@ def run_solve(g: Game, egtool: Path, out: Path, report: dict) -> bool:
     report["plan"] = moves
     report["plan_stats"] = plan.stderr.strip()
     log: list[str] = []
-    shots_at = {len(moves) // 3: out / "04_floor1_digging.png", (2 * len(moves)) // 3: out / "05_floor1_later.png"}
+    n = len(plan_acts(moves))
+    shots_at = {n // 3: out / "04_floor1_digging.png", (2 * n) // 3: out / "05_floor1_later.png"}
     drive_plan(g, moves, log, shots_at)
     for _ in range(300):
         if g.peek("floor_no") >= 2 and g.peek("game_mode") == MODE_PLAY:
@@ -274,7 +409,7 @@ def path_step(cells: list[int], start: int, goal: int, through: set[int] = froze
     types the walk may cut through (drywall)"""
     from collections import deque
 
-    passable = {0, 1, 5, 6} | set(through)
+    passable = PASSABLE | set(through)
     prev = {start: None}
     q = deque([start])
     while q:
@@ -304,7 +439,7 @@ def path_near(cells: list[int], start: int, tx: int, ty: int) -> str | None:
         c = q.popleft()
         for mv, (dx, dy, _b) in DIRS.items():
             n = c + dx + dy * EG_W
-            if 0 <= n < EG_N and n not in prev and cells[n] & T_MASK in {0, 1, 5, 6}:
+            if 0 <= n < EG_N and n not in prev and cells[n] & T_MASK in PASSABLE:
                 prev[n] = (c, mv)
                 q.append(n)
     best = min(prev, key=lambda c: abs(cell_center(c)[0] - tx) + abs(cell_center(c)[1] - ty))
@@ -591,13 +726,144 @@ def contact(out: Path, names: list[str]) -> None:
     sheet.save(out / "contact.png")
 
 
+# --- B1: one baked room per trick, solved through the real cartridge (pocket, bench, uses, reactions) ---
+def baked_seeds(tier: int) -> list[int]:
+    """the baked rooms of a tier (src/gen/eg_seeds.c records: seed, tier, ...)"""
+    recs = re.findall(r"\{(\d+), (\d+), ", Path("src/gen/eg_seeds.c").read_text())
+    return [int(sd) for sd, t in recs if int(t) == tier]
+
+
+def run_puzzle(rom: Path, egtool: Path, out: Path, report: dict) -> bool:
+    """one baked room per trick, solved through the real cartridge; a shot at each trick's moment, the bench, a GIF
+    of a reaction solve and one of a fragile crossing"""
+    tier, found = 2, {}
+    for seed in baked_seeds(tier):
+        d = subprocess.run([str(egtool), "dump", str(seed), str(tier)], capture_output=True, text=True, check=True)
+        trick = d.stdout.split()[-1]
+        if trick in found:
+            continue
+        plan = subprocess.run([str(egtool), "solve", str(seed), str(tier)], capture_output=True, text=True).stdout
+        bench_ok = "C" in plan or trick in ("glass", "rhythm")
+        if bench_ok and len(plan) < 260:  # a bench step in it (the void tricks have none), short enough to watch
+            found[trick] = (seed, d.stdout.split()[0], plan.strip())
+        if len(found) == len(TRICKS):
+            break
+    ok_all = True
+    rep = report.setdefault("puzzle", {})
+    for trick, (seed, cells, moves) in sorted(found.items()):
+        g = Game(rom)
+        g.wait_mode(MODE_TITLE, 1500)  # after the cartridge has cleared its RAM
+        g.poke16("dbg_fseed", seed)
+        g.poke("dbg_ftier", tier)
+        r: dict = {"seed": seed, "tier": tier, "plan": moves}
+        if not start_run(g, god=True, no_enemies=True):
+            rep[trick] = r | {"started": False}
+            ok_all = False
+            g.stop()
+            continue
+        r["room_matches_host"] = bytes(g.room()[:EG_N]) == bytes.fromhex(cells)
+        g.shot(out / f"b1_puzzle_{trick}_start.png")
+        shot = out / f"b1_puzzle_{trick}.png"
+        shot.unlink(missing_ok=True)
+        log: list[str] = []
+        frames: list | None = [] if trick in ("short", "glass") else None
+        shots = {-1: out / "b1_puzzle_bench.png"} if trick == "short" else {}
+        glass0 = sum(1 for v in g.room()[:EG_N] if v & T_MASK == T_GLASS)
+        hp0 = g.peek("pl_hp")
+
+        def moment(g: Game) -> None:  # the void tricks' moment: glass breaking behind you, standing on the beat
+            if shot.exists():
+                return
+            cells_now = g.room()[:EG_N]
+            x, y = g.player()
+            if trick == "glass" and sum(1 for v in cells_now if v & T_MASK == T_GLASS) < glass0:
+                g.tick(6)
+                g.shot(shot)
+            if trick == "rhythm" and cells_now[(y // 16) * EG_W + x // 16] & T_MASK == T_GLITCH:
+                g.shot(shot)
+        rx = {TRICK_RX[trick]: shot} if trick in TRICK_RX else None
+        drive_plan(g, moves, log, shots, rx, frames, moment)
+        for _ in range(240):
+            if g.peek("floor_no") >= 2:
+                break
+            g.tick()
+        r["log"] = log
+        r["reached_floor2"] = g.peek("floor_no") >= 2
+        r["moment_shot"] = shot.exists()
+        r["hp_lost"] = hp0 - g.peek("pl_hp")  # a fall on glitched glass costs a heart (god mode keeps it)
+        if frames:
+            frames = frames[:900]
+            name = "b1_puzzle_solve.gif" if trick == "short" else "b1_fragile.gif"
+            frames[0].save(out / name, save_all=True, append_images=frames[1:], duration=67, loop=0, optimize=True)
+            r["gif_frames"] = len(frames)
+        rep[trick] = r
+        ok_all = ok_all and r["room_matches_host"] and r["reached_floor2"] and r["moment_shot"]
+        g.stop()
+    # the wrong order: across the glass without the keycard (a tier-0 glass room: nothing else in the way)
+    for seed in baked_seeds(0):
+        d = subprocess.run([str(egtool), "dump", str(seed), "0"], capture_output=True, text=True, check=True)
+        if d.stdout.split()[-1] == "glass":
+            ok_all = run_dead_hint(rom, seed, 0, out, rep) and ok_all
+            break
+    return ok_all and len(found) == len(TRICKS)
+
+
+def run_dead_hint(rom: Path, seed: int, tier: int, out: Path, rep: dict) -> bool:
+    g = Game(rom)
+    g.wait_mode(MODE_TITLE, 1500)
+    g.poke16("dbg_fseed", seed)
+    g.poke("dbg_ftier", tier)
+    r: dict = {"seed": seed}
+    rep["dead_hint"] = r
+    if not start_run(g, god=True, no_enemies=True):
+        return False
+    cells = g.room()[:EG_N]
+    glass = [i for i, v in enumerate(cells) if v & T_MASK == T_GLASS][0]
+    log: list[str] = []
+    for goal in (glass, glass - EG_W, glass - 2 * EG_W):  # onto the glass, off it on the far side
+        for _ in range(60):
+            x, y = g.player()
+            cur = (y // 16) * EG_W + x // 16
+            if cur == goal:
+                break
+            mv = path_step(g.room()[:EG_N], cur, goal, {T_GLASS})
+            if not mv or not step(g, mv, log):
+                break
+    for _ in range(60):
+        if g.peek("dead_t"):
+            break
+        g.tick()
+    r["hint"] = g.peek("dead_t") != 0
+    g.tick(10)
+    g.shot(out / "b1_dead_hint.png")
+    tokens0 = g.peek("tokens")
+    g.hold({"select"})
+    g.tick(75)
+    g.hold(set())
+    g.tick(60)
+    for _ in range(300):  # the room assembles again around the player
+        if not g.peek("look_busy_n"):
+            break
+        g.tick()
+    g.tick(10)
+    after = g.room()[:EG_N]
+    r["reset_restores_glass"] = after[glass] & T_MASK == T_GLASS
+    r["hint_cleared"] = g.peek("dead_t") == 0
+    r["hearts_kept"] = g.peek("pl_hp") == g.peek("pl_hp_max")
+    r["tokens_before_after"] = [tokens0, g.peek("tokens")]
+    r["log"] = log
+    g.shot(out / "b1_dead_reset.png")
+    g.stop()
+    return r["hint"] and r["reset_restores_glass"] and r["hint_cleared"] and r["hearts_kept"]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("rom", type=Path)
     ap.add_argument("out", type=Path)
     ap.add_argument("--egtool", type=Path, default=Path("build/host/egtool"))
     ap.add_argument("--audio", type=Path, help="record the title and floor music as WAV into this directory")
-    ap.add_argument("--only", choices=["boot", "solve", "combat", "death", "landing", "boss", "heir"])
+    ap.add_argument("--only", choices=["boot", "solve", "combat", "death", "landing", "boss", "puzzle", "heir"])
     a = ap.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
     report: dict = {"rom": str(a.rom), "size": a.rom.stat().st_size}
@@ -654,6 +920,9 @@ def main() -> int:
         rec = read_save(g.stop())
         report["save_after_win"] = rec
         results["save_win"] = bool(rec and rec["wins"] == 1 and rec["unlocked"] & 0x20)
+
+    if a.only in (None, "puzzle"):
+        results["puzzle"] = run_puzzle(a.rom, a.egtool, a.out, report)
 
     if a.only in (None, "heir"):  # B1: the heir's roll, moves, movement, idle, sprite budget and shots (heir.py)
         import heir
