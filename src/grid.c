@@ -80,8 +80,17 @@ static uint8_t meta_for(uint8_t i) {
   uint8_t t = cell_type(i), x = EG_X(i), y = EG_Y(i), b;
   uint8_t h = (uint8_t)(x * 7u + y * 13u + (x ^ y) + (uint8_t)floor_seed);
   if (!solid_ground(i)) {
-    /* the void; under ground it shows the slab's dithered underside */
-    if (y && solid_ground((uint8_t)(i - EG_W))) return M_VOID_UNDER;
+    /* the void: under ground the slab's dithered underside, beside it the slab's side face (B2: the left card, or
+     * the same tiles X-flipped for ground on the right), the two together in an inside corner, and at an outside
+     * corner the side of the underside's lip. Only real neighbours: nothing glows. */
+    b = (uint8_t)(y && solid_ground((uint8_t)(i - EG_W)));
+    if (x && solid_ground((uint8_t)(i - 1u))) return b ? M_VOID_CORNER : M_VOID_SIDE;
+    if (x != EG_W - 1u && solid_ground((uint8_t)(i + 1u))) return b ? M_VOID_CORNER_R : M_VOID_SIDE_R;
+    if (b) return M_VOID_UNDER;
+    if (y) {
+      if (x && solid_ground((uint8_t)(i - EG_W - 1u))) return M_VOID_TIP;
+      if (x != EG_W - 1u && solid_ground((uint8_t)(i - EG_W + 1u))) return M_VOID_TIP_R;
+    }
     return (h & 2u) ? M_VOID_C : ((h & 1u) ? M_VOID_B : M_VOID_A);
   }
   if (look_skin[i]) return (uint8_t)(look_skin[i] - 1u); /* a fragile stage or a pit (src/look.h) */
@@ -118,8 +127,9 @@ uint8_t cell_meta(uint8_t i) BANKED { return meta_for(i); }
 static void meta_draw(uint8_t i, uint8_t m) {
   uint8_t a[4];
   uint8_t p = meta_pal[m];
-  /* the attribute: the palette, and VRAM bank 1 unless the card lives in bank 0 (the fragile floors, the flying cards) */
-  a[0] = a[1] = a[2] = a[3] = (p & LOOK_META_BANK0) ? (uint8_t)(p & 7u) : (uint8_t)(p | 0x08u);
+  /* the attribute: the palette, and VRAM bank 1 unless the card lives in bank 0 (the fragile floors, the flying cards,
+   * the items, the void's edges; these may be X-flipped: LOOK_META_FLIP is the attribute's own bit) */
+  a[0] = a[1] = a[2] = a[3] = (p & LOOK_META_BANK0) ? (uint8_t)(p & (7u | LOOK_META_FLIP)) : (uint8_t)(p | 0x08u);
   VBK_REG = 1;
   set_bkg_tiles((uint8_t)(EG_X(i) << 1), (uint8_t)(EG_Y(i) << 1), 2, 2, a);
   VBK_REG = 0;

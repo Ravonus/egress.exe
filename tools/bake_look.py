@@ -324,6 +324,38 @@ def void(seed: int, stars: int = 1, under: bool = False, outline_: bool = False)
     return idx.astype(np.uint8)
 
 
+# B2: the slab's side faces. A void cell beside ground shows the ground's edge going down into the dark on that side:
+# a 4-pixel purple lip dithering away (the underside, VOID_UNDER, is 7 rows: the side is seen more obliquely). The
+# cards are drawn for ground on the left; ground on the right is the same tiles X-flipped by the map attribute.
+#   VOID_SIDE    ground beside the cell
+#   VOID_CORNER  ground above and beside (an inside corner): the underside's lip and the side's together
+#   VOID_TIP     ground only diagonally above (an outside corner): the side of the underside's lip, so the slab's
+#                bottom corner is not notched
+# All three are drawn on one void, so their plain quarters are the same tiles: 8 tiles for the three.
+SIDE_W = 4
+EDGE_SEED = 22
+
+
+def side_lip(idx: np.ndarray, rows: int = 16) -> np.ndarray:
+    thr = np.tile(BA.BAYER, (4, 4))
+    for r in range(rows):
+        fade = 1.0 if rows == 16 else 1.0 - r / (rows + 1.0)  # the tip fades down with the underside it belongs to
+        for c in range(SIDE_W):
+            t = (1.0 - c / SIDE_W) * fade
+            lip = 2 if thr[r, c] < t * 0.95 else (1 if thr[r, c] < t * 1.4 else 0)
+            idx[r, c] = max(idx[r, c], lip)  # over the corner's underside, the brighter of the two
+        if fade > 0.5:
+            idx[r, 0] = 2
+            if idx[r, 1] < 2:
+                idx[r, 1] = 1 if r % 4 == 1 else 2
+    return idx
+
+
+def void_edge(kind: str) -> np.ndarray:
+    idx = void(EDGE_SEED, 0, under=kind == "corner").copy()
+    return side_lip(idx, 7 if kind == "tip" else 16).astype(np.uint8)
+
+
 # --- the egress door (HUD: 0 ink, 1 pink, 2 accent, 3 white) ---------------------------------------------------------
 def door(open_: bool) -> np.ndarray:
     x, y = grid()
@@ -1236,7 +1268,17 @@ FIXED0 = {"SLAB_A": SPR_BASE, "WALL_TOP": SPR_BASE + 4}
 # src/gen/art_pics.c, and they are gone before a floor's look_load). The item cards and the cracked thin ice live
 # there; they never fly (an item flies in as a slab).
 LOW0_BASE = 16
-LOW0 = {f"ITEM_{n}" for n, _, _ in ITEM_ART} | {"ICE1"}
+# B2: the void's side faces, after the items in the same block, their tiles shared where equal. *_R is the card
+# X-flipped: no tiles of its own, the map attribute's X-flip bit (0x20, kept in meta_pal for bank 0 cards) and the
+# columns swapped in meta_tile.
+EDGES: list[tuple[str, int, object]] = [
+    ("VOID_SIDE", PAL_VOID, lambda: void_edge("side")),
+    ("VOID_CORNER", PAL_VOID, lambda: void_edge("corner")),
+    ("VOID_TIP", PAL_VOID, lambda: void_edge("tip")),
+]
+EDGE_FLIP = 0x20
+EDGE_NAMES = {n for n, _, _ in EDGES}
+LOW0 = {f"ITEM_{n}" for n, _, _ in ITEM_ART} | {"ICE1"} | EDGE_NAMES
 
 
 def meta_tiles(m: np.ndarray) -> list[bytes]:
@@ -1259,14 +1301,33 @@ def layout() -> tuple[list, dict[int, bytes], dict[int, bytes], int, int, int, i
     ms += [(f"REACT{k}", PAL_FLOOR, None) for k in range(len(reacts), REACT_METAS)]
     ms += [(n, p, fn()) for n, p, fn in FRAGILE]
     ms += [(f"ITEM_{n}", p, item(rows, 60 + k, p in (PAL_FLOOR, PAL_OBJ))) for k, (n, p, rows) in enumerate(ITEM_ART)]
+    ms += [(n, p, fn()) for n, p, fn in EDGES]
+    ms += [(n + "_R", p, None) for n, p, _ in EDGES]  # the flips: placed below, on their card's tiles
     b1: dict[int, bytes] = {}
     b0: dict[int, bytes] = {}
     t1, t0, tl = T_BASE, B0_BASE, LOW0_BASE
     out, react_t = [], 0
+    edge_t0 = 0
     for k, (n, p, im) in enumerate(ms):
         if k == len(METAS):
             react_t = t1
-        if n in LOW0:
+        if n in EDGE_NAMES and not edge_t0:
+            edge_t0 = tl
+        if n.endswith("_R") and n[:-2] in LOW0:
+            src = next(o for o in out if o[0] == n[:-2])
+            out.append((n, src[1] | EDGE_FLIP, src[2], src[3]))
+            continue
+        if n in LOW0 and n in EDGE_NAMES:  # shared tiles: an explicit (TL, BL, TR, BR)
+            ids = []
+            for t in meta_tiles(im):
+                hit = next((k for k in range(edge_t0, tl) if b0[k] == t), None)
+                if hit is None:
+                    b0[tl] = t
+                    hit = tl
+                    tl += 1
+                ids.append(hit)
+            out.append((n, p | 0x80, im, tuple(ids)))
+        elif n in LOW0:
             for j, t in enumerate(meta_tiles(im)):
                 b0[tl + j] = t
             out.append((n, p | 0x80, im, tl))
@@ -1319,8 +1380,12 @@ def write(out: Path) -> None:
     tiles0l = b"".join(b0[t] for t in range(LOW0_BASE, low_end))
     pals = [p for _, p, _, _ in ms]
     mtile = []
-    for _, _, _, base in ms:  # the 2x2 map order: TL, TR, BL, BR (the tiles are in 8x16 order: TL, BL, TR, BR)
-        mtile += [base, base + 2, base + 1, base + 3]
+    for _, p, _, base in ms:  # the 2x2 map order: TL, TR, BL, BR (the tiles are in 8x16 order: TL, BL, TR, BR)
+        t = base if isinstance(base, tuple) else (base, base + 1, base + 2, base + 3)
+        if p & EDGE_FLIP:  # X-flipped: each tile mirrors, so the columns swap
+            mtile += [t[2], t[0], t[3], t[1]]
+        else:
+            mtile += [t[0], t[2], t[1], t[3]]
     names = list(BIOMES)
     biome_words = []
     for nm in names:
@@ -1348,6 +1413,11 @@ def write(out: Path) -> None:
     for i, (name, _, _) in enumerate(ITEM_ART):
         h.append(f"#define M_ITEM_{name} {item_m + i}u")
     h.append(f"#define LOOK_ITEMS {len(ITEM_ART)}u")
+    edge_m = item_m + len(ITEM_ART)
+    for i, (name, _, _) in enumerate(EDGES):
+        h.append(f"#define M_{name} {edge_m + i}u /* B2: ground on the left (VOID_SIDE, VOID_CORNER) or up-left (VOID_TIP) */")
+    for i, (name, _, _) in enumerate(EDGES):
+        h.append(f"#define M_{name}_R {edge_m + len(EDGES) + i}u /* the same, X-flipped: ground on the right */")
     for k, n in FRAG_STEPS.items():
         h.append(f"#define LOOK_{k}_STEPS {n}u")
     h.append(f"#define M_COUNT {len(ms)}u")
@@ -1356,9 +1426,10 @@ def write(out: Path) -> None:
     h.append(f"#define LOOK_T_END {react_t + 4 * REACT_METAS}u /* first tile past the reaction range */")
     h.append(f"#define LOOK_T1_END {t1_hi}u /* first bank 1 tile past the look */")
     h.append(f"#define LOOK_B0_BASE {B0_BASE}u /* VRAM bank 0: the flying fragile cards from here */")
-    h.append(f"#define LOOK_LOW0_BASE {LOW0_BASE}u /* VRAM bank 0 BG-only (0x9000 + 16n): items, thin ice's crack, to {low_end - 1} */")
+    h.append(f"#define LOOK_LOW0_BASE {LOW0_BASE}u /* VRAM bank 0 BG-only (0x9000 + 16n): items, thin ice's crack, the void's edges, to {low_end - 1} */")
     h.append(f"#define LOOK_SHARD {shard_t}u /* VRAM bank 0: two 8x16 glass shard sprites (+0, +2) */")
     h.append("#define LOOK_META_BANK0 0x80u /* meta_pal bit: the card's tiles are in VRAM bank 0 */")
+    h.append(f"#define LOOK_META_FLIP 0x{EDGE_FLIP:02X}u /* meta_pal bit, bank 0 cards: the map attribute's X-flip */")
     for i, nm in enumerate(PAL_NAMES):
         h.append(f"#define LOOK_PAL_{nm} {i}u")
     for i, nm in enumerate(names):
@@ -1405,7 +1476,7 @@ void look_art_load(uint8_t biome, uint16_t *pal_out, uint8_t *meta_pal, uint8_t 
     ]
     (out / "look_art.c").write_text("\n".join(c))
     print(f"look: {len(ms)} cards; bank 1 tiles {t1_lo}..{t1_hi - 1} (reaction {react_t}..{react_t + 4 * REACT_METAS - 1}),"
-          f" bank 0 BG-only tiles {LOW0_BASE}..{low_end - 1} (items, cracked ice), bank 0 tiles {t0_lo}..{t0_hi - 1}"
+          f" bank 0 BG-only tiles {LOW0_BASE}..{low_end - 1} (items, cracked ice, void edges), bank 0 tiles {t0_lo}..{t0_hi - 1}"
           f" (shards {shard_t}..{shard_t + 3})")
 
 

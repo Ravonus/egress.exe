@@ -226,13 +226,22 @@ static void draw(uint8_t i) {
   draw_cell(i);
   budget--;
 }
-/* a cell came or went: it and the void under it (which shows an underside only below ground) */
+static void mark(uint8_t i);
+static void mark_void(uint8_t n) {
+  if (!look_here(n) || look_void_cell(n)) mark(n);
+}
+/* a cell came or went: it and the void under it (which shows an underside only below ground) now; the void beside
+ * it and diagonally under it (B2: side faces, the lip's corners) with what is left of a frame's writes */
 static void settle(uint8_t i) {
-  uint8_t b;
+  uint8_t b, x = EG_X(i);
   draw(i);
+  if (x) mark_void((uint8_t)(i - 1u));
+  if (x != EG_W - 1u) mark_void((uint8_t)(i + 1u));
   if (EG_Y(i) < EG_H - 1u) {
     b = (uint8_t)(i + EG_W);
     if (!look_here(b) || look_void_cell(b)) draw(b);
+    if (x) mark_void((uint8_t)(b - 1u));
+    if (x != EG_W - 1u) mark_void((uint8_t)(b + 1u));
   }
 }
 

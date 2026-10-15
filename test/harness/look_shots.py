@@ -17,7 +17,12 @@ Writes, from power-on on a blank save, headless and deterministic:
   b1_floor_vs_mock.png     docs/shots/mock_room.png (left) beside that floor as the game draws it (right), the same scale
   b1_fragile_break.gif     the glitched glass's beat, worn carpet stepped through its stages, then each kind breaking
                            (3x)
-and checks: the room assembles (look_busy_n reaches 0, the game reaches MODE_PLAY), every cell on screen is back in
+  b2_edges.png             B2: the void's side faces. 1x: the floor's bottom-left and bottom-right corners, a frame of
+                           the assembly and of the exit collapse; 3x: the bottom-left corner and the assembly frame
+
+    python test/harness/look_shots.py build/egress.gbc docs/shots b2    (only b2_edges.png and b1_floor_vs_mock.png)
+and checks: every void cell the BG map shows has the card its real neighbours call for (b2 edges: the side, the
+inside corner, the outside corner, X-flipped for ground on the right; the bank and flip bits in the attribute), the room assembles (look_busy_n reaches 0, the game reaches MODE_PLAY), every cell on screen is back in
 the world, and the collapse empties the world but for the kept cells. Exit status 1 if a check fails.
 """
 
@@ -194,7 +199,7 @@ def items(rom: Path, out: Path) -> dict:
     mock = Image.open(out / "mock_room.png").convert("RGB")
     k = max(1, mock.width // 160)  # the same scale: the mock is drawn at k x the screen
     a = labelled(mock, "mock_room.png (target)", 1)
-    b = labelled(floor, "the B1 floor (b1-items, PyBoy), %dx" % k, k)
+    b = labelled(floor, "the floor (b2-edges, PyBoy), %dx" % k, k)
     vs = Image.new("RGB", (a.width + 16 + b.width, max(a.height, b.height)), (24, 22, 32))
     vs.paste(a, (0, 0))
     vs.paste(b, (a.width + 16, 0))
@@ -253,10 +258,137 @@ def items(rom: Path, out: Path) -> dict:
     return rep
 
 
+def void_card(pres: list[int], room: list[int], c: int, M: dict[str, int]) -> int | None:
+    """grid.c meta_for's void branch: the edge card a void cell shows, or None for the plain void (VOID_A/B/C)"""
+    def ring(i: int) -> bool:
+        x, y = i % 16, i // 16
+        return room[i] & 0x1F == 2 and (x == 0 or x == 15 or y == 13)
+
+    def ground(i: int) -> bool:
+        return bool(pres[i]) and not ring(i)
+
+    x, y = c % 16, c // 16
+    if ground(c):
+        return -1
+    u = y > 0 and ground(c - 16)
+    if x and ground(c - 1):
+        return M["VOID_CORNER"] if u else M["VOID_SIDE"]
+    if x != 15 and ground(c + 1):
+        return M["VOID_CORNER_R"] if u else M["VOID_SIDE_R"]
+    if u:
+        return M["VOID_UNDER"]
+    if y and x and ground(c - 17):
+        return M["VOID_TIP"]
+    if y and x != 15 and ground(c - 15):
+        return M["VOID_TIP_R"]
+    return None
+
+
+def check_void(g: H.Game, M: dict[str, int]) -> tuple[int, int, list]:
+    """every void cell in the map: its tiles and attribute against the card its neighbours call for"""
+    mem = g.pb.memory
+    pres, room = present(g), g.room()
+    mt, mp = g.addr("meta_tile"), g.addr("meta_pal")
+    plain = {M["VOID_A"], M["VOID_B"], M["VOID_C"]}
+    edges = bad = 0
+    wrong = []
+    for c in range(224):
+        want = void_card(pres, room, c, M)
+        if want == -1:
+            continue
+        x, y = c % 16, c // 16
+        at = 0x9800 + (2 * y) * 32 + 2 * x
+        got = [mem[0, at], mem[0, at + 1], mem[0, at + 32], mem[0, at + 33]]
+        attr = mem[1, at]
+        cands = plain if want is None else {want}
+        hit = None
+        for m in cands:
+            p = mem[mp + m]
+            a = (p & 0x27) if p & 0x80 else (p | 8)
+            if got == [mem[mt + 4 * m + k] for k in range(4)] and attr & 0x2F == a:
+                hit = m
+        if want is not None:
+            edges += 1
+        if hit is None:
+            bad += 1
+            wrong.append((c, want, got, attr))
+    return edges, bad, wrong[:6]
+
+
+def teleport(g: H.Game, cx: int, cy: int) -> None:
+    sx, sy = (cx << 8) | 0x80, (cy << 8) | 0x80
+    g.poke16("psx", sx)
+    g.poke16("psy", sy)
+    g.poke("pl_x", sx >> 4)
+    g.poke("pl_y", sy >> 4)
+    a = g.addr("pmv")
+    for off, v in ((0, sx - 96), (2, sy - 96)):
+        g.pb.memory[a + off] = v & 0xFF
+        g.pb.memory[a + off + 1] = (v >> 8) & 0xFF
+
+
+def edges(rom: Path, out: Path) -> dict:
+    """b2_edges.png and the edge check: corners of a settled floor, the assembly and the collapse mid-way"""
+    M = look_ids()
+    rep: dict = {}
+    g = H.Game(rom)
+    ok = start(g, 0x5EED, enemies=False)
+    frames, counts = [], []
+    while g.peek("game_mode") != H.MODE_PLAY and len(frames) < 600:
+        g.tick()
+        frames.append(frame(g))
+        counts.append(check_void(g, M)[0])
+    g.tick(45)
+    mid = max(range(len(frames) // 3, 2 * len(frames) // 3), key=lambda k: counts[k]) if frames else 0
+    assembly = frames[mid] if frames else frame(g)
+    rep["edges_assembled"] = ok and g.peek("look_busy_n") == 0
+    shots = []
+    worst = []
+    g.tick(120)  # the floor's first toast closes: the HUD is two rows again
+    for cx, cy in ((1, 12), (14, 12)):
+        teleport(g, cx, cy)
+        g.tick(40)
+        shots.append(frame(g))
+        n, bad, wrong = check_void(g, M)
+        worst.append({"edges": n, "wrong": bad, "first_wrong": wrong, "cam": [g.peek("cam_x"), g.peek("cam_y")]})
+    rep["edges_settled"] = worst
+    g.poke("pl_state", PS_EXIT)
+    collapse, best = None, 999
+    for _ in range(130):
+        g.tick()
+        gone = 224 - sum(present(g))
+        if abs(gone - 112) < best:  # the frame with about half the world gone
+            best, collapse = abs(gone - 112), frame(g)
+        if g.peek("game_mode") != H.MODE_PLAY:
+            break
+    g.stop()
+    row = [labelled(shots[0], "bottom-left", 1), labelled(shots[1], "bottom-right", 1),
+           labelled(assembly, "assembling", 1), labelled(collapse or shots[0], "collapsing", 1)]
+    big = [labelled(shots[0], "bottom-left, 3x", 3), labelled(assembly, "assembling, 3x", 3)]
+    w = max(sum(r.width for r in row) + 8 * 3, sum(b.width for b in big) + 8)
+    o = Image.new("RGB", (w, row[0].height + 8 + big[0].height), (24, 22, 32))
+    x = 0
+    for r in row:
+        o.paste(r, (x, 0))
+        x += r.width + 8
+    x = 0
+    for b in big:
+        o.paste(b, (x, row[0].height + 8))
+        x += b.width + 8
+    o.save(out / "b2_edges.png")
+    rep["edges_ok"] = bool(rep["edges_assembled"] and all(r["wrong"] == 0 and r["edges"] > 0 for r in worst))
+    return rep
+
+
 def main() -> int:
     rom, out = Path(sys.argv[1]), Path(sys.argv[2])
     out.mkdir(parents=True, exist_ok=True)
     rep: dict = {}
+    if sys.argv[3:] == ["b2"]:  # B2: the void's edges, and the floor beside the mock
+        rep.update(edges(rom, out))
+        rep.update(items(rom, out))
+        print(json.dumps(rep, indent=2))
+        return 0 if rep["edges_ok"] and rep["items_ok"] else 1
     # 1. assembly, a floor, the exit collapse
     g = H.Game(rom)
     ok = start(g, 0x5EED, enemies=False)
@@ -322,7 +454,9 @@ def main() -> int:
     # 4. the pieces lying in a room, as cards; the floor beside the mock
     rep.update(items(rom, out))
     print(json.dumps(rep, indent=2))
-    ok_all = rep["assembled"] and rep["cells_absent_after_assembly"] == 0 and rep["fragile_ok"] and rep["items_ok"]
+    rep.update(edges(rom, out))  # 5. B2: the void's edges
+    ok_all = (rep["assembled"] and rep["cells_absent_after_assembly"] == 0 and rep["fragile_ok"] and rep["items_ok"]
+              and rep["edges_ok"])
     return 0 if ok_all else 1
 
 
