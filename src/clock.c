@@ -219,7 +219,9 @@ void clock_probe(void) BANKED {
     }
   }
 #endif
-  clk_drift = (uint8_t)(clk_known && clk_quality == CLK_STALE);
+  /* the gentle prompt: a set-once clock that has been through a power-off without being set, from the 2nd power-on
+     after the set (the 1st one after a set is usually the same day); never while a healthy chip keeps the time */
+  clk_drift = (uint8_t)(clk_known && clk_quality == CLK_STALE && kept.boots >= 2u);
 }
 
 uint8_t clock_needs_ask(void) BANKED { return (uint8_t)!(kept.flags & EGC_KF_ASKED); }
@@ -424,6 +426,9 @@ void setup_screen(void) BANKED {
     text_at(0, 3, 6, "CLOCK", 4);
     text_at(0, 3, 8, "BACK", 4);
     text_at(0, 1, 15, "A PICK  B BACK", 5);
+    /* help: saves move between the plain and the clock-chip cartridge both ways; set the clock once after a move */
+    text_at(0, 1, 13, "MOVED THE SAVE? SET", 4);
+    text_at(0, 1, 14, "THE CLOCK ONCE.", 4);
     n = 0;
     while (1) {
       for (k = 0; k != 2u; k++) text_at(0, 1, (uint8_t)(6u + k * 2u), k == sel ? ">" : " ", 5);

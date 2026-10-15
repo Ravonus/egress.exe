@@ -1129,12 +1129,13 @@ both tree copies fit (`tree_report.json`, entry "save").
 | `0xAF68`–`0xB4BF` | 1,368 | **free** |
 | `0xB4C0`–`0xB4DF` | 32 | kept clock, two 16-byte records (9.7.1) |
 | `0xB4E0`–`0xB4EF` | 16 | HOST CLOCK block (9.7.1) |
-| `0xB4F0`–`0xB4FF` | 16 | **free** |
+| `0xB4F0`–`0xB4FF` | 16 | RTC block (16b): chip anchor base, fold count and flags. The RTC build only; the MBC5 build leaves it untouched |
 | `0xB500`–`0xB73F` | 576 | face generator base layer (`base_` in `crucible_avatar_int.h`, one 48x48 2bpp face) |
-| `0xB740`–`0xBFFF` | 2,240 | **free** (the old table reserved 2.75 KB for the face generator; the port only uses 576 B) |
+| `0xB740`–`0xBFFE` | 2,239 | **free** (the old table reserved 2.75 KB for the face generator; the port only uses 576 B) |
+| `0xBFFF` | 1 | reserved: the byte the RTC build's register access goes through (16b), never used for save data |
 
-- **Used: 4,328 bytes. Free: 3,864 bytes**, in four runs: 240 at `0xA2C0`, 1,368 at `0xAF68`, 16 at `0xB4F0` and
-  2,240 at `0xB740`.
+- **Used: 4,345 bytes. Free: 3,847 bytes**, in three runs: 240 at `0xA2C0`, 1,368 at `0xAF68` and 2,239 at
+  `0xB740`.
 - **The lineage** (both tree copies plus inheritance) is 2,616 bytes, up from 432 for the first 16 x 20 ring.
 - **24 heirs fit with room to spare.** Between the stats (`0xA570`) and the kept clock (`0xB4C0`) there are 3,920
   bytes; two copies of the tree block take 2 x (100 + 49 x N), so the largest ring that fits there is **37 heirs**
@@ -1375,7 +1376,7 @@ The tree block, one copy:
 It is kept as two copies, A/B with the sequence byte (the meta record's rule), so a power cut mid-write can't lose
 the family: copy A at `0xA570`–`0xAA6B`, copy B at `0xAA6C`–`0xAF67`, **2,552 bytes**. The inheritance block
 (`0xA3B0`, 64 bytes) is unchanged. **Lineage total: 2,616 bytes** (was 432 for the first ring, 1,764 for a 16-heir
-ring of 47-byte nodes). The rest of the bank is in 9.5's map: 3,864 bytes stay free, and the largest ring that fits
+ring of 47-byte nodes). The rest of the bank is in 9.5's map: 3,847 bytes stay free, and the largest ring that fits
 the same span is 37. These totals supersede the 16-heir figures quoted in 9.7.3 (752 / 850 / 1,700 bytes).
 
 **Open questions:**
@@ -2485,11 +2486,15 @@ is tested on the host.
   - 14–15: CRC-16/CCITT.
 - **HOST CLOCK** (9.7.1's version-2 block) is read at power-on. If it is valid, it sets the clock silently with
   quality HOST, and the magic is zeroed.
-- **Stale, and the drift prompt.** A clock resumed from SRAM after a power-off is quality STALE (0). While it is
-  stale and was ever set, the title row cycles every ~2 s between the date, `MAY HAVE DRIFTED` and
-  `SELECT TO SET IT`. It never blocks play. Setting the clock, a host block, or a working RTC clears the prompt.
-  - A cart without a clock cannot measure how long it was off. So a "long gap" here means any power-off since the
-    last set (see 16b.7).
+- **Stale, and the drift prompt (owner's rule).** A clock resumed from SRAM after a power-off is quality STALE (0).
+  - On the set-once build, the prompt shows once per power-on, from the **2nd power-on since the last set** (the
+    saved power-on count `boots` >= 2). The 1st power-on after a set is usually the same day, so it stays quiet.
+  - While it shows, the title row cycles every ~2 s between the date, `MAY HAVE DRIFTED` and `SELECT TO SET IT`. It
+    never blocks play.
+  - On the RTC build, it never shows while the chip is healthy. If the chip fails the probe, the fallback follows the
+    set-once rule.
+  - Setting the clock, a host block, or a working RTC clears it.
+  - A cart without a clock cannot measure how long it was off, so the power-on count stands in for a "long gap".
 - **Range.** Years 2000–2135: the RTC base is a u32 of seconds since 2000.
 
 ### 16b.3 The RTC build
@@ -2575,6 +2580,8 @@ Both builds use one layout, 9.5's map in SRAM bank 0. The only difference is the
   boot the chip is used.
 - **RTC → MBC5: works.** The kept clock resumes, stale. The RTC block is ignored and left byte-for-byte intact, so
   moving back still finds it.
+- **SETUP help.** The SETUP screen says `MOVED THE SAVE? SET THE CLOCK ONCE.` Moving saves between the two builds is
+  supported in both directions (16b.5).
 - **Caveat.** The RTC block belongs to one chip. If a save moves to a different MBC3 cart or emulator without its
   clock state, two things can happen:
   - The new counter reads earlier than the kept clock: it is rejected (the fallback).
