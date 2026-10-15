@@ -58,16 +58,36 @@
 #define M_GLITCH1 54u
 #define M_GLITCH2 55u
 #define M_PIT 56u
+#define M_ICE1 57u
+#define M_ITEM0 58u /* a piece lying in a room: M_ITEM0 + piece - 1 (P_FIRE .. P_CLOUD, eg_piece.h) */
+#define M_ITEM_FIRE 58u
+#define M_ITEM_WATER 59u
+#define M_ITEM_AIR 60u
+#define M_ITEM_EARTH 61u
+#define M_ITEM_METAL 62u
+#define M_ITEM_ENERGY 63u
+#define M_ITEM_RAIN 64u
+#define M_ITEM_MUD 65u
+#define M_ITEM_SNOW 66u
+#define M_ITEM_ICE 67u
+#define M_ITEM_BRICK 68u
+#define M_ITEM_ELECTRIC 69u
+#define M_ITEM_STEAM 70u
+#define M_ITEM_LAVA 71u
+#define M_ITEM_DUST 72u
+#define M_ITEM_CLOUD 73u
+#define LOOK_ITEMS 16u
 #define LOOK_CARPET_STEPS 3u
 #define LOOK_CEIL_STEPS 2u
 #define LOOK_GLASS_STEPS 1u
 #define LOOK_GLITCH_STEPS 1u
-#define M_COUNT 57u
+#define M_COUNT 74u
 #define LOOK_SPR_BASE 248u /* VRAM bank 0: +0 the floor card (M_SLAB_A), +4 the wall card (M_WALL_TOP) */
 #define LOOK_T_REACT 138u
 #define LOOK_T_END 182u /* first tile past the reaction range */
 #define LOOK_T1_END 190u /* first bank 1 tile past the look */
 #define LOOK_B0_BASE 210u /* VRAM bank 0: the flying fragile cards from here */
+#define LOOK_LOW0_BASE 16u /* VRAM bank 0 BG-only (0x9000 + 16n): items, thin ice's crack, to 83 */
 #define LOOK_SHARD 242u /* VRAM bank 0: two 8x16 glass shard sprites (+0, +2) */
 #define LOOK_META_BANK0 0x80u /* meta_pal bit: the card's tiles are in VRAM bank 0 */
 #define LOOK_PAL_FLOOR 0u

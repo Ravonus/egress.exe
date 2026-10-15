@@ -10,7 +10,6 @@ extern uint8_t bench_on, bench_cur, last_rx;
 void pocket_reset(void) BANKED;
 void puzzle_pick(uint8_t cell) BANKED; /* the player walked into a T_ITEM cell */
 uint8_t puzzle_meta(uint8_t i) BANKED;    /* the card a cell of type T_CRUMBLE and up shows */
-void puzzle_draw_item(uint8_t i) BANKED; /* a piece lying in the room: its name */
 void bench_run(void) BANKED;           /* SELECT tapped: the bench, modal, until closed or a piece is used */
 
 /* fragile floor, the dead-room hint and the run planner */

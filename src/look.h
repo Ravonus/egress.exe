@@ -14,7 +14,13 @@
  *   190 .. 252     the font and the HUD (tools/bake_art.py, BT_*); 253 .. 255 spare
  *   (the landing loads the talkers' faces at 2 .. 97; the next floor's look_load puts the cards back)
  *
+ * VRAM bank 0, BG-only (0x9000 .. 0x97FF, BG indices 0 .. 127 with the bank bit clear; no sprite sees it, nothing
+ * else on a floor uses it, the screens' pictures load there and are gone before look_load):
+ *   LOOK_LOW0_BASE .. (16 .. 83)  thin ice's crack (M_ICE1) and the 16 item cards (M_ITEM0 + piece - 1); 0 .. 15 and
+ *                  84 .. 127 spare (60 tiles, 15 cards). bake_look.py fails the bake past 127.
+ *
  * VRAM bank 0 (sprites 0 .. 209 from tools/bake_art.py; the BG reads bank 0 too, attribute bit 3 clear):
+ *   (indices 128 .. 255 are the sprites' tiles 128 .. 255: the BG addresses tiles signed on a floor, LCDC bit 4 clear)
  *   LOOK_B0_BASE .. (210 .. 241)  the fragile cards that fly (meta_pal | LOOK_META_BANK0)
  *   LOOK_SHARD .. +3 (242 .. 245) two glass shard sprites; 246, 247 spare
  *   LOOK_SPR_BASE .. +7 (248 .. 255) M_SLAB_A and M_WALL_TOP themselves: the BG draws them from here, and every card
@@ -75,6 +81,12 @@ void look_tick(void) BANKED;            /* once a frame, right after frame_wait:
  * Palettes: carpet FLOOR, ceiling WALL, glass / glitch / pit VOID. Tiles: VRAM bank 0 (LOOK_B0_BASE ..; meta_pal
  * carries LOOK_META_BANK0) for every card that flies (all but M_GLITCH1 and M_PIT, which sit at the end of the bank 1
  * range), so the wobble and the fall show the card itself; two glass shard sprites at LOOK_SHARD.
+ *
+ * Items: a piece lying in a room shows M_ITEM0 + piece - 1 (src/puzzle.c puzzle_meta): an office thing carrying its
+ * element, lifted off the slab on a dithered shadow with a glint. FIRE tealight, LAVA lava lamp, BRICK brick (REACT_B);
+ * WATER cooler jug, RAIN watering can, SNOW snow globe, ICE ice cube, STEAM kettle (REACT_A); AIR desk fan, EARTH
+ * potted plant, CLOUD cloud (FOAM); METAL wrench, DUST dust bunny (FLOOR); ENERGY energy drink, MUD coffee mug,
+ * ELECTRIC sparking plug (OBJ). Each sits on its palette's index 1, the slab base. Thin ice: M_ICE, then M_ICE1.
  *
  * Showing a stage: either map the puzzle's cell types to these ids in grid.c meta_for, or set a skin: look_skin[i]
  * (0, or card + 1) overrides the cell's type while the cell is in the world. look_load clears every skin. */
