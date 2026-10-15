@@ -13,7 +13,7 @@
   "keys_held_at_end": 0,
   "combat_started": true,
   "enemies_at_start": 2,
-  "combat_strikes": 6,
+  "combat_strikes": 5,
   "enemies_killed": 2,
   "enemy_hp_removed": 5,
   "tokens_gained": 3,
@@ -98,16 +98,18 @@
     ]
   ],
   "landing_reached_floor4": true,
-  "boss_strikes": 24,
+  "boss_strikes": 22,
   "boss_dead": true,
   "boss_hp_left": 0,
-  "boss_frames": 1437,
+  "boss_frames": 1343,
   "boss_shots": {
     "tell": true,
     "orbs": true,
     "stun": true
   },
-  "boss_log": [],
+  "boss_log": [
+    "stuck moving U from cell 87 toward 71 at (120, 86)"
+  ],
   "ending_back_to_title": true,
   "save_after_win": {
     "gen": 1,
@@ -283,16 +285,16 @@
   ],
   "heir_budget": {
     "combat": {
-      "frames": 403,
+      "frames": 385,
       "max_oam": 11,
       "max_per_line": 9,
       "frames_over_10": 0
     },
     "boss": {
-      "frames": 1435,
-      "max_oam": 20,
-      "max_per_line": 16,
-      "frames_over_10": 125
+      "frames": 1789,
+      "max_oam": 19,
+      "max_per_line": 15,
+      "frames_over_10": 82
     }
   },
   "heir_states_shown": 59,
