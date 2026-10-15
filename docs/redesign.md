@@ -420,6 +420,12 @@ Rooms are procedural, but the order you meet them in is designed. Each mechanic 
   - it shows the wave shape and the mixed-puzzle share by depth.
   B1's plots are `docs/shots/b1_curve_*.png` (the nine-floor slice). The ~52-floor run's curriculum, its checks and
   its plots are in 3.6.
+
+  ![B1 curve: components by room](shots/b1_curve_components.png)
+  ![B1 curve: the wave](shots/b1_curve_wave.png)
+  ![B1 curve: mixed share by floor](shots/b1_curve_mixed.png)
+  ![B1 curve: curriculum stages](shots/b1_curve_stages.png)
+
 - **The adaptive bias is capped** (3.6.8): it softens only after repeated failure, by at most one level, and never
   under the curriculum floor for the depth.
 
