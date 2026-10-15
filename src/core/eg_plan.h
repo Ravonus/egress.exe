@@ -21,10 +21,13 @@
 enum { MK_CRT = 0, MK_DRYWALL = 1, MK_BURN = 2, MK_COLD, MK_SHORT, MK_WEIGHT, MK_GLASS, MK_RHYTHM, MK_STEPS,
        MK_COUNT };
 #define MK_BASIC ((uint16_t)((1u << MK_CRT) | (1u << MK_DRYWALL)))
-#define MK_TRICK(t) ((uint8_t)(MK_BURN + (t))) /* a room's named trick as a mechanic */
+/* The slice keeps its four B2 trick bits apart from the legacy STEPS bit.
+ * The full-run taxonomy below keeps its existing numeric IDs. */
+enum { MK_SLICE_RUSH = MK_COUNT, MK_SLICE_STEER, MK_SLICE_MIRROR, MK_SLICE_STARE, MK_SLICE_COUNT };
+#define MK_TRICK(t) ((uint8_t)((t) < TRICK_RUSH ? MK_BURN + (t) : MK_SLICE_RUSH + (t) - TRICK_RUSH)) /* a room's named trick as a mechanic */
 /* seen mechanics live in the save's seen-history word (bits 9-15: BURN .. STEPS, beside SEEN_MITE and friends) */
 #define MK_SEEN_SHIFT 7u
-#define MK_TO_SEEN(m) ((uint16_t)(((m) & ~MK_BASIC) << MK_SEEN_SHIFT))
+#define MK_TO_SEEN(m) ((uint16_t)(((m) & 0x1fcu) << MK_SEEN_SHIFT))
 #define MK_FROM_SEEN(s) ((uint16_t)((((s) >> MK_SEEN_SHIFT) & 0x1fcu) | MK_BASIC))
 
 enum { ST_INTRO = 0, ST_DEVELOP, ST_COMBINE, ST_TEST };
@@ -61,15 +64,15 @@ typedef struct {
   uint16_t run_seed;
   uint8_t generation;  /* runs so far; B3: the lineage */
   uint8_t lineage;     /* B3 hook: a bloodline's own offset (0 for now) */
-  int8_t bias[MK_COUNT];
-  uint8_t streak[MK_COUNT]; /* failed rooms running, per mechanic (the capped nudge) */
+  int8_t bias[MK_SLICE_COUNT];
+  uint8_t streak[MK_SLICE_COUNT]; /* failed rooms running, per mechanic (the capped nudge) */
   uint8_t prev_trick, prev_level, develop; /* develop: the mechanic introduced last floor (255: none) */
   /* the last pick, for the floor's result and for the harness */
   uint8_t stage, target, mech_new;
   uint16_t pick;       /* index into the table */
 } eg_plan_state;
 
-extern const uint8_t eg_plan_order[MK_COUNT - 2u]; /* the order mechanics are introduced in */
+extern const uint8_t eg_plan_order[MK_SLICE_COUNT - 2u]; /* the order mechanics are introduced in */
 
 void eg_plan_begin(eg_plan_state *ps, uint16_t run_seed, uint16_t seen, uint8_t generation) EG_BANKED;
 /* the room for floor 1..9: fills *rec and returns the stage */

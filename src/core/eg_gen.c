@@ -108,23 +108,134 @@ static uint8_t add_lock(uint8_t trick, uint8_t want, uint8_t minz, uint8_t *dept
   return 1u;
 }
 
-/* a band reads floor first: open carpet, a few concrete runs (not in the goal band), and insulation foam in a couple
- * of deliberate patches. CRTs and drywall are not scattered: guard() places them where they matter. */
+/* --- B2 part B: readable wall structures. The concrete inside a room comes from a few templates, each one connected
+ * piece: a line or an L (anchored on a side wall), a U, a ring with a gap, a counter with a pass-through. A placement
+ * that would cut the band in two is undone, so a structure steers a path and never seals one. Protected cells are
+ * left alone (the generator reserves routes and openings with them). --- */
+static uint8_t shx[18], shy[18], shn, shw, shh;
+static void sh_add(uint8_t x, uint8_t y) {
+  shx[shn] = x;
+  shy[shn] = y;
+  shn++;
+  if ((uint8_t)(x + 1u) > shw) shw = (uint8_t)(x + 1u);
+  if ((uint8_t)(y + 1u) > shh) shh = (uint8_t)(y + 1u);
+}
+
+static void shape(uint8_t kind) {
+  uint8_t a, b, i, g;
+  shn = shw = shh = 0u;
+  switch (kind) {
+    case ST_LINE:
+      a = (uint8_t)(3u + eg_rndn(3u));
+      for (i = 0u; i != a; i++) sh_add(i, 0u);
+      break;
+    case ST_L:
+      a = (uint8_t)(3u + eg_rndn(2u));
+      b = (uint8_t)(2u + eg_rndn(2u));
+      for (i = 0u; i != a; i++) sh_add(i, 0u);
+      for (i = 1u; i != b; i++) sh_add(0u, i);
+      break;
+    case ST_U:
+      a = (uint8_t)(3u + eg_rndn(2u));
+      b = (uint8_t)(2u + eg_rndn(2u));
+      for (i = 0u; i != a; i++) sh_add(i, (uint8_t)(b - 1u));
+      for (i = 0u; i != (uint8_t)(b - 1u); i++) {
+        sh_add(0u, i);
+        sh_add((uint8_t)(a - 1u), i);
+      }
+      break;
+    case ST_RING: /* the gap: one cell in the middle of a side */
+      a = (uint8_t)(4u + eg_rndn(2u));
+      b = (uint8_t)(3u + eg_rndn(2u));
+      g = eg_rndn(4u);
+      for (i = 0u; i != a; i++) {
+        if (!(g == 0u && i == (uint8_t)(a >> 1))) sh_add(i, 0u);
+        if (!(g == 1u && i == (uint8_t)(a >> 1))) sh_add(i, (uint8_t)(b - 1u));
+      }
+      for (i = 1u; i != (uint8_t)(b - 1u); i++) {
+        if (!(g == 2u && i == (uint8_t)(b >> 1))) sh_add(0u, i);
+        if (!(g == 3u && i == (uint8_t)(b >> 1))) sh_add((uint8_t)(a - 1u), i);
+      }
+      break;
+    default: /* ST_COUNTER: a pass-through near the middle */
+      a = (uint8_t)(5u + eg_rndn(4u));
+      g = (uint8_t)((a >> 1) - eg_rndn(2u));
+      for (i = 0u; i != a; i++)
+        if (i != g) sh_add(i, 0u);
+      break;
+  }
+}
+
+/* every open cell of rows y0..y1 reaches every other inside them (only concrete blocks) */
+static uint8_t band_whole(const eg_room *r, uint8_t y0, uint8_t y1) {
+  static uint8_t q[EG_N], seen[EG_N];
+  uint8_t i, n = 0u, h = 0u, open = 0u, c, d, s;
+  for (i = 0u; i != (uint8_t)EG_N; i++) seen[i] = 0u;
+  for (i = EG_IDX(1u, y0); i <= EG_IDX(EG_W - 2u, y1); i++) {
+    if (EG_X(i) == 0u || EG_X(i) == EG_W - 1u || (r->c[i] & T_MASK) == T_WALL) continue;
+    open++;
+    if (!n) {
+      q[n++] = i;
+      seen[i] = 1u;
+    }
+  }
+  while (h != n) {
+    c = q[h++];
+    for (d = 0u; d != 4u; d++) {
+      s = (uint8_t)(c + step4[d]);
+      if (seen[s] || EG_Y(s) < y0 || EG_Y(s) > y1 || EG_X(s) == 0u || EG_X(s) == EG_W - 1u ||
+          (r->c[s] & T_MASK) == T_WALL)
+        continue;
+      seen[s] = 1u;
+      q[n++] = s;
+    }
+  }
+  return (uint8_t)(n == open);
+}
+
+uint8_t eg_structure(eg_room *r, uint8_t y0, uint8_t y1, uint8_t kind) EG_BANKED {
+  uint8_t tries, k, t, x, y, ox, oy, w, h, tmp, cells[18];
+  for (tries = 0u; tries != 12u; tries++) {
+    shape(kind);
+    t = eg_rnd();
+    w = shw;
+    h = shh;
+    if (t & 1u) w = shh, h = shw; /* transposed */
+    if (w > EG_W - 2u || h > (uint8_t)(y1 - y0 + 1u)) continue;
+    /* lines and Ls lean on a side wall; the rest stand free */
+    if (kind <= ST_L && (t & 8u))
+      ox = (t & 16u) ? 1u : (uint8_t)(EG_W - 1u - w);
+    else
+      ox = (uint8_t)(1u + eg_rndn((uint8_t)(EG_W - 1u - w)));
+    oy = (uint8_t)(y0 + eg_rndn((uint8_t)(y1 - y0 + 2u - h)));
+    for (k = 0u; k != shn; k++) {
+      x = shx[k];
+      y = shy[k];
+      if (t & 1u) tmp = x, x = y, y = tmp;
+      if (t & 2u) x = (uint8_t)(w - 1u - x);
+      if (t & 4u) y = (uint8_t)(h - 1u - y);
+      cells[k] = EG_IDX(ox + x, oy + y);
+      if (r->c[cells[k]] != T_EMPTY || EG_PROT(r, cells[k])) break;
+    }
+    if (k != shn) continue;
+    for (k = 0u; k != shn; k++) r->c[cells[k]] = T_WALL;
+    if (band_whole(r, y0, y1)) return 1u;
+    for (k = 0u; k != shn; k++) r->c[cells[k]] = T_EMPTY;
+  }
+  return 0u;
+}
+
+/* a band reads floor first: open carpet, a few wall structures (not in the goal band), and insulation foam in a
+ * couple of deliberate patches. CRTs and drywall are not scattered: guard() places them where they matter. */
 static void fill_zone(eg_room *r, uint8_t z, uint8_t tier) {
   uint8_t *c = r->c;
   uint8_t k, n, len, s, t, x, y, h = (uint8_t)(zb[z] - zt[z] + 1u);
   for (y = zt[z]; y <= zb[z]; y++)
     for (x = 1u; x != EG_W - 1u; x++) c[EG_IDX(x, y)] = T_EMPTY;
   if (h >= 3u && z) { /* no concrete in the goal band: the door, the plate niche and the keycard stay open */
-    n = (uint8_t)(1u + (tier >> 2));
-    for (k = 0u; k != n; k++) {
-      len = (uint8_t)(2u + eg_rndn(3u));
-      s = zone_cell(z);
-      while (len-- && EG_X(s) >= 1u && EG_X(s) <= EG_W - 2u) {
-        c[s] = T_WALL;
-        s++;
-      }
-    }
+    /* not in the rows against a lock: its opening clears a cell on each side, which would cut a structure */
+    n = (uint8_t)(1u + (tier >> 2) + (h >= 6u));
+    for (k = 0u; k != n; k++) eg_structure(r, (uint8_t)(zt[z] + 1u), (uint8_t)(z < nb ? zb[z] - 1u : zb[z]), eg_rndn(ST_KINDS));
   }
   n = (uint8_t)(1u + h / 3u);
   for (k = 0u; k != n; k++) {
@@ -165,6 +276,14 @@ static void guard(eg_room *r, uint8_t i, uint8_t kind) {
       s = (uint8_t)(i + step4[d]);
       if (!open_cell(c[s]) || s == r->start || EG_Y(s) == 0u || EG_Y(s) == EG_H - 1u) continue;
       c[s] = d == side ? T_BRICK : T_WALL;
+    }
+    /* B2 part B: the corners close it into one structure, a cubicle with a drywall panel for its way in */
+    for (d = 0u; d != 4u; d++) {
+      static const int8_t corner[4] = {-17, -15, 15, 17}; /* NW NE SW SE */
+      s = (uint8_t)(i + corner[d]);
+      if (c[s] == T_EMPTY && s != r->start && !EG_PROT(r, s) && EG_X(s) && EG_X(s) != EG_W - 1u && EG_Y(s) &&
+          EG_Y(s) != EG_H - 1u)
+        c[s] = T_WALL;
     }
   } else if (kind == 2u) {
     s = (uint8_t)(i - EG_W);
@@ -216,6 +335,14 @@ uint8_t eg_generate(eg_room *r, uint16_t seed, uint8_t tier) EG_BANKED {
   /* 1-2: the trick, the supporting locks, the bands */
   r->trick = eg_rndn(TRICK_COUNT);
   for (k = 0u; k != (uint8_t)(EG_N / 8u); k++) r->prot[k] = 0u;
+  r->nob = r->nrun = 0u;
+  for (k = 0u; k != EG_MAX_OB; k++)
+    for (n = 0u; n != 4u; n++) r->ob[k][n] = 0u;
+  for (k = 0u; k != EG_MAX_RUN; k++) r->run[k] = 0u;
+  if (TRICK_OBSTACLE(r->trick)) { /* B2: the living-obstacle rooms are built in eg_ogen.c */
+    r->support = 0u;
+    return eg_gen_obstacles(r, tier);
+  }
   nsup = tier < 2u ? 0u : (tier < 4u ? 1u : 2u);
   r->support = 0u;
   nb = 0u;
@@ -422,6 +549,7 @@ uint8_t eg_generate(eg_room *r, uint16_t seed, uint8_t tier) EG_BANKED {
       for (k = 0u; k != nb; k++)
         if (EG_Y(i) >= lk[k] && EG_Y(i) < (uint8_t)(lk[k] + th[k])) break;
       if (k != nb || c[i] != T_WALL || EG_PROT(r, i) || c[(uint8_t)(i - 1u)] != T_WALL || c[(uint8_t)(i + 1u)] != T_WALL ||
+          c[(uint8_t)(i - 2u)] != T_WALL || c[(uint8_t)(i + 2u)] != T_WALL || /* both halves stay structures */
           !open_cell(c[(uint8_t)(i - EG_W)]) || !open_cell(c[(uint8_t)(i + EG_W)]))
         continue;
       c[i] = tier >= 2u && (eg_rnd() & 1u) ? T_CEIL : T_WORN;

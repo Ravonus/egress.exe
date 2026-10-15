@@ -1,11 +1,15 @@
 /* EGRESS room gravity, pushes and rotten carpet (see eg_room.h; the generator is eg_gen.c). Shared verbatim by the cartridge and the host tools. */
+#ifdef __SDCC
+#pragma bank 255
+#endif
 #include "eg_room.h"
 
 uint16_t eg_rs = 1u;
 uint8_t eg_dirty[EG_DIRTY_MAX];
 uint8_t eg_ndirty;
 
-uint8_t eg_rnd(void) {
+/* near versions for this file (on the cartridge the public ones are banked calls) */
+static uint8_t rnd_next(void) {
   uint16_t x = eg_rs;
   x ^= x << 7;
   x ^= x >> 9;
@@ -14,7 +18,8 @@ uint8_t eg_rnd(void) {
   return (uint8_t)(x ^ (x >> 8));
 }
 
-uint8_t eg_rndn(uint8_t n) { return (uint8_t)(((uint16_t)eg_rnd() * n) >> 8); }
+uint8_t eg_rnd(void) EG_BANKED { return rnd_next(); }
+uint8_t eg_rndn(uint8_t n) EG_BANKED { return (uint8_t)(((uint16_t)rnd_next() * n) >> 8); }
 
 static uint8_t is_occ(uint8_t i, const uint8_t *occ, uint8_t n) {
   while (n) {
@@ -34,6 +39,46 @@ static void mark(uint8_t i) {
  * next CRT that may move, and the F_MOVED clear. The host builds the same C as before. */
 static const uint8_t *scan_p;
 static uint8_t scan_n;
+/* A bottom-up step never creates a CRT in a row still to be processed. Build
+ * the row mask once, avoiding repeated C loop setup for twelve empty rows. */
+static uint16_t rock_rows(void) __naked {
+  __asm
+    ld hl, #_scan_p
+    ld a, (hl+)
+    ld h, (hl)
+    ld l, a
+    ld de, #0
+    ld b, #12
+  1$:
+    sla e
+    rl d
+    ld c, #14
+  2$:
+    ld a, (hl+)
+    and a, #0x5f
+    cp a, #0x04
+    jr z, 3$
+    dec c
+    jr nz, 2$
+    jr 5$
+  3$:
+    set 0, e
+    dec c
+    ld a, l
+    add a, c
+    ld l, a
+    jr nc, 5$
+    inc h
+  5$:
+    inc hl
+    inc hl
+    dec b
+    jr nz, 1$
+    ld b, d
+    ld c, e
+    ret
+  __endasm;
+}
 static uint8_t scan_rock(void) __naked { /* cells skipped from scan_p before one with (v & 0x5f) == T_ROCK; scan_n if none */
   __asm
     ld hl, #_scan_p
@@ -64,11 +109,13 @@ static void clear_moved(void) __naked { /* EG_N cells from scan_p: F_MOVED off *
     ld a, (hl+)
     ld h, (hl)
     ld l, a
-    ld c, #224
+    ld c, #28
   1$:
+    .rept 8
     ld a, (hl)
     and a, #0xbf
     ld (hl+), a
+    .endm
     dec c
     jr nz, 1$
     ret
@@ -97,12 +144,24 @@ static void move_rock(uint8_t *c, uint8_t i, uint8_t b) {
   mark(b);
 }
 
-uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) {
+static uint8_t shutters(eg_room *r, const uint8_t *occ, uint8_t nocc);
+
+uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) EG_BANKED {
   uint8_t *c = r->c;
-  uint8_t res = 0u, y, x, i, v, b, s, w, gates;
+  uint8_t res = 0u, y, x, i, v, b, s;
+#ifdef EG_GRAV_ASM
+  uint16_t rows;
+  scan_p = &c[EG_IDX(1u, 1u)];
+  rows = rock_rows();
+#endif
   eg_ndirty = 0u;
   /* bottom-up, so a stack of CRTs falls together; F_MOVED keeps a CRT from moving twice in one step */
   for (y = (uint8_t)(EG_H - 2u); y != 0u; y--) {
+#ifdef EG_GRAV_ASM
+    v = (uint8_t)(rows & 1u);
+    rows >>= 1;
+    if (!v) continue;
+#endif
     i = EG_IDX(1u, y);
     x = (uint8_t)(EG_W - 2u);
     while (x) {
@@ -161,12 +220,24 @@ uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) {
     }
   }
 #ifdef EG_GRAV_ASM
-  scan_p = c;
-  clear_moved();
+  /* F_MOVED is private to this gravity step: only move_rock writes it, and
+   * every such call sets FALLING. Stable boards have no transient bits to
+   * clear. Keep the host's unconditional pass as the reference. */
+  if (res & EG_G_FALLING) {
+    scan_p = c;
+    clear_moved();
+  }
 #else
   for (i = 0u; i != (uint8_t)EG_N; i++) c[i] &= (uint8_t)~F_MOVED;
 #endif
-  /* shutters follow the plates: up while any plate carries a CRT (a shutter doesn't drop on the player) */
+  return (uint8_t)(res | shutters(r, occ, nocc));
+}
+
+static uint8_t shutters(eg_room *r, const uint8_t *occ, uint8_t nocc) {
+  uint8_t *c = r->c;
+  uint8_t res = 0u, i, v, w, gates;
+  /* shutters follow the plates: up while every plate carries a weight (a CRT, a laid brick or crate, an obstacle: B2;
+   * B1 rooms hold one plate), down otherwise (a shutter doesn't drop on the player, nor on an obstacle: F_OB) */
 #ifdef EG_GRAV_ASM
   if (!eg_plates_dirty) return res; /* no CRT came onto or off a plate: the shutters stay as they are */
   eg_plates_dirty = 0u;
@@ -175,9 +246,13 @@ uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) {
   gates = 0u;
   for (i = 0u; i != (uint8_t)EG_N; i++) {
     v = c[i];
-    if ((uint8_t)(v & (T_MASK | F_PLATE)) == (T_ROCK | F_PLATE) || v == T_BLOCK_PLATE) w = 1u;
+    if ((uint8_t)(v & (T_MASK | F_PLATE)) == (T_ROCK | F_PLATE) || v == T_BLOCK_PLATE || v == (T_PLATE | F_OB)) {
+      if (!(w & 2u)) w = 1u;
+    }
+    if (v == T_PLATE) w = 2u; /* a bare plate: every shutter stays down */
     if (v == T_GATE || v == T_GATE_OPEN) gates = 1u;
   }
+  if (w == 2u) w = 0u;
   if (gates)
     for (i = 0u; i != (uint8_t)EG_N; i++) {
       v = c[i];
@@ -198,7 +273,12 @@ uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) {
   return res;
 }
 
-uint8_t eg_push(eg_room *r, uint8_t rock, uint8_t to) {
+uint8_t eg_shutters(eg_room *r, const uint8_t *occ, uint8_t nocc) EG_BANKED {
+  eg_ndirty = 0;
+  return shutters(r, occ, nocc);
+}
+
+uint8_t eg_push(eg_room *r, uint8_t rock, uint8_t to) EG_BANKED {
   uint8_t t = r->c[to];
   if ((r->c[rock] & F_PLATE) || t == T_PLATE) eg_plates_dirty = 1u; /* off a plate, or onto one */
   if (t == T_GLASS || t == T_CEIL || t == T_CEIL_1) { /* it smashes through into the void: both gone */
@@ -212,7 +292,24 @@ uint8_t eg_push(eg_room *r, uint8_t rock, uint8_t to) {
   return 1u;
 }
 
-uint8_t eg_leave(eg_room *r, uint8_t cell) { return eg_step_off(r, cell, BB_PLAYER, 1u); }
+uint8_t eg_leave(eg_room *r, uint8_t cell) EG_BANKED { return eg_step_off(r, cell, BB_PLAYER, 1u); }
+uint8_t eg_push_block(eg_room *r, uint8_t from, uint8_t to) EG_BANKED {
+  uint8_t t = r->c[to], f = r->c[from];
+  if (!EG_CRATE(f)) return 0u;
+  if (t == T_GLASS || t == T_CEIL || t == T_CEIL_1)
+    t = T_PIT; /* through it, into the void: both gone */
+  else if (t == T_EMPTY)
+    t = T_BLOCK;
+  else if (t == T_PLATE)
+    t = T_BLOCK_PLATE;
+  else
+    return 0u;
+  r->c[to] = t;
+  r->c[from] = f == T_BLOCK_PLATE ? T_PLATE : T_EMPTY;
+  if (f == T_BLOCK_PLATE || t == T_BLOCK_PLATE) eg_plates_dirty = 1u;
+  return 1u;
+}
+
 
 /* --- fragile floor --- */
 #define ALL_MOBS (BB_MOB_WALKER | BB_MOB_HEAVY | BB_MOB_BURROWER)
@@ -226,7 +323,11 @@ const eg_frag_kind eg_frag[FK_COUNT] = {
     {T_ICE, 2u, FR_ROOM, 0u, BB_PLAYER | BB_HEAVY | BB_FALLING | BB_MOB_HEAVY | BB_BOSS | BB_REACTION, 0u},
 };
 
-uint8_t eg_frag_kind_of(uint8_t t) {
+uint8_t eg_frag_ticks(uint8_t k) EG_BANKED {
+  return (k < FK_COUNT && eg_frag[k].reset == FR_TIMED) ? eg_frag[k].reset_ticks : 0u;
+}
+
+static uint8_t frag_kind_of(uint8_t t) {
   if (t == T_CRUMBLE) return FK_CRUMBLE;
   if (t == T_GLITCH) return FK_GLITCH;
   if (t >= T_WORN && t <= T_WORN_2) return FK_WORN;
@@ -235,9 +336,10 @@ uint8_t eg_frag_kind_of(uint8_t t) {
   if (t == T_ICE || t == T_ICE_1) return FK_ICE;
   return FK_NONE;
 }
+uint8_t eg_frag_kind_of(uint8_t t) EG_BANKED { return frag_kind_of(t); }
 
-uint8_t eg_step_off(eg_room *r, uint8_t cell, uint8_t who, uint8_t weight) {
-  uint8_t t = r->c[cell], k = eg_frag_kind_of(t), stage;
+uint8_t eg_step_off(eg_room *r, uint8_t cell, uint8_t who, uint8_t weight) EG_BANKED {
+  uint8_t t = r->c[cell], k = frag_kind_of(t), stage;
   if (k == FK_NONE || !eg_frag[k].steps || !(eg_frag[k].breakby & who)) return 0u;
   stage = (uint8_t)(t - eg_frag[k].base + weight);
   if (stage >= eg_frag[k].steps) {
@@ -248,8 +350,8 @@ uint8_t eg_step_off(eg_room *r, uint8_t cell, uint8_t who, uint8_t weight) {
   return 0u;
 }
 
-uint8_t eg_frag_hit(eg_room *r, uint8_t cell, uint8_t who) {
-  uint8_t k = eg_frag_kind_of(r->c[cell]);
+uint8_t eg_frag_hit(eg_room *r, uint8_t cell, uint8_t who) EG_BANKED {
+  uint8_t k = frag_kind_of(r->c[cell]);
   if (k == FK_NONE || EG_PROT(r, cell) || !(eg_frag[k].breakby & who)) return 0u;
   r->c[cell] = T_PIT;
   return 1u;
@@ -281,13 +383,13 @@ static void dd_visit(const eg_room *r, uint8_t s) {
   if (t != T_DOOR) dd_q[dd_n++] = s; /* the door is a goal, not a way through */
 }
 
-void eg_dead_begin(uint8_t from) {
+void eg_dead_begin(uint8_t from) EG_BANKED {
   dd_from = from;
   dd_pass = dd_rock = dd_k = 0u;
   dd_flood_begin();
 }
 
-uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, uint8_t budget) {
+uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, uint8_t budget) EG_BANKED {
   uint8_t i, k, j, p;
   /* pass 0 floods without crossing pits; if it reached a CRT, pass 1 floods again letting pits through */
   while (dd_h != dd_n) {
@@ -329,7 +431,7 @@ uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, u
   return 0u;
 }
 
-uint8_t eg_dead(const eg_room *r, uint8_t from, const uint8_t *pocket, uint8_t npocket) {
+uint8_t eg_dead(const eg_room *r, uint8_t from, const uint8_t *pocket, uint8_t npocket) EG_BANKED {
   uint8_t k;
   eg_dead_begin(from);
   while ((k = eg_dead_step(r, pocket, npocket, 255u)) == EG_DEAD_BUSY) {
@@ -337,7 +439,7 @@ uint8_t eg_dead(const eg_room *r, uint8_t from, const uint8_t *pocket, uint8_t n
   return k;
 }
 
-uint8_t eg_count(const eg_room *r, uint8_t type) {
+uint8_t eg_count(const eg_room *r, uint8_t type) EG_BANKED {
   uint8_t i = 0u, n = 0u;
   do {
     if ((r->c[i] & T_MASK) == type) n++;
@@ -345,7 +447,7 @@ uint8_t eg_count(const eg_room *r, uint8_t type) {
   return n;
 }
 
-uint8_t eg_item_at(const eg_room *r, uint8_t cell) {
+uint8_t eg_item_at(const eg_room *r, uint8_t cell) EG_BANKED {
   uint8_t k;
   for (k = 0u; k != r->nitem; k++)
     if (r->item_cell[k] == cell) return r->item_piece[k];

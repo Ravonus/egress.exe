@@ -1,12 +1,14 @@
 /* Host room solver (see eg_solve.h). */
 #include "eg_solve.h"
+#include "eg_osolve.h"
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
-const char *const eg_trick_name[TRICK_COUNT] = {"burn", "cold", "short", "weight", "glass", "rhythm"};
+const char *const eg_trick_name[TRICK_COUNT] = {"burn", "cold", "short", "weight", "glass", "rhythm",
+                                                "rush", "steer", "mirror", "stare"};
 
 enum { ACT_ENTER = 0, ACT_COMBINE = 1, ACT_USE = 2 };
 
@@ -495,7 +497,32 @@ static size_t emit_plan(const eg_room *r0, const node *nodes, int last, uint8_t 
   return m;
 }
 
+/* B2: a room with living obstacles is solved by the tick solver (every state, fairness, the passive-safe plan) */
+static int solve_obstacles(const eg_room *r, char *moves, size_t cap, eg_stats *st) {
+  eg_ostats o;
+  memset(st, 0, sizeof *st);
+  st->ob_rooms = 1;
+  int ok = eg_osolve(r, EG_OB_CAP, EGO_NOISE, moves, cap, &o);
+  st->states = o.states;
+  st->dead = o.dead;
+  st->fatal_depth = o.fatal_depth;
+  st->dead_at_start = o.start_live ? 0 : EG_DEAD_DOOR;
+  st->ob_capped = o.capped;
+  st->ob_start_live = o.start_live;
+  st->ob_idle_ok = o.idle_ok;
+  st->ob_idle_hits = o.idle_hits;
+  st->ob_plan_ok = o.plan_ok;
+  st->ob_ticks = o.ticks;
+  st->ob_hits = o.hits;
+  st->ob_rescue = o.rescue;
+  st->steps = o.ticks;
+  st->actions = o.moves;
+  st->nodes = o.states;
+  return ok;
+}
+
 int eg_solve_ban(const eg_room *r, int budget, uint64_t ban, char *moves, size_t cap, eg_stats *st) {
+  if (r->nob) return solve_obstacles(r, moves, cap, st);
   node *nodes = malloc(sizeof(node) * (size_t)(budget + 1));
   hset hs;
   hs.mask = 1;
@@ -625,6 +652,7 @@ int eg_solve(const eg_room *r, int budget, char *moves, size_t cap, eg_stats *st
 }
 
 int eg_trivial(const eg_room *r) {
+  if (r->nob) return !eg_trick_needed(r);
   uint8_t seen[EG_N], q[EG_N];
   memset(seen, 0, sizeof seen);
   int n = 0, h = 0;
@@ -695,6 +723,29 @@ static int sealed2(const eg_room *r, uint8_t type, uint8_t type2) {
 int eg_sealed(const eg_room *r) { return eg_sealed_with(r, T_WALL); }
 
 int eg_trick_needed(const eg_room *r) {
+  if (TRICK_OBSTACLE(r->trick)) {
+    eg_room blocked = *r;
+    if (!r->nob) return 0;
+    if (r->trick == TRICK_STEER) return eg_sealed_with(r, T_PARTITION);
+    if (r->trick == TRICK_MIRROR) return eg_sealed_with(r, T_GATE);
+    if (r->trick == TRICK_STARE) {
+      blocked.c[r->ob[0][1]] = T_WALL;
+      return eg_sealed(&blocked);
+    }
+    /* Rush hour requires crossing the commuter's actual route, rather than
+     * merely placing a moving decoration somewhere in an otherwise open room. */
+    if (!r->nrun) return 0;
+    uint8_t c = r->ob[0][1];
+    for (int k = 0; k < r->nrun; k++) {
+      uint8_t run = r->run[k], d = run >> 6;
+      static const int8_t delta[4] = {-16, 1, 16, -1};
+      for (int n = 0; n < (run & 63); n++) {
+        blocked.c[c] = T_WALL;
+        c = (uint8_t)(c + delta[d]);
+      }
+    }
+    return eg_sealed(&blocked);
+  }
   static const uint8_t obstacle[TRICK_COUNT] = {T_PAPER, T_WATER, T_DEAD, T_GATE, T_GLASS, T_GLITCH};
   if (r->trick >= TRICK_COUNT) return 0;
   if (r->trick >= TRICK_GLASS) {
@@ -752,6 +803,10 @@ static int dir_of(char ch) {
 }
 
 int eg_replay(const eg_room *r0, const char *moves) {
+  if (r0->nob) {
+    int hits;
+    return eg_oreplay(r0, moves, EGO_NOISE, &hits) && hits == 0;
+  }
   eg_room r = *r0;
   uint8_t p = r.start, keys = r.keys, pk[EG_MAX_ITEM], np = 0;
   memset(pk, 0, sizeof pk);
@@ -812,17 +867,29 @@ int eg_replay(const eg_room *r0, const char *moves) {
   return 0;
 }
 
+int eg_obstacle_load(const eg_room *r, const eg_stats *st) {
+  int load = 0;
+  for (int k = 0; k < r->nob; k++) load += eg_ob_cost[OBA_RULE(r->ob[k][0])];
+  int w = st->ob_rescue / 100;
+  return load + (w > 10 ? 10 : w);
+}
+
 int eg_difficulty(const eg_room *r, const eg_stats *st) {
   int sup = 0;
+  if (r->nob) {
+    int cost = 0, w = st->ob_rescue / 50;
+    for (int k = 0; k < r->nob; k++) cost += eg_ob_cost[OBA_RULE(r->ob[k][0])];
+    return st->ob_ticks + 6 * cost + (w > 30 ? 30 : w) + 2 * (r->nob - 1);
+  }
   for (int k = 0; k < TRICK_COUNT; k++)
     if (r->support & (1u << k)) sup++;
   return st->steps + 3 * st->branching100 / 100 + 4 * r->depth + 2 * sup;
 }
 
 uint16_t eg_room_mech(const eg_room *r) {
-  uint16_t m = (uint16_t)(1u << (MK_BURN + r->trick));
+  uint16_t m = (uint16_t)(1u << MK_TRICK(r->trick));
   for (int k = 0; k < TRICK_COUNT; k++)
-    if (r->support & (1u << k)) m |= (uint16_t)(1u << (MK_BURN + k));
+    if (r->support & (1u << k)) m |= (uint16_t)(1u << MK_TRICK(k));
   for (int i = 0; i < (int)EG_N; i++) {
     uint8_t t = r->c[i] & T_MASK;
     if (t == T_ROCK) m |= 1u << MK_CRT;

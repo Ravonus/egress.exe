@@ -6,6 +6,7 @@
 #include "egress.h"
 #include "gen/art.h"
 #include "clock.h"
+#include "boss_api.h"
 #include "title3d/t3d.h"
 
 static void screen_reset(void) {
@@ -58,12 +59,16 @@ static const char *const last_words[] = {
 };
 
 void dead_screen(void) BANKED {
+  char caption[20];
   game_mode = MODE_DEAD;
   screen_reset();
   art_load_game();
   clear_map(0, 4);
   text_at(0, 3, 4, "YOU STOPPED.", 4);
-  text_at(0, 0, 7, last_words[(uint8_t)(run_seed + floor_no) & 3u], 4);
+  if (boss_floor && boss_result == 2u) {
+    boss_death_caption(caption);
+    text_at(0, 0, 7, caption, 4);
+  } else text_at(0, 0, 7, last_words[(uint8_t)(run_seed + floor_no) & 3u], 4);
   text_at(0, 3, 10, "FLOOR", 4);
   num_at(0, 12, 10, floor_no, 2, 4);
   text_at(0, 3, 13, "PRESS A", 4);

@@ -8,7 +8,10 @@
 
 	.module fill2
 	.globl _ray_h, _ray_t, _ray_u, _ray_fv, _ray_cv
-	.globl _walls_asm, _floors_asm, _w_buf
+	.globl _walls_asm, _w_buf
+.if FLAT - 1
+	.globl _floors_asm
+.endif
 	.globl _f_lx, _f_ly, _f_ux, _f_uy, _f_cx8, _f_cy8, _f_minfv
 	.globl __current_bank
 	.globl _map, _cam_a
@@ -914,6 +917,7 @@ wdone:
 	ld	(0x2000), a
 	ret
 
+.if FLAT - 1
 ; ---------------------------------------------------------------------------------------------------------------
 ; floors_asm: floor + ceiling, row-major (ROM bank 3 mapped: quarter squares, sets, row tables).
 ; Per sample row: world point of ray 0 and the per-ray step; per tile column: skip (FMIN), the fast path when both
@@ -1821,6 +1825,331 @@ _floors_asm::
 	ld	(0x2000), a
 	ret
 
+.endif
+
+.if FLAT
+; ---------------------------------------------------------------------------------------------------------------
+; floors_flat: banded floors (core2.c FLAT). f_img (0xCB80, 128 bytes) = the view's row image, rebuilt from the
+; pattern bank only when the phase or a band set changed (key at FKEY); then per tile column: rows both rays see
+; are copied by jumping into an unrolled copy (floor: rows hi..H-1 upward; ceiling: rows H-1-hi..0 downward), the
+; rows only one ray sees are ORed in under that slot's nibble mask
+FIMG = 0xCB80
+FKEY = 0xCB60
+	.globl	_floors_flat, _f_ph, _f_bset, _flat_or
+
+	.macro	FBAND	bn, o0, o1
+	ld	a, (_f_bset + bn)
+	swap	a
+	ld	c, a
+	ld	a, (_f_ph)
+	or	a, c
+	ld	c, a
+	srl	a
+	add	a, #0x40
+	ld	h, a
+	ld	a, c
+	rrca
+	and	a, #0x80
+	ld	l, a
+	push	hl
+	ld	a, l
+	add	a, #2 * (VIEW_H / 2 + o0)
+	ld	l, a
+	ld	de, #FIMG + 2 * (VIEW_H / 2 + o0)
+	ld	b, #2 * (o1 - o0)
+	call	fcopy
+	pop	hl
+	ld	a, l
+	add	a, #2 * (VIEW_H / 2 - o1)
+	ld	l, a
+	ld	de, #FIMG + 2 * (VIEW_H / 2 - o1)
+	ld	b, #2 * (o1 - o0)
+	call	fcopy
+	.endm
+
+fcopy:
+	ld	a, (hl+)
+	ld	(de), a
+	inc	e
+	dec	b
+	jr	nz, fcopy
+	ret
+
+; OR b rows (b >= 1) of f_img (de) under mask c into hl
+for:
+_flat_or::
+	ld	a, (de)
+	inc	e
+	and	a, c
+	or	a, (hl)
+	ld	(hl+), a
+	ld	a, (de)
+	inc	e
+	and	a, c
+	or	a, (hl)
+	ld	(hl+), a
+	dec	b
+	jr	nz, for
+	ret
+
+_floors_flat::
+	; image key: phase + band sets
+	ld	hl, #FKEY
+	ld	a, (_f_ph)
+	cp	a, (hl)
+	jr	nz, 1$
+	inc	l
+	ld	de, #_f_bset
+	ld	b, #NFB
+2$:
+	ld	a, (de)
+	inc	de
+	cp	a, (hl)
+	jr	nz, 1$
+	inc	l
+	dec	b
+	jr	nz, 2$
+	jp	10$
+1$:
+	ld	hl, #FKEY
+	ld	a, (_f_ph)
+	ld	(hl+), a
+	ld	de, #_f_bset
+	ld	b, #NFB
+3$:
+	ld	a, (de)
+	inc	de
+	ld	(hl+), a
+	dec	b
+	jr	nz, 3$
+	ld	a, #FLATBANK
+	ldh	(__current_bank), a
+	ld	(0x2000), a
+	FBAND	0, FBO_0, FBO_1
+.if NFB - 1
+	FBAND	1, FBO_1, FBO_2
+.endif
+.if NFB - 2
+	FBAND	2, FBO_2, FBO_3
+.endif
+.if NFB - 3
+	FBAND	3, FBO_3, FBO_4
+.endif
+	ld	a, #1
+	ldh	(__current_bank), a
+	ld	(0x2000), a
+10$:
+	ld	hl, #_w_buf
+	ld	a, (hl+)
+	ldh	(F_STL), a
+	ld	a, (hl)
+	ldh	(F_STH), a
+	xor	a, a
+	ldh	(F_T), a
+20$:
+	; ---- floor: d = min fv, e = max fv, c = mask of the slot with the smaller fv ----
+	ldh	a, (F_T)
+	add	a, a
+	add	a, #<_ray_fv
+	ld	l, a
+	ld	a, #0
+	adc	a, #>_ray_fv
+	ld	h, a
+	ld	a, (hl+)
+	ld	e, (hl)
+	ld	c, #0xF0
+	cp	a, e
+	jr	c, 21$
+	ld	d, e
+	ld	e, a
+	ld	c, #0x0F
+	jr	22$
+21$:
+	ld	d, a
+22$:
+	; rows e..H-1 both: copy from f_img + 2e to strip + 2e
+.if FLOOR_CACHE
+	ldh	a, (F_T)
+	add	a, #<_f_skip
+	ld	l, a
+	ld	a, #0
+	adc	a, #>_f_skip
+	ld	h, a
+	ld	a, (hl)
+	or	a, a
+	jr	nz, 24$
+.endif
+	ld	a, e
+	cp	a, #VIEW_H
+	jr	nc, 24$
+	push	de
+	push	bc
+	ld	bc, #23$
+	push	bc
+	; entry = FST + 6 e
+	ld	l, e
+	ld	h, #0
+	add	hl, hl
+	ld	b, h
+	ld	c, l
+	add	hl, hl
+	add	hl, bc
+	ld	bc, #FST
+	add	hl, bc
+	push	hl
+	ld	a, e
+	add	a, a
+	ld	b, a
+	add	a, #<FIMG
+	ld	e, a
+	ld	d, #>FIMG
+	ldh	a, (F_STL)
+	add	a, b
+	ld	l, a
+	ldh	a, (F_STH)
+	ld	h, a
+	ret
+23$:
+	pop	bc
+	pop	de
+24$:
+	; rows d..e-1: OR under mask c
+	ld	a, e
+	sub	a, d
+	jr	z, 30$
+	ld	b, a
+	ld	a, d
+	add	a, a
+	ld	e, a
+	ldh	a, (F_STL)
+	add	a, e
+	ld	l, a
+	ldh	a, (F_STH)
+	ld	h, a
+	ld	a, e
+	add	a, #<FIMG
+	ld	e, a
+	ld	d, #>FIMG
+	call	for
+30$:
+	; ---- ceiling: rows 0 .. H-1-cv; d = min cv, e = max cv ----
+	ldh	a, (F_T)
+	add	a, a
+	add	a, #<_ray_cv
+	ld	l, a
+	ld	a, #0
+	adc	a, #>_ray_cv
+	ld	h, a
+	ld	a, (hl+)
+	ld	e, (hl)
+	ld	c, #0xF0
+	cp	a, e
+	jr	c, 31$
+	ld	d, e
+	ld	e, a
+	ld	c, #0x0F
+	jr	32$
+31$:
+	ld	d, a
+32$:
+	; rows 0 .. H-1-e both: copy downward from byte 2 (H - e) - 1
+.if FLOOR_CACHE
+	ldh	a, (F_T)
+	add	a, #<_f_skip
+	ld	l, a
+	ld	a, #0
+	adc	a, #>_f_skip
+	ld	h, a
+	ld	a, (hl)
+	or	a, a
+	jr	nz, 34$
+.endif
+	ld	a, e
+	cp	a, #VIEW_H
+	jr	nc, 34$
+	push	de
+	push	bc
+	ld	bc, #33$
+	push	bc
+	; entry = CST + 6 e
+	ld	l, e
+	ld	h, #0
+	add	hl, hl
+	ld	b, h
+	ld	c, l
+	add	hl, hl
+	add	hl, bc
+	ld	bc, #CST
+	add	hl, bc
+	push	hl
+	ld	a, #VIEW_H
+	sub	a, e
+	add	a, a
+	dec	a
+	ld	b, a
+	add	a, #<FIMG
+	ld	e, a
+	ld	d, #>FIMG
+	ldh	a, (F_STL)
+	add	a, b
+	ld	l, a
+	ldh	a, (F_STH)
+	ld	h, a
+	ret
+33$:
+	pop	bc
+	pop	de
+34$:
+	; rows H-e .. H-1-d: OR under mask c
+	ld	a, e
+	sub	a, d
+	jr	z, 40$
+	ld	b, a
+	ld	a, #VIEW_H
+	sub	a, e
+	add	a, a
+	ld	e, a
+	ldh	a, (F_STL)
+	add	a, e
+	ld	l, a
+	ldh	a, (F_STH)
+	ld	h, a
+	ld	a, e
+	add	a, #<FIMG
+	ld	e, a
+	ld	d, #>FIMG
+	call	for
+40$:
+	ldh	a, (F_STL)
+	add	a, #<STRIP
+	ldh	(F_STL), a
+	ldh	a, (F_STH)
+	adc	a, #>STRIP
+	ldh	(F_STH), a
+	ldh	a, (F_T)
+	inc	a
+	ldh	(F_T), a
+	cp	a, #TW
+	jp	nz, 20$
+	ret
+
+; unrolled row-image copies: FST + 6 r copies bytes 2r..127 upward, CST + 6 r copies bytes 2 (H - r) - 1 .. 0 down
+FST:
+	.rept	VIEW_H * 2
+	ld	a, (de)
+	inc	e
+	ld	(hl+), a
+	.endm
+	ret
+CST:
+	.rept	VIEW_H * 2
+	ld	a, (de)
+	dec	e
+	ld	(hl-), a
+	.endm
+	ret
+.endif
+
 .if OBJ_ON
 ; oam_dma(page): the HRAM OAM DMA routine GBDK installs at 0xFF84 (A = source page)
 _oam_dma::
@@ -1918,6 +2247,15 @@ _bb_col::
 	and	a, #31
 	jp	nz, 16$
 	ld	a, (_bbc_mask)
+	cp	a, #0xff
+	jr	nz, 1404$
+	.rept	32
+	ld	a, (de)
+	inc	e
+	ld	(hl+), a
+	.endm
+	jp	20$
+1404$:
 	ld	c, a
 	.rept	32
 	ld	a, (de)

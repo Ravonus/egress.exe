@@ -14,10 +14,15 @@ MAPPER ?= mbc5
 
 SRC := src/main.c src/screens.c src/play.c src/grid.c src/hud.c src/player.c src/actors.c src/sprites.c src/boss.c \
 	src/sound.c src/boot/keel_boot.c src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c src/core/eg_plan.c \
-	src/core/eg_clock.c src/gen/art.c src/gen/art_pics.c \
+	src/core/eg_obst.c src/core/eg_ogen.c src/core/eg_clock.c src/gen/art.c src/gen/art_pics.c \
 	src/gen/look_art.c src/look.c src/gen/eg_seeds.c src/puzzle.c \
+	src/mob.c src/fx.c src/gen/mob_info.c src/gen/mob_art_0.c src/gen/mob_art_1.c \
+	src/obstacle.c src/gen/obstacle_art.c \
+	src/stage.c src/stage_spawn.c src/stage_rest.c src/core/eg_stage.c \
 	src/core/eg_input.c src/core/eg_move.c src/core/eg_idle.c src/heir.c src/gen/heir_tab.c src/gen/heir_banks.c \
 	$(sort $(wildcard src/gen/heir_data_*.c))
+# B2 bosses (src/boss_api.h)
+SRC += src/boss_core.c src/boss_tenant.c src/boss_fax.c src/boss_art.c src/boss_oam.c
 MAPPER_SRC := src/run.c src/clock.c src/heir_draw.c
 # the title (src/title3d, docs/redesign.md 15): its C, its art (committed), the baked walk (generated into build/)
 SRC += src/title3d/title3d.c src/title3d/t3d_core.c
@@ -103,6 +108,10 @@ build/linked-%.gbc: $$(OBJ_$$*)
 	[ $$((0x$$end)) -le $$((0xD800)) ] || { echo "WRAM: game data ends at 0x$$end, past 0xD800 (the title mirrors \
 	0xD000-0xD7FF and keeps its buffers above it, src/title3d/t3d.h)" >&2; rm -f $@; exit 1; }
 
+# GBDK's autobanker rewrites shared .rel inputs. Two mapper links must never run
+# concurrently, even under make -j; compilation can still run in parallel.
+build/linked-mbc3.gbc: | build/linked-mbc5.gbc
+
 build/egress.gbc: build/linked-mbc5.gbc tools/finish_rom.py
 	$(PY) tools/finish_rom.py build/linked-mbc5.gbc build/linked-mbc5.map $@ --mapper mbc5
 	cp build/linked-mbc5.noi build/egress.noi
@@ -128,25 +137,48 @@ src/gen/art.c src/gen/art_pics.c src/gen/art.h: tools/bake_art.py
 src/gen/look_art.c src/gen/look_art.h: tools/bake_look.py tools/bake_art.py
 	$(PY) tools/bake_look.py src/gen --sheet docs/shots/b1_look_tiles.png --fragile docs/shots/b1_fragile_tiles.png --items docs/shots/b1_items_tiles.png
 
+# B2 stages: the temp and the shopkeeper (BG cards, src/stage.c)
+src/gen/stage_art.h: tools/bake_stage.py
+	$(PY) tools/bake_stage.py src/gen --sheet docs/shots/b2_stage_cards.png
+
+src/gen/obstacle_art.c src/gen/obstacle_art.h: tools/bake_obstacles.py tools/mock/obstacle_mock.py tools/mock/mobgen.py
+	$(PY) tools/bake_obstacles.py
+# B2 bosses: THE TENANT and LAST FAX (tools/bake_boss.py borrows mobgen's shading)
+src/gen/boss_art.h src/gen/boss_art_data.h: tools/bake_boss.py tools/mock/mobgen.py
+	$(PY) tools/bake_boss.py src/gen --sheet docs/shots/b2_boss_art.png
+
 src/gen/music_data.h: tools/compose.py
 	$(PY) tools/compose.py $@
 
-ROOM_SRC := src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c
-ROOM_HDR := src/core/eg_room.h src/core/eg_piece.h host/eg_solve.h
-build/host/egtool: host/egtool.c host/eg_solve.c $(ROOM_SRC) $(ROOM_HDR)
+ROOM_SRC := src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c src/core/eg_obst.c src/core/eg_ogen.c host/eg_osolve.c
+ROOM_HDR := src/core/eg_room.h src/core/eg_piece.h host/eg_solve.h src/core/eg_obst.h host/eg_osolve.h
+build/host/egtool: host/egtool.c host/eg_solve.c host/eg_walls.c $(ROOM_SRC) $(ROOM_HDR)
 	@mkdir -p $(dir $@)
-	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/egtool.c host/eg_solve.c $(ROOM_SRC)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/egtool.c host/eg_solve.c host/eg_walls.c $(ROOM_SRC)
+
+# Baking needs a deterministic search bound per candidate. The accepted rooms
+# retain the same difficulty/fairness bands and are rechecked with the full solver.
+build/host/egtool-bake: host/egtool.c host/eg_solve.c host/eg_walls.c $(ROOM_SRC) $(ROOM_HDR)
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -DBUDGET=5000 -DEG_OB_CAP=512000 -o $@ host/egtool.c host/eg_solve.c host/eg_walls.c $(ROOM_SRC)
 
 # The seed table is baked on request only (minutes of solving): `make seeds`. `make test` re-solves every baked seed
 # with the current generator, so a generator change without a rebake fails the tests.
-seeds: build/host/egtool tools/bake_seeds.sh
-	sh tools/bake_seeds.sh build/host/egtool src/gen/eg_seeds.c 128
+seeds: build/host/egtool-bake build/host/egtool tools/bake_seeds.sh tools/seed_curriculum.txt
+	sh tools/bake_seeds.sh build/host/egtool-bake src/gen/eg_seeds.c 128 1 build/host/egtool
 
 # the run planner over the baked table, headless (B1 curriculum) and the full ~52-floor layout (3.6): `egplan check 1000`
 # is part of `make test`
-build/host/egplan: host/egplan.c host/egrun.c src/core/eg_plan.c src/core/eg_plan.h src/gen/eg_seeds.c src/gen/eg_seeds.h
+build/host/egplan: host/egplan.c host/egrun.c host/egstage.c src/core/eg_plan.c src/core/eg_plan.h src/core/eg_stage.c \
+		src/core/eg_stage.h src/core/eg_room.c src/gen/eg_seeds.c src/gen/eg_seeds.h
 	@mkdir -p $(dir $@)
-	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/egplan.c host/egrun.c src/core/eg_plan.c src/gen/eg_seeds.c -lm
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/egplan.c host/egrun.c host/egstage.c src/core/eg_plan.c src/core/eg_stage.c \
+		src/core/eg_room.c src/gen/eg_seeds.c -lm
+
+# B2 living obstacles: the core rules and the tick solver against the mock room (tools/mock/obstacle_room.py)
+build/host/test_obst: host/test_obst.c $(ROOM_SRC) $(ROOM_HDR)
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_obst.c $(ROOM_SRC)
 
 build/host/test_room: host/test_room.c host/eg_solve.c $(ROOM_SRC) $(ROOM_HDR)
 	@mkdir -p $(dir $@)
@@ -176,6 +208,25 @@ test-heir: build/host/test_input build/host/test_move build/host/test_idle
 	build/host/test_move
 	$(PY) tools/test_idle.py build/host/test_idle
 
+test-character-art: build/egress.gbc build/egress-rtc.gbc
+	$(PY) test/harness/heir.py build/egress.gbc build/egress-rtc.gbc
+
+build/host/gravity_ref: host/gravity_ref.c src/core/eg_room.c src/core/eg_room.h
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/gravity_ref.c src/core/eg_room.c
+
+test-cartridge-gravity: build/host/gravity_ref build/egress.gbc build/egress-rtc.gbc
+	$(PY) test/harness/gravity.py build/host/gravity_ref build/egress.gbc build/egress-rtc.gbc
+
+test-b2: build/egress.gbc
+	$(PY) test/harness/stage2.py build/egress.gbc build/b2-checks/stages
+	$(PY) test/harness/boss.py build/egress.gbc build/b2-checks/bosses
+
+test-fs-proto:
+	SUFFIX=_checked sh proto/raycast/v2/build2.sh 160 64 1
+	$(PY) proto/raycast/v2/measure2.py proto/raycast/v2/build/r2_160x64_s1_checked.gbc --frames 1800 --checks 64 \
+		--host proto/raycast/v2/build/host2_160x64_s1_checked --min-moving-fps 20 --json build/fs-proto-check.json
+
 build/host/test_clock: host/test_clock.c src/core/eg_clock.c src/core/eg_clock.h
 	@mkdir -p $(dir $@)
 	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_clock.c src/core/eg_clock.c
@@ -188,7 +239,8 @@ test-rtc: build/host/test_clock build/egress.gbc build/egress-rtc.gbc
 	$(PY) tools/mapper_audit.py build/linked-mbc5.map build/linked-mbc3.map
 	$(PY) test/rtc_test.py build/egress.gbc build/egress-rtc.gbc
 
-test: build/host/test_room build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir
+test: build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2
+	build/host/test_obst
 	build/host/test_room src/gen/eg_seeds.c
 	build/host/egplan check 1000
 	$(PY) test/harness/title3d.py build/egress.gbc --loops # the title: every loop at 30 fps, VRAM = the bake
@@ -202,4 +254,4 @@ shots: build/egress.gbc build/host/egtool $(TB_GEN)/chunks.mk
 clean:
 	rm -rf build
 
-.PHONY: rom all rtc test test-rtc test-heir shots clean seeds heir
+.PHONY: rom all rtc test test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-fs-proto shots clean seeds heir

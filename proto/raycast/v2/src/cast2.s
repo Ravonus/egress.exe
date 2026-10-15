@@ -174,6 +174,12 @@ l1:
 ; int16_t smulhi(int16_t r /* de */, int16_t c /* bc, |c| <= 255 */) -> bc = (r * c) >> 8, rounded toward zero like
 ; core2.c's C version (magnitudes multiplied, sign applied after)
 _smulhi::
+	ld	a, b
+	or	a, c
+	jr	nz, 900$
+	ld	bc, #0
+	ret
+900$:
 	ld	a, d
 	xor	a, b
 	push	af

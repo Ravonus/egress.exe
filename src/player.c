@@ -7,6 +7,9 @@
 #include <gb/gb.h>
 #include <gb/cgb.h>
 #include "play.h"
+#include "mob.h" /* B2: hit_src */
+#include "obstacle.h"
+#include "boss_api.h"
 #include "heir.h"
 #include "core/eg_input.h"
 #include "core/eg_move.h"
@@ -23,8 +26,11 @@ eg_mover_t pmv;
 uint8_t pl_iframe; /* dodge i-frames this frame */
 uint8_t pl_arc;    /* the lead's arc to draw: 0 none, 1 a strike toward pl_face, 2 the spin */
 uint8_t pl_level;  /* the last charged attack's level, 1..3 */
-static uint8_t pmap[256], map_door = 0xffu;
-static const eg_grid_t pg = {room.c, EG_W, EG_H, 4u, pmap};
+/* room occupies D800..D93F at most (asserted by the build); this floor-only map
+ * follows it. Both remain intact in bank 1 during title playback. */
+static uint8_t __at(0xD940) pmap[256];
+static uint8_t map_door = 0xffu;
+static eg_grid_t pg; /* WRAM: eg_move (banked) reads it; set in player_floor_start */
 static uint8_t dodge_dp, ov_state, ov_t, fight_t, moved_last, last_face;
 
 /* 8-way facing (EG_FACE_*: N NE E SE S SW W NW) as vectors and d-pad bits */
@@ -59,7 +65,9 @@ static void grid_map(void) {
   map_door = door_open;
   do {
     t = (uint8_t)(c & T_MASK);
-    v = t == T_ROCK ? ((c & F_FALL) ? EG_C_WALL : EG_C_BLOCK)
+    v = t != T_ROCK && (c & F_OB) ? EG_C_WALL
+        : t == T_ROCK ? ((c & F_FALL) ? EG_C_WALL : EG_C_BLOCK)
+        : EG_CRATE(t) ? EG_C_BLOCK
         : t == T_DOOR ? (door_open ? EG_C_FREE : EG_C_WALL)
         : EG_PASSABLE(t) ? EG_C_FREE : EG_C_WALL;
     pmap[c] = v;
@@ -82,6 +90,7 @@ void player_hurt(uint8_t n, uint8_t fromx, uint8_t fromy) BANKED {
     return;
   }
   if (!dbg_god) pl_hp = pl_hp > n ? (uint8_t)(pl_hp - n) : 0u;
+  if (!pl_hp && boss_floor) boss_death_record();
   if (acts.hits_taken != 255u) acts.hits_taken++;
   pl_inv = 60u;
   pl_state = PS_HURT;
@@ -145,17 +154,19 @@ static void collect(void) {
 
 /* a push request from the mover: CRTs go sideways only (the solver's rules), into an empty cell */
 static void do_push(void) {
-  uint8_t c = (uint8_t)(pmv.req_cy * EG_W + pmv.req_cx), beyond;
-  if (pmv.req_dir != EG_DP_LEFT && pmv.req_dir != EG_DP_RIGHT) return;
-  if (cell_type(c) != T_ROCK || (room.c[c] & F_FALL)) return;
-  beyond = (uint8_t)(pmv.req_dir == EG_DP_RIGHT ? c + 1u : c - 1u);
-  if (enemy_in_cell(beyond) || !eg_push(&room, c, beyond)) { /* B1: the shared rule (plates, pits, glass too) */
+  uint8_t c = (uint8_t)(pmv.req_cy * EG_W + pmv.req_cx), beyond, crate = EG_CRATE(room.c[c]);
+  if (!crate && pmv.req_dir != EG_DP_LEFT && pmv.req_dir != EG_DP_RIGHT) return;
+  if (!crate && (cell_type(c) != T_ROCK || (room.c[c] & F_FALL))) return;
+  beyond = (uint8_t)(c + (pmv.req_dir == EG_DP_RIGHT ? 1 : pmv.req_dir == EG_DP_LEFT ? -1 :
+                         pmv.req_dir == EG_DP_DOWN ? 16 : -16));
+  if (enemy_in_cell(beyond) || (crate ? !eg_push_block(&room, c, beyond) : !eg_push(&room, c, beyond))) {
     sfx(SFX_DENY);
     return;
   }
   puzzle_dirty = 1u; /* B1: a push can seal a room */
   queue_cell(c);
   queue_cell(beyond);
+  if (crate && cell_type(beyond) == T_PIT) obstacle_noise(beyond);
   sfx(SFX_PUSH);
   if (acts.pushes != 255u) acts.pushes++;
   grav_t = 1u; /* let it drop promptly if nothing holds it */
@@ -218,9 +229,18 @@ static void deflect(orb_t *o, uint8_t perfect) {
 }
 
 /* the lead's reach: a box toward the 8-way facing; the spin's: around the player */
+/* B2: what the next enemy_hit came from (src/mob.h hit_src) */
+static void hit_from_move(uint8_t spin) {
+  static const uint8_t src[EG_MV_COUNT] = {HS_FUSE, HS_FUSE, HS_FUSE, HS_FUSE, HS_LUNGE, HS_HIT1,
+                                           HS_HIT2, HS_HIT3, HS_CHARGED, HS_CHARGED, HS_PARRY};
+  hit_src = spin && pin.move == EG_MV_CHARGED ? HS_SPIN : src[pin.move];
+  hit_tags = 0;
+}
+
 static void strike(uint8_t spin, uint8_t dmg) {
   uint8_t cx, cy, rx, ry, k, reach = (mods & MOD_LONG) ? 18u : 14u;
   int8_t ix = f8x[pmv.facing], iy = f8y[pmv.facing];
+  hit_from_move(spin); /* B2 */
   if (spin) {
     cx = pl_x;
     cy = pl_y;
@@ -236,6 +256,7 @@ static void strike(uint8_t spin, uint8_t dmg) {
     rx = ix ? (uint8_t)(reach - 1u) : 14u;
     ry = ix ? 14u : (uint8_t)(reach - 1u);
   }
+  obstacle_hit(cx, cy, rx, ry);
   for (k = 0; k != nen; k++) {
     uint8_t r2 = en[k].kind == SPAWN_BOSS ? 14u : 0u;
     if (en[k].st == ES_DEAD || (hit_mask & (uint8_t)(1u << k))) continue;
@@ -265,6 +286,8 @@ static void guard(void) {
   }
   if (perfect && pin.frame == 2u) {
     hit_mask = 0;
+    hit_src = HS_PARRY; /* B2 */
+    hit_tags = 0;
     for (k = 0; k != nen; k++)
       if (en[k].st != ES_DEAD && en[k].kind != SPAWN_BOSS &&
           overlap(pl_x, pl_y, (uint8_t)(en[k].x >> 4), (uint8_t)(en[k].y >> 4), 18u, 18u))
@@ -395,6 +418,11 @@ static void walk(uint8_t speed, uint8_t anim) {
 
 void player_floor_start(void) BANKED {
   grid_map(); /* here, not on the first step: 256 entries cost most of a frame */
+  pg.cells = room.c;
+  pg.w = EG_W;
+  pg.h = EG_H;
+  pg.wshift = 4u;
+  pg.map = pmap;
   eg_input_init(&pin, heir.dodge);
   eg_move_init(&pmv, (int16_t)psx - 96, (int16_t)psy - 96, EG_MODE_8WAY);
   pl_face = F_DOWN;
@@ -411,6 +439,7 @@ void player_floor_start(void) BANKED {
 
 void player_update(void) BANKED {
   uint8_t st, mv, prev = pin.move, ph, dmg;
+  eg_frames_t fd;
   if (pl_inv) pl_inv--;
   if (fight_t) fight_t--;
   if (ov_t) ov_t--;
@@ -497,13 +526,14 @@ void player_update(void) BANKED {
     case EG_MV_HIT2:
     case EG_MV_HIT3:
       pl_state = PS_LASH;
+      eg_input_fd_get(mv, &fd);
       if (pin.frame == 2u) mstep(f8dp[pmv.facing], 24u, 1); /* step into it */
       if (ph == EG_PH_ACTIVE) {
         dmg = mv == EG_MV_HIT3 ? ((mods & MOD_SURGE) ? 3u : 2u) : 1u;
         strike(0, dmg);
-        if (pin.frame == eg_input_fd[mv].startup) break_brick(front_cell(), (uint8_t)(mv == EG_MV_HIT3));
+        if (pin.frame == fd.startup) break_brick(front_cell(), (uint8_t)(mv == EG_MV_HIT3));
       }
-      if (pin.frame >= 2u && pin.frame < (uint8_t)(eg_input_fd[mv].startup + eg_input_fd[mv].active + 3u)) pl_arc = 1;
+      if (pin.frame >= 2u && pin.frame < (uint8_t)(fd.startup + fd.active + 3u)) pl_arc = 1;
       break;
     case EG_MV_CHARGED:
       if (pl_level >= 2u) {

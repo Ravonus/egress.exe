@@ -3,7 +3,7 @@
 #include <gb/gb.h>
 #include <stdint.h>
 
-#define RUN_FLOORS 10u /* nine generated floors, then the Watchman */
+#define RUN_FLOORS 10u /* office stage deck, LAST FAX at 5, THE TENANT at 10 */
 
 void run_begin(void) BANKED;      /* a new run: mods, factions, the truth matrix seeded from the saved trace */
 void run_floor_done(void) BANKED; /* the floor's acts move factions and the matrix; unlocks */

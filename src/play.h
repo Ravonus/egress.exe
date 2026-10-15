@@ -45,7 +45,7 @@ extern orb_t orbs[MAXO];
 extern puff_t puffs[MAXP];
 extern uint8_t meta_tile[M_COUNT][4], meta_pal[M_COUNT];
 extern uint16_t people[ART_SKINS + ART_HAIRS + ART_HOODIES + ART_TROUSERS];
-extern const int8_t fdx[4], fdy[4];
+extern const int8_t fdx[4], fdy[4]; /* main.c: bank 0 */
 
 /* what the player did on this floor (the matrix reads it when the floor ends) */
 typedef struct {
@@ -83,10 +83,10 @@ uint8_t eye_free(uint8_t x, uint8_t y) NONBANKED;
 uint8_t absdiff(uint8_t a, uint8_t b) NONBANKED;
 uint8_t overlap(uint8_t ax, uint8_t ay, uint8_t bx, uint8_t by, uint8_t rx, uint8_t ry) NONBANKED;
 void queue_cell(uint8_t i) NONBANKED;
-void flush_cells(uint8_t max) NONBANKED;
-void draw_cell(uint8_t i) NONBANKED;
-void cells_reset(void) NONBANKED;
-void puff(uint8_t x, uint8_t y, uint8_t pal, uint8_t tile) NONBANKED;
+void flush_cells(uint8_t max) BANKED;
+void draw_cell(uint8_t i) BANKED;
+void cells_reset(void) BANKED;
+void puff(uint8_t x, uint8_t y, uint8_t pal, uint8_t tile) BANKED;
 uint8_t enemy_in_cell(uint8_t c) NONBANKED;
 
 /* --- player.c --- */
@@ -104,12 +104,12 @@ void fire_orb_at(uint8_t ex, uint8_t ey, int16_t dx, int16_t dy, uint8_t speed) 
 /* --- sprites.c --- */
 void draw_sprites(void) BANKED;
 void sprites_reset(void) BANKED;
-/* --- hud.c (bank 0: hud_msg takes strings from any bank) --- */
-void hud_draw(void) NONBANKED;
-void hud_charge(void) NONBANKED;
+/* --- hud.c (banked; hud_msg's bank-0 front copies a string from any bank) --- */
+void hud_draw(void) BANKED;
+void hud_charge(void) BANKED;
 void hud_msg(const char *s) NONBANKED;
-void hud_tick(void) NONBANKED;
-void hud_init(void) NONBANKED; /* a floor's HUD, no toast: the window at 128 */
+void hud_tick(void) BANKED;
+void hud_init(void) BANKED; /* a floor's HUD, no toast: the window at 128 */
 /* --- boss.c --- */
 void boss_build(void) BANKED;
 void boss_update(uint8_t k) BANKED;

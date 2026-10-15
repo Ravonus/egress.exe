@@ -683,8 +683,8 @@ void title3d_main(void) BANKED {
   press_show(0);
   BCPS_REG = 0x80u;
   for (i = 0; i != 64u; i++) BCPD_REG = 0;
-  LCDC_REG = (uint8_t)((LCDC_REG & (uint8_t)~(LCDCF_BG8000 | LCDCF_BG9C00 | LCDCF_WINON | LCDCF_WIN9C00 | LCDCF_OBJON)) |
-                       (lcdc0 & (uint8_t)(LCDCF_BG8000 | LCDCF_BG9C00 | LCDCF_WINON | LCDCF_WIN9C00 | LCDCF_OBJON)));
+  LCDC_REG = (uint8_t)((LCDC_REG & (uint8_t)~(LCDCF_BG8000 | LCDCF_BG9C00 | LCDCF_WINON | LCDCF_WIN9C00 | LCDCF_OBJON | LCDCF_OBJ16)) |
+                       (lcdc0 & (uint8_t)(LCDCF_BG8000 | LCDCF_BG9C00 | LCDCF_WINON | LCDCF_WIN9C00 | LCDCF_OBJON | LCDCF_OBJ16)));
   SCY_REG = 0;
   WY_REG = 144u;
   VBK_REG = 0;

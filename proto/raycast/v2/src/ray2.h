@@ -3,6 +3,7 @@
 #ifndef RAY2_H
 #define RAY2_H
 #include <stdint.h>
+#include "tex_ids.h" /* generated per build (FLAT, set ids) */
 
 #ifndef VIEW_W
 #define VIEW_W 96
@@ -76,6 +77,19 @@ extern const uint8_t T_RT[64 * 64]; /* mid-ray weight 256 h1 / (h0 + h1) at quan
 extern const uint8_t T_HIX[256];    /* height -> T_RT index (fine at small heights) */
 #endif
 
+#ifdef FLAT
+/* banded floors: per-row baked pattern rows (set x forward phase), one set per distance band */
+extern uint8_t f_ph, f_bset[];
+extern uint16_t f_pos;
+#ifdef __SDCC
+#define f_img ((uint8_t *)0xCB80u) /* bank 0, 128-byte aligned: the asm steps it with inc e */
+#else
+extern uint8_t f_img[VIEW_H * 2];
+extern const uint8_t T_FLATPAT[];
+#endif
+void flat_bands(void);
+void flat_move(int16_t dx, int16_t dy);
+#endif
 void cast_all(void);
 void walls_all(uint8_t *buf);
 void floors_all(uint8_t *buf);

@@ -5,6 +5,7 @@
 #include <gb/cgb.h>
 #include <string.h>
 #include "look.h"
+#include "oam.h"
 
 uint8_t look_present[EG_N / 8u];
 uint8_t look_busy_n;
@@ -226,29 +227,33 @@ static void draw(uint8_t i) {
   draw_cell(i);
   budget--;
 }
-/* a cell came or went: it and the void under it (which shows an underside only below ground) */
+static void mark(uint8_t i);
+static void mark_void(uint8_t n) {
+  if (!look_here(n) || look_void_cell(n)) mark(n);
+}
+/* a cell came or went: it and the void under it (which shows an underside only below ground) now; the void beside
+ * it and diagonally under it (B2: side faces, the lip's corners) with what is left of a frame's writes */
 static void settle(uint8_t i) {
-  uint8_t b;
+  uint8_t b, x = EG_X(i);
   draw(i);
+  if (x) mark_void((uint8_t)(i - 1u));
+  if (x != EG_W - 1u) mark_void((uint8_t)(i + 1u));
   if (EG_Y(i) < EG_H - 1u) {
     b = (uint8_t)(i + EG_W);
     if (!look_here(b) || look_void_cell(b)) draw(b);
+    if (x) mark_void((uint8_t)(b - 1u));
+    if (x != EG_W - 1u) mark_void((uint8_t)(b + 1u));
   }
 }
 
 static void sprite_pair(uint8_t k, int16_t wx, int16_t wy, uint8_t tile, uint8_t prop, uint8_t spread) {
   uint8_t a = (uint8_t)(LOOK_OAM_TOP - (k << 1)), b = (uint8_t)(a - 1u);
   int16_t sx = wx - (int16_t)cam_x + 8, sy = wy - (int16_t)cam_y + 16;
-  if (sy <= 0 || sy >= 160 || sx <= -16 || sx >= 176) {
+  if ((uint16_t)(sy - 1) >= 159u || (uint16_t)(sx + 15) >= 191u) {
     hide_card(k);
     return;
   }
-  set_sprite_tile(a, tile);
-  set_sprite_tile(b, (uint8_t)(tile + 2u));
-  set_sprite_prop(a, prop);
-  set_sprite_prop(b, prop);
-  move_sprite(a, (uint8_t)(sx - spread), (uint8_t)sy);
-  move_sprite(b, (uint8_t)(sx + 8 + spread), (uint8_t)sy);
+  oam_card_pair(a, b, (uint8_t)(sx - spread), (uint8_t)(sx + 8 + spread), (uint8_t)sy, tile, prop);
 }
 
 static uint8_t is_wallish(uint8_t m) {
@@ -342,13 +347,11 @@ static const int8_t wobble[8] = {1, -1, 1, -1, 1, 0, -1, 0};
 
 static void spr1(uint8_t a, int16_t wx, int16_t wy, uint8_t tile, uint8_t prop) {
   int16_t sx = wx - (int16_t)cam_x + 8, sy = wy - (int16_t)cam_y + 16;
-  if (sy <= 0 || sy >= 160 || sx <= 0 || sx >= 168) {
+  if ((uint16_t)(sy - 1) >= 159u || (uint16_t)(sx - 1) >= 167u) {
     move_sprite(a, 0, 0);
     return;
   }
-  set_sprite_tile(a, tile);
-  set_sprite_prop(a, prop);
-  move_sprite(a, (uint8_t)sx, (uint8_t)sy);
+  oam_card_pair(a, a, (uint8_t)sx, 0u, (uint8_t)sy, tile, prop);
 }
 
 static void step_break(uint8_t k, int16_t wx, int16_t wy, uint8_t tile) {
@@ -583,7 +586,7 @@ void look_tick(void) BANKED {
     obj_mode = obj_want = 0;
   }
   ambient();
-  budget = LOOK_COMMITS_PER_FRAME;
+  budget = game_mode == MODE_PLAY ? 2u : LOOK_COMMITS_PER_FRAME;
   if (look_dbg_kind) { /* the harness: 0x80 applies a poked skin, else a break of that kind */
     if (look_dbg_kind == 0x80u) look_skin_set(look_dbg_cell, (uint8_t)(look_skin[look_dbg_cell] - 1u));
     else look_break_tile(look_dbg_cell, look_dbg_kind);

@@ -53,14 +53,19 @@ enum {
   T_GLASS = 28,  /* glass over the void, 1 step: see-through */
   T_ICE = 29,    /* thin ice (COLD froze a flood), 2 steps; HOT thaws the connected ice back to water */
   T_ICE_1 = 30,
-  T_TYPES = 31
+  T_PARTITION = 31, /* B2: an office glass partition: solid; only a heavy obstacle breaks it, walking in (eg_obst.h) */
+  T_TYPES = 32
 };
 #define T_MASK 0x1fu
 #define F_FALL 0x80u  /* the CRT moved down or rolled on the last step */
 #define F_MOVED 0x40u /* scratch inside eg_gravity */
 #define F_PLATE 0x20u /* on a CRT: it rests on a pressure plate (the plate comes back when it leaves) */
+#define F_OB 0x80u    /* B2, on any cell but a CRT: a living obstacle stands here (src/core/eg_obst.h). Solid to the
+                         player, crates and other obstacles; masked off wherever the cell's type is read */
 
 #define EG_MAX_SPAWN 6u
+#define EG_MAX_OB 3u   /* B2: living obstacles per room (7.7: at most 3 slots, at most 2 free movers) */
+#define EG_MAX_RUN 8u  /* B2: route runs per room (one patroller loop) */
 #define EG_MAX_ITEM 6u /* = the pocket's size, so the pocket can never be full while an item lies in the room */
 #ifdef __SDCC
 #include <gb/gb.h>
@@ -88,6 +93,12 @@ typedef struct {
   /* protected cells (bit per cell): the landing, the door threshold, both sides of every lock opening, the trick's
    * apparatus, every piece and keycard. Never fragile, never broken by anything but the player's own plan. */
   uint8_t prot[EG_N / 8u];
+  /* B2 living obstacles (docs/redesign.md 7.7, src/core/eg_obst.h): the baked records (4 bytes each) and the room's
+   * route table (one byte per run: direction 2 bits | length 6 bits). Appended: the B1 layout above is unchanged. */
+  uint8_t nob;
+  uint8_t ob[EG_MAX_OB][4];
+  uint8_t nrun;
+  uint8_t run[EG_MAX_RUN];
 } eg_room;
 #define EG_PROT(r, i) ((r)->prot[(uint8_t)(i) >> 3] & (uint8_t)(1u << ((i) & 7u)))
 
@@ -97,12 +108,21 @@ enum { TRICK_BURN = 0, TRICK_COLD = 1, TRICK_SHORT = 2, TRICK_WEIGHT = 3, /* the
                             crossing, and the keycard lies behind you: take what you need before you cross */
        TRICK_RHYTHM = 5, /* glitched glass: the top lock is a band of void with a glitched-glass bridge, floor only
                             on the beat: cross on the beat (at most EG_GLITCH_RUN cells in one beat) */
-       TRICK_COUNT = 6 };
+       /* B2 living obstacles (src/core/eg_ogen.c): rush hour, steer the heavy, the mirror, the stare */
+       TRICK_RUSH = 6, TRICK_STEER = 7, TRICK_MIRROR = 8, TRICK_STARE = 9,
+       TRICK_COUNT = 10 };
+#define TRICK_OBSTACLE(t) ((t) >= TRICK_RUSH)
 #define EG_GLITCH_RUN 3u /* the longest glitched-glass run a room may hold: crossed inside one on-beat */
 
 /* Generation. Deterministic in (seed, tier); returns 0 when the layout failed its own checks (the caller reseeds).
  * Solvability is not checked here: the host solver accepts seeds and the cartridge plays only accepted seeds. */
 uint8_t eg_generate(eg_room *r, uint16_t seed, uint8_t tier) EG_BANKED;
+/* B2 part B: one wall structure (ST_*) in rows y0..y1, placed on carpet that isn't protected and never cutting the
+ * rows in two; 1 when placed. The generator's own building block (eg_gen.c, eg_ogen.c). */
+enum { ST_LINE = 0, ST_L, ST_U, ST_RING, ST_COUNTER, ST_KINDS };
+uint8_t eg_structure(eg_room *r, uint8_t y0, uint8_t y1, uint8_t kind) EG_BANKED;
+/* B2: the obstacle rooms (eg_ogen.c), once eg_generate has dealt an obstacle trick */
+uint8_t eg_gen_obstacles(eg_room *r, uint8_t tier) EG_BANKED;
 
 /* One gravity step. occ[0..nocc) are cells the player's body covers: a resting CRT does not move into them, a
  * falling one stops and reports a hit. Returns EG_G_* flags. Cells that changed are listed in eg_dirty. */
@@ -110,7 +130,9 @@ uint8_t eg_generate(eg_room *r, uint16_t seed, uint8_t tier) EG_BANKED;
 #define EG_G_HIT 2u
 #define EG_G_FALLING 4u /* some CRT is still falling or rolling */
 #define EG_G_BROKE 8u   /* a falling CRT broke through fragile floor (run eg_dead) */
-uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc);
+uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) EG_BANKED;
+/* Plate/shutter resolution without advancing the CRT clock (obstacle ticks). */
+uint8_t eg_shutters(eg_room *r, const uint8_t *occ, uint8_t nocc) EG_BANKED;
 /* The cartridge runs eg_gravity's shutter pass (plates -> gates) only when a plate's load may have changed: set by
  * room generation, any eg_apply (a brick), and a CRT coming onto or off a plate (eg_push, falls, rolls, breaks); kept
  * set while a shutter waits for the player to leave its cell. The host always runs the pass. */
@@ -122,8 +144,8 @@ extern uint8_t eg_ndirty; /* > EG_DIRTY_MAX: overflowed, redraw everything */
 
 /* xorshift16, the game's own stream */
 extern uint16_t eg_rs;
-uint8_t eg_rnd(void);
-uint8_t eg_rndn(uint8_t n); /* 0..n-1 */
+uint8_t eg_rnd(void) EG_BANKED;
+uint8_t eg_rndn(uint8_t n) EG_BANKED; /* 0..n-1 */
 
 /* Cell kinds a body may stand in */
 #define EG_PASSABLE(t)                                                                                              \
@@ -137,13 +159,18 @@ uint8_t eg_rndn(uint8_t n); /* 0..n-1 */
 
 /* Push the resting CRT at `rock` into `to` (a neighbour): into open floor or a pit (which it fills). Returns 0 if
  * `to` can't take it. */
-uint8_t eg_push(eg_room *r, uint8_t rock, uint8_t to);
+uint8_t eg_push(eg_room *r, uint8_t rock, uint8_t to) EG_BANKED;
+/* B2: push the crate (a laid brick: T_BLOCK, or T_BLOCK_PLATE on a plate) at `from` into the neighbour `to`, Sokoban
+ * rules, by the player, a pusher or a mirror: onto carpet or a plate (T_BLOCK_PLATE: it weighs the plate); onto floor
+ * glass or a ceiling tile it smashes through (a pit, the crate gone). Anything else, a pit included, refuses (0). */
+#define EG_CRATE(v) ((v) == T_BLOCK || (v) == T_BLOCK_PLATE)
+uint8_t eg_push_block(eg_room *r, uint8_t from, uint8_t to) EG_BANKED;
 /* The player stepped off `cell`: rotten carpet gives way. Returns 1 if a pit opened. */
-uint8_t eg_leave(eg_room *r, uint8_t cell);
+uint8_t eg_leave(eg_room *r, uint8_t cell) EG_BANKED;
 /* how many shutters / plates the room has (the generator places at most a few) */
-uint8_t eg_count(const eg_room *r, uint8_t type);
+uint8_t eg_count(const eg_room *r, uint8_t type) EG_BANKED;
 /* the piece lying at `cell` (0 if none) */
-uint8_t eg_item_at(const eg_room *r, uint8_t cell);
+uint8_t eg_item_at(const eg_room *r, uint8_t cell) EG_BANKED;
 
 /* --- fragile floor (docs/redesign.md 3.4): a data-driven family. Each kind: its first cell id (stage 0), steps to
  * break (0: steps don't wear it), a reset mode, what may break it, and look flags. The crack stage lives in the cell
@@ -163,14 +190,15 @@ enum { FR_NONE = 0, FR_TIMED, FR_ROOM }; /* reset: never, after `reset_ticks` x 
 typedef struct {
   uint8_t base, steps, reset, reset_ticks, breakby, flags;
 } eg_frag_kind;
-extern const eg_frag_kind eg_frag[FK_COUNT];
-uint8_t eg_frag_kind_of(uint8_t type); /* FK_* or FK_NONE */
+extern const eg_frag_kind eg_frag[FK_COUNT]; /* banked on the cartridge: read it there through eg_frag_ticks */
+uint8_t eg_frag_ticks(uint8_t k) EG_BANKED;   /* a timed kind's reset in 8-frame ticks, else 0 */
+uint8_t eg_frag_kind_of(uint8_t type) EG_BANKED; /* FK_* or FK_NONE */
 /* A body of kind `who` (BB_*) stepped off `cell`, `weight` steps' worth (a player 1, HEAVY 2; a blink calls
  * nothing). Returns 1 when the cell broke (it is a pit now). eg_leave is this for the player. */
-uint8_t eg_step_off(eg_room *r, uint8_t cell, uint8_t who, uint8_t weight);
+uint8_t eg_step_off(eg_room *r, uint8_t cell, uint8_t who, uint8_t weight) EG_BANKED;
 /* Anything else breaking a fragile cell outright (a mob, a falling CRT, the boss): refused on protected cells and
  * for kinds `who` can't break. Returns 1 when it broke. The B2 mob interface. */
-uint8_t eg_frag_hit(eg_room *r, uint8_t cell, uint8_t who);
+uint8_t eg_frag_hit(eg_room *r, uint8_t cell, uint8_t who) EG_BANKED;
 /* the glitch beat: 128-frame period, floor for the first EG_BEAT_ON frames of it */
 #define EG_BEAT_LEN 128u
 #define EG_BEAT_ON 80u
@@ -184,11 +212,11 @@ uint8_t eg_frag_hit(eg_room *r, uint8_t cell, uint8_t who);
 #define EG_DEAD_DOOR 1u
 #define EG_DEAD_KEY 2u
 #define EG_DEAD_ITEM 3u
-uint8_t eg_dead(const eg_room *r, uint8_t from, const uint8_t *pocket, uint8_t npocket);
+uint8_t eg_dead(const eg_room *r, uint8_t from, const uint8_t *pocket, uint8_t npocket) EG_BANKED;
 /* the same check in slices: begin, then step with a budget (queue pops / key-scan chunks) until it stops returning
  * EG_DEAD_BUSY. One check at a time (static state); the cartridge restarts it whenever the room changes again. */
 #define EG_DEAD_BUSY 255u
-void eg_dead_begin(uint8_t from);
-uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, uint8_t budget);
+void eg_dead_begin(uint8_t from) EG_BANKED;
+uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, uint8_t budget) EG_BANKED;
 
 #endif

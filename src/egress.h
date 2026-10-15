@@ -15,7 +15,7 @@ extern uint16_t run_seed;
 extern uint8_t floor_no; /* 1-based */
 extern uint16_t floor_seed;
 extern uint8_t floor_tier;
-extern eg_room room;
+extern eg_room __at(0xD800) room;
 extern uint16_t frame_count;
 
 /* input, read once per frame */
@@ -50,6 +50,9 @@ enum {
   SFX_ROLL, SFX_CHARGED, SFX_SPIN, SFX_BREAK, SFX_THUD, SFX_PUSH, SFX_TELL, SFX_SHOT,
   SFX_KILL, SFX_DENY, SFX_EXIT,
   SFX_TEAR, SFX_CRUNCH, SFX_SHATTER, SFX_ZAP, /* fragile floors breaking (src/look.c look_break_tile) */
+  /* B2 bosses (src/boss_*.c): each tell has its own sound */
+  SFX_B_RISE, SFX_B_WHOOSH, SFX_B_BEAM, SFX_B_RUMBLE, SFX_B_ROAR, SFX_B_CLINK, SFX_B_RAM, SFX_B_JAM, SFX_B_DOWN,
+  /* end B2 bosses */
   SFX_COUNT
 };
 enum { SONG_NONE = 0, SONG_LOBBY = 1, SONG_FLOOR = 2, SONG_BOSS = 3 };

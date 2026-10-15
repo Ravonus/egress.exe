@@ -612,6 +612,9 @@ void main(void) {
   LCDC_REG = (uint8_t)((LCDC_REG | LCDCF_BG8000 | LCDCF_BGON) & (uint8_t)~LCDCF_BG9C00);
 #endif
   front = 0;
+#ifdef FLAT
+  *(volatile uint8_t *)0xCB60u = 0xFFu; /* the floor row image key: build it on the first view */
+#endif
   disable_interrupts();
 #if FS
   LYC_REG = 1u;
@@ -638,6 +641,15 @@ void main(void) {
     dt = (uint8_t)((v - lastv) > 8u ? 8u : (v - lastv));
     lastv = v;
     scene_update(dt);
+#ifdef FLAT
+    { /* banded floors: forward motion scrolls the bands (a jump of a cell or more, a teleport, does not) */
+      static uint16_t fpx, fpy;
+      int16_t dx = (int16_t)(cam_x - fpx), dy = (int16_t)(cam_y - fpy);
+      fpx = cam_x;
+      fpy = cam_y;
+      if ((dx | dy) && (uint16_t)(dx + 255) < 511u && (uint16_t)(dy + 255) < 511u) flat_move(dx, dy);
+    }
+#endif
     t1 = now();
 #if FS && !defined(NOSKIP)
     /* skip redraw: the rays are kept while the camera and map are unchanged, and this view's buffer (and the VRAM

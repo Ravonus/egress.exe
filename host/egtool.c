@@ -3,20 +3,26 @@
  *   egtool solve SEED TIER       the solver's plan (one line of moves), stats on stderr
  *   egtool dump SEED TIER        the room's 224 cells as hex, then start door keys tokens spawns items trick
  *                                (compared against the cartridge by the harness)
+ *   egtool accept SEED TIER      validate one curriculum candidate; print its bake record on success
  *   egtool tier TIER COUNT [FIRST STRIDE]  the first COUNT seeds the tier accepts, trying FIRST, FIRST+STRIDE, ...
  *                                (stdout is flushed per seed)
- *   egtool survey TIER COUNT     one line per seed: trick, solve stats, difficulty, checks, accepted */
+ *   egtool survey TIER COUNT     one line per seed: trick, solve stats, difficulty, checks, accepted
+ *   egtool walls < "SEED TIER" lines   the wall-structure metric (host/eg_walls.c) per room, then the totals */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "eg_solve.h"
+#include "eg_walls.h"
+#include "../src/core/eg_obst.h"
 
 #define TIERS 6
+#ifndef BUDGET
 #define BUDGET 30000
+#endif
 
 static char glyph(uint8_t v) {
-  static const char g[T_TYPES + 1] = ".:#=O$kD~_pGgw%Ph*SsXBbWVUEF|IJ";
+  static const char g[T_TYPES + 1] = ".:#=O$kD~_pGgw%Ph*SsXBbWVUEF|IJY";
   uint8_t t = v & T_MASK;
   return t < T_TYPES ? g[t] : '?';
 }
@@ -28,6 +34,8 @@ static void show(const eg_room *r) {
       char ch = glyph(r->c[i]);
       if ((r->c[i] & T_MASK) == T_ITEM) ch = (char)('a' + eg_item_at(r, (uint8_t)i) - 1);
       if (i == r->start) ch = '@';
+      for (int k = 0; k < r->nob; k++)
+        if (r->ob[k][1] == i) ch = (char)('1' + k); /* B2: obstacle slots */
       putchar(ch);
     }
     putchar('\n');
@@ -40,6 +48,8 @@ static const int diff_hi[TIERS] = {110, 150, 200, 220, 240, 260};
 
 static int checks(int tier, const eg_room *r, const eg_stats *st, const char **why) {
   int d = eg_difficulty(r, st);
+  if (r->nob && (!st->ob_start_live || !st->ob_idle_ok || st->ob_idle_hits || !st->ob_plan_ok || st->ob_hits))
+    return *why = "obstacle-fairness", 0;
   if (st->steps > 320) return *why = "long", 0;
   if (eg_trivial(r)) return *why = "trivial", 0;
   if (!eg_trick_needed(r)) return *why = "trick-skippable", 0;
@@ -68,7 +78,8 @@ int main(int argc, char **argv) {
   static char moves[8192];
   eg_room r;
   eg_stats st;
-  if (argc >= 4 && (!strcmp(argv[1], "show") || !strcmp(argv[1], "solve") || !strcmp(argv[1], "dump"))) {
+  if (argc >= 4 && (!strcmp(argv[1], "show") || !strcmp(argv[1], "solve") || !strcmp(argv[1], "dump") ||
+                    !strcmp(argv[1], "accept"))) {
     unsigned seed = (unsigned)strtoul(argv[2], NULL, 0);
     int tier = atoi(argv[3]);
     if (!eg_generate(&r, (uint16_t)seed, (uint8_t)tier)) {
@@ -83,6 +94,16 @@ int main(int argc, char **argv) {
              eg_trick_needed(&r), eg_room_mech(&r));
       piece_list(&r, stdout);
       printf("\n");
+      for (int k = 0; k < r.nob; k++) /* B2: the obstacle records and the route */
+        printf("obstacle %d: rule %d %s%s%s dir %d variant %d arg %d%s\n", k + 1, OBA_RULE(r.ob[k][0]),
+               (r.ob[k][0] & OBA_P2) ? "period 2" : "period 1", (r.ob[k][3] & OBP_PHASE) ? " (odd)" : "",
+               (r.ob[k][0] & OBA_LEFT) ? " left-handed" : "", OBB_DIR(r.ob[k][2]), OBB_VAR(r.ob[k][2]),
+               OBP_ARG(r.ob[k][3]), (r.ob[k][2] & OBB_ASLEEP) ? " asleep" : "");
+      if (r.nrun) {
+        printf("route:");
+        for (int k = 0; k < r.nrun; k++) printf(" %c%d", "NESW"[r.run[k] >> 6], r.run[k] & 63);
+        printf("\n");
+      }
       return 0;
     }
     if (!strcmp(argv[1], "dump")) {
@@ -102,6 +123,17 @@ int main(int argc, char **argv) {
             st.branching100 / 100.0, eg_difficulty(&r, &st), eg_trick_name[r.trick], st.states, st.dead,
             st.fatal_depth);
     if (!ok) return 1;
+    if (!strcmp(argv[1], "accept")) {
+      const char *why;
+      if (!checks(tier, &r, &st, &why)) {
+        fprintf(stderr, "rejected: %s\n", why);
+        return 1;
+      }
+      printf("%u %d 0x%03x %d %d %d %d %d %d\n", seed, r.trick, eg_room_mech(&r), eg_difficulty(&r, &st),
+             st.states ? st.dead * 100 / st.states : 0, st.fatal_depth, eg_insights(&r), st.steps,
+             st.branching100);
+      return 0;
+    }
     printf("%s\n", moves);
     return 0;
   }
@@ -118,6 +150,8 @@ int main(int argc, char **argv) {
         if (survey) printf("%u genfail\n", seed);
         continue;
       }
+      /* Reject structurally irrelevant rooms before exploring millions of tick states. */
+      if (!survey && (eg_trivial(&r) || !eg_trick_needed(&r))) { rejected++; continue; }
       if (eg_sealed(&r) || !eg_solve(&r, BUDGET, moves, sizeof moves, &st)) {
         unsolved++;
         if (survey) printf("%u %s unsolved nodes %d\n", seed, eg_trick_name[r.trick], st.nodes);
@@ -152,6 +186,26 @@ int main(int argc, char **argv) {
             tier, got, tried, gen_fail, unsolved, rejected, got ? steps / got : 0, got ? diff / got : 0, by_trick[0],
             by_trick[1], by_trick[2], by_trick[3], by_trick[4], by_trick[5]);
     return (!survey && got < per) ? 3 : 0;
+  }
+  if (argc >= 2 && !strcmp(argv[1], "walls")) { /* B2 part B: connected wall components, singleton share */
+    unsigned seed;
+    int tier, rooms = 0;
+    long cells = 0, comps = 0, single = 0, sfloat = 0, small = 0, anch = 0;
+    while (scanf("%u %d", &seed, &tier) == 2) {
+      eg_wall_stats w;
+      if (!eg_generate(&r, (uint16_t)seed, (uint8_t)tier)) continue;
+      eg_walls(&r, &w);
+      printf("%u %d cells %d comps %d single %d float %d small %d anchored %d\n", seed, tier, w.cells, w.comps,
+             w.single, w.single_float, w.small, w.anchored);
+      rooms++, cells += w.cells, comps += w.comps, single += w.single, sfloat += w.single_float, small += w.small;
+      anch += w.anchored;
+    }
+    printf("rooms %d wall-cells/room %.1f components/room %.2f cells/component %.2f singleton-share %.1f%% "
+           "floating-singleton-share %.1f%% small(<=2)-share %.1f%% anchored-share %.1f%%\n",
+           rooms, rooms ? (double)cells / rooms : 0, rooms ? (double)comps / rooms : 0,
+           comps ? (double)cells / comps : 0, comps ? 100.0 * single / comps : 0, comps ? 100.0 * sfloat / comps : 0,
+           comps ? 100.0 * small / comps : 0, comps ? 100.0 * anch / comps : 0);
+    return 0;
   }
   fprintf(stderr, "usage: egtool show|solve|dump SEED TIER | tier TIER COUNT | survey TIER COUNT\n");
   return 2;

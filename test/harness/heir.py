@@ -84,6 +84,29 @@ def check_roll(rom: Path, report: dict) -> bool:
     return not bad
 
 
+def check_sprite_mode(rom: Path, report: dict) -> bool:
+    """The title's 8x8 prompt must not halve the floor's layered 8x16 bodies.
+
+    Exercise the real boot/title handoff, then all states and facings. Tile data
+    alone cannot catch this: both halves were present in VRAM when the bug hid
+    the lower half of every OBJ on the actual screen.
+    """
+    bad, samples = [], 0
+    for seed in PLAY_HEIRS:
+        g = boot_heir(rom, seed)
+        for name, state in ha_states().items():
+            for direction in range(8):
+                g.poke("dbg_heir_state", state + 1)
+                g.poke("dbg_heir_dir", direction)
+                g.tick(3)
+                samples += 1
+                if not g.pb.memory[0xFF40] & 0x04:
+                    bad.append({"seed": seed, "state": name, "dir": direction})
+        g.stop()
+    report["heir_sprite_mode"] = {"samples": samples, "missing_8x16": bad[:12]}
+    return not bad
+
+
 def pin_move(g: Game) -> int:
     return g.peek("pin", 2)
 
@@ -448,10 +471,27 @@ def play_png(rom: Path, out: Path, report: dict) -> bool:
 
 
 def run_all(rom: Path, out: Path, report: dict, shots: bool = True) -> dict:
-    res = {"heir_roll": check_roll(rom, report), "heir_moves": check_moves(rom, report),
+    res = {"heir_roll": check_roll(rom, report), "heir_sprite_mode": check_sprite_mode(rom, report),
+           "heir_moves": check_moves(rom, report),
            "heir_movement": check_movement(rom, report), "heir_idle": check_idle(rom, report),
            "heir_budget": check_budget(rom, out, report)}
     if shots:
         res["heir_states_gif"] = states_gif(rom, out, report)
         res["heir_play_png"] = play_png(rom, out, report)
     return res
+
+
+if __name__ == "__main__":
+    import argparse
+    import json
+
+    ap = argparse.ArgumentParser(description="Check character sprite mode after the real title handoff")
+    ap.add_argument("rom", nargs="+", type=Path)
+    args = ap.parse_args()
+    reports, passed = {}, True
+    for path in args.rom:
+        report = {}
+        passed = check_sprite_mode(path, report) and passed
+        reports[str(path)] = report
+    print(json.dumps(reports, indent=2))
+    sys.exit(0 if passed else 1)

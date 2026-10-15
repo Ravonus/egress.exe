@@ -1,8 +1,9 @@
-/* Bank 0: the floor's HUD in the window, in the HUD palette (LOOK_PAL_HUD: ink, pink, accent, white).
+/* The floor's HUD in the window, in the HUD palette (LOOK_PAL_HUD: ink, pink, accent, white).
  *   row top+0  the rim: the charge bar on the left, a white-over-pink rim line across the rest
  *   row top+1  hearts, tokens, keycards, the floor
  * A message is a toast above the HUD: the window rises 8 px (row 0 is the message, centred) for as long as it shows,
- * so the rim always separates it from the counters. Bank 0 so hud_msg can take a string from whichever bank calls.
+ * so the rim always separates it from the counters. Banked (B2: ROM0 is for interrupts and hot paths): only the
+ * VBlank copy and hud_msg's front stay in bank 0, the front copying the caller's string to WRAM before the switch.
  *
  * Every write goes to a shadow of the window's three rows. hud_tick hands the rows that changed to a VBlank handler,
  * which copies them into the window map and then moves the window if the toast opened or closed, so the rows and
@@ -13,6 +14,9 @@
 #include <gb/cgb.h>
 #include <string.h>
 #include "play.h"
+#include "stage.h" /* B2 */
+
+#pragma bank 255
 
 static uint8_t msg_t, top, shown_top = 0xffu, rows_dirty, vbl_on;
 static volatile uint8_t vbl_rows, vbl_move, vbl_top; /* for hud_vbl: rows to copy, the window's new place */
@@ -60,17 +64,19 @@ static void hud_num(uint8_t x, uint8_t y, uint8_t n, uint8_t digits) {
   rows_dirty |= (uint8_t)(1u << y);
 }
 
+static void draw_n(void);   /* near: the public hud_draw/hud_charge are banked calls */
+static void charge_n(void);
 static void hud_layout(uint8_t toast) {
   uint8_t i;
   top = toast;
   memset(sh, BT_FONT, sizeof sh); /* BT_FONT is the space */
   rows_dirty = 7u;
   for (i = 5u; i != 20u; i++) sh[top][i] = BT_RIM;
-  hud_charge();
-  hud_draw();
+  charge_n();
+  draw_n();
 }
 
-void hud_init(void) NONBANKED {
+void hud_init(void) BANKED {
   static const char order[] = BT_FONT_ORDER;
   uint8_t i, a[20];
   memset(glyph, BT_FONT, sizeof glyph);
@@ -101,7 +107,20 @@ void hud_init(void) NONBANKED {
   }
 }
 
+static char msg_buf[21];
+void hud_msg_w(void) BANKED;
+/* bank 0: the string may live in the caller's bank; a toast is at most 20 characters */
 void hud_msg(const char *s) NONBANKED {
+  uint8_t n = 0;
+  while (s[n] && n != 20u) {
+    msg_buf[n] = s[n];
+    n++;
+  }
+  msg_buf[n] = 0;
+  hud_msg_w();
+}
+void hud_msg_w(void) BANKED {
+  const char *s = msg_buf;
   uint8_t n = 0;
   while (s[n]) n++;
   if (!n) {
@@ -135,9 +154,9 @@ static void hud_vbl(void) NONBANKED {
   }
 }
 
-void hud_tick(void) NONBANKED {
+void hud_tick(void) BANKED {
   if (msg_t && !--msg_t) hud_layout(0);
-  if (hud_dirty) hud_draw();
+  if (hud_dirty) draw_n();
   if (!rows_dirty && top == shown_top) return;
   CRITICAL {
     vbl_rows |= rows_dirty;
@@ -150,7 +169,7 @@ void hud_tick(void) NONBANKED {
   shown_top = top;
 }
 
-void hud_draw(void) NONBANKED {
+static void draw_n(void) {
   uint8_t i, n = (uint8_t)(pl_hp_max >> 1), hp = pl_hp, y = (uint8_t)(top + 1u);
   uint8_t *d = sh[y];
   for (i = 0; i != n; i++, hp = hp > 2u ? (uint8_t)(hp - 2u) : 0u) /* two halves a heart */
@@ -159,6 +178,8 @@ void hud_draw(void) NONBANKED {
   hud_num(6, y, tokens, 3);
   if (boss_floor) {
     sh[y][10] = sh[y][11] = sh[y][12] = sh[y][13] = BT_FONT;
+  } else if (stage_hud[0]) { /* B2: the stage's counter */
+    hud_text(10, y, stage_hud);
   } else {
     sh[y][10] = BT_ICON_KEY;
     hud_num(11, y, keys_held, 1);
@@ -171,7 +192,7 @@ void hud_draw(void) NONBANKED {
   hud_dirty = 0;
 }
 
-void hud_charge(void) NONBANKED {
+static void charge_n(void) {
   uint8_t i, full = CHARGE_FULL;
   uint8_t lit = pl_charge >= full ? 40u : (uint8_t)((uint16_t)pl_charge * 40u / full);
   for (i = 0; i != 5u; i++) {
@@ -180,3 +201,6 @@ void hud_charge(void) NONBANKED {
     lit = (uint8_t)(lit - n);
   }
 }
+
+void hud_draw(void) BANKED { draw_n(); }
+void hud_charge(void) BANKED { charge_n(); }

@@ -11,7 +11,10 @@ uint16_t run_seed;
 uint8_t floor_no;
 uint16_t floor_seed;
 uint8_t floor_tier;
-eg_room room;
+/* Floor-only state lives in bank 1 above the title's mirrored window. The title
+ * never reads it, and leaves bank 1 untouched while using its bank 2 buffers. */
+eg_room __at(0xD800) room;
+typedef char eg_room_fits_floor_wram[(sizeof(eg_room) <= 0x140u) ? 1 : -1];
 uint16_t frame_count;
 uint8_t joy, joy_prev, joy_pressed;
 uint8_t dbg_god, dbg_no_enemies, dbg_floor;
@@ -21,6 +24,7 @@ uint8_t dbg_ftier;
 uint8_t hud_line = 144u;
 uint16_t pal_bg[32], pal_sp[32];
 uint8_t pal_dirty;
+const int8_t fdx[4] = {0, 0, -1, 1}, fdy[4] = {-1, 1, 0, 0}; /* play.h: here, not in banked grid.c, so any bank reads them */
 
 void input_poll(void) {
   joy_prev = joy;

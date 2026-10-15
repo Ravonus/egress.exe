@@ -13,6 +13,11 @@
 #include "heir.h"
 #include "gen/eg_seeds.h"
 #include "look.h"
+#include "stage.h"       /* B2 */
+#include "stage_spawn.h" /* B2 */
+#include "boss_api.h" /* B2 bosses */
+#include "obstacle.h"
+void sprites_budget(void) NONBANKED;
 
 uint8_t tokens, keys_held, door_open, board_busy, cam_x, cam_y;
 uint8_t freeze, shake, hud_dirty, grav_t, boss_floor;
@@ -26,7 +31,8 @@ static void people_colours(void) { /* B1: the heir's palettes (heir.c), rolled f
 
 static void floor_build(void) {
   uint8_t i;
-  boss_floor = (uint8_t)(floor_no >= RUN_FLOORS);
+  /* B2 bosses: the slot (boss_api.h); b2-stages chooses which floors hold one */
+  boss_floor = dbg_boss ? dbg_boss : (floor_no >= RUN_FLOORS ? BOSS_BIOME : (stage_kind == SK_MIDBOSS ? BOSS_MID : 0u));
   memset(&acts, 0, sizeof acts);
   memset(cracked, 0, sizeof cracked);
   memset(orbs, 0, sizeof orbs);
@@ -34,8 +40,8 @@ static void floor_build(void) {
   if (boss_floor) {
     floor_tier = 5u;
     floor_seed = 0;
-    boss_build();
-  } else {
+    boss_setup(boss_floor, BIOME_OFFICE);
+  } else if (!stage_build()) {
     /* B1: the run planner chose floor_seed and floor_tier (puzzle_plan_floor); a reset regenerates the same room */
     if (!eg_generate(&room, floor_seed, floor_tier))
       for (i = 0;; i++) {
@@ -63,13 +69,20 @@ static void floor_build(void) {
   player_floor_start(); /* B1: the resolver, the mover, the spawn */
   freeze = shake = 0;
   grav_t = GRAVITY_FRAMES;
-  if (!boss_floor) actors_spawn();
+  if (!boss_floor) { bs_kind = 0; actors_spawn(); }
   cells_reset();
   pocket_reset(); /* B1 */
+  obstacle_reset();
+  stage_start();  /* B2 */
 }
 
 static void camera(uint8_t snap) {
   int16_t tx = (int16_t)pl_x - 80, ty = (int16_t)pl_y - 64, dx, dy;
+  if (boss_floor) { /* B2 bosses: the arena is one screen, held still */
+    cam_x = BOSS_CAM_X;
+    cam_y = BOSS_CAM_Y;
+    return;
+  }
   if (tx < 0) tx = 0;
   if (tx > 96) tx = 96;
   if (ty < 0) ty = 0;
@@ -99,15 +112,19 @@ static void floor_show(void) {
   uint8_t i;
   DISPLAY_OFF;
   HIDE_SPRITES;
+  SPRITES_8x16; /* floors own 8x16 OBJs; the title uses 8x8 for its prompt */
   art_load_game();
   /* look: the office's cards and palettes; the room on screen will assemble around the player */
   look_load(BIOME_OFFICE);
+  stage_show(); /* B2: the stage's cards and skins */
   camera(1);
   look_assemble(room.start);
   for (i = 0; i != (uint8_t)EG_N; i++) draw_cell(i);
+  if (boss_floor) boss_show(); /* B2 bosses */
   hud_init();
   scroll();
   sprites_reset();
+  obstacle_show();
   draw_sprites();
   SHOW_BKG;
   SHOW_WIN;
@@ -169,7 +186,7 @@ static void assemble_wait(void) {
 static uint8_t floor_play(void) {
   uint8_t end_t = 0;
   floor_tokens0 = tokens;
-  if (floor_no < RUN_FLOORS) puzzle_plan_floor(); /* B1 */
+  if (floor_no < RUN_FLOORS) stage_plan_floor(); /* B1, B2: the slot, the stage type, the room */
   floor_build();
   floor_show();
   music_play(boss_floor ? SONG_BOSS : SONG_FLOOR);
@@ -178,10 +195,16 @@ static uint8_t floor_play(void) {
   assemble_wait();
   game_mode = MODE_PLAY;
   if (boss_floor) hud_msg("IT SEES YOU.");
+  else if (stage_announce()) {} /* B2: the stage's objective */
   else if (floor_no == 1u) hud_msg("FIND THE DOOR");
   else hud_msg("ANOTHER FLOOR");
   while (1) {
     frame_wait();
+    if (boss_floor) boss_vblank(); /* B2 bosses: in VBlank, before the look's writes */
+    if (pal_dirty && !look_busy()) {
+      set_sprite_palette(2u, 6u, &pal_sp[8]);
+      pal_dirty = 0;
+    }
     look_tick();
     flush_cells(8);
     scroll();
@@ -189,6 +212,7 @@ static uint8_t floor_play(void) {
     input_poll();
     hud_tick();
     if (pl_state == PS_EXIT) {
+      sprites_budget();
       /* look: the floor falls apart behind you, from the edges in to the door */
       if (++end_t == 2u) look_collapse(cell_at(pl_x, pl_y), 1u);
       if (end_t >= 20u && (!look_busy() || end_t >= 110u)) {
@@ -219,7 +243,7 @@ static uint8_t floor_play(void) {
       if (paused) hud_msg("PAUSED");
       else hud_msg("");
     }
-    if (paused) continue;
+    if (paused) { sprites_budget(); continue; }
     /* hold SELECT to put the floor back the way it was (B1: it costs a token, never a heart) */
     if ((joy & J_SELECT) && !boss_floor) {
       if (sel_t != 61u && ++sel_t == 60u) { /* 61: still held from closing the bench */
@@ -237,7 +261,7 @@ static uint8_t floor_play(void) {
       }
     } else {
       if (sel_t && sel_t < 20u && !boss_floor && pl_state == PS_FREE) { /* B1: a tap of SELECT opens the bench */
-        bench_run();
+        if (!stage_select()) bench_run(); /* B2: the heist's desk, the ring's bench */
         sel_t = 61u;
         continue;
       }
@@ -246,10 +270,13 @@ static uint8_t floor_play(void) {
     if (acts.frames != 0xffffu) acts.frames++;
     if (freeze) {
       freeze--;
+      sprites_budget();
       continue;
     }
     player_update();
+    stage_tick(); /* B2 */
     puzzle_tick(); /* B1: fragile floor, the beat, the dead-room hint */
+    obstacle_tick();
     enemies_update();
     orbs_update();
     if (!--grav_t) {
@@ -271,6 +298,7 @@ void play_run(void) BANKED {
   people_colours();
   run_begin();
   puzzle_plan_begin(); /* B1 */
+  stage_run_begin();   /* B2 */
   floor_no = (dbg_floor && dbg_floor <= RUN_FLOORS) ? dbg_floor : 1u;
   tokens = 0;
   paused = 0;
@@ -282,7 +310,7 @@ void play_run(void) BANKED {
       dead_screen();
       return;
     }
-    if (floor_no < RUN_FLOORS) puzzle_plan_done(); /* B1 */
+    if (floor_no < RUN_FLOORS) stage_floor_done(); /* B1, B2 */
     run_floor_done();
     if (floor_no >= RUN_FLOORS) {
       HIDE_WIN;
@@ -295,7 +323,7 @@ void play_run(void) BANKED {
     if (floor_no % 3u == 0u) {
       HIDE_WIN;
       hud_line = 144u;
-      landing_screen();
+      stage_landing(); /* B2: the landing, then the rest */
       art_copy_tables(&meta_tile[0][0], meta_pal, pal_bg, pal_sp, people);
       people_colours();
     }

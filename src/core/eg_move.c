@@ -1,4 +1,7 @@
 /* EGRESS 8-direction movement (see eg_move.h, proto/input/FRAMES.md). */
+#ifdef __SDCC
+#pragma bank 255
+#endif
 #include "eg_move.h"
 
 #define BOX_SUB ((int16_t)(EG_BOX_PX << EG_FIX))
@@ -8,7 +11,7 @@ static const uint8_t face_of[16] = {0xffu,      EG_FACE_E,  EG_FACE_W,  0xffu, E
                                     EG_FACE_NW, 0xffu,      EG_FACE_S,  EG_FACE_SE, EG_FACE_SW, 0xffu,
                                     0xffu,      0xffu,      0xffu,      0xffu};
 
-uint8_t eg_grid_cell(const eg_grid_t *g, int16_t cx, int16_t cy) {
+uint8_t eg_grid_cell(const eg_grid_t *g, int16_t cx, int16_t cy) EG_BANKED {
   uint8_t c;
   const uint8_t *map = g->map;
   /* unsigned compares: a negative coordinate is out too */
@@ -68,7 +71,7 @@ static uint8_t move_axis(uint8_t axis, int16_t *p, int16_t q, int16_t d, uint8_t
   return 0u;
 }
 
-void eg_move_init(eg_mover_t *m, int16_t x, int16_t y, uint8_t mode) {
+void eg_move_init(eg_mover_t *m, int16_t x, int16_t y, uint8_t mode) EG_BANKED {
   m->x = x;
   m->y = y;
   m->mode = mode;
@@ -133,7 +136,7 @@ static void nudge(eg_mover_t *m, uint8_t axis, uint8_t col, uint8_t speed) {
   (void)move_axis((uint8_t)(axis ^ 1u), q, p, s0 ? step : (int16_t)-step, &hit);
 }
 
-void eg_move_step(eg_mover_t *m, uint8_t dpad, uint8_t speed, const eg_grid_t *g) {
+void eg_move_step(eg_mover_t *m, uint8_t dpad, uint8_t speed, const eg_grid_t *g) EG_BANKED {
   uint8_t d = resolve_dir(m, (uint8_t)(dpad & EG_DP_MASK)), f, cand = 0u, ccx = 0u, ccy = 0u, cdir = 0u;
   uint8_t hx = 0u, hy = 0u, c;
   int8_t sx = (d & EG_DP_RIGHT) ? 1 : ((d & EG_DP_LEFT) ? -1 : 0);

@@ -71,12 +71,34 @@ static const uint8_t s_zap1[] = {NOTE(1, 0xa1, D7, 3), NOTE(1, 0xa1, A6, 3), NOT
                                  NOTE(2, 0x81, A5, 3), NOTE(1, 0x81, D7, 3), NOTE(2, 0x71, FS5, 3), NOTE(6, 0x63, D5, 3),
                                  END};
 static const uint8_t s_zap4[] = {NZ(2, 0x91, 0x1b), NZ(2, 0x00, 0x1b), NZ(3, 0x72, 0x2b), END};
+/* B2 bosses: a stamp lifting (a rising whine), a sweep's wind (a hiss that swells), the beam charging (a climbing
+ * buzz), a shelf's crack (a long low rumble), the phase roar (a falling growl over noise), the clink of a closed
+ * guard, the fax's rattle before a ram, its jam's buzz, and the boss going down (a slow falling D-major line) */
+static const uint8_t s_brise1[] = {NOTE(4, 0x71, D4, 1), NOTE(4, 0x71, FS4, 1), NOTE(4, 0x71, A4, 1), NOTE(6, 0x73, D5, 1), END};
+static const uint8_t s_bwhoosh4[] = {NZ(4, 0x2f, 0x24), NZ(8, 0x6f, 0x23), NZ(6, 0x71, 0x22), END};
+static const uint8_t s_bbeam1[] = {NOTE(3, 0x81, D5, 3), NOTE(3, 0x81, FS5, 3), NOTE(3, 0x81, A5, 3), NOTE(3, 0x81, D6, 3),
+                                   NOTE(3, 0x81, FS6, 3), NOTE(8, 0x84, A6, 3), END};
+static const uint8_t s_brumble4[] = {NZ(8, 0x9f, 0x77), NZ(12, 0x97, 0x76), NZ(12, 0x75, 0x77), END};
+static const uint8_t s_broar1[] = {NOTE(6, 0xa1, A3, 3), NOTE(6, 0x91, F3, 3), NOTE(8, 0x81, D3, 3), NOTE(12, 0x73, C3, 3), END};
+static const uint8_t s_broar4[] = {NZ(10, 0xa2, 0x67), NZ(16, 0x85, 0x77), END};
+static const uint8_t s_bclink1[] = {NOTE(2, 0x91, D7, 0), NOTE(5, 0x62, A6, 0), END};
+static const uint8_t s_bram4[] = {NZ(2, 0x81, 0x45), NZ(2, 0x00, 0x45), NZ(2, 0x81, 0x45), NZ(2, 0x00, 0x45),
+                                  NZ(2, 0x91, 0x44), NZ(2, 0x00, 0x44), NZ(6, 0x93, 0x43), END};
+static const uint8_t s_bjam1[] = {NOTE(2, 0x81, A4, 3), NOTE(2, 0x00, A4, 3), NOTE(2, 0x81, A4, 3), NOTE(2, 0x00, A4, 3),
+                                  NOTE(2, 0x91, D5, 3), NOTE(2, 0x00, D5, 3), NOTE(4, 0x91, D5, 3), END};
+static const uint8_t s_bdown1[] = {NOTE(10, 0x93, D6, 2), NOTE(10, 0x93, A5, 2), NOTE(10, 0x93, FS5, 2), NOTE(10, 0x93, D5, 2),
+                                   NOTE(24, 0x97, D4, 2), END};
+static const uint8_t s_bdown4[] = {NZ(24, 0xa7, 0x77), END};
+/* end B2 bosses */
 static const sfx_def sfx_table[SFX_COUNT] = {
     {0, 0},          {0, s_step4},        {0, s_dig4},     {s_token1, 0}, {s_key1, 0},    {s_door1, 0},
     {0, s_lash4},    {s_hit1, s_hit4},    {s_hurt1, 0},    {0, s_roll4},  {s_charged1, 0}, {0, s_spin4},
     {0, s_break4},   {0, s_thud4},        {0, s_push4},    {s_tell1, 0},  {s_shot1, 0},   {s_kill1, s_kill4},
     {s_deny1, 0},    {s_exit1, 0},
     {s_tear1, s_tear4}, {s_crunch1, s_crunch4}, {s_shatter1, s_shatter4}, {s_zap1, s_zap4},
+    /* B2 bosses */
+    {s_brise1, 0}, {0, s_bwhoosh4}, {s_bbeam1, 0}, {0, s_brumble4}, {s_broar1, s_broar4}, {s_bclink1, 0},
+    {0, s_bram4}, {s_bjam1, 0}, {s_bdown1, s_bdown4},
 };
 static const uint8_t *fx[2];
 static uint8_t fx_left[2];

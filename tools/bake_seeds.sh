@@ -2,11 +2,19 @@
 # Bake the accepted-room table (seed and the planner's record): for every tier, the PER lowest seeds whose rooms generate (the backwards generator,
 # src/core/eg_gen.c), are not trivial, need their trick, keep their red herrings safe, and the solver solves within
 # the tier's difficulty band (host/egtool.c checks()). Each tier is split
-# over JOBS interleaved seed streams that run in parallel; the merged, sorted list keeps its first PER seeds.
-# Usage: sh tools/bake_seeds.sh EGTOOL OUT.c [PER] [JOBS]
+# over JOBS interleaved seed streams that run in parallel. Isolated curriculum seeds
+# are revalidated with the full solver, then included before filling the remaining
+# places from the bounded search. This keeps every obstacle lesson available.
+# Usage: sh tools/bake_seeds.sh EGTOOL OUT.c [PER] [JOBS] [FULL_EGTOOL]
 set -eu
 EGTOOL="$1"; OUT="$2"; PER="${3:-128}"; JOBS="${4:-3}"; TIERS=6
+FULL_EGTOOL="${5:-$EGTOOL}"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+t=0; while [ $t -lt $TIERS ]; do : > "$TMP/$t.pins"; t=$((t+1)); done
+while read -r t seed rest; do
+  case "$t" in ''|'#'*) continue ;; esac
+  "$FULL_EGTOOL" accept "$seed" "$t" >> "$TMP/$t.pins"
+done < tools/seed_curriculum.txt
 t=0; while [ $t -lt $TIERS ]; do
   j=0; while [ $j -lt "$JOBS" ]; do
     nice "$EGTOOL" tier $t "$PER" $((j + 1)) "$JOBS" > "$TMP/$t.$j.txt" 2> "$TMP/$t.$j.log" &
@@ -26,7 +34,10 @@ cat "$TMP"/*.log >&2
   echo "/* seed, tier, trick, mechanics, difficulty, dead-end %, fatal depth, insights, steps, branching x10 */"
   echo "static const eg_seed_rec table[EG_SEEDS] = {"
   t=0; while [ $t -lt $TIERS ]; do
-    cat "$TMP/$t".*.txt | sort -n | head -n "$PER" > "$TMP/$t.all"
+    cat "$TMP/$t.pins" > "$TMP/$t.all"
+    cat "$TMP/$t".*.txt | sort -n | awk 'FILENAME != "-" {seen[$1]=1; next} !seen[$1]++' "$TMP/$t.pins" - |
+      head -n "$((PER - $(wc -l < "$TMP/$t.pins")))" >> "$TMP/$t.all"
+    sort -n "$TMP/$t.all" -o "$TMP/$t.all"
     [ "$(wc -l < "$TMP/$t.all")" -eq "$PER" ] || { echo "tier $t short" >&2; exit 3; }
     # record: seed trick mech diff dead fatal insights steps branching
     awk -v t=$t '{ d = $4 > 255 ? 255 : $4; f = ($6 < 0 || $6 > 254) ? 255 : $6; s = $8 > 255 ? 255 : $8;

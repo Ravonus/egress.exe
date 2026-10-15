@@ -104,6 +104,7 @@ def main() -> None:
     ap.add_argument("--fogfar", type=float, default=FOG_FAR, help="cells where the fog is total (rows past it are skipped)")
     ap.add_argument("--sidek", type=int, default=4)
     ap.add_argument("--vs", type=int, default=1, help="vertical display scale (2: rows are doubled on screen by SCY)")
+    ap.add_argument("--flat", type=int, default=0, help="banded floors: per-row baked pattern rows (sets x phases) in this ROM bank")
     a = ap.parse_args()
     FOGFAR[0] = a.fogfar
     a.out.mkdir(parents=True, exist_ok=True)
@@ -184,6 +185,65 @@ def main() -> None:
             for u in range(16):
                 ftex.append(fl[v][u] | (ce[v][u] << 2))
 
+    # banded floors (--flat BANK): per set and forward phase (16 per 2-cell texture period), one baked 2bpp tile
+    # row per framebuffer row: the texture rows the row's distance span covers, as the strongest colour's coverage, ordered-dithered
+    # (rank 15 - Bayer, so the content survives the fog dither longest), then fogged to colour 0 like the walls
+    flatpat, fbo, fbd = [], [], []
+    NPH = 16
+    if a.flat:
+        def cover(tex, v0, v1):
+            f = [0.0] * 4
+            v = v0
+            while v < v1 - 1e-9:
+                vn = min(v1, math.floor(v) + 1)
+                row = tex[int(math.floor(v)) & 15]
+                for c in row:
+                    f[c] += (vn - v) / 16
+                v = vn
+            t = sum(f)
+            return [x / t for x in f]
+        def prow(tex, y, o, ph):
+            dn = projv / (2 * (o + 1))
+            df = projv / (2 * max(o, 0.25))
+            df = min(df, dn + 16)
+            cv = cover(tex, 8 * dn + ph, 8 * df + ph)
+            # calm bands: only the row's strongest feature colour, at 100 / 50 / 25 % by its coverage
+            best = max((1, 2, 3), key=lambda c: cv[c])
+            fr = [0.0] * 4
+            fr[best] = 1.0 if cv[best] > 0.7 else 0.5 if cv[best] >= 0.45 else 0.25 if cv[best] >= 0.3 else 0.0
+            fr[0] = 1.0 - fr[best]
+            k = fogk(projv / (2 * (o + 0.5)))
+            lo = hi = 0
+            for x in range(8):
+                thr = (15 - A.bayer(x, y) + 0.5) / 16
+                cum, col = 0.0, 0
+                for c in (3, 1, 2, 0):
+                    cum += fr[c]
+                    if cum > thr:
+                        col = c
+                        break
+                if A.bayer(x, y) < k:
+                    col = 0
+                lo |= (col & 1) << (7 - x)
+                hi |= (col >> 1) << (7 - x)
+            return lo, hi
+        for name, fl, ce in SETS:
+            for ph in range(NPH):
+                img = [0] * (2 * H)
+                for o in range(H // 2):
+                    y = H // 2 + o
+                    img[2 * y], img[2 * y + 1] = prow(fl, y, o, ph)
+                    yc = H - 1 - y
+                    img[2 * yc], img[2 * yc + 1] = prow(ce, yc, o, ph)
+                flatpat += img
+        # set bands (rows o from the horizon): each band takes the floor set of the map cell at its distance ahead
+        for o0 in (0, 4, 8, 16):
+            if o0 < H // 2:
+                fbo.append(o0)
+        fbo.append(H // 2)
+        for b in range(len(fbo) - 1):
+            om = (fbo[b] + fbo[b + 1]) / 2
+            fbd.append(min(255, round(projv / (2 * om) * 8)))
     bpal = []
     for p in PALS:
         for row in A.biome_palettes(p):
@@ -216,6 +276,12 @@ def main() -> None:
     s.append(arr("T_FTEX", "uint8_t", ftex))
     s.append("#endif")
     s.append(arr("T_LK", "int8_t", lk))
+    if a.flat:
+        s.append(arr("T_FBO", "uint8_t", fbo))
+        s.append(arr("T_FBD", "uint8_t", fbd))
+        s.append("#ifndef __SDCC")
+        s.append(arr("T_FLATPAT", "uint8_t", flatpat))
+        s.append("#endif")
     s.append(arr("T_BPAL", "uint16_t", bpal))
     s.append("#if !defined(__SDCC) || !FS /* fullscreen: the cartridge copies them from bank 3 (HUDTILES_ADDR) */")
     s.append(arr("T_HUDTILES", "uint8_t", tiles))
@@ -348,13 +414,19 @@ def main() -> None:
                                 ("FLUT", ftex_end + 0x200 + len(ftex1), lut),
                                 ("LKT", 0x6000, lkt_flat), ("HUDTILES", 0x7000, tiles)], "bank3_floors")
     inc = [f"{k} = 0x{v:04X}" for k, v in {**lay2, **lay3}.items()]
+    inc += [f"FLAT = {1 if a.flat else 0}", f"NFB = {len(fbd)}"] + [f"FBO_{i} = {v}" for i, v in enumerate(fbo)]
     inc += [f"NFROW = {len(fd)}", f"FR = {FR}", f"MIPH = {MIPH}", "MIPOFF = 0", f"SIDEK = {a.sidek}"]
     # rows y0..: the leading d = 0 sample rows (the horizon band) are left to the walls' zeroing
     zb = next(y for y, d in zip(fy0, fd) if d)
     assert all(d == 0 for y, d in zip(fy0, fd) if y < zb)
-    inc += [f"ZBAND = {zb}"]
+    inc += [f"ZBAND = {0 if a.flat else zb}"]  # banded floors write every floor row
     (a.out / "layout.inc").write_text("\n".join(inc) + "\n")
     print(f"bank2 {n2} B, bank3 {n3} B")
+    if a.flat:
+        assert len(flatpat) <= 0x4000
+        blob(f"_CODE_{a.flat}", [("FLATPAT", 0x4000, flatpat)], f"bank{a.flat}_flat")
+        inc += [f"FLATBANK = {a.flat}"]
+        (a.out / "layout.inc").write_text("\n".join(inc) + "\n")
 
     hdr = ["/* generated by gen2.py */", "#ifndef TEX_IDS_H", "#define TEX_IDS_H"]
     for i, (name, _) in enumerate(WALLS):
@@ -362,6 +434,9 @@ def main() -> None:
     hdr.append(f"#define NWALLTEX {len(WALLS)}u")
     hdr.append(f"#define NFROWS {len(fd)}u")
     hdr.append(f"#define MIPH {MIPH}u")
+    if a.flat:
+        hdr.append(f"#define FLAT 1\n#define FLATBANK {a.flat}u\n#define NFB {len(fbd)}u\n#define NPH {NPH}u")
+        hdr.append("extern const uint8_t T_FBO[], T_FBD[];")
     hdr.append(f"#define SIDEK {a.sidek}u")
     hdr.append(f"#define MIPN {nmip0}u")
     for i, (name, _, _) in enumerate(SETS):

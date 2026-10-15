@@ -51,9 +51,9 @@ extern uint8_t look_busy_n; /* cells queued or in flight */
 #define look_busy() (look_busy_n != 0u)
 
 /* grid.c (bank 0) */
-uint8_t look_void_cell(uint8_t i) NONBANKED; /* the cell's final look is the void (the room's outer ring of wall) */
-uint8_t cell_meta(uint8_t i) NONBANKED;      /* the card the cell shows now */
-void draw_meta(uint8_t i, uint8_t m) NONBANKED;
+uint8_t look_void_cell(uint8_t i) BANKED; /* the cell's final look is the void (the room's outer ring of wall) */
+uint8_t cell_meta(uint8_t i) BANKED;      /* the card the cell shows now */
+void draw_meta(uint8_t i, uint8_t m) BANKED;
 
 /* look.c */
 void look_load(uint8_t biome) BANKED; /* after art_load_game, display off: cards to VRAM, the biome into pal_bg */

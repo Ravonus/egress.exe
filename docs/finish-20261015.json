@@ -1,0 +1,251 @@
+{
+  "date": "2026-10-15",
+  "scope": "Recovered B2 worktrees and standalone fullscreen prototype; future B3/B4 design milestones excluded",
+  "commands": [
+    {
+      "command": "make test",
+      "exit": 0
+    },
+    {
+      "command": "make test-b2",
+      "exit": 0
+    },
+    {
+      "command": "make test-fs-proto",
+      "exit": 0
+    },
+    {
+      "command": "make -j3 all; compare final ROM hashes with tested ROM hashes",
+      "exit": 0
+    },
+    {
+      "command": "SameBoy 1.0.4 --cgb --start --length 24 on both game ROMs and fullscreen prototype",
+      "exit": 0
+    }
+  ],
+  "artifacts": [
+    {
+      "file": "build/finish-20261015/egress.gbc",
+      "bytes": 1064960,
+      "sha256": "8191bc71cd5fb0067dabf58c8886e072658a5053286a0d98c890b299c09e413e"
+    },
+    {
+      "file": "build/finish-20261015/egress-rtc.gbc",
+      "bytes": 1064960,
+      "sha256": "df11b82b8e14d164aedb75b9d48a4ec73e2c2ad137e420654c2c6364d3d28bd8"
+    },
+    {
+      "file": "build/finish-20261015/fullscreen-prototype.gbc",
+      "bytes": 524288,
+      "sha256": "6757d39827bebbd79893319ee286754fb232fcbcb71c3a7049244dfe195499b3"
+    }
+  ],
+  "stage_results": {
+    "stage_holdout": true,
+    "stage_holdout_oam": true,
+    "stage_chase": true,
+    "stage_chase_oam": true,
+    "stage_hunt": true,
+    "hunt_uses_matrix_mob": true,
+    "stage_hunt_oam": true,
+    "stage_escort": true,
+    "stage_escort_oam": true,
+    "stage_mixp": true,
+    "stage_mixp_oam": true,
+    "stage_dark": true,
+    "stage_dark_oam": true,
+    "stage_heist": true,
+    "stage_heist_oam": true,
+    "foreign_orb_blocked": true,
+    "own_orb_kills": true,
+    "crate_pushes_north": true,
+    "waves_use_matrix_mobs": true
+  },
+  "boss_results": {
+    "boss_tenant_nohit": true,
+    "boss_tenant_phases": true,
+    "boss_tenant_hits_target": true,
+    "boss_tenant_oam": true,
+    "boss_tenant_frames": true,
+    "boss_fax_nohit": true,
+    "boss_fax_phases": true,
+    "boss_fax_hits_target": true,
+    "boss_fax_oam": true,
+    "boss_fax_frames": true,
+    "boss_death": true,
+    "boss_profile_tenant": true,
+    "boss_profile_fax": true
+  },
+  "boss_runs": {
+    "tenant": {
+      "won": true,
+      "hits_taken": 0,
+      "good_hits": 24,
+      "phases": [
+        0,
+        1,
+        2
+      ],
+      "oam_max_per_line": 10,
+      "oam_frames_over_10": 0,
+      "game_frames_per_120_min": {
+        "0": 120,
+        "1": 120,
+        "2": 120
+      },
+      "sequence_frames_per_120_min": {
+        "0": 120,
+        "1": 120,
+        "2": 109
+      }
+    },
+    "fax": {
+      "won": true,
+      "hits_taken": 0,
+      "good_hits": 12,
+      "phases": [
+        0,
+        1
+      ],
+      "oam_max_per_line": 10,
+      "oam_frames_over_10": 0,
+      "game_frames_per_120_min": {
+        "0": 120,
+        "1": 120
+      },
+      "sequence_frames_per_120_min": {
+        "0": 120,
+        "1": 120
+      }
+    }
+  },
+  "fullscreen": {
+    "rom": "r2_160x64_s1_checked.gbc",
+    "view": "160x64",
+    "obj_line_max": 10,
+    "obj_frames_over10": 0,
+    "obj_over_at": [],
+    "views": 1355,
+    "frames": 1567,
+    "fps_avg": 51.65,
+    "fps_min": 11.95,
+    "fps_max": 59.73,
+    "fpv_hist": {
+      "1": 1248,
+      "2": 18,
+      "3": 74,
+      "4": 14,
+      "5": 1
+    },
+    "views_redrawn": 107,
+    "fps_redrawn": 20.03,
+    "fps_kept": 59.73,
+    "upd_lines_redrawn": 11.0,
+    "ray_lines_redrawn": 163.7,
+    "fill_lines_redrawn": 95.5,
+    "flr_lines_redrawn": 76.5,
+    "spr_lines_redrawn": 82.3,
+    "upd_lines_avg": 8.0,
+    "upd_lines_max": 20,
+    "ray_lines_avg": 13.6,
+    "ray_lines_max": 200,
+    "fill_lines_avg": 8.1,
+    "fill_lines_max": 102,
+    "flr_lines_avg": 6.4,
+    "flr_lines_max": 121,
+    "spr_lines_avg": 79.3,
+    "spr_lines_max": 118,
+    "wait_lines_avg": 48.8,
+    "wait_lines_max": 236,
+    "copy_lines_per_chunk": 4.77,
+    "rom_bytes": 524288,
+    "vbl_end_line_max": 153,
+    "ray_h_buckets": {
+      "lt8": 1728,
+      "lt16": 832,
+      "lt32": 0,
+      "lt64": 0,
+      "ge64": 0
+    },
+    "host_checks": 64,
+    "host_match": true,
+    "acceptance": {
+      "moving_fps": true,
+      "host_parity": true,
+      "sprite_budget": true,
+      "vblank_budget": true
+    },
+    "moving_fps_target": 20.0
+  },
+  "source_preservation": [
+    {
+      "name": "b2-boss",
+      "snapshot_commit": "5c08bdeb4d97a9d591e4a5dc566b2d360418efbb"
+    },
+    {
+      "name": "b2-edges",
+      "snapshot_commit": "9740ebe2183918dd43bd0ea9ff0ea8046cc2986a"
+    },
+    {
+      "name": "b2-mobs",
+      "snapshot_commit": "bc56abcd53bdaf5e1f2e7470578d1fe82fbd1b14"
+    },
+    {
+      "name": "b2-obstacles",
+      "snapshot_commit": "c0c92b835a6e95a106759adb7a1b54a352902e16"
+    },
+    {
+      "name": "b2-stages",
+      "snapshot_commit": "e19f98be536a1553cb3c99b60fb6b1f2706c103d"
+    },
+    {
+      "name": "fs-proto",
+      "snapshot_commit": "dc4b8d43c4e714da3bf4c11d092c35d58c8cc0e8"
+    }
+  ],
+  "archive_manifest": [
+    {
+      "name": "b2-boss",
+      "archive": "build/finish-20261015/archives/b2-boss.tar.gz",
+      "bytes": 44627040,
+      "members": 1048,
+      "sha256": "d9d8d51532eb3fbe084522567366b588145a16a50608495498f7282f00070489"
+    },
+    {
+      "name": "b2-edges",
+      "archive": "build/finish-20261015/archives/b2-edges.tar.gz",
+      "bytes": 44294387,
+      "members": 1010,
+      "sha256": "dc9d045fecac0950bea23d22fc76fd434c2fe29b90cf21f798e4cfc2a10f801d"
+    },
+    {
+      "name": "b2-mobs",
+      "archive": "build/finish-20261015/archives/b2-mobs.tar.gz",
+      "bytes": 43085002,
+      "members": 1024,
+      "sha256": "3b6e4a3a6d43b74266df5c5e50c8e6c927619f78f5d6fceb29bf536bfb0a7192"
+    },
+    {
+      "name": "b2-obstacles",
+      "archive": "build/finish-20261015/archives/b2-obstacles.tar.gz",
+      "bytes": 34523877,
+      "members": 611,
+      "sha256": "c40fd696d2ceba52d81dbf1593332b0d4d57ee99a0fa55e74514dbb127bab10b"
+    },
+    {
+      "name": "b2-stages",
+      "archive": "build/finish-20261015/archives/b2-stages.tar.gz",
+      "bytes": 42588821,
+      "members": 1002,
+      "sha256": "cdeb1b519a20f4af1b3fd648f3337536c683d6e4e122d7c451be7a70197068c3"
+    },
+    {
+      "name": "fs-proto",
+      "archive": "build/finish-20261015/archives/fs-proto.tar.gz",
+      "bytes": 46106076,
+      "members": 2111,
+      "sha256": "d3cb5dd3591d201b2e7abcef5bd0a464a30977d60d65ff21288228c8705afb26"
+    }
+  ],
+  "hardware": "No new physical Chromatic test; emulator verification only"
+}

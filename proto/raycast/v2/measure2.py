@@ -37,6 +37,8 @@ def main() -> int:
     ap.add_argument("--gif-step", type=int, default=3)
     ap.add_argument("--json", type=Path)
     ap.add_argument("--checks", type=int, default=8)
+    ap.add_argument("--min-moving-fps", type=float, default=0,
+                    help="gate redrawn-view average (never the inflated retained-view average), plus parity/OAM/VBlank")
     ap.add_argument("--host", type=Path)
     ap.add_argument("--record-poses", type=Path)
     ap.add_argument("--pose-frames", default="")
@@ -175,6 +177,8 @@ def main() -> int:
                 blob = bytes(mem[sym["_map"] + i] for i in range(1024))
                 for n in ("cam_x", "cam_y", "cam_a"):
                     blob += bytes([u8(n), u8(n, 1)])
+                if "_f_ph" in sym:  # banded floors: the forward phase
+                    blob += bytes([u8("f_ph")])
                 inp.write_bytes(blob)
                 if a.save_snaps:
                     a.save_snaps.mkdir(parents=True, exist_ok=True)
@@ -232,11 +236,19 @@ def main() -> int:
         a.gif.parent.mkdir(parents=True, exist_ok=True)
         gif_frames[0].save(a.gif, save_all=True, append_images=gif_frames[1:],
                            duration=round(1000 * a.gif_step / FPS_LCD), loop=0, optimize=True)
+    if a.min_moving_fps:
+        res["acceptance"] = {
+            "moving_fps": res.get("fps_redrawn", res.get("fps_avg", 0)) >= a.min_moving_fps,
+            "host_parity": res.get("host_match") is True,
+            "sprite_budget": res.get("obj_frames_over10") == 0,
+            "vblank_budget": res.get("vbl_end_line_max", 255) <= 153,
+        }
+        res["moving_fps_target"] = a.min_moving_fps
     print(json.dumps(res, indent=1))
     if a.json:
         a.json.parent.mkdir(parents=True, exist_ok=True)
         a.json.write_text(json.dumps(res, indent=1))
-    return 0 if res.get("host_match", True) else 1
+    return 0 if res.get("host_match", True) and all(res.get("acceptance", {}).values()) else 1
 
 
 if __name__ == "__main__":

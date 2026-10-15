@@ -6,6 +6,8 @@
  *   egplan runsim RUNS OUT.csv OUT.json    the full run: every slot of RUNS runs (tools/plot_curve.py --full)
  *   egplan survive LINES GENS OUT.json     the survival model: lines of heirs with shortcuts (tools/plot_survival.py)
  *   egplan layout RUNSEED CYCLESEED GEN SEEN DOOR   one full run's layout as text
+ *   egplan stages RUNS [OUT.json]   B2: the deck and the stage generator over RUNS cartridge runs and full runs
+ *                                  (host/egstage.c; part of `check`)
  *
  * The runs are played by simulated players, 8 runs each, with a skill that grows run by run: a room far above it
  * costs resets and sometimes the run; a room well below it is cleared fast. Seen mechanics carry over between a
@@ -38,6 +40,7 @@ int full_check(int runs, int verbose);                     /* host/egrun.c */
 int full_runsim(int runs, const char *csv, const char *json);
 int survive(int lines, int gens, const char *json);
 int full_layout(unsigned run_seed, unsigned cycle_seed, unsigned gen, uint32_t seen, unsigned door);
+int stage_sim(int runs, const char *json);                   /* host/egstage.c (B2 stages) */
 
 static int slice_main(int argc, char **argv);
 
@@ -45,13 +48,15 @@ int main(int argc, char **argv) {
   if (argc >= 3 && !strcmp(argv[1], "check")) {
     int a = slice_main(argc, argv);
     int b = full_check(atoi(argv[2]), 1);
-    return a || b;
+    int c = stage_sim(atoi(argv[2]), NULL); /* B2: the deck and the stage generator */
+    return a || b || c;
   }
   if (argc >= 3 && !strcmp(argv[1], "sim")) return slice_main(argc, argv);
   if (argc >= 5 && !strcmp(argv[1], "runsim")) return full_runsim(atoi(argv[2]), argv[3], argv[4]);
   if (argc >= 7 && !strcmp(argv[1], "layout"))
     return full_layout((unsigned)strtoul(argv[2], 0, 0), (unsigned)strtoul(argv[3], 0, 0), (unsigned)atoi(argv[4]),
                        (uint32_t)strtoul(argv[5], 0, 0), (unsigned)atoi(argv[6]));
+  if (argc >= 3 && !strcmp(argv[1], "stages")) return stage_sim(atoi(argv[2]), argc > 3 ? argv[3] : NULL);
   if (argc >= 5 && !strcmp(argv[1], "survive")) return survive(atoi(argv[2]), atoi(argv[3]), argv[4]);
   fprintf(stderr, "usage: egplan check RUNS | sim RUNS OUT.csv OUT.json | runsim RUNS OUT.csv OUT.json | "
                   "survive LINES GENS OUT.json\n");
@@ -67,7 +72,7 @@ static int slice_main(int argc, char **argv) {
                  "enemy,resets,died,new\n");
   long rooms = 0, order_bad = 0, intro_n = 0, intro_alone = 0, repeat_bad = 0, stage_n[4] = {0};
   long mixed[FLOORS] = {0}, played[FLOORS] = {0}, level_sum[FLOORS] = {0}, target_sum[FLOORS] = {0};
-  long mixed_gen[3][FLOORS] = {{0}}, played_gen[3][FLOORS] = {{0}}, deaths = 0, intros_by_mech[MK_COUNT] = {0};
+  long mixed_gen[3][FLOORS] = {{0}}, played_gen[3][FLOORS] = {{0}}, deaths = 0, intros_by_mech[MK_SLICE_COUNT] = {0};
   long first_intro_run_sum = 0, first_intro_n = 0;
   int players = (runs + RUNS_PER_PLAYER - 1) / RUNS_PER_PLAYER, done = 0;
   for (int p = 0; p < players && done < runs; p++) {
@@ -157,9 +162,9 @@ static int slice_main(int argc, char **argv) {
       fprintf(j, "  \"introductions\": %ld,\n  \"introductions_alone\": %ld,\n", intro_n, intro_alone);
       fprintf(j, "  \"back_to_back_repeats\": %ld,\n", repeat_bad);
       fprintf(j, "  \"mean_run_of_an_introduction\": %.2f,\n", first_intro_n ? (double)first_intro_run_sum / first_intro_n : 0.0);
-      const char *names[MK_COUNT] = {"crt", "drywall", "burn", "cold", "short", "weight", "glass", "rhythm", "steps"};
+      const char *names[MK_SLICE_COUNT] = {"crt", "drywall", "burn", "cold", "short", "weight", "glass", "rhythm", "steps", "rush", "steer", "mirror", "stare"};
       fprintf(j, "  \"introductions_by_mechanic\": {");
-      for (int m = MK_BURN; m < MK_COUNT; m++) fprintf(j, "%s\"%s\": %ld", m > MK_BURN ? ", " : "", names[m], intros_by_mech[m]);
+      for (int m = MK_BURN; m < MK_SLICE_COUNT; m++) fprintf(j, "%s\"%s\": %ld", m > MK_BURN ? ", " : "", names[m], intros_by_mech[m]);
       fprintf(j, "},\n");
       const char *keys[3] = {"mixed_share_by_floor", "mean_target_by_floor", "mean_level_by_floor"};
       for (int k = 0; k < 3; k++) {

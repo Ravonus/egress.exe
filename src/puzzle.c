@@ -9,6 +9,7 @@
 #include <string.h>
 #include "play.h"
 #include "puzzle.h"
+#include "obstacle.h"
 #include "core/eg_piece.h"
 #include "core/eg_plan.h"
 #include "run.h"
@@ -17,7 +18,7 @@
 uint8_t pocket[EG_MAX_ITEM], pocket_n;
 uint8_t puzzle_dirty, frag_skip, floor_resets;
 eg_plan_state plan;
-static uint8_t pl_cell, pl_safe, beat_was, frag_pend;
+static uint8_t pl_cell, pl_safe, beat_was, frag_pend, has_glitch;
 uint8_t dead_t; /* the dead-room hint: 0 none, counting down, 1 shown (the harness reads it) */
 uint8_t dead_run; /* the sliced dead-room check is under way (the harness reads it) */
 #define DEAD_SLICE 4u /* queue pops a frame (~3.5 lines each): a whole check is one or two floods, about a second */
@@ -27,6 +28,7 @@ static uint8_t sock[2], told;
 static char buf[20];
 
 void pocket_reset(void) BANKED {
+  uint8_t i;
   memset(pocket, 0, sizeof pocket);
   memset(frag_t, 0, sizeof frag_t);
   pl_cell = pl_safe = room.start;
@@ -38,6 +40,9 @@ void pocket_reset(void) BANKED {
   bench_on = 0;
   bench_cur = 0;
   last_rx = 0;
+  has_glitch = 0;
+  for (i = 0; i != (uint8_t)EG_N; i++)
+    if (cell_type(i) == T_GLITCH) has_glitch = 1;
 }
 
 static void pocket_take(uint8_t slot) {
@@ -92,6 +97,7 @@ static const uint8_t card[T_TYPES - T_CRUMBLE] = {
     M_GLASS,        /* T_GLASS */
     M_ICE,          /* T_ICE: thin ice */
     M_ICE1,         /* T_ICE_1: cracked, one step from giving way */
+    M_GLASS,        /* T_PARTITION: office glass, broken only by a heavy */
 };
 
 /* the glitch beat as the look shows it: solid, flicker at its end, gone, flicker before it comes back */
@@ -326,13 +332,13 @@ void puzzle_reset_cost(void) BANKED {
 
 /* B2's mobs (and anything else) break fragile floor through here: protected cells refuse, timed kinds come back */
 uint8_t puzzle_frag_hit(uint8_t cell, uint8_t who) BANKED {
-  uint8_t k = eg_frag_kind_of(cell_type(cell)), j;
+  uint8_t k = eg_frag_kind_of(cell_type(cell)), j, ticks = eg_frag_ticks(k);
   if (!eg_frag_hit(&room, cell, who)) return 0u;
-  if (eg_frag[k].reset == FR_TIMED)
+  if (ticks)
     for (j = 0; j != 4u; j++)
       if (!frag_t[j][1]) {
         frag_t[j][0] = cell;
-        frag_t[j][1] = eg_frag[k].reset_ticks;
+        frag_t[j][1] = ticks;
         break;
       }
   puzzle_break_fx(cell, k);
@@ -359,7 +365,7 @@ static uint8_t body_on(uint8_t cell) {
 void puzzle_tick(void) BANKED {
   uint8_t c = cell_at(pl_x, pl_y), t, on = (uint8_t)eg_beat_on(frame_count), j;
   on = beat_phase();
-  if (on != beat_was) { /* the glitched glass changes phase (solid, flicker, gone) */
+  if (on != beat_was && has_glitch) { /* the glitched glass changes phase (solid, flicker, gone) */
     beat_was = on;
     look_glitch_beat(on);
     j = 0;
@@ -375,6 +381,7 @@ void puzzle_tick(void) BANKED {
   if (frag_pend != 255u && !body_on(frag_pend)) {
     j = eg_frag_kind_of(cell_type(frag_pend));
     if (eg_step_off(&room, frag_pend, BB_PLAYER, 1u)) {
+      obstacle_noise(frag_pend);
       puzzle_break_fx(frag_pend, j);
       puzzle_dirty = 1u;
     } else
@@ -396,12 +403,12 @@ void puzzle_tick(void) BANKED {
   if (!(frame_count & 7u))
     for (j = 0; j != 4u; j++)
       if (frag_t[j][1] && !--frag_t[j][1] && cell_type(frag_t[j][0]) == T_PIT) {
-        room.c[frag_t[j][0]] = eg_frag[FK_GLITCH].base;
+        room.c[frag_t[j][0]] = T_GLITCH; /* the timed kind (eg_frag) */
         queue_cell(frag_t[j][0]);
       }
   if (puzzle_dirty) { /* (re)start the dead-room check; it runs a slice a frame so walking never drops a frame */
     puzzle_dirty = 0;
-    if (!dead_t) {
+    if (!dead_t && !boss_floor) { /* B2 bosses: an arena is never a dead room */
       eg_dead_begin(c);
       dead_run = 1u;
     }

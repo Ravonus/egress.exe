@@ -1,0 +1,7 @@
+# tier seed: isolated STEER and MIRROR lessons need the full tick-state budget.
+# Every bake revalidates these with egtool's full solver and fairness checks.
+0 3
+0 8
+0 102
+0 97
+0 183

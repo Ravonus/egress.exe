@@ -77,19 +77,26 @@
 #define M_ITEM_DUST 72u
 #define M_ITEM_CLOUD 73u
 #define LOOK_ITEMS 16u
+#define M_VOID_SIDE 74u /* B2: ground on the left (VOID_SIDE, VOID_CORNER) or up-left (VOID_TIP) */
+#define M_VOID_CORNER 75u /* B2: ground on the left (VOID_SIDE, VOID_CORNER) or up-left (VOID_TIP) */
+#define M_VOID_TIP 76u /* B2: ground on the left (VOID_SIDE, VOID_CORNER) or up-left (VOID_TIP) */
+#define M_VOID_SIDE_R 77u /* the same, X-flipped: ground on the right */
+#define M_VOID_CORNER_R 78u /* the same, X-flipped: ground on the right */
+#define M_VOID_TIP_R 79u /* the same, X-flipped: ground on the right */
 #define LOOK_CARPET_STEPS 3u
 #define LOOK_CEIL_STEPS 2u
 #define LOOK_GLASS_STEPS 1u
 #define LOOK_GLITCH_STEPS 1u
-#define M_COUNT 74u
+#define M_COUNT 80u
 #define LOOK_SPR_BASE 248u /* VRAM bank 0: +0 the floor card (M_SLAB_A), +4 the wall card (M_WALL_TOP) */
 #define LOOK_T_REACT 138u
 #define LOOK_T_END 182u /* first tile past the reaction range */
 #define LOOK_T1_END 190u /* first bank 1 tile past the look */
 #define LOOK_B0_BASE 210u /* VRAM bank 0: the flying fragile cards from here */
-#define LOOK_LOW0_BASE 16u /* VRAM bank 0 BG-only (0x9000 + 16n): items, thin ice's crack, to 83 */
+#define LOOK_LOW0_BASE 16u /* VRAM bank 0 BG-only (0x9000 + 16n): items, thin ice's crack, the void's edges, to 89 */
 #define LOOK_SHARD 242u /* VRAM bank 0: two 8x16 glass shard sprites (+0, +2) */
 #define LOOK_META_BANK0 0x80u /* meta_pal bit: the card's tiles are in VRAM bank 0 */
+#define LOOK_META_FLIP 0x20u /* meta_pal bit, bank 0 cards: the map attribute's X-flip */
 #define LOOK_PAL_FLOOR 0u
 #define LOOK_PAL_FOAM 1u
 #define LOOK_PAL_WALL 2u
