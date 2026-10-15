@@ -32,66 +32,40 @@ import t3d_art as A  # noqa: E402
 ANG = 1024
 FOV = 192
 FOG_NEAR, FOG_FAR = 3.0, 10.0
-W, H = 96, 64
+W, H = 96, 72
 MIPH = 32
-SIDEK = 4
+SIDEK = 0  # no y-face shading dither on the title: y-faces only remap light -> mid
 
 # WRAM (banks 2 and 3 hold the same layout while the title runs; see src/title3d/t3d.h)
 MAP_ADDR = 0xD000
 FB_ADDR = 0xD400
-REC_ADDR = 0xDA00
+REC_ADDR = 0xDB00
 
+# the title's own set (t3d_art.title_*): flat panels, bold outlined features, plain carpet, panel ceiling
 WALLS = [
-    ("O_BASE0", lambda: A.office_base(0)),
-    ("O_BASE1", lambda: A.office_base(1)),
-    ("O_BASE2", lambda: A.office_base(2)),
-    ("O_OUTLET", lambda: A.office_decor("outlet", 0)),
-    ("O_POSTER", lambda: A.office_decor("poster", 1)),
-    ("O_VENT", lambda: A.office_decor("vent", 2)),
-    ("O_EXIT", lambda: A.office_decor("exit", 0)),
-    ("O_CRT", lambda: A.office_decor("crt", 1)),
-    ("O_STAIN", lambda: A.office_decor("stain", 2)),
-    ("O_WATER", lambda: A.office_decor("water", 0)),
-    ("O_TEAR", lambda: A.office_decor("tear", 1)),
-    ("O_CLOCK", lambda: A.office_decor("clock", 2)),
-    ("O_DOOR", lambda: A.office_door(False)),
-    ("O_DOOREXIT", lambda: A.office_door(True)),
-    ("O_BURN0", lambda: A.office_burn(0)),
-    ("O_BURN1", lambda: A.office_burn(1)),
-    ("O_BURN2", lambda: A.office_burn(2)),
-    ("O_CHAR", lambda: A.office_char()),
-    ("V_BASE0", lambda: A.vents_base(0)),
-    ("V_BASE1", lambda: A.vents_base(1)),
-    ("V_BASE2", lambda: A.vents_base(2)),
-    ("V_GRATE", lambda: A.vents_decor("grate", 0)),
-    ("V_FAN", lambda: A.vents_decor("fan", 1)),
-    ("V_PIPES", lambda: A.vents_decor("pipes", 0)),
-    ("V_HAZARD", lambda: A.vents_decor("hazard", 1)),
-    ("V_SIGN", lambda: A.vents_decor("sign", 0)),
-    ("V_STEAM", lambda: A.vents_decor("steam", 2)),
-    ("V_LADDER", lambda: A.vents_decor("ladder", 0)),
-    ("V_HATCH", lambda: A.vents_hatch()),
-    ("B_OV4", lambda: A.blend(A.office_base(0), A.vents_base(0), 4)),
-    ("B_OV8", lambda: A.blend(A.office_base(0), A.vents_base(0), 8)),
-    ("B_OV12", lambda: A.blend(A.office_base(0), A.vents_base(0), 12)),
+    ("T_WALL", lambda: A.title_wall(False)),
+    ("T_RAIL", lambda: A.title_wall(True)),
+    ("T_DOOR", lambda: A.title_feature("door")),
+    ("T_EXITDOOR", lambda: A.title_feature("exitdoor")),
+    ("T_POSTER", lambda: A.title_feature("poster")),
+    ("T_NOTICE", lambda: A.title_feature("poster2")),
+    ("T_EXIT", lambda: A.title_feature("exit")),
+    ("T_VENT", lambda: A.title_feature("vent")),
+    ("T_CLOCK", lambda: A.title_feature("clock")),
+    ("T_BOARD", lambda: A.title_feature("board")),
 ]
 
-SETS = [
-    ("S_OFFICE", A.office_floor(True), A.office_ceiling(True)),
-    ("S_OFFDARK", A.office_floor(False), A.office_ceiling(False)),
-    ("S_VENTS", A.vents_floor(True), A.vents_ceiling(True)),
-    ("S_VENTDARK", A.vents_floor(False), A.vents_ceiling(False)),
-]
-for _f in (4, 8, 12):
-    SETS.append((f"S_BLEND{_f}", A.tex_blend_sets(SETS[0][1], SETS[2][1], _f),
-                 A.tex_blend_sets(SETS[0][2], SETS[2][2], _f)))
-SETS.append(("S_SPARE", A.office_floor(True), A.office_ceiling(True)))  # 8 sets: the asm masks the set with & 7
+SETS = [("S_OFFICE", A.title_floor(True), A.title_ceiling(True)),
+        ("S_OFFDARK", A.title_floor(False), A.title_ceiling(False))]
+SETS += [(f"S_SPARE{i}", A.title_floor(True), A.title_ceiling(True)) for i in range(6)]  # the asm masks & 7
 
 PALS = ["office", "vents", "dark"]
 
 
 def fogk(d: float) -> int:
-    return max(0, min(16, round((d - FOG_NEAR) * 16 / (FOG_FAR - FOG_NEAR))))
+    """fog level 0..16 in 25% steps: regular ordered patterns (a 2x2 dot grid, the checker), never sparse speckle"""
+    k = max(0, min(16, round((d - FOG_NEAR) * 16 / (FOG_FAR - FOG_NEAR))))
+    return (k + 2) // 4 * 4
 
 
 def runs_of(col):
@@ -328,7 +302,7 @@ def main() -> None:
     a = ap.parse_args()
     out = a.out
     out.mkdir(parents=True, exist_ok=True)
-    FR, FRFAR, SPLIT = 2, 4, 32
+    FR, FRFAR, SPLIT = 4, 4, 32  # 4-px floor rows throughout: the title's carpet is plain, only the panels need rows
     n = W // 4
     half = math.tan(math.radians(FOV / ANG * 360 / 2))
     proj = (W / 2) / half
@@ -434,13 +408,14 @@ def main() -> None:
                     cc = side1[c] if side else c
                     lo, hi = (m if cc & 1 else 0), (m if cc & 2 else 0)
                     mode = (0, 2, 2, 1, 2, 3)[kc]
-                    if side and c == 2 and kc in (0, 1):
+                    if SIDEK and side and c == 2 and kc in (0, 1):
                         mode = 1 if SIDEK == 8 else 4
                     if lo == 0 and hi == 0:
                         mode = 3
                     off = slot * 256 + (side * 6 + kc) * 16 + c * 4
                     ct[off: off + 4] = bytes([lo, hi, mode, 0])
-    kclass = [0] + [1] * (SIDEK - 1) + [2] * (8 - SIDEK) + [3] + [4] * 7 + [5]
+    kclass = [0] + [1] * max(0, SIDEK - 1) + [2] * (8 - max(1, SIDEK)) + [3] + [4] * 7 + [5]
+    assert len(kclass) == 17
     common = [("HV2", 0x4000, hv2_flat), ("VTOP", 0x5000, vtop), ("FOGK", 0x5100, fog_k), ("FOGPAT", 0x5200, fogpat),
               ("KCLASS", 0x5280, kclass), ("CTAB", 0x5300, ct), ("V0T", 0x5500, v0t)]
     lay = {k: ad for k, ad, _ in common}

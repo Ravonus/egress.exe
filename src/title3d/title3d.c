@@ -160,32 +160,34 @@ static void gen_maze(void) {
     }
 }
 
-/* ---- dressing: texture ids and floor sets from a seeded hash (8x8 zones keep the wallpaper coherent, 4x4 patches
- * have their lights out) ---- */
-static const uint8_t O_DECOR[16] = {O_OUTLET, O_OUTLET, O_POSTER, O_VENT,  O_CRT,    O_STAIN, O_WATER, O_CLOCK,
-                                    O_EXIT,   O_POSTER, O_STAIN,  O_OUTLET, O_POSTER, O_CRT,   O_VENT,  O_CLOCK};
+/* ---- dressing: texture ids and floor sets from a seeded hash. 8x8 zones pick plain panels or a chair rail; 4x4
+ * patches have their lights out. Features are spaced, not rolled per cell: a wall cell carries one when
+ * (x + 2y + phase) mod 3 == 0, which puts one every 3rd cell along any row or column and never two side by side, so a
+ * corridor shows a recognisable door, poster or sign every few steps over clean panels ---- */
+static const uint8_t T_FEATURE[8] = {T_POSTER, T_NOTICE, T_EXIT, T_BOARD, T_POSTER, T_VENT, T_CLOCK, T_NOTICE};
 
 static void dress(void) {
   uint8_t *zone = T3D_STK + 0x200u, *dark = T3D_STK + 0x210u; /* 4x4 zones of 8x8 cells, 8x8 patches of 4x4 */
-  uint8_t x, y, k;
-  for (k = 0; k != 16u; k++) zone[k] = (uint8_t)(rnd() % 3u);
+  uint8_t x, y, k, ph = (uint8_t)rnd_n(3), r;
+  for (k = 0; k != 16u; k++) zone[k] = (uint8_t)(rnd() & 1u);
   for (k = 0; k != 64u; k++) dark[k] = (uint8_t)((rnd() & 7u) == 0u);
-  for (y = 0; y < MAPW; y++)
-    for (x = 0; x < MAPW; x++) {
+  for (y = 0; y < MAPW; y++) {
+    r = ph; /* (x + 2y + ph) mod 3, kept incrementally */
+    ph = (uint8_t)(ph >= 1u ? ph - 1u : 2u);
+    for (x = 0; x < MAPW; x++, r = (uint8_t)(r == 2u ? 0u : r + 1u)) {
       uint16_t i = (uint16_t)y * MAPW + x;
       uint8_t c = map[i], h = rnd();
       if (!c) {
         map[i] = (uint8_t)(0x80u | (dark[((y >> 2) << 3) | (x >> 2)] ? S_OFFDARK : S_OFFICE));
       } else if (c == 2) {
-        map[i] = (h & 7u) == 0 ? O_DOOREXIT : O_DOOR;
-      } else if (h < 4u) {
-        map[i] = O_TEAR;
-      } else if (h < 92u) {
-        map[i] = O_DECOR[h & 15u];
+        map[i] = (h & 7u) == 0 ? T_EXITDOOR : T_DOOR;
+      } else if (r == 0u && h < 216u) {
+        map[i] = T_FEATURE[h & 7u];
       } else {
-        map[i] = (uint8_t)(O_BASE0 + zone[((y >> 3) << 2) | (x >> 3)]);
+        map[i] = (uint8_t)(T_WALL + zone[((y >> 3) << 2) | (x >> 3)]);
       }
     }
+  }
 }
 
 /* ---- the walker: a seeded random walk through the live corridors, turning on the spot, the camera trailing ---- */
@@ -309,9 +311,11 @@ static uint16_t fade(uint16_t c) { return level >= 16u ? c : mix555(BLACK, c, le
 
 static void pal_build(void) {
   uint8_t i;
-  const uint16_t *lit = &T3D_BPAL[PAL_OFFICE * 32u], *dk = &T3D_BPAL[PAL_DARK * 32u];
-  for (i = 0; i != 32u; i++) {
-    uint16_t c = flick ? mix555(lit[i], dk[i], flick) : lit[i];
+  const uint16_t *lit = &T3D_BPAL[PAL_OFFICE * T3D_PX_VIEW], *dk = &T3D_BPAL[PAL_DARK * T3D_PX_VIEW];
+  for (i = 0; i != T3D_PX_VIEW; i++) {
+    /* colour 3 of every row is the backdrop's dark (the walls' seams and baseboards share it): one flat backdrop
+     * beside the view, which the light's flicker does not touch */
+    uint16_t c = (i & 3u) == 3u ? T3D_LOGO_PAL[0] : flick ? mix555(lit[i], dk[i], flick) : lit[i];
     t3d_palx[i] = fade(vlevel >= 16u ? c : mix555(T3D_LOGO_PAL[0], c, vlevel));
   }
   for (i = 0; i != 4u; i++) {
@@ -322,8 +326,8 @@ static void pal_build(void) {
       else if (logo_state == 3) c = mix555(c, T3D_LOGO_PAL[3], 9);
       else if (logo_state == 4 && i < 3u) c = T3D_LOGO_PAL[3u - i];
     }
-    t3d_palx[32u + i] = fade(c);
-    t3d_palx[36u + i] = fade(i == 1u && !blink_on ? T3D_TEXT_PAL[0] : T3D_TEXT_PAL[i]);
+    t3d_palx[T3D_PX_LOGO + i] = fade(c);
+    t3d_palx[T3D_PX_TEXT + i] = fade(i == 1u && !blink_on ? T3D_TEXT_PAL[0] : T3D_TEXT_PAL[i]);
   }
   t3d_pal_dirty = 1;
 }
@@ -384,7 +388,7 @@ static void video_init(void) {
       uint8_t pal, k = 0;
       if (in) {
         t = (uint8_t)((x - T3D_VX) * T3D_TH + (y - T3D_VY));
-        pal = (uint8_t)(y - T3D_VY);
+        pal = (uint8_t)((y - T3D_VY) & 7u); /* row 8 shares palette 0 (swapped at T3D_SWAP_LINE) */
         a0[x] = pal;
         a1[x] = (uint8_t)(pal | 0x08u);
         row[x] = t;
@@ -400,7 +404,7 @@ static void video_init(void) {
         else t = T3D_T_FRAME;
       } else if (y < T3D_VY + T3D_TH) {
         /* beside the view: the row's own palette, its dark colour */
-        pal = (uint8_t)(y - T3D_VY);
+        pal = (uint8_t)((y - T3D_VY) & 7u);
         if (x == T3D_VX - 1u) k = 2u;
         else if (x == T3D_VX + T3D_TW) k = 3u;
         else k = ((x + y) & 3u) == 0u ? 10u : 1u;
@@ -411,7 +415,7 @@ static void video_init(void) {
         if (y == T3D_VY + T3D_TH && x == T3D_VX - 1u) t = T3D_T_FRAME + 8u;
         else if (y == T3D_VY + T3D_TH && x == T3D_VX + T3D_TW) t = T3D_T_FRAME + 9u;
         else if (y == T3D_VY + T3D_TH && x >= T3D_VX && x < T3D_VX + T3D_TW) t = T3D_T_FRAME + 5u;
-        else if (y >= 14u && y < 18u && x < 20u) {
+        else if (y >= T3D_TEXT_Y && y < 18u && x < 20u) {
           t = T3D_T_FONT1; /* a space of the font, bank 1 */
           pal = 0x08u;
         } else
@@ -558,7 +562,7 @@ void title3d_main(void) BANKED {
   LCDC_REG = (uint8_t)((LCDC_REG | LCDCF_BG8000 | LCDCF_BGON) & (uint8_t)~(LCDCF_BG9C00 | LCDCF_WINON));
   video_init();
   seed_line();
-  text(4, 14, "PRESS START", 1);
+  text(4, T3D_TEXT_Y, "PRESS START", 1);
   clock_line(0);
   t3d_cast_init();
   t3d_nviews = t3d_nflips = 0;

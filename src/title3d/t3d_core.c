@@ -20,7 +20,7 @@ volatile uint16_t t3d_vbl;
 volatile uint8_t t3d_pend;
 uint8_t t3d_pend_bank;
 volatile uint8_t t3d_wbank;
-uint16_t t3d_palx[40];
+uint16_t t3d_palx[T3D_PX_N];
 volatile uint8_t t3d_pal_dirty;
 uint8_t t3d_scx[4];
 uint8_t t3d_glitch;
@@ -97,7 +97,7 @@ static void t3d_vbl_isr(void) NONBANKED {
     for (i = 0; i != 8u; i++) BCPD_REG = *p++;
   }
   {
-    const uint8_t *p = (const uint8_t *)&t3d_palx[32];
+    const uint8_t *p = (const uint8_t *)&t3d_palx[T3D_PX_LOGO];
     BCPS_REG = 0x80u | 56u;
     for (i = 0; i != 8u; i++) BCPD_REG = *p++;
   }
@@ -139,19 +139,43 @@ static void t3d_vbl_isr(void) NONBANKED {
   }
 }
 
-/* LYC: the logo's glitch slices (lines 12, 18, 24, then 32 back to 0), then at T3D_SWAP_LINE palette 0 becomes the
- * text's and palette 7 the view's last row. The palette write waits for HBlank (mode 3, then mode 0) and is 16 bytes
- * of unrolled ldh, well inside one HBlank plus the next line's OAM scan. */
+/* LYC: the logo's glitch slices (lines 12, 18, 24, then 32 back to 0); at T3D_SWAP_LINE palette 7 becomes view row 7
+ * and palette 0 view row 8 (row 0 is drawn by then); at T3D_SWAP2_LINE palette 0 becomes the text's. Each palette
+ * write waits for HBlank (mode 3, then mode 0) and is unrolled ldh, well inside one HBlank plus the next OAM scan. */
+#if T3D_PX_VIEW != 36u || T3D_PX_TEXT != 40u
+#error "the LYC ISR's palette offsets assume 9 view rows"
+#endif
 static void t3d_lcd_isr(void) NONBANKED {
-  if (LYC_REG != T3D_SWAP_LINE) {
-    SCX_REG = slice < 4u ? t3d_scx[slice] : 0u;
-    slice++;
-    LYC_REG = slice == 2u ? 18u : slice == 3u ? 24u : slice == 4u ? 32u : T3D_SWAP_LINE;
+  if (LYC_REG == T3D_SWAP_LINE) {
+    LYC_REG = T3D_SWAP2_LINE;
+    __asm
+      ld hl, #(_t3d_palx + 64)
+      call _t3d_hbl_wait
+      ld a, #0x80
+      call _t3d_pal8
+      ld a, #0xB8
+      ld hl, #(_t3d_palx + 56)
+      call _t3d_pal8
+    __endasm;
     return;
   }
+  if (LYC_REG == T3D_SWAP2_LINE) {
+    __asm
+      ld hl, #(_t3d_palx + 80)
+      call _t3d_hbl_wait
+      ld a, #0x80
+      call _t3d_pal8
+    __endasm;
+    return;
+  }
+  SCX_REG = slice < 4u ? t3d_scx[slice] : 0u;
+  slice++;
+  LYC_REG = slice == 2u ? 18u : slice == 3u ? 24u : slice == 4u ? 32u : T3D_SWAP_LINE;
+}
+
+/* the LYC ISR's helpers: wait for this line's HBlank; write 8 palette bytes from hl at index a */
+void t3d_hbl_wait(void) NONBANKED __naked {
   __asm
-    ld hl, #(_t3d_palx + 72)
-    ld c, #0x69
   00701$:
     ldh a, (0x41)
     and a, #3
@@ -161,28 +185,14 @@ static void t3d_lcd_isr(void) NONBANKED {
     ldh a, (0x41)
     and a, #3
     jr nz, 00702$
-    ld a, #0x80
-    ldh (0x68), a
+    ret
+  __endasm;
+}
 
-    ld a, (hl+)
-    ldh (c), a
-    ld a, (hl+)
-    ldh (c), a
-    ld a, (hl+)
-    ldh (c), a
-    ld a, (hl+)
-    ldh (c), a
-    ld a, (hl+)
-    ldh (c), a
-    ld a, (hl+)
-    ldh (c), a
-    ld a, (hl+)
-    ldh (c), a
-    ld a, (hl+)
-    ldh (c), a
-    ld a, #0xB8
+void t3d_pal8(void) NONBANKED __naked {
+  __asm
     ldh (0x68), a
-    ld hl, #(_t3d_palx + 56)
+    ld c, #0x69
     ld a, (hl+)
     ldh (c), a
     ld a, (hl+)
@@ -199,6 +209,7 @@ static void t3d_lcd_isr(void) NONBANKED {
     ldh (c), a
     ld a, (hl+)
     ldh (c), a
+    ret
   __endasm;
 }
 

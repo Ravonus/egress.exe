@@ -18,11 +18,21 @@ from pathlib import Path
 from PIL import Image
 
 MODE_TITLE, MODE_PLAY = 1, 2
-MAP, FB, FBSZ = 0xD000, 0xD400, 1536
+MAP, FB, FBSZ = 0xD000, 0xD400, 1728  # 96x72: 12 strips of 144 bytes
 
 
 def view_crop(img: Image.Image) -> Image.Image:
-    return img.crop((32, 40, 128, 104))
+    return img.crop((32, 40, 128, 112))
+
+
+def shot_lit(g, path: Path, limit: int = 600) -> None:
+    """a screenshot once the logo is lit (it ignites, flickers and glitches on its own clock)"""
+    for _ in range(limit):
+        logo = g.pb.screen.image.convert("RGB").crop((0, 8, 160, 32))
+        if sum(1 for r, gg, b in logo.getdata() if r > 200 and gg < 140 and b > 140) > 150:
+            break
+        g.tick()
+    g.shot(path)
 
 
 def snapshot(g) -> tuple[bytes, bytes, int]:
@@ -87,7 +97,7 @@ def gif(g, path: Path, seconds: float = 6.0, every: int = 3, scale: int = 2) -> 
 def title_pass(g, out: Path, report: dict, host: Path | None) -> bool:
     """g is at MODE_TITLE, just entered"""
     g.tick(150)  # the fade in and the logo's ignition
-    g.shot(out / "b1_title.png")
+    shot_lit(g, out / "b1_title.png")
     img = g.pb.screen.image.convert("RGB")
     view = view_crop(img)
     colours = len(set(view.getdata()))
@@ -102,7 +112,7 @@ def title_pass(g, out: Path, report: dict, host: Path | None) -> bool:
     gif(g, out / "b1_title.gif")
     ok_host = host_check(g, host, report) if host and host.exists() else True
     report["title_stack_high_water"] = stack_high_water(g)
-    ok = colours >= 6 and moved > 200 and fps >= 22.0 and ok_host and report["title_stack_high_water"] < 176
+    ok = colours >= 6 and moved > 200 and fps >= 24.0 and ok_host and report["title_stack_high_water"] < 176
     report["title_ok"] = ok
     return ok
 

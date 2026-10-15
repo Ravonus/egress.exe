@@ -395,13 +395,20 @@ BIOMES = {
 }
 
 
-def biome_palettes(name: str) -> list[list[tuple]]:
+def biome_palettes(name: str, nrows: int = 9) -> list[list[tuple]]:
+    """one palette per tile row of the view; with 9 rows (72 px) the middle row straddles the horizon and takes the
+    mean of the last ceiling and the first floor colour"""
     b = BIOMES[name]
-    rows = b["ceil"] + b["floor"]
+    if nrows == 9:
+        mid = lerp(b["ceil"][3], b["floor"][0], 0.5)
+        rows = b["ceil"] + [mid] + b["floor"]
+    else:
+        rows = b["ceil"] + b["floor"]
     out = []
-    for r in range(8):
-        k = abs(r - 3.5) / 3.5  # 0 at the horizon rows, 1 at top/bottom
-        shade = 0.88 + 0.12 * (1 - r / 7)  # top-lit: walls a touch brighter near the lights
+    last = nrows - 1
+    for r in range(nrows):
+        k = abs(r - last / 2) / (last / 2)  # 0 at the horizon rows, 1 at top/bottom
+        shade = 0.88 + 0.12 * (1 - r / last)  # top-lit: walls a touch brighter near the lights
         out.append([rows[r], lerp((0, 0, 0), b["light"], shade), lerp((0, 0, 0), b["mid"], shade),
                     lerp((0, 0, 0), b["dark"], 0.9 + 0.1 * k)])
     return out
@@ -409,3 +416,88 @@ def biome_palettes(name: str) -> list[list[tuple]]:
 
 def q555(c):
     return tuple((v >> 3) << 3 for v in c)
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# THE TITLE'S OWN SET (docs/redesign.md 15.1, mock_title.png): flat panels that read at 24 rays (each texel column
+# is 4 px wide on screen, so vertical detail aliases and only bold shapes survive). Horizontal bands carry the look
+# (crown, chair rail, a deep baseboard); one dark seam per cell; features are big and outlined in the dark colour so
+# they survive the y-face remap (light -> mid). No speckle, no texture dither: the dither is the fog's alone.
+# ---------------------------------------------------------------------------------------------------------------
+def title_wall(rail: bool = False) -> list[list[int]]:
+    t = blank(1)
+    for x in range(16):
+        t[0][x] = 3                       # crown
+        t[12][x] = 2                      # baseboard cap
+        for y in (13, 14, 15):
+            t[y][x] = 3                   # baseboard
+        if rail:
+            t[7][x] = 3                   # chair rail over a mid wainscot
+            for y in range(8, 12):
+                t[y][x] = 2
+    for y in range(1, 12):                # the panel seam, two texels across the cell edge
+        t[y][0] = 3
+        t[y][15] = 3
+    return t
+
+
+def title_feature(kind: str) -> list[list[int]]:
+    t = title_wall(False)
+    if kind == "door":
+        rect(t, 3, 1, 12, 15, 3)          # frame
+        rect(t, 5, 3, 10, 15, 2)          # slab
+        rect(t, 6, 5, 9, 8, 3)            # window
+        t[10][9] = 1
+        t[10][8] = 1                      # handle
+    elif kind == "exitdoor":
+        t = title_feature("door")
+        rect(t, 4, 0, 11, 2, 3)           # a lit EXIT plate over the frame
+        rect(t, 5, 1, 10, 1, 1)
+    elif kind == "poster":                # sun over hills, thick frame
+        rect(t, 4, 2, 11, 10, 3)
+        rect(t, 5, 3, 10, 9, 2)
+        rect(t, 7, 4, 8, 5, 1)
+        rect(t, 5, 8, 10, 9, 3)
+        t[7][6] = t[7][9] = 3
+    elif kind == "poster2":               # a tall notice: three dark text bars
+        rect(t, 5, 2, 10, 11, 3)
+        rect(t, 6, 3, 9, 10, 1)
+        for y in (4, 6, 8):
+            rect(t, 6, y, 9 if y != 8 else 8, y, 3)
+    elif kind == "exit":                  # a wall EXIT plate with an arrow under it
+        rect(t, 3, 2, 12, 6, 3)
+        rect(t, 4, 3, 11, 5, 1)
+        rect(t, 5, 4, 10, 4, 3)
+        stamp(t, 6, 8, ["..3.", "3333", "..3."])
+    elif kind == "vent":
+        rect(t, 4, 2, 11, 6, 3)
+        for y in (3, 5):
+            rect(t, 5, y, 10, y, 2)
+    elif kind == "clock":
+        for y in range(2, 9):
+            for x in range(4, 12):
+                r = (x - 7.5) ** 2 + (y - 5.5) ** 2
+                if r < 9:
+                    t[y][x] = 1
+                elif r < 15:
+                    t[y][x] = 3
+        t[3][7] = t[4][7] = t[5][7] = 3
+        t[5][8] = t[5][9] = 3
+    elif kind == "board":                 # a long cork board: wide dark frame, mid field, light notes
+        rect(t, 1, 3, 14, 10, 3)
+        rect(t, 2, 4, 13, 9, 2)
+        rect(t, 3, 5, 5, 7, 1)
+        rect(t, 8, 5, 10, 8, 1)
+        rect(t, 12, 6, 13, 7, 1)
+    return t
+
+
+def title_floor(lit: bool = True) -> list[list[int]]:
+    return blank(0)                       # the rows' palette gradient is the carpet (mock_title.png)
+
+
+def title_ceiling(lit: bool = True) -> list[list[int]]:
+    t = blank(0)
+    rect(t, 9, 10, 15, 14, 2)             # one fluorescent panel per 2x2 cells: a mid rim, a light tube
+    rect(t, 10, 11, 14, 13, 1 if lit else 2)
+    return t

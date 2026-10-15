@@ -417,7 +417,7 @@ def run_death(g: Game, out: Path, report: dict) -> bool:
         if report["death_back_to_title"] and out is not None:
             # the 3D title again after a run: it re-inits its memory, walks a new seed, and START plays again
             g.tick(150)  # the title zeroes its counters on entry: measure once it walks
-            g.shot(out / "b1_title_return.png")
+            title3d.shot_lit(g, out / "b1_title_return.png")
             v0 = g.peek16("t3d_nviews")
             g.tick(120)
             report["title_return_views"] = (g.peek16("t3d_nviews") - v0) & 0xFFFF  # ~48 at 24 fps
@@ -618,7 +618,7 @@ def main() -> int:
         report["boot_mode_at_150"] = g.peek("game_mode")
         results["boot"] = g.wait_mode(MODE_TITLE, 1500)
         results["title3d"] = title3d.title_pass(g, a.out, report, a.t3d_host)
-        g.shot(a.out / "02_title.png")  # the walk, well under way
+        title3d.shot_lit(g, a.out / "02_title.png")  # the walk, well under way
         if a.audio:
             g.audio.clear()
             g.tick(60 * 20)

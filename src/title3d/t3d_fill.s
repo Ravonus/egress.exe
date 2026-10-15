@@ -578,6 +578,7 @@ wcol:
 	add	a, c
 	ld	l, a
 	ldh	a, (W_STH)
+	adc	a, #0		; strips are 144 bytes (96x72): they cross pages
 	ld	h, a
 	call	ws_zero
 110$:
@@ -684,6 +685,7 @@ wcol:
 	add	a, c
 	ld	l, a
 	ldh	a, (W_STH)
+	adc	a, #0		; strips are 144 bytes (96x72): they cross pages
 	ld	h, a
 	ldh	a, (W_SLOT)
 	or	a, a
@@ -841,6 +843,7 @@ frow:
 	add	a, l
 	ld	l, a
 	ldh	a, (F_STH)
+	adc	a, #0		; strips are 144 bytes (96x72): they cross pages
 	ld	h, a
 	ld	c, d
 	ldh	a, (c)
@@ -904,6 +907,7 @@ l1:
 	add	a, l
 	ld	l, a
 	ldh	a, (F_STH)
+	adc	a, #0		; strips are 144 bytes (96x72): they cross pages
 	ld	h, a
 	ld	a, #fr
 	sub	a, c
@@ -938,6 +942,7 @@ l3:
 	add	a, l
 	ld	l, a
 	ldh	a, (F_STH)
+	adc	a, #0		; strips are 144 bytes (96x72): they cross pages
 	ld	h, a
 	ld	a, #fr
 	sub	a, c
@@ -1157,6 +1162,7 @@ f320:
 	add	a, l
 	ld	l, a
 	ldh	a, (F_STH)
+	adc	a, #0		; strips are 144 bytes (96x72): they cross pages
 	ld	h, a
 	ldh	a, (NOFOG)
 	inc	a
@@ -1177,6 +1183,7 @@ f320:
 	add	a, l
 	ld	l, a
 	ldh	a, (F_STH)
+	adc	a, #0		; strips are 144 bytes (96x72): they cross pages
 	ld	h, a
 	.rept	fr
 	ld	a, b
@@ -1248,6 +1255,7 @@ f330:
 	add	a, l
 	ld	l, a
 	ldh	a, (F_STH)
+	adc	a, #0		; strips are 144 bytes (96x72): they cross pages
 	ld	h, a
 .ifeq fr - 8
 	ldh	a, (PC7)

@@ -113,7 +113,7 @@ seeds: build/host/egtool tools/bake_seeds.sh
 build/host/t3d_host: proto/raycast/v2/src/host2.c proto/raycast/v2/src/core2.c tools/title3d/gen_t3d.py tools/title3d/t3d_art.py
 	@mkdir -p build/t3d_host/gen build/host
 	$(PY) tools/title3d/gen_t3d.py build/t3d_host/gen --host build/t3d_host
-	$(HOSTCC) -O2 -std=c99 -Wall -Wextra -Iproto/raycast/v2/src -Ibuild/t3d_host -o $@ \
+	$(HOSTCC) -O2 -std=c99 -Wall -Wextra -DVIEW_H=72 -Iproto/raycast/v2/src -Ibuild/t3d_host -o $@ \
 		proto/raycast/v2/src/host2.c proto/raycast/v2/src/core2.c build/t3d_host/tables2.c
 
 build/host/test_room: host/test_room.c host/eg_solve.c host/eg_solve.h src/core/eg_room.c src/core/eg_room.h
@@ -145,6 +145,7 @@ test: build/host/test_room build/egress.gbc build/egress-rtc.gbc test-rtc
 
 shots: build/egress.gbc build/host/egtool build/host/t3d_host
 	$(PY) test/harness/play.py build/egress.gbc docs/shots
+	$(PY) tools/title3d/vs_refs.py docs/shots
 
 clean:
 	rm -rf build
