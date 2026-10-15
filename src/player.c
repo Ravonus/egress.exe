@@ -10,6 +10,7 @@
 #include "heir.h"
 #include "core/eg_input.h"
 #include "core/eg_move.h"
+#include "puzzle.h"
 
 uint8_t pl_x, pl_y, pl_hp, pl_hp_max, pl_state, pl_face;
 uint8_t pl_t, pl_inv, pl_combo, pl_queue, pl_charge, roll_cd, push_t, hit_mask, walk_t, combo_gap;
@@ -52,14 +53,15 @@ static void cardinal_face(void) {
 
 /* the mover reads room.c itself through a byte -> cell map (no copy per step), built at the floor's start; the door
  * bytes follow the door. T_* -> mover cell: 0 free, 1 wall, 2 a CRT (a wall while it falls), 3 the door (a wall until open) */
-static const uint8_t cell_kind[16] = {0, 0, 1, 1, 2, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0};
+/* B1: every cell type the shared rules call passable is free (fragile floor, glitched glass, ice, plates, pieces) */
 static void grid_map(void) {
-  uint8_t c = 0, v;
+  uint8_t c = 0, v, t;
   map_door = door_open;
   do {
-    v = cell_kind[c & T_MASK];
-    if (v == 3u) v = door_open ? EG_C_FREE : EG_C_WALL;
-    else if (v == 2u && (c & F_FALL)) v = EG_C_WALL;
+    t = (uint8_t)(c & T_MASK);
+    v = t == T_ROCK ? ((c & F_FALL) ? EG_C_WALL : EG_C_BLOCK)
+        : t == T_DOOR ? (door_open ? EG_C_FREE : EG_C_WALL)
+        : EG_PASSABLE(t) ? EG_C_FREE : EG_C_WALL;
     pmap[c] = v;
   } while (++c);
 }
@@ -137,7 +139,8 @@ static void collect(void) {
     overlay(HA_PICKUP, 16u);
     if (keys_held == room.keys) open_door();
     else hud_msg("KEYCARD");
-  }
+  } else if (t == T_ITEM)
+    puzzle_pick(i); /* B1: a piece into the pocket */
 }
 
 /* a push request from the mover: CRTs go sideways only (the solver's rules), into an empty cell */
@@ -146,12 +149,11 @@ static void do_push(void) {
   if (pmv.req_dir != EG_DP_LEFT && pmv.req_dir != EG_DP_RIGHT) return;
   if (cell_type(c) != T_ROCK || (room.c[c] & F_FALL)) return;
   beyond = (uint8_t)(pmv.req_dir == EG_DP_RIGHT ? c + 1u : c - 1u);
-  if (room.c[beyond] != T_EMPTY || enemy_in_cell(beyond)) {
+  if (enemy_in_cell(beyond) || !eg_push(&room, c, beyond)) { /* B1: the shared rule (plates, pits, glass too) */
     sfx(SFX_DENY);
     return;
   }
-  room.c[beyond] = T_ROCK;
-  room.c[c] = T_EMPTY;
+  puzzle_dirty = 1u; /* B1: a push can seal a room */
   queue_cell(c);
   queue_cell(beyond);
   sfx(SFX_PUSH);

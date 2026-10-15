@@ -3,6 +3,7 @@
 #include <gb/cgb.h>
 #include "play.h"
 #include "look.h"
+#include "puzzle.h"
 
 const int8_t fdx[4] = {0, 0, -1, 1}, fdy[4] = {-1, 1, 0, 0};
 uint8_t meta_tile[M_COUNT][4], meta_pal[M_COUNT];
@@ -20,7 +21,7 @@ uint8_t is_cracked(uint8_t i) NONBANKED { return (uint8_t)(cracked[i >> 3] & (ui
 
 static uint8_t solid_player(uint8_t i) {
   uint8_t t = cell_type(i);
-  return (uint8_t)(t == T_WALL || t == T_ROCK || t == T_BRICK || (t == T_DOOR && !door_open));
+  return (uint8_t)(t == T_DOOR ? !door_open : !EG_PASSABLE(t)); /* B1: water, shutters, paper, sockets, pits too */
 }
 uint8_t box_free(uint8_t x, uint8_t y) NONBANKED {
   uint8_t l = (uint8_t)(x - 5u), r = (uint8_t)(x + 4u), t = (uint8_t)(y - 5u), b = (uint8_t)(y + 4u);
@@ -79,6 +80,7 @@ static uint8_t meta_for(uint8_t i) {
     return (h & 2u) ? M_VOID_C : ((h & 1u) ? M_VOID_B : M_VOID_A);
   }
   if (look_skin[i]) return (uint8_t)(look_skin[i] - 1u); /* a fragile stage or a pit (src/look.h) */
+  if (t >= T_CRUMBLE) return puzzle_meta(i);         /* B1 puzzle cells: their cards (src/puzzle.c) */
   switch (t) {
     case T_EMPTY:
       h = (uint8_t)(h % 20u); /* A 50%, B 20%, C 15%, D 15% */
@@ -119,7 +121,13 @@ void draw_meta(uint8_t i, uint8_t m) NONBANKED {
   set_bkg_tiles((uint8_t)(EG_X(i) << 1), (uint8_t)(EG_Y(i) << 1), 2, 2, meta_tile[m]);
 }
 
-void draw_cell(uint8_t i) NONBANKED { draw_meta(i, meta_for(i)); }
+void draw_cell(uint8_t i) NONBANKED {
+  if (cell_type(i) == T_ITEM && !look_skin[i] && solid_ground(i)) { /* B1: a piece shows its name (src/puzzle.c) */
+    puzzle_draw_item(i);
+    return;
+  }
+  draw_meta(i, meta_for(i));
+}
 
 void flush_cells(uint8_t max) NONBANKED {
   while (cq_tail != cq_head && max--) {

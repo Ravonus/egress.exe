@@ -168,6 +168,9 @@ void run_floor_done(void) BANKED {
   if (boss_floor) meta.seen |= SEEN_BOSS;
 }
 
+/* B1: the player held SELECT and the room forgot: one small lean of the matrix */
+void run_room_forgot(void) BANKED { lean(TR_WHERE + 1u, 1u); }
+
 void run_end(uint8_t won) BANKED {
   uint8_t i, v;
   if (meta.runs != 0xffffu) meta.runs++;

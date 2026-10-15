@@ -60,11 +60,11 @@ def cart_heir(g: Game) -> dict:
     return out
 
 
-def boot_heir(rom: Path, seed: int, enemies_off: bool = True, game_seed: int = 0x5EED) -> Game:
+def boot_heir(rom: Path, seed: int, enemies_off: bool = True, game_seed: int = 0x5EED, fade: int = 40) -> Game:
     g = Game(rom)
     g.wait_mode(1, 1500)
     g.poke16("dbg_heir", seed)
-    start_run(g, god=True, no_enemies=enemies_off, seed=game_seed)
+    start_run(g, god=True, no_enemies=enemies_off, seed=game_seed, fade=fade)
     return g
 
 
@@ -158,6 +158,7 @@ def check_moves(rom: Path, report: dict) -> bool:
 def walk_rate(g: Game, keys: set, ticks: int = 48) -> tuple:
     """mean sub-pixels per game frame on each axis, over frames the mover was not blocked (pmv.blocked)"""
     g.hold(keys)
+    g.tick(1)  # the pad is read once a frame: a walk from standing starts a frame later (latency, not speed)
     sx = sy = n = 0
     for _ in range(ticks):
         f0, p0 = g.peek16("frame_count"), (g.peek16("psx"), g.peek16("psy"))
@@ -233,7 +234,7 @@ def check_idle(rom: Path, report: dict) -> bool:
     ok = True
     out = []
     for seed in (6, 2):
-        g = boot_heir(rom, seed)
+        g = boot_heir(rom, seed, fade=0)  # from the spawn on: the idle clock starts when the spawn overlay ends
         h = cart_heir(g)
         traits = py_heir(seed)["_traits"]
         seen = []

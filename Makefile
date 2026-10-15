@@ -13,8 +13,9 @@ HOSTCFLAGS := -O2 -std=c99 -Wall -Wextra -Werror
 MAPPER ?= mbc5
 
 SRC := src/main.c src/screens.c src/play.c src/grid.c src/hud.c src/player.c src/actors.c src/sprites.c src/boss.c \
-	src/sound.c src/boot/keel_boot.c src/core/eg_room.c src/core/eg_clock.c src/gen/art.c src/gen/art_pics.c \
-	src/gen/look_art.c src/look.c src/gen/eg_seeds.c \
+	src/sound.c src/boot/keel_boot.c src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c src/core/eg_plan.c \
+	src/core/eg_clock.c src/gen/art.c src/gen/art_pics.c \
+	src/gen/look_art.c src/look.c src/gen/eg_seeds.c src/puzzle.c \
 	src/core/eg_input.c src/core/eg_move.c src/core/eg_idle.c src/heir.c src/gen/heir_tab.c src/gen/heir_banks.c \
 	$(sort $(wildcard src/gen/heir_data_*.c))
 MAPPER_SRC := src/run.c src/clock.c src/heir_draw.c
@@ -95,18 +96,25 @@ src/gen/look_art.c src/gen/look_art.h: tools/bake_look.py tools/bake_art.py
 src/gen/music_data.h: tools/compose.py
 	$(PY) tools/compose.py $@
 
-build/host/egtool: host/egtool.c host/eg_solve.c host/eg_solve.h src/core/eg_room.c src/core/eg_room.h
+ROOM_SRC := src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c
+ROOM_HDR := src/core/eg_room.h src/core/eg_piece.h host/eg_solve.h
+build/host/egtool: host/egtool.c host/eg_solve.c $(ROOM_SRC) $(ROOM_HDR)
 	@mkdir -p $(dir $@)
-	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/egtool.c host/eg_solve.c src/core/eg_room.c
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/egtool.c host/eg_solve.c $(ROOM_SRC)
 
 # The seed table is baked on request only (minutes of solving): `make seeds`. `make test` re-solves every baked seed
 # with the current generator, so a generator change without a rebake fails the tests.
 seeds: build/host/egtool tools/bake_seeds.sh
 	sh tools/bake_seeds.sh build/host/egtool src/gen/eg_seeds.c 128
 
-build/host/test_room: host/test_room.c host/eg_solve.c host/eg_solve.h src/core/eg_room.c src/core/eg_room.h
+# the run planner over the baked table, headless (B1 curriculum): `egplan check 1000` is part of `make test`
+build/host/egplan: host/egplan.c src/core/eg_plan.c src/core/eg_plan.h src/gen/eg_seeds.c src/gen/eg_seeds.h
 	@mkdir -p $(dir $@)
-	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_room.c host/eg_solve.c src/core/eg_room.c
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/egplan.c src/core/eg_plan.c src/gen/eg_seeds.c
+
+build/host/test_room: host/test_room.c host/eg_solve.c $(ROOM_SRC) $(ROOM_HDR)
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_room.c host/eg_solve.c $(ROOM_SRC)
 
 # the ported face generator on the host, for the art tools and mocks (tools/avatar_png.py, tools/mock/*)
 AVATAR_SRC := src/avatar/crucible_avatar.c src/avatar/crucible_avatar_base.c
@@ -144,8 +152,9 @@ test-rtc: build/host/test_clock build/egress.gbc build/egress-rtc.gbc
 	$(PY) tools/mapper_audit.py build/linked-mbc5.map build/linked-mbc3.map
 	$(PY) test/rtc_test.py build/egress.gbc build/egress-rtc.gbc
 
-test: build/host/test_room build/egress.gbc build/egress-rtc.gbc test-rtc test-heir
+test: build/host/test_room build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir
 	build/host/test_room src/gen/eg_seeds.c
+	build/host/egplan check 1000
 	$(PY) tools/test_finish_rom.py build/egress.gbc
 	$(PY) tools/test_finish_rom.py build/egress-rtc.gbc
 

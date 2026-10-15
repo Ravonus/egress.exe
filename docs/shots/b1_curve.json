@@ -1,0 +1,17 @@
+{
+  "runs": 1000,
+  "rooms": 8181,
+  "deaths": 336,
+  "stages": {"introduce": 875, "develop": 2304, "combine": 2317, "test": 2685},
+  "ordering_violations": 0,
+  "ordering_clean_pct": 100.00,
+  "introductions": 875,
+  "introductions_alone": 875,
+  "back_to_back_repeats": 0,
+  "mean_run_of_an_introduction": 0.77,
+  "introductions_by_mechanic": {"burn": 125, "cold": 125, "short": 125, "weight": 125, "glass": 125, "rhythm": 125, "steps": 125},
+  "mixed_share_by_floor": [24.20, 27.20, 87.50, 43.46, 48.56, 86.50, 56.99, 59.25, 83.53],
+  "mean_target_by_floor": [3.99, 3.14, 7.50, 5.62, 5.51, 9.52, 7.09, 7.47, 12.51],
+  "mean_level_by_floor": [3.80, 3.00, 7.14, 5.37, 5.30, 8.85, 6.33, 6.21, 10.41],
+  "mixed_share_by_floor_and_generation": {"runs_1_2": [0.00, 0.00, 50.00, 0.00, 0.00, 46.81, 0.00, 0.00, 36.55], "runs_3_5": [21.60, 26.40, 100.00, 50.15, 62.39, 100.00, 71.88, 76.45, 100.00], "runs_6_8": [42.93, 46.13, 100.00, 65.93, 68.14, 100.00, 83.23, 86.38, 100.00]}
+}

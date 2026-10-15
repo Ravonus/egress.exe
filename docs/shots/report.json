@@ -1,22 +1,22 @@
 {
   "rom": "build/egress.gbc",
-  "size": 458752,
+  "size": 475136,
   "boot_mode_at_150": 0,
   "solve_started": true,
-  "floor_seed": 40,
+  "floor_seed": 38,
   "floor_tier": 0,
   "room_matches_host": true,
-  "plan": "UUURRRRrRRUUUUU",
-  "plan_stats": "solved 1 nodes 14 acts 14 steps 15 pushes 0 breaks 1 digs 8 drops 3",
+  "plan": "ULLlLUDLLUUPaUUUUUUURRRRRRRRLLLLLLLLU",
+  "plan_stats": "solved 1 nodes 5 acts 5 steps 37 pushes 0 breaks 1 digs 0 drops 0 picks 1 combines 0 uses 1 branching 1.50 difficulty 41 trick burn states 4 dead 0 fatal-depth -1",
   "autopilot_log": [],
   "reached_floor2": true,
   "keys_held_at_end": 0,
   "combat_started": true,
   "enemies_at_start": 2,
-  "combat_strikes": 5,
-  "enemies_killed": 2,
-  "enemy_hp_removed": 5,
-  "tokens_gained": 3,
+  "combat_strikes": 3,
+  "enemies_killed": 1,
+  "enemy_hp_removed": 2,
+  "tokens_gained": 2,
   "death_hp_start": 6,
   "death_took_damage": true,
   "death_reached_screen": true,
@@ -98,17 +98,17 @@
     ]
   ],
   "landing_reached_floor4": true,
-  "boss_strikes": 22,
+  "boss_strikes": 24,
   "boss_dead": true,
   "boss_hp_left": 0,
-  "boss_frames": 1343,
+  "boss_frames": 1426,
   "boss_shots": {
     "tell": true,
     "orbs": true,
     "stun": true
   },
   "boss_log": [
-    "stuck moving U from cell 87 toward 71 at (120, 86)"
+    "stuck moving U from cell 89 toward 73 at (153, 86)"
   ],
   "ending_back_to_title": true,
   "save_after_win": {
@@ -131,6 +131,82 @@
     ],
     "slot": 1
   },
+  "puzzle": {
+    "burn": {
+      "seed": 1,
+      "tier": 2,
+      "plan": "ULLLLRRRRRDRrRUDRRDRRrRUDLLULLLLLULLLCcgPiUUUUuUUPaUUUURRRRRRRULLLLLLU",
+      "room_matches_host": true,
+      "log": [],
+      "reached_floor2": true,
+      "moment_shot": true,
+      "hp_lost": 0
+    },
+    "cold": {
+      "seed": 3,
+      "tier": 2,
+      "plan": "LLLDDRRUURRRPaUUUULLLLLRRDRRRDDDRRDLLLLLLLLLLLURRURRRRRRRUUUULLCbcCcgPiULLUUUULLLLRRRU",
+      "room_matches_host": true,
+      "log": [],
+      "reached_floor2": true,
+      "moment_shot": true,
+      "hp_lost": 0
+    },
+    "glass": {
+      "seed": 34,
+      "tier": 2,
+      "plan": "ULLLLLLLDDLLLLLLUUURPaUUURUURRRRRRDDLLLLLLDDRDDDRRRUULRDDLLLUUULUUUULUUUUU",
+      "room_matches_host": true,
+      "log": [],
+      "reached_floor2": true,
+      "moment_shot": true,
+      "hp_lost": 0,
+      "gif_frames": 596
+    },
+    "rhythm": {
+      "seed": 35,
+      "tier": 2,
+      "plan": "URRRRRRULLRCcgPiUUULLLULLLLLlLUDRRURRRRRRRRUUUULLLLLLLLLlLDUURRRRU",
+      "room_matches_host": true,
+      "log": [],
+      "reached_floor2": true,
+      "moment_shot": true,
+      "hp_lost": 0
+    },
+    "short": {
+      "seed": 2,
+      "tier": 2,
+      "plan": "URRRUDRRUURRRRDDDDDLLLLLDLCacCefPlLRRUUURRRRRRURRUUULLLLLLLLLCcgPiULLUULRURRRUU",
+      "room_matches_host": true,
+      "log": [],
+      "reached_floor2": true,
+      "moment_shot": true,
+      "hp_lost": 0,
+      "gif_frames": 674
+    },
+    "weight": {
+      "seed": 32,
+      "tier": 2,
+      "plan": "UUURRRRRURLLDDDRRRDUUULLLLLLLLURRRRRRCcgPiUDDDDDDLLLLULUUUUURRRRRUUUUCbdCahPkURRRRDDLLULLLLLUU",
+      "room_matches_host": true,
+      "log": [],
+      "reached_floor2": true,
+      "moment_shot": true,
+      "hp_lost": 0
+    },
+    "dead_hint": {
+      "seed": 1,
+      "hint": true,
+      "reset_restores_glass": true,
+      "hint_cleared": true,
+      "hearts_kept": true,
+      "tokens_before_after": [
+        0,
+        0
+      ],
+      "log": []
+    }
+  },
   "heir_roll_seeds": 27,
   "heir_roll_mismatches": [],
   "heir_moves": {
@@ -147,8 +223,8 @@
   "heir_movement": {
     "straight_sub_per_frame": 20.0,
     "diag_sub_per_frame": [
-      14.14,
-      14.14
+      14.12,
+      14.12
     ],
     "diagonal_normalised": true,
     "4way_left_wins": true,
@@ -285,16 +361,16 @@
   ],
   "heir_budget": {
     "combat": {
-      "frames": 385,
-      "max_oam": 11,
-      "max_per_line": 9,
+      "frames": 11170,
+      "max_oam": 8,
+      "max_per_line": 8,
       "frames_over_10": 0
     },
     "boss": {
-      "frames": 1789,
+      "frames": 1874,
       "max_oam": 19,
-      "max_per_line": 15,
-      "frames_over_10": 82
+      "max_per_line": 16,
+      "frames_over_10": 128
     }
   },
   "heir_states_shown": 59,
@@ -308,6 +384,7 @@
     "landing": true,
     "boss": true,
     "save_win": true,
+    "puzzle": true,
     "heir_roll": true,
     "heir_moves": true,
     "heir_movement": true,

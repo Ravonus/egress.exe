@@ -20,13 +20,27 @@ trimmed file.
 
 ## How rooms are made
 
-`src/core/eg_room.c` is shared verbatim by the cartridge and the host. It generates a 16x14 room from (seed, tier)
-and runs the CRT gravity step (fall, roll, held up by the player, hit the player). The host solver
-(`host/eg_solve.c`) searches settled boards, one board-changing act per step (dig, collect, push, break drywall, leave
-a cell that holds a CRT up), and every plan it returns is replayed through the same gravity code. `tools/bake_seeds.sh`
-keeps, per tier, the first 128 seeds whose rooms are not trivial (a keycard or the door reachable without moving
-anything) and solve within the tier's bounds; the cartridge only plays those seeds. The harness checks that the
-cartridge's room is byte-identical to the host's and drives the solver's plan through the real game to the door.
+`src/core` is shared verbatim by the cartridge and the host. `eg_gen.c` builds a 16x14 office room backwards from its
+door: it picks a trick (BURN paper and planks with something HOT, COLD PATH: freeze a flood to walk over it, SHORT
+CIRCUIT: shock a flood that touches a dead socket and the shutter under the door lifts, DEAD WEIGHT: lay a brick on a
+plate in the north wall), seals the door behind it, then places the pieces (FIRE, WATER, AIR, EARTH, METAL) that the
+bench (`eg_piece.c`: 11 recipes, the 8x8 trait reaction table) turns into the answer, each behind a lock of its own,
+plus a red herring or two. Floors are mostly open carpet: foam comes in a few deliberate patches (under 25% of every
+baked room). `eg_room.c` runs the CRT gravity step. The host solver (`host/eg_solve.c`) searches settled boards, one
+board- or pocket-changing act per step (dig, collect, pick up, push, break drywall, combine on the bench, use a piece
+on a cell), and every plan it returns is replayed through the same rules. `tools/bake_seeds.sh` keeps, per tier, the
+first 128 seeds whose rooms are not trivial, need their trick (proved: the trick's obstacle counted as concrete seals
+the goal), keep their herrings harmless, and solve within the tier's difficulty band; the cartridge only plays those
+seeds. `make test` re-checks every baked seed; the harness checks that the cartridge's room is byte-identical to the
+host's and drives the solver's plan, bench and all, through the real game to the door.
+
+Fragile floor (`eg_room.h` eg_frag: worn carpet 3 steps, ceiling tile 2, glass 1, thin ice 2, glitched glass on a
+beat) wears by stepping off it; the last step leaves the void. Two more tricks use it: one-way glass (the keycard lies
+behind you) and glitched glass (cross on the beat). Breaking the wrong tile can make a room unwinnable: the cartridge
+notices the common cases (a flood fill after every break or push), says ROOM FORGETS, and holding SELECT puts the
+room back for a token, never a heart. Which room a floor gets is the run planner's (`src/core/eg_plan.c`): mechanics
+are introduced alone, developed, then combined, on a tension-release-spike wave that rises with depth and with the
+runs played (`host/egplan sim`, `tools/plot_curve.py`).
 
 ## A run
 
@@ -38,7 +52,8 @@ what the matrix leans toward. The battery save (two CRC-16 records in SRAM) keep
 unlocked mods, the things seen and a bounded trace of the matrix.
 
 Controls: d-pad move (lean into a CRT to push it), A lash (three-hit combo; hold to charge, release to spin), B dodge
-roll, START pause, hold SELECT to reset the floor (costs half a heart).
+roll, START pause, tap SELECT for the bench (combine two pieces with A, START uses the chosen piece on the cell you
+face), hold SELECT to reset the floor (costs half a heart).
 
 ## Layout
 
