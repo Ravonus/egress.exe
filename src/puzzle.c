@@ -19,6 +19,8 @@ uint8_t puzzle_dirty, frag_skip, floor_resets;
 eg_plan_state plan;
 static uint8_t pl_cell, pl_safe, beat_was, frag_pend;
 uint8_t dead_t; /* the dead-room hint: 0 none, counting down, 1 shown (the harness reads it) */
+uint8_t dead_run; /* the sliced dead-room check is under way (the harness reads it) */
+#define DEAD_SLICE 4u /* queue pops a frame (~3.5 lines each): a whole check is one or two floods, about a second */
 static uint8_t frag_t[4][2]; /* timed resets: cell, ticks of 8 frames left (0: free) */
 uint8_t bench_on, bench_cur, last_rx; /* bench_on: 1 the bench is up, 2 a use is playing out */
 static uint8_t sock[2], told;
@@ -29,7 +31,7 @@ void pocket_reset(void) BANKED {
   memset(frag_t, 0, sizeof frag_t);
   pl_cell = pl_safe = room.start;
   frag_pend = 255u;
-  puzzle_dirty = frag_skip = dead_t = 0;
+  puzzle_dirty = frag_skip = dead_t = dead_run = 0;
   beat_was = 255u;
   look_glitch_period = 0; /* the puzzle drives the beat (frame-based, EG_BEAT_LEN; the solver's model is a window) */
   pocket_n = 0;
@@ -414,13 +416,22 @@ void puzzle_tick(void) BANKED {
         room.c[frag_t[j][0]] = eg_frag[FK_GLITCH].base;
         queue_cell(frag_t[j][0]);
       }
-  if (puzzle_dirty) {
+  if (puzzle_dirty) { /* (re)start the dead-room check; it runs a slice a frame so walking never drops a frame */
     puzzle_dirty = 0;
-    if (!dead_t && eg_dead(&room, c, pocket, pocket_n)) {
-      dead_t = 120u;
-      hud_msg("THE ROOM FORGETS");
-      sfx(SFX_TELL);
-      shake = 4u;
+    if (!dead_t) {
+      eg_dead_begin(c);
+      dead_run = 1u;
+    }
+  } else if (dead_run && grav_t != 1u) { /* not on the frame it starts (a push) nor on a gravity frame */
+    j = eg_dead_step(&room, pocket, pocket_n, DEAD_SLICE);
+    if (j != EG_DEAD_BUSY) {
+      dead_run = 0u;
+      if (j && !dead_t) {
+        dead_t = 120u;
+        hud_msg("THE ROOM FORGETS");
+        sfx(SFX_TELL);
+        shake = 4u;
+      }
     }
   }
   if (dead_t > 2u && --dead_t == 2u) {

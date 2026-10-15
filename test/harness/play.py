@@ -129,11 +129,20 @@ def start_run(g: Game, god: bool, no_enemies: bool, seed: int = SEED, floor: int
     g.poke("dbg_no_enemies", int(no_enemies))
     g.poke16("dbg_seed", seed)
     g.poke("dbg_floor", floor)
+    g.poke("floor_no", 0)  # play_run sets it: the sign the title took the press
     for _ in range(40):  # the title polls once its fade-in is done: press until the run starts
         g.press("start")
-        if g.wait_mode(MODE_PLAY, 20):
-            break
+        for _ in range(20):
+            if g.peek("floor_no") or g.peek("game_mode") == MODE_PLAY:
+                break
+            g.tick()
+        else:
+            continue
+        break
     else:
+        return False
+    # no more presses once the run has begun: a START landing after the room assembles would pause the game
+    if not g.wait_mode(MODE_PLAY, 1200):
         return False
     g.tick(fade)  # the fade in
     return True

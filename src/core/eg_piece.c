@@ -156,6 +156,7 @@ static uint8_t power(eg_room *r, uint8_t n) {
 uint8_t eg_apply(eg_room *r, uint8_t piece, uint8_t cell, const uint8_t *occ, uint8_t nocc) EG_BANKED {
   uint8_t v = r->c[cell], eff, tags, tt, k, rx, n;
   eg_ndirty = 0u;
+  eg_plates_dirty = 1u; /* a brick may land on a plate, or burn off one */
   if (!piece || piece >= P_COUNT || in_occ(cell, occ, nocc)) return RX_NONE;
   eff = PC_EFF(piece);
   tags = PC_TAGS(piece);

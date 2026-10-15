@@ -197,6 +197,7 @@ static uint8_t free_cell(eg_room *r, uint8_t minz, uint8_t maxz, uint8_t avoid) 
 uint8_t eg_generate(eg_room *r, uint16_t seed, uint8_t tier) EG_BANKED {
   uint8_t *c = r->c;
   uint8_t i, k, n, x, y, t, s, w, a, tries, d, nsup, herr, depth, xn;
+  eg_plates_dirty = 1u; /* a new room: the shutter pass syncs its gates */
   eg_rs = (uint16_t)(seed ^ 0x5a3cu ^ ((uint16_t)tier << 11));
   if (!eg_rs) eg_rs = 0x1234u;
   eg_rnd();

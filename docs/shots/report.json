@@ -16,7 +16,7 @@
   "combat_strikes": 3,
   "enemies_killed": 1,
   "enemy_hp_removed": 2,
-  "tokens_gained": 3,
+  "tokens_gained": 2,
   "death_hp_start": 6,
   "death_took_damage": true,
   "death_reached_screen": true,
@@ -98,16 +98,18 @@
     ]
   ],
   "landing_reached_floor4": true,
-  "boss_strikes": 25,
+  "boss_strikes": 24,
   "boss_dead": true,
   "boss_hp_left": 0,
-  "boss_frames": 1515,
+  "boss_frames": 1426,
   "boss_shots": {
     "tell": true,
     "orbs": true,
     "stun": true
   },
-  "boss_log": [],
+  "boss_log": [
+    "stuck moving U from cell 89 toward 73 at (153, 86)"
+  ],
   "ending_back_to_title": true,
   "save_after_win": {
     "gen": 1,
@@ -159,7 +161,7 @@
       "reached_floor2": true,
       "moment_shot": true,
       "hp_lost": 0,
-      "gif_frames": 626
+      "gif_frames": 596
     },
     "rhythm": {
       "seed": 35,
@@ -180,7 +182,7 @@
       "reached_floor2": true,
       "moment_shot": true,
       "hp_lost": 0,
-      "gif_frames": 695
+      "gif_frames": 674
     },
     "weight": {
       "seed": 32,
@@ -219,10 +221,10 @@
     "dodge_anim_is_heirs_style": true
   },
   "heir_movement": {
-    "straight_sub_per_frame": 17.27,
+    "straight_sub_per_frame": 20.0,
     "diag_sub_per_frame": [
-      11.43,
-      12.38
+      14.12,
+      14.12
     ],
     "diagonal_normalised": true,
     "4way_left_wins": true,
@@ -240,7 +242,7 @@
           "idle"
         ],
         [
-          173,
+          174,
           "fidget_yawn"
         ],
         [
@@ -318,6 +320,14 @@
         [
           656,
           "long_sit"
+        ],
+        [
+          1051,
+          "long_sit_twitch"
+        ],
+        [
+          1063,
+          "long_sit"
         ]
       ],
       "plan": [
@@ -336,6 +346,14 @@
         [
           656,
           "long_sit"
+        ],
+        [
+          1051,
+          "long_sit_twitch"
+        ],
+        [
+          1063,
+          "long_sit"
         ]
       ],
       "match": true
@@ -343,16 +361,16 @@
   ],
   "heir_budget": {
     "combat": {
-      "frames": 12797,
-      "max_oam": 9,
+      "frames": 11170,
+      "max_oam": 8,
       "max_per_line": 8,
       "frames_over_10": 0
     },
     "boss": {
-      "frames": 1548,
-      "max_oam": 21,
-      "max_per_line": 15,
-      "frames_over_10": 129
+      "frames": 1874,
+      "max_oam": 19,
+      "max_per_line": 16,
+      "frames_over_10": 128
     }
   },
   "heir_states_shown": 59,

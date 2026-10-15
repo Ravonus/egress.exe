@@ -111,6 +111,10 @@ uint8_t eg_generate(eg_room *r, uint16_t seed, uint8_t tier) EG_BANKED;
 #define EG_G_FALLING 4u /* some CRT is still falling or rolling */
 #define EG_G_BROKE 8u   /* a falling CRT broke through fragile floor (run eg_dead) */
 uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc);
+/* The cartridge runs eg_gravity's shutter pass (plates -> gates) only when a plate's load may have changed: set by
+ * room generation, any eg_apply (a brick), and a CRT coming onto or off a plate (eg_push, falls, rolls, breaks); kept
+ * set while a shutter waits for the player to leave its cell. The host always runs the pass. */
+extern uint8_t eg_plates_dirty;
 
 #define EG_DIRTY_MAX 48u
 extern uint8_t eg_dirty[EG_DIRTY_MAX];
@@ -181,5 +185,10 @@ uint8_t eg_frag_hit(eg_room *r, uint8_t cell, uint8_t who);
 #define EG_DEAD_KEY 2u
 #define EG_DEAD_ITEM 3u
 uint8_t eg_dead(const eg_room *r, uint8_t from, const uint8_t *pocket, uint8_t npocket);
+/* the same check in slices: begin, then step with a budget (queue pops / key-scan chunks) until it stops returning
+ * EG_DEAD_BUSY. One check at a time (static state); the cartridge restarts it whenever the room changes again. */
+#define EG_DEAD_BUSY 255u
+void eg_dead_begin(uint8_t from);
+uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, uint8_t budget);
 
 #endif

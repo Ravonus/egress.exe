@@ -158,6 +158,7 @@ def check_moves(rom: Path, report: dict) -> bool:
 def walk_rate(g: Game, keys: set, ticks: int = 48) -> tuple:
     """mean sub-pixels per game frame on each axis, over frames the mover was not blocked (pmv.blocked)"""
     g.hold(keys)
+    g.tick(1)  # the pad is read once a frame: a walk from standing starts a frame later (latency, not speed)
     sx = sy = n = 0
     for _ in range(ticks):
         f0, p0 = g.peek16("frame_count"), (g.peek16("psx"), g.peek16("psy"))

@@ -82,9 +82,12 @@ static void clear_moved(void) __naked { /* EG_N cells from scan_p: F_MOVED off *
 
 #define ROCK_LEFT(v) ((uint8_t)(((v) & F_PLATE) ? T_PLATE : T_EMPTY))
 
+uint8_t eg_plates_dirty = 1u;
+
 /* drop a CRT from i into b (open floor or a pit) */
 static void move_rock(uint8_t *c, uint8_t i, uint8_t b) {
   uint8_t t = c[b];
+  if ((c[i] & F_PLATE) || t == T_PLATE) eg_plates_dirty = 1u; /* off a plate, or onto one */
   c[i] = ROCK_LEFT(c[i]);
   if (t == T_PIT)
     c[b] = T_EMPTY | F_MOVED; /* it fills the pit */
@@ -141,6 +144,7 @@ uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) {
       }
       if ((v & F_FALL) && (c[b] == T_GLASS || c[b] == T_CEIL || c[b] == T_CEIL_1)) { /* through it, into the void */
         c[b] = T_PIT;
+        if (v & F_PLATE) eg_plates_dirty = 1u;
         c[i] = ROCK_LEFT(v);
         mark(i);
         mark(b);
@@ -163,6 +167,10 @@ uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) {
   for (i = 0u; i != (uint8_t)EG_N; i++) c[i] &= (uint8_t)~F_MOVED;
 #endif
   /* shutters follow the plates: up while any plate carries a CRT (a shutter doesn't drop on the player) */
+#ifdef EG_GRAV_ASM
+  if (!eg_plates_dirty) return res; /* no CRT came onto or off a plate: the shutters stay as they are */
+  eg_plates_dirty = 0u;
+#endif
   w = 0u;
   gates = 0u;
   for (i = 0u; i != (uint8_t)EG_N; i++) {
@@ -177,7 +185,11 @@ uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) {
         c[i] = T_GATE_OPEN;
         mark(i);
         res |= EG_G_CHANGED;
-      } else if (!w && v == T_GATE_OPEN && !is_occ(i, occ, nocc)) {
+      } else if (!w && v == T_GATE_OPEN) {
+        if (is_occ(i, occ, nocc)) {
+          eg_plates_dirty = 1u; /* try again once the cell is clear */
+          continue;
+        }
         c[i] = T_GATE;
         mark(i);
         res |= EG_G_CHANGED;
@@ -188,6 +200,7 @@ uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) {
 
 uint8_t eg_push(eg_room *r, uint8_t rock, uint8_t to) {
   uint8_t t = r->c[to];
+  if ((r->c[rock] & F_PLATE) || t == T_PLATE) eg_plates_dirty = 1u; /* off a plate, or onto one */
   if (t == T_GLASS || t == T_CEIL || t == T_CEIL_1) { /* it smashes through into the void: both gone */
     r->c[to] = T_PIT;
     r->c[rock] = ROCK_LEFT(r->c[rock]);
@@ -242,53 +255,86 @@ uint8_t eg_frag_hit(eg_room *r, uint8_t cell, uint8_t who) {
   return 1u;
 }
 
-uint8_t eg_dead(const eg_room *r, uint8_t from, const uint8_t *pocket, uint8_t npocket) {
-  static uint8_t seen[EG_N / 8u], q[EG_N];
-  uint8_t pass, n, h, i, s, t, d, rock = 0u, k, j, p;
-  static const int8_t st[4] = {-16, 16, -1, 1};
+/* The flood runs in slices (eg_dead_step) so the cartridge can spread it over frames: a bit table for the seen
+ * set (a variable shift is a loop on the SM83), the queue in WRAM, the key scan in chunks. */
+static uint8_t dd_seen[EG_N / 8u], dd_q[EG_N];
+static uint8_t dd_n, dd_h, dd_pass, dd_rock, dd_from, dd_k;
+static const uint8_t dd_bit[8] = {1u, 2u, 4u, 8u, 16u, 32u, 64u, 128u};
+#define DD_SEEN(c) (dd_seen[(uint8_t)(c) >> 3] & dd_bit[(uint8_t)(c) & 7u])
+#define DD_MARK(c) (dd_seen[(uint8_t)(c) >> 3] |= dd_bit[(uint8_t)(c) & 7u])
+
+static void dd_flood_begin(void) {
+  uint8_t i;
+  for (i = 0u; i != (uint8_t)(EG_N / 8u); i++) dd_seen[i] = 0u;
+  dd_n = dd_h = 0u;
+  dd_q[dd_n++] = dd_from;
+  DD_MARK(dd_from);
+}
+
+static void dd_visit(const eg_room *r, uint8_t s) {
+  uint8_t t;
+  if (DD_SEEN(s)) return;
+  t = (uint8_t)(r->c[s] & T_MASK);
+  if (t == T_WALL || t == T_SOCKET || t == T_SOCKET_ON || (t == T_PIT && !dd_rock)) return;
+  DD_MARK(s);
+  if (t == T_ROCK) dd_rock = 1u;
+  if (t != T_DOOR) dd_q[dd_n++] = s; /* the door is a goal, not a way through */
+}
+
+void eg_dead_begin(uint8_t from) {
+  dd_from = from;
+  dd_pass = dd_rock = dd_k = 0u;
+  dd_flood_begin();
+}
+
+uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, uint8_t budget) {
+  uint8_t i, k, j, p;
   /* pass 0 floods without crossing pits; if it reached a CRT, pass 1 floods again letting pits through */
-  for (pass = 0u; pass != 2u; pass++) {
-    for (i = 0u; i != (uint8_t)(EG_N / 8u); i++) seen[i] = 0u;
-    n = h = 0u;
-    q[n++] = from;
-    seen[from >> 3] |= (uint8_t)(1u << (from & 7u));
-    while (h != n) {
-      i = q[h++];
-      for (d = 0u; d != 4u; d++) {
-        s = (uint8_t)(i + (uint8_t)st[d]);
-        if ((d == 0u && i < EG_W) || (d == 1u && i >= (uint8_t)(EG_N - EG_W)) || (d == 2u && !(i & 15u)) ||
-            (d == 3u && (i & 15u) == 15u))
-          continue;
-        if (seen[s >> 3] & (uint8_t)(1u << (s & 7u))) continue;
-        t = (uint8_t)(r->c[s] & T_MASK);
-        if (t == T_WALL || t == T_SOCKET || t == T_SOCKET_ON || (t == T_PIT && !rock)) continue;
-        seen[s >> 3] |= (uint8_t)(1u << (s & 7u));
-        if (t == T_ROCK) rock = 1u;
-        if (t != T_DOOR) q[n++] = s; /* the door is a goal, not a way through */
-      }
-    }
-    if (!rock || pass) break;
+  while (dd_h != dd_n) {
+    if (!budget) return EG_DEAD_BUSY;
+    budget--;
+    i = dd_q[dd_h++];
+    if (i >= EG_W) dd_visit(r, (uint8_t)(i - EG_W));
+    if (i < (uint8_t)(EG_N - EG_W)) dd_visit(r, (uint8_t)(i + EG_W));
+    if (i & 15u) dd_visit(r, (uint8_t)(i - 1u));
+    if ((i & 15u) != 15u) dd_visit(r, (uint8_t)(i + 1u));
   }
-#define SEEN(c) (seen[(uint8_t)(c) >> 3] & (uint8_t)(1u << ((c) & 7u)))
-  if (!SEEN(r->door)) return EG_DEAD_DOOR;
-  i = 0u;
-  do {
-    if ((r->c[i] & T_MASK) == T_KEY && !SEEN(i)) return EG_DEAD_KEY;
-  } while (++i != (uint8_t)EG_N);
+  if (dd_rock && !dd_pass) {
+    dd_pass = 1u;
+    dd_flood_begin();
+    return EG_DEAD_BUSY;
+  }
+  if (!DD_SEEN(r->door)) return EG_DEAD_DOOR;
+  /* the keycards, 56 cells a slice */
+  while (dd_k != (uint8_t)EG_N) {
+    if (!budget) return EG_DEAD_BUSY;
+    budget--;
+    j = (uint8_t)(dd_k + 56u);
+    do {
+      if ((r->c[dd_k] & T_MASK) == T_KEY && !DD_SEEN(dd_k)) return EG_DEAD_KEY;
+    } while (++dd_k != j);
+  }
   /* a piece the room needs (not a herring) out of reach, with no twin in reach and none in the pocket */
   for (k = 0u; k != (uint8_t)(r->nitem - r->herrings); k++) {
     i = r->item_cell[k];
-    if ((r->c[i] & T_MASK) != T_ITEM || SEEN(i)) continue;
+    if ((r->c[i] & T_MASK) != T_ITEM || DD_SEEN(i)) continue;
     p = r->item_piece[k];
     for (j = 0u; j != npocket; j++)
       if (pocket[j] == p) break;
     if (j != npocket) continue;
     for (j = 0u; j != r->nitem; j++)
-      if (r->item_piece[j] == p && (r->c[r->item_cell[j]] & T_MASK) == T_ITEM && SEEN(r->item_cell[j])) break;
+      if (r->item_piece[j] == p && (r->c[r->item_cell[j]] & T_MASK) == T_ITEM && DD_SEEN(r->item_cell[j])) break;
     if (j == r->nitem) return EG_DEAD_ITEM;
   }
-#undef SEEN
   return 0u;
+}
+
+uint8_t eg_dead(const eg_room *r, uint8_t from, const uint8_t *pocket, uint8_t npocket) {
+  uint8_t k;
+  eg_dead_begin(from);
+  while ((k = eg_dead_step(r, pocket, npocket, 255u)) == EG_DEAD_BUSY) {
+  }
+  return k;
 }
 
 uint8_t eg_count(const eg_room *r, uint8_t type) {
