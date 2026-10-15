@@ -1,0 +1,49 @@
+npm warn Unknown user config "minimum-release-age". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> egress-site@0.1.0 build
+> next build
+
+   ▲ Next.js 15.5.22
+   - Experiments (use with caution):
+     · cpus: 1
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 2.8s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/20) ...
+   Generating static pages (5/20) 
+   Generating static pages (10/20) 
+   Generating static pages (15/20) 
+ ✓ Generating static pages (20/20)
+   Finalizing page optimization ...
+   Collecting build traces ...
+   Exporting (0/2) ...
+ ✓ Exporting (2/2)
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    38.5 kB         150 kB
+├ ○ /_not-found                            133 B         102 kB
+├ ○ /apple-icon.png                          0 B            0 B
+├ ○ /chromatic                           7.65 kB         119 kB
+├ ○ /how-it-works                          526 B         112 kB
+├ ○ /how-it-works/opengraph-image.png        0 B            0 B
+├ ○ /how-it-works/twitter-image.png          0 B            0 B
+├ ○ /icon.png                                0 B            0 B
+├ ○ /icon.svg                                0 B            0 B
+├ ○ /manifest.webmanifest                  133 B         102 kB
+├ ○ /opengraph-image.png                     0 B            0 B
+├ ○ /robots.txt                            133 B         102 kB
+├ ○ /sitemap.xml                           133 B         102 kB
+├ ○ /trailer                              3.8 kB         109 kB
+├ ○ /trailer/opengraph-image.png             0 B            0 B
+├ ○ /trailer/twitter-image.png               0 B            0 B
+└ ○ /twitter-image.png                       0 B            0 B
++ First Load JS shared by all             102 kB
+  ├ chunks/341-8e6b1733c99811db.js       45.8 kB
+  ├ chunks/c716a14a-cd7e7838dbbb0f95.js  54.2 kB
+  └ other shared chunks (total)             2 kB
+
+
+○  (Static)  prerendered as static content
+

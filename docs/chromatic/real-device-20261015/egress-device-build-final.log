@@ -1,0 +1,48 @@
+
+> egress-site@0.1.0 build
+> next build
+
+   ▲ Next.js 15.5.22
+   - Experiments (use with caution):
+     · cpus: 1
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 2.4s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/20) ...
+   Generating static pages (5/20) 
+   Generating static pages (10/20) 
+   Generating static pages (15/20) 
+ ✓ Generating static pages (20/20)
+   Finalizing page optimization ...
+   Collecting build traces ...
+   Exporting (0/2) ...
+ ✓ Exporting (2/2)
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    38.6 kB         150 kB
+├ ○ /_not-found                            133 B         103 kB
+├ ○ /apple-icon.png                          0 B            0 B
+├ ○ /chromatic                           13.3 kB         125 kB
+├ ○ /how-it-works                          522 B         112 kB
+├ ○ /how-it-works/opengraph-image.png        0 B            0 B
+├ ○ /how-it-works/twitter-image.png          0 B            0 B
+├ ○ /icon.png                                0 B            0 B
+├ ○ /icon.svg                                0 B            0 B
+├ ○ /manifest.webmanifest                  133 B         103 kB
+├ ○ /opengraph-image.png                     0 B            0 B
+├ ○ /robots.txt                            133 B         103 kB
+├ ○ /sitemap.xml                           133 B         103 kB
+├ ○ /trailer                             3.79 kB         110 kB
+├ ○ /trailer/opengraph-image.png             0 B            0 B
+├ ○ /trailer/twitter-image.png               0 B            0 B
+└ ○ /twitter-image.png                       0 B            0 B
++ First Load JS shared by all             103 kB
+  ├ chunks/306-fcc95b59f0e92987.js       46.4 kB
+  ├ chunks/ff78ffad-c2351822212a857f.js  54.2 kB
+  └ other shared chunks (total)             2 kB
+
+
+○  (Static)  prerendered as static content
+

@@ -1,0 +1,16 @@
+[WebServer] (node:73202) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:73230) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [desktop] › browser-tests/chromatic.spec.ts:86:1 › library metadata uses the same release as the homepage (2.3s)
+(node:73403) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [tablet] › browser-tests/chromatic.spec.ts:86:1 › library metadata uses the same release as the homepage (1.9s)
+(node:73486) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [phone] › browser-tests/chromatic.spec.ts:86:1 › library metadata uses the same release as the homepage (2.3s)
+
+  3 passed (9.8s)

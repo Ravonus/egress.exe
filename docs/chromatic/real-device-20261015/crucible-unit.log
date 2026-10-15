@@ -1,0 +1,503 @@
+TAP version 13
+# title: "CRUCIBLE.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_8M
+# ext ram size: EXT_RAM_SIZE_128K
+# header checksum: 0x13 [OK]
+# { ticks: 83886084, frames: 310, audio: 234 }
+# {"proof":"Node/WASM core only; no browser, sound-device, mobile or physical-controller pass","romSha256":"57b7f1e3c2df960f05df615b9ad00544edc1eacad3dbfe176a6c38425734b540","frames":310,"audioBuffers":234,"framebufferSha256":"2de60bc1fd5daf9f9504efca7fde3fb197f8eaf25c4e90eba55241761ea98073","afterNativeAFrameSha256":"8498b6e57c1da32b6dc8ab7e8e75e5db1108f7312087de5a51879fb93ea8be43"}
+# Subtest: vendored binjgb runs the real development cartridge and roundtrips 128 KiB SRAM
+ok 1 - vendored binjgb runs the real development cartridge and roundtrips 128 KiB SRAM
+  ---
+  duration_ms: 1551.400167
+  type: 'test'
+  ...
+# Subtest: independent fingers and keys own their releases
+ok 2 - independent fingers and keys own their releases
+  ---
+  duration_ms: 1.41225
+  type: 'test'
+  ...
+# Subtest: disconnect clears the pad without clearing held touch
+ok 3 - disconnect clears the pad without clearing held touch
+  ---
+  duration_ms: 0.102041
+  type: 'test'
+  ...
+# Subtest: opposite directions neutralize and recover when a source releases
+ok 4 - opposite directions neutralize and recover when a source releases
+  ---
+  duration_ms: 0.106875
+  type: 'test'
+  ...
+# Subtest: standard mapping includes axes, deadzone, and all hardware buttons
+ok 5 - standard mapping includes axes, deadzone, and all hardware buttons
+  ---
+  duration_ms: 0.167458
+  type: 'test'
+  ...
+# Subtest: disconnected and nonstandard pads do not send guessed input
+ok 6 - disconnected and nonstandard pads do not send guessed input
+  ---
+  duration_ms: 0.055042
+  type: 'test'
+  ...
+# Subtest: keyboard instructions match the implemented bindings
+ok 7 - keyboard instructions match the implemented bindings
+  ---
+  duration_ms: 0.043083
+  type: 'test'
+  ...
+# Subtest: framer and decoder follow the cartridge's escapes and checksum
+ok 8 - framer and decoder follow the cartridge's escapes and checksum
+  ---
+  duration_ms: 1.500167
+  type: 'test'
+  ...
+# Subtest: bridge: a host with no guest reads FF and nothing crosses; a guest waits for a host's clock
+ok 9 - bridge: a host with no guest reads FF and nothing crosses; a guest waits for a host's clock
+  ---
+  duration_ms: 0.441791
+  type: 'test'
+  ...
+# Subtest: pilot reads the title, play and link pages
+ok 10 - pilot reads the title, play and link pages
+  ---
+  duration_ms: 0.5045
+  type: 'test'
+  ...
+# title: "CRUCIBLE.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_8M
+# ext ram size: EXT_RAM_SIZE_128K
+# header checksum: 0x13 [OK]
+# title: "CRUCIBLE.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_8M
+# ext ram size: EXT_RAM_SIZE_128K
+# header checksum: 0x13 [OK]
+# Subtest: two real cartridges link through the bridge (co-op, no latency) and start a session
+not ok 11 - two real cartridges link through the bridge (co-op, no latency) and start a session
+  ---
+  duration_ms: 3877.525209
+  type: 'test'
+  location: '/Users/chad/work/chromatic-real-20261015/crucible/test/link-bridge.test.mjs:71:3'
+  failureType: 'testCodeFailure'
+  error: 'linked in CO-OP within a minute: host elsewhere, guest elsewhere'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///Users/chad/work/chromatic-real-20261015/crucible/test/link-bridge.test.mjs:76:14)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# title: "CRUCIBLE.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_8M
+# ext ram size: EXT_RAM_SIZE_128K
+# header checksum: 0x13 [OK]
+# title: "CRUCIBLE.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_8M
+# ext ram size: EXT_RAM_SIZE_128K
+# header checksum: 0x13 [OK]
+# Subtest: two real cartridges link through the bridge (race, 150 ms) and start a session
+not ok 12 - two real cartridges link through the bridge (race, 150 ms) and start a session
+  ---
+  duration_ms: 3144.395542
+  type: 'test'
+  location: '/Users/chad/work/chromatic-real-20261015/crucible/test/link-bridge.test.mjs:71:3'
+  failureType: 'testCodeFailure'
+  error: 'linked in RACE within a minute: host elsewhere, guest elsewhere'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///Users/chad/work/chromatic-real-20261015/crucible/test/link-bridge.test.mjs:76:14)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# title: "CRUCIBLE.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_8M
+# ext ram size: EXT_RAM_SIZE_128K
+# header checksum: 0x13 [OK]
+# title: "CRUCIBLE.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_8M
+# ext ram size: EXT_RAM_SIZE_128K
+# header checksum: 0x13 [OK]
+# Subtest: two real cartridges link through the bridge (fight, 200 ms) and start a session
+not ok 13 - two real cartridges link through the bridge (fight, 200 ms) and start a session
+  ---
+  duration_ms: 3963.35275
+  type: 'test'
+  location: '/Users/chad/work/chromatic-real-20261015/crucible/test/link-bridge.test.mjs:71:3'
+  failureType: 'testCodeFailure'
+  error: 'linked in FIGHT within a minute: host elsewhere, guest elsewhere'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///Users/chad/work/chromatic-real-20261015/crucible/test/link-bridge.test.mjs:76:14)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# title: "CRUCIBLE.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_8M
+# ext ram size: EXT_RAM_SIZE_128K
+# header checksum: 0x13 [OK]
+# title: "CRUCIBLE.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_8M
+# ext ram size: EXT_RAM_SIZE_128K
+# header checksum: 0x13 [OK]
+# Subtest: pulling the cable: the lobby unlinks, and a running session ends in LINK LOST
+not ok 14 - pulling the cable: the lobby unlinks, and a running session ends in LINK LOST
+  ---
+  duration_ms: 3744.611
+  type: 'test'
+  location: '/Users/chad/work/chromatic-real-20261015/crucible/test/link-bridge.test.mjs:98:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      assert.ok(run(a,b,wire,60*60,()=>both(a,b,"linked")&&(a.rows()[ROW0+1]??"").includes("CO-OP"),[[a,"host","CO-OP"],[b,"guest"]])>0)
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///Users/chad/work/chromatic-real-20261015/crucible/test/link-bridge.test.mjs:101:12)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# title: "CRUCIBLE.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_8M
+# ext ram size: EXT_RAM_SIZE_128K
+# header checksum: 0x13 [OK]
+# title: "CRUCIBLE.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_8M
+# ext ram size: EXT_RAM_SIZE_128K
+# header checksum: 0x13 [OK]
+# Subtest: a second cartridge on the same core (the link swap) runs and saves: the emulator owns its ROM buffer
+ok 15 - a second cartridge on the same core (the link swap) runs and saves: the emulator owns its ROM buffer
+  ---
+  duration_ms: 532.407375
+  type: 'test'
+  ...
+# title: "CRUCIBLE.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_8M
+# ext ram size: EXT_RAM_SIZE_128K
+# header checksum: 0x13 [OK]
+# title: "CRUCIBLE.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_8M
+# ext ram size: EXT_RAM_SIZE_128K
+# header checksum: 0x13 [OK]
+# title: "CRUCIBLE.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_8M
+# ext ram size: EXT_RAM_SIZE_128K
+# header checksum: 0x13 [OK]
+# title: "CRUCIBLE.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_8M
+# ext ram size: EXT_RAM_SIZE_128K
+# header checksum: 0x13 [OK]
+# Subtest: finishing a guest's transfer at VBlank loses its byte (its VBlank handler re-arms first): the bridge waits half a frame
+not ok 16 - finishing a guest's transfer at VBlank loses its byte (its VBlank handler re-arms first): the bridge waits half a frame
+  ---
+  duration_ms: 5937.651125
+  type: 'test'
+  location: '/Users/chad/work/chromatic-real-20261015/crucible/test/link-bridge.test.mjs:130:1'
+  failureType: 'testCodeFailure'
+  error: 'half a frame later it does'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///Users/chad/work/chromatic-real-20261015/crucible/test/link-bridge.test.mjs:136:19)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: chat text is plain, single-line and capped
+ok 17 - chat text is plain, single-line and capped
+  ---
+  duration_ms: 0.72225
+  type: 'test'
+  ...
+# Subtest: chat rate limit: bursts of five, then one per half second
+ok 18 - chat rate limit: bursts of five, then one per half second
+  ---
+  duration_ms: 0.6575
+  type: 'test'
+  ...
+# Subtest: the save's own name: newest valid record, CRC checked
+ok 19 - the save's own name: newest valid record, CRC checked
+  ---
+  duration_ms: 0.896458
+  type: 'test'
+  ...
+# Subtest: pairs a host and a guest by code and relays signals both ways
+ok 20 - pairs a host and a guest by code and relays signals both ways
+  ---
+  duration_ms: 99.775833
+  type: 'test'
+  ...
+# Subtest: caps message size, rate limits, checks origin and expires rooms
+ok 21 - caps message size, rate limits, checks origin and expires rooms
+  ---
+  duration_ms: 1744.532333
+  type: 'test'
+  ...
+# Subtest: plain HTTP gets a health check; malformed upgrades are refused
+ok 22 - plain HTTP gets a health check; malformed upgrades are refused
+  ---
+  duration_ms: 7.381541
+  type: 'test'
+  ...
+# Subtest: the service starts from the command line with its environment
+ok 23 - the service starts from the command line with its environment
+  ---
+  duration_ms: 172.803959
+  type: 'test'
+  ...
+# Subtest: an unresponsive download or initialization has a bounded, visible error
+ok 24 - an unresponsive download or initialization has a bounded, visible error
+  ---
+  duration_ms: 16.492542
+  type: 'test'
+  ...
+# Subtest: cancelled load cannot commit a late completion and a retry can complete independently
+ok 25 - cancelled load cannot commit a late completion and a retry can complete independently
+  ---
+  duration_ms: 0.642375
+  type: 'test'
+  ...
+# Subtest: parent cancellation propagates through ROM, WASM and initialization waits
+ok 26 - parent cancellation propagates through ROM, WASM and initialization waits
+  ---
+  duration_ms: 0.478625
+  type: 'test'
+  ...
+# Subtest: successful cleanup removes the deadline rather than aborting later playback
+ok 27 - successful cleanup removes the deadline rather than aborting later playback
+  ---
+  duration_ms: 27.308667
+  type: 'test'
+  ...
+# Subtest: idle lines are composed, never repeat in a row, rotate speakers, escalate with idleness and never name the sides
+ok 28 - idle lines are composed, never repeat in a row, rotate speakers, escalate with idleness and never name the sides
+  ---
+  duration_ms: 1.869875
+  type: 'test'
+  ...
+# Subtest: direct accessible actions complete the same package journey
+ok 29 - direct accessible actions complete the same package journey
+  ---
+  duration_ms: 0.712917
+  type: 'test'
+  ...
+# Subtest: booklet endpoints clamp and direct play also opens the package
+ok 30 - booklet endpoints clamp and direct play also opens the package
+  ---
+  duration_ms: 0.070084
+  type: 'test'
+  ...
+# Subtest: one booklet: real controls, Ravonus credited, no Chad, no alchemy, every classic section present
+ok 31 - one booklet: real controls, Ravonus credited, no Chad, no alchemy, every classic section present
+  ---
+  duration_ms: 0.605792
+  type: 'test'
+  ...
+# title: "CRUCIBLE.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_8M
+# ext ram size: EXT_RAM_SIZE_128K
+# header checksum: 0x13 [OK]
+# Subtest: actual runtime connects native joypad input so A changes static menu UI, then releases its buffer
+ok 32 - actual runtime connects native joypad input so A changes static menu UI, then releases its buffer
+  ---
+  duration_ms: 1439.310625
+  type: 'test'
+  ...
+# title: "CRUCIBLE.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_8M
+# ext ram size: EXT_RAM_SIZE_128K
+# header checksum: 0x13 [OK]
+# Subtest: real binjgb initializes from the explicit WASM bytes and video notifications follow written frames
+ok 33 - real binjgb initializes from the explicit WASM bytes and video notifications follow written frames
+  ---
+  duration_ms: 72.966542
+  type: 'test'
+  ...
+# title: "CRUCIBLE.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_8M
+# ext ram size: EXT_RAM_SIZE_128K
+# header checksum: 0x13 [OK]
+# Subtest: runtime cancellation stops a stalled ROM request and permits a fresh retry
+ok 34 - runtime cancellation stops a stalled ROM request and permits a fresh retry
+  ---
+  duration_ms: 28.236958
+  type: 'test'
+  ...
+# title: "CRUCIBLE.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_8M
+# ext ram size: EXT_RAM_SIZE_128K
+# header checksum: 0x13 [OK]
+# Subtest: runtime cancellation stops a stalled WASM request and permits a fresh retry
+ok 35 - runtime cancellation stops a stalled WASM request and permits a fresh retry
+  ---
+  duration_ms: 37.169792
+  type: 'test'
+  ...
+# Subtest: late WASM initialization after cancellation cannot allocate an emulator
+ok 36 - late WASM initialization after cancellation cannot allocate an emulator
+  ---
+  duration_ms: 11.395333
+  type: 'test'
+  ...
+# Subtest: 128 KiB battery memory survives serialization and stays per-ROM
+ok 37 - 128 KiB battery memory survives serialization and stays per-ROM
+  ---
+  duration_ms: 24.043542
+  type: 'test'
+  ...
+# Subtest: malformed and blocked storage are surfaced without silently modifying bytes
+ok 38 - malformed and blocked storage are surfaced without silently modifying bytes
+  ---
+  duration_ms: 0.236666
+  type: 'test'
+  ...
+# Subtest: invalid ROM identities and oversized saves are rejected
+ok 39 - invalid ROM identities and oversized saves are rejected
+  ---
+  duration_ms: 0.086667
+  type: 'test'
+  ...
+# Subtest: a save from an earlier ROM revision carries over when the new ROM has none
+ok 40 - a save from an earlier ROM revision carries over when the new ROM has none
+  ---
+  duration_ms: 0.198833
+  type: 'test'
+  ...
+# Subtest: phone gameplay projects near 320 by 288 pixels with the correct orientation and aspect
+ok 41 - phone gameplay projects near 320 by 288 pixels with the correct orientation and aspect
+  ---
+  duration_ms: 1.023959
+  type: 'test'
+  ...
+# Subtest: responsive game framing fits narrow phones, tablets and desktops without flattening the LCD
+ok 42 - responsive game framing fits narrow phones, tablets and desktops without flattening the LCD
+  ---
+  duration_ms: 0.7895
+  type: 'test'
+  ...
+# Subtest: a camera-only resize keeps animating until it converges and then stops
+ok 43 - a camera-only resize keeps animating until it converges and then stops
+  ---
+  duration_ms: 0.171916
+  type: 'test'
+  ...
+# Subtest: only new visible frames upload; unchanged paused, booklet and large-screen views stay idle
+ok 44 - only new visible frames upload; unchanged paused, booklet and large-screen views stay idle
+  ---
+  duration_ms: 0.153833
+  type: 'test'
+  ...
+# Subtest: returning from a large screen while paused uploads the latest dirty frame exactly once
+ok 45 - returning from a large screen while paused uploads the latest dirty frame exactly once
+  ---
+  duration_ms: 0.135625
+  type: 'test'
+  ...
+# Subtest: every tour shot centres its subject in the free frame at desktop, tablet and phone sizes
+ok 46 - every tour shot centres its subject in the free frame at desktop, tablet and phone sizes
+  ---
+  duration_ms: 1.176792
+  type: 'test'
+  ...
+# Subtest: the tour runs in order: lid, lift, flight, slot, power, screen, flip, combine
+ok 47 - the tour runs in order: lid, lift, flight, slot, power, screen, flip, combine
+  ---
+  duration_ms: 0.205125
+  type: 'test'
+  ...
+# Subtest: scroll tour advances the same package without overriding deliberate interaction
+ok 48 - scroll tour advances the same package without overriding deliberate interaction
+  ---
+  duration_ms: 1.231542
+  type: 'test'
+  ...
+# Subtest: physical object hit test follows the projected quadrilateral rather than its empty bounding corners
+ok 49 - physical object hit test follows the projected quadrilateral rather than its empty bounding corners
+  ---
+  duration_ms: 0.097
+  type: 'test'
+  ...
+1..49
+# tests 49
+# suites 0
+# pass 44
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 21466.660375

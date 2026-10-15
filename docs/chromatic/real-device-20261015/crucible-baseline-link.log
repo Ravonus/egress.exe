@@ -1,0 +1,190 @@
+✔ framer and decoder follow the cartridge's escapes and checksum (3.637292ms)
+✔ bridge: a host with no guest reads FF and nothing crosses; a guest waits for a host's clock (1.514209ms)
+✔ pilot reads the title, play and link pages (1.143833ms)
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+✖ two real cartridges link through the bridge (co-op, no latency) and start a session (5775.464709ms)
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+✖ two real cartridges link through the bridge (race, 150 ms) and start a session (5074.344416ms)
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+✖ two real cartridges link through the bridge (fight, 200 ms) and start a session (4639.077875ms)
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+✖ pulling the cable: the lobby unlinks, and a running session ends in LINK LOST (7479.121375ms)
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+✔ a second cartridge on the same core (the link swap) runs and saves: the emulator owns its ROM buffer (541.580958ms)
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+✖ finishing a guest's transfer at VBlank loses its byte (its VBlank handler re-arms first): the bridge waits half a frame (8795.687334ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 4
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 32650.427875
+
+✖ failing tests:
+
+test at test/link-bridge.test.mjs:71:3
+✖ two real cartridges link through the bridge (co-op, no latency) and start a session (5775.464709ms)
+  AssertionError [ERR_ASSERTION]: linked in CO-OP within a minute: host elsewhere, guest elsewhere
+      at TestContext.<anonymous> (file:///private/tmp/chromatic-release/crucible-baseline/test/link-bridge.test.mjs:76:14)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/link-bridge.test.mjs:71:3
+✖ two real cartridges link through the bridge (race, 150 ms) and start a session (5074.344416ms)
+  AssertionError [ERR_ASSERTION]: linked in RACE within a minute: host elsewhere, guest elsewhere
+      at TestContext.<anonymous> (file:///private/tmp/chromatic-release/crucible-baseline/test/link-bridge.test.mjs:76:14)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/link-bridge.test.mjs:71:3
+✖ two real cartridges link through the bridge (fight, 200 ms) and start a session (4639.077875ms)
+  AssertionError [ERR_ASSERTION]: linked in FIGHT within a minute: host elsewhere, guest elsewhere
+      at TestContext.<anonymous> (file:///private/tmp/chromatic-release/crucible-baseline/test/link-bridge.test.mjs:76:14)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/link-bridge.test.mjs:98:1
+✖ pulling the cable: the lobby unlinks, and a running session ends in LINK LOST (7479.121375ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(run(a,b,wire,60*60,()=>both(a,b,"linked")&&(a.rows()[ROW0+1]??"").includes("CO-OP"),[[a,"host","CO-OP"],[b,"guest"]])>0)
+  
+      at TestContext.<anonymous> (file:///private/tmp/chromatic-release/crucible-baseline/test/link-bridge.test.mjs:101:12)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/link-bridge.test.mjs:130:1
+✖ finishing a guest's transfer at VBlank loses its byte (its VBlank handler re-arms first): the bridge waits half a frame (8795.687334ms)
+  AssertionError [ERR_ASSERTION]: half a frame later it does
+      at TestContext.<anonymous> (file:///private/tmp/chromatic-release/crucible-baseline/test/link-bridge.test.mjs:136:19)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

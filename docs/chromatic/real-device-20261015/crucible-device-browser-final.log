@@ -1,0 +1,17 @@
+
+Running 12 tests using 1 worker
+
+  ✓   1 [desktop] › browser-tests/chromatic.spec.ts:28:1 › connection buttons request real browser grants in their click and health uses transport responses (1.3s)
+  ✓   2 [desktop] › browser-tests/chromatic.spec.ts:37:1 › canceling permission never marks the console connected (196ms)
+  ✓   3 [desktop] › browser-tests/chromatic.spec.ts:38:1 › unsupported browser explains missing APIs and keeps the local library usable (185ms)
+  ✓   4 [desktop] › browser-tests/chromatic.spec.ts:39:1 › CBU1 backup reads actual bytes twice, persists them and exports verified file content (4.4s)
+  ✓   5 [desktop] › browser-tests/chromatic.spec.ts:45:1 › a corrupt device read never creates a verified backup (1.9s)
+  ✓   6 [desktop] › browser-tests/chromatic.spec.ts:46:1 › local imports deduplicate, export identical bytes, persist and delete (371ms)
+  ✓   7 [desktop] › browser-tests/chromatic.spec.ts:50:1 › On glass opens the preview in another tab and keeps the existing room (2.2s)
+  ✓   8 [desktop] › browser-tests/chromatic.spec.ts:63:1 › leaving Play offers Chromatic in the action strip without changing its controls (8.0s)
+  ✓   9 [desktop] › browser-tests/chromatic.spec.ts:76:1 › library metadata uses the same release as the homepage (1.4s)
+  ✓  10 [desktop] › browser-tests/chromatic.spec.ts:87:1 › shared native theme, pointers, header access and responsive layout remain intact (3.9s)
+  ✓  11 [desktop] › browser-tests/chromatic.spec.ts:93:1 › previously granted devices reconnect without asking for permission again (190ms)
+  ✓  12 [desktop] › browser-tests/chromatic.spec.ts:96:1 › current site release is hashed before real local storage and persists across reload (437ms)
+
+  12 passed (25.6s)

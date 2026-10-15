@@ -1,0 +1,267 @@
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+{ ticks: 83886084, frames: 310, audio: 234 }
+{"proof":"Node/WASM core only; no browser, sound-device, mobile or physical-controller pass","romSha256":"57b7f1e3c2df960f05df615b9ad00544edc1eacad3dbfe176a6c38425734b540","frames":310,"audioBuffers":234,"framebufferSha256":"2de60bc1fd5daf9f9504efca7fde3fb197f8eaf25c4e90eba55241761ea98073","afterNativeAFrameSha256":"8498b6e57c1da32b6dc8ab7e8e75e5db1108f7312087de5a51879fb93ea8be43"}
+✔ vendored binjgb runs the real development cartridge and roundtrips 128 KiB SRAM (1098.032334ms)
+✔ independent fingers and keys own their releases (2.897ms)
+✔ disconnect clears the pad without clearing held touch (1.855334ms)
+✔ opposite directions neutralize and recover when a source releases (1.498292ms)
+✔ standard mapping includes axes, deadzone, and all hardware buttons (0.936916ms)
+✔ disconnected and nonstandard pads do not send guessed input (0.376041ms)
+✔ keyboard instructions match the implemented bindings (0.136416ms)
+✔ framer and decoder follow the cartridge's escapes and checksum (3.480167ms)
+✔ bridge: a host with no guest reads FF and nothing crosses; a guest waits for a host's clock (0.828917ms)
+✔ pilot reads the title, play and link pages (1.339792ms)
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+✖ two real cartridges link through the bridge (co-op, no latency) and start a session (4340.996834ms)
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+✖ two real cartridges link through the bridge (race, 150 ms) and start a session (4624.607208ms)
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+✖ two real cartridges link through the bridge (fight, 200 ms) and start a session (5883.063625ms)
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+✖ pulling the cable: the lobby unlinks, and a running session ends in LINK LOST (5813.796417ms)
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+✔ a second cartridge on the same core (the link swap) runs and saves: the emulator owns its ROM buffer (448.958417ms)
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+✖ finishing a guest's transfer at VBlank loses its byte (its VBlank handler re-arms first): the bridge waits half a frame (7493.087917ms)
+✔ chat text is plain, single-line and capped (6.146666ms)
+✔ chat rate limit: bursts of five, then one per half second (5.043541ms)
+✔ the save's own name: newest valid record, CRC checked (10.100792ms)
+✔ pairs a host and a guest by code and relays signals both ways (166.809959ms)
+✔ caps message size, rate limits, checks origin and expires rooms (1727.020167ms)
+✔ plain HTTP gets a health check; malformed upgrades are refused (26.768375ms)
+✔ the service starts from the command line with its environment (226.852042ms)
+✔ an unresponsive download or initialization has a bounded, visible error (25.507458ms)
+✔ cancelled load cannot commit a late completion and a retry can complete independently (0.447208ms)
+✔ parent cancellation propagates through ROM, WASM and initialization waits (0.379292ms)
+✔ successful cleanup removes the deadline rather than aborting later playback (26.561ms)
+✔ idle lines are composed, never repeat in a row, rotate speakers, escalate with idleness and never name the sides (6.497ms)
+✔ direct accessible actions complete the same package journey (2.098833ms)
+✔ booklet endpoints clamp and direct play also opens the package (0.363833ms)
+✔ one booklet: real controls, Ravonus credited, no Chad, no alchemy, every classic section present (0.768416ms)
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+✔ actual runtime connects native joypad input so A changes static menu UI, then releases its buffer (1434.256208ms)
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+✔ real binjgb initializes from the explicit WASM bytes and video notifications follow written frames (40.297708ms)
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+✔ runtime cancellation stops a stalled ROM request and permits a fresh retry (23.574708ms)
+title: "CRUCIBLE.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_8M
+ext ram size: EXT_RAM_SIZE_128K
+header checksum: 0x13 [OK]
+✔ runtime cancellation stops a stalled WASM request and permits a fresh retry (26.971541ms)
+✔ late WASM initialization after cancellation cannot allocate an emulator (24.126583ms)
+✔ 128 KiB battery memory survives serialization and stays per-ROM (69.314708ms)
+✔ malformed and blocked storage are surfaced without silently modifying bytes (1.452042ms)
+✔ invalid ROM identities and oversized saves are rejected (0.326666ms)
+✔ a save from an earlier ROM revision carries over when the new ROM has none (0.506916ms)
+✔ phone gameplay projects near 320 by 288 pixels with the correct orientation and aspect (3.541333ms)
+✔ responsive game framing fits narrow phones, tablets and desktops without flattening the LCD (1.97925ms)
+✔ a camera-only resize keeps animating until it converges and then stops (1.758625ms)
+✔ only new visible frames upload; unchanged paused, booklet and large-screen views stay idle (0.828875ms)
+✔ returning from a large screen while paused uploads the latest dirty frame exactly once (0.413833ms)
+✔ every tour shot centres its subject in the free frame at desktop, tablet and phone sizes (1.31075ms)
+✔ the tour runs in order: lid, lift, flight, slot, power, screen, flip, combine (0.281042ms)
+✔ scroll tour advances the same package without overriding deliberate interaction (2.628292ms)
+✔ physical object hit test follows the projected quadrilateral rather than its empty bounding corners (0.192042ms)
+ℹ tests 49
+ℹ suites 0
+ℹ pass 44
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 29311.765083
+
+✖ failing tests:
+
+test at test/link-bridge.test.mjs:71:3
+✖ two real cartridges link through the bridge (co-op, no latency) and start a session (4340.996834ms)
+  AssertionError [ERR_ASSERTION]: linked in CO-OP within a minute: host elsewhere, guest elsewhere
+      at TestContext.<anonymous> (file:///private/tmp/chromatic-release/crucible/test/link-bridge.test.mjs:76:14)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/link-bridge.test.mjs:71:3
+✖ two real cartridges link through the bridge (race, 150 ms) and start a session (4624.607208ms)
+  AssertionError [ERR_ASSERTION]: linked in RACE within a minute: host elsewhere, guest elsewhere
+      at TestContext.<anonymous> (file:///private/tmp/chromatic-release/crucible/test/link-bridge.test.mjs:76:14)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/link-bridge.test.mjs:71:3
+✖ two real cartridges link through the bridge (fight, 200 ms) and start a session (5883.063625ms)
+  AssertionError [ERR_ASSERTION]: linked in FIGHT within a minute: host elsewhere, guest elsewhere
+      at TestContext.<anonymous> (file:///private/tmp/chromatic-release/crucible/test/link-bridge.test.mjs:76:14)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/link-bridge.test.mjs:98:1
+✖ pulling the cable: the lobby unlinks, and a running session ends in LINK LOST (5813.796417ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(run(a,b,wire,60*60,()=>both(a,b,"linked")&&(a.rows()[ROW0+1]??"").includes("CO-OP"),[[a,"host","CO-OP"],[b,"guest"]])>0)
+  
+      at TestContext.<anonymous> (file:///private/tmp/chromatic-release/crucible/test/link-bridge.test.mjs:101:12)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/link-bridge.test.mjs:130:1
+✖ finishing a guest's transfer at VBlank loses its byte (its VBlank handler re-arms first): the bridge waits half a frame (7493.087917ms)
+  AssertionError [ERR_ASSERTION]: half a frame later it does
+      at TestContext.<anonymous> (file:///private/tmp/chromatic-release/crucible/test/link-bridge.test.mjs:136:19)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

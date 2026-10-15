@@ -1,0 +1,142 @@
+TAP version 13
+# Subtest: selects the best fitting release dynamically, independent of input order
+ok 1 - selects the best fitting release dynamically, independent of input order
+  ---
+  duration_ms: 1.215833
+  type: 'test'
+  ...
+# Subtest: unknown, inferred and malformed physical capabilities never select
+ok 2 - unknown, inferred and malformed physical capabilities never select
+  ---
+  duration_ms: 0.153375
+  type: 'test'
+  ...
+# Subtest: save memory, mapper, peripheral and validation can select a smaller edition
+ok 3 - save memory, mapper, peripheral and validation can select a smaller edition
+  ---
+  duration_ms: 0.086291
+  type: 'test'
+  ...
+# Subtest: board writer limit is separate from the selected game and never authorizes a write
+ok 4 - board writer limit is separate from the selected game and never authorizes a write
+  ---
+  duration_ms: 0.070708
+  type: 'test'
+  ...
+# Subtest: protected bytes require proof for this exact release and connection
+ok 5 - protected bytes require proof for this exact release and connection
+  ---
+  duration_ms: 0.165
+  type: 'test'
+  ...
+# Subtest: overlapping or missing write ranges cannot silently cover a ROM
+ok 6 - overlapping or missing write ranges cannot silently cover a ROM
+  ---
+  duration_ms: 0.220667
+  type: 'test'
+  ...
+# Subtest: a ROM header describes requirements, never cartridge capacity
+ok 7 - a ROM header describes requirements, never cartridge capacity
+  ---
+  duration_ms: 3.735625
+  type: 'test'
+  ...
+# Subtest: choosers immediately call the real browser API with correct hardware filters
+ok 8 - choosers immediately call the real browser API with correct hardware filters
+  ---
+  duration_ms: 2.173416
+  type: 'test'
+  ...
+# Subtest: grants list excludes unrelated hardware and does not open devices
+ok 9 - grants list excludes unrelated hardware and does not open devices
+  ---
+  duration_ms: 1.013916
+  type: 'test'
+  ...
+# Subtest: decoder handles every frame split boundary and interleaved console lines
+ok 10 - decoder handles every frame split boundary and interleaved console lines
+  ---
+  duration_ms: 0.826583
+  type: 'test'
+  ...
+# Subtest: decoder rejects corrupt CRC, oversized frame and unbounded line
+ok 11 - decoder rejects corrupt CRC, oversized frame and unbounded line
+  ---
+  duration_ms: 0.634584
+  type: 'test'
+  ...
+# Subtest: actual session opens at 115200, holds reset pins low, reads health and redacts secrets
+ok 12 - actual session opens at 115200, holds reset pins low, reads health and redacts secrets
+  ---
+  duration_ms: 726.569958
+  type: 'test'
+  ...
+# Subtest: stock unsupported Wi-Fi command preserves real firmware and open connection
+ok 13 - stock unsupported Wi-Fi command preserves real firmware and open connection
+  ---
+  duration_ms: 513.726958
+  type: 'test'
+  ...
+# Subtest: only read commands are permitted, including preventing staged flash writes
+ok 14 - only read commands are permitted, including preventing staged flash writes
+  ---
+  duration_ms: 1.110291
+  type: 'test'
+  ...
+# Subtest: unplug rejects an active request and releases the port
+ok 15 - unplug rejects an active request and releases the port
+  ---
+  duration_ms: 216.974417
+  type: 'test'
+  ...
+# Subtest: timeout closes session rather than accepting late responses
+ok 16 - timeout closes session rather than accepting late responses
+  ---
+  duration_ms: 24.023042
+  type: 'test'
+  ...
+# Subtest: cartridge geometry uses measured flash response and rejects malformed geometry
+ok 17 - cartridge geometry uses measured flash response and rejects malformed geometry
+  ---
+  duration_ms: 1.389209
+  type: 'test'
+  ...
+# Subtest: busy or unfinished jobs are never canceled or overwritten
+ok 18 - busy or unfinished jobs are never canceled or overwritten
+  ---
+  duration_ms: 306.473
+  type: 'test'
+  ...
+# Subtest: verified backup performs two full reads for ROM and save and reconstructs blank banks
+ok 19 - verified backup performs two full reads for ROM and save and reconstructs blank banks
+  ---
+  duration_ms: 1339.373292
+  type: 'test'
+  ...
+# Subtest: whole-read CRC and missing coverage fail closed
+ok 20 - whole-read CRC and missing coverage fail closed
+  ---
+  duration_ms: 617.084959
+  type: 'test'
+  ...
+# Subtest: two valid CRC reads with different bytes are not a verified backup
+ok 21 - two valid CRC reads with different bytes are not a verified backup
+  ---
+  duration_ms: 524.97775
+  type: 'test'
+  ...
+# Subtest: USB bridge checks endpoints then reads IDCODE without configuration/erase opcodes
+ok 22 - USB bridge checks endpoints then reads IDCODE without configuration/erase opcodes
+  ---
+  duration_ms: 1.118541
+  type: 'test'
+  ...
+1..22
+# tests 22
+# suites 0
+# pass 22
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4376.011958

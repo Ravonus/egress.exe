@@ -1,0 +1,51 @@
+
+> crucible-site@0.1.0 build
+> next build
+
+   ▲ Next.js 15.5.22
+   - Experiments (use with caution):
+     · cpus: 1
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 10.2s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/23) ...
+   Generating static pages (5/23) 
+   Generating static pages (11/23) 
+   Generating static pages (17/23) 
+ ✓ Generating static pages (23/23)
+   Finalizing page optimization ...
+   Collecting build traces ...
+   Exporting (0/2) ...
+ ✓ Exporting (2/2)
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                      177 B         163 kB
+├ ○ /_not-found                            133 B         103 kB
+├ ○ /apple-icon.png                          0 B            0 B
+├ ○ /chromatic                           14.1 kB         128 kB
+├ ○ /how-it-works                        2.54 kB         120 kB
+├ ○ /how-it-works/opengraph-image.png        0 B            0 B
+├ ○ /how-it-works/twitter-image.png          0 B            0 B
+├ ○ /icon.png                                0 B            0 B
+├ ○ /icon.svg                                0 B            0 B
+├ ○ /join                                  651 B         163 kB
+├ ○ /join/opengraph-image.png                0 B            0 B
+├ ○ /join/twitter-image.png                  0 B            0 B
+├ ○ /manifest.webmanifest                  133 B         103 kB
+├ ○ /opengraph-image.png                     0 B            0 B
+├ ○ /robots.txt                            133 B         103 kB
+├ ○ /sitemap.xml                           133 B         103 kB
+├ ○ /trailer                             2.21 kB         105 kB
+├ ○ /trailer/opengraph-image.png             0 B            0 B
+├ ○ /trailer/twitter-image.png               0 B            0 B
+└ ○ /twitter-image.png                       0 B            0 B
++ First Load JS shared by all             103 kB
+  ├ chunks/306-fcc95b59f0e92987.js       46.4 kB
+  ├ chunks/ff78ffad-c2351822212a857f.js  54.2 kB
+  └ other shared chunks (total)          2.01 kB
+
+
+○  (Static)  prerendered as static content
+

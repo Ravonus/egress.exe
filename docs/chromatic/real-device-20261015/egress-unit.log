@@ -1,0 +1,245 @@
+TAP version 13
+# title: "EGRESS.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_2M
+# ext ram size: EXT_RAM_SIZE_8K
+# header checksum: 0x97 [OK]
+# { ticks: 83886080, frames: 1186, audio: 234 }
+# {"proof":"Node/WASM core only; no browser, sound-device, mobile or physical-controller pass","romSha256":"72a14c35a8b766cedf61718cb3ceafcd5313b3c139b2ee547d98079dcc20bcb0","frames":1186,"audioBuffers":234,"framebufferSha256":"bb67a9b7291eb1612c2f8da4105e8ed81644e1b24921e809a15f4d9a8d5c640f","afterNativeAFrameSha256":"ad44738e07684d351b935400abadb29407b011b9177557ce5fa7f616f89df6a7"}
+# Subtest: vendored binjgb runs the real development cartridge and roundtrips 8 KiB SRAM
+ok 1 - vendored binjgb runs the real development cartridge and roundtrips 8 KiB SRAM
+  ---
+  duration_ms: 899.183834
+  type: 'test'
+  ...
+# Subtest: independent fingers and keys own their releases
+ok 2 - independent fingers and keys own their releases
+  ---
+  duration_ms: 1.337375
+  type: 'test'
+  ...
+# Subtest: disconnect clears the pad without clearing held touch
+ok 3 - disconnect clears the pad without clearing held touch
+  ---
+  duration_ms: 0.0935
+  type: 'test'
+  ...
+# Subtest: opposite directions neutralize and recover when a source releases
+ok 4 - opposite directions neutralize and recover when a source releases
+  ---
+  duration_ms: 0.106542
+  type: 'test'
+  ...
+# Subtest: standard mapping includes axes, deadzone, and all hardware buttons
+ok 5 - standard mapping includes axes, deadzone, and all hardware buttons
+  ---
+  duration_ms: 0.161584
+  type: 'test'
+  ...
+# Subtest: disconnected and nonstandard pads do not send guessed input
+ok 6 - disconnected and nonstandard pads do not send guessed input
+  ---
+  duration_ms: 0.052709
+  type: 'test'
+  ...
+# Subtest: keyboard instructions match the implemented bindings
+ok 7 - keyboard instructions match the implemented bindings
+  ---
+  duration_ms: 0.043125
+  type: 'test'
+  ...
+# Subtest: an unresponsive download or initialization has a bounded, visible error
+ok 8 - an unresponsive download or initialization has a bounded, visible error
+  ---
+  duration_ms: 18.322584
+  type: 'test'
+  ...
+# Subtest: cancelled load cannot commit a late completion and a retry can complete independently
+ok 9 - cancelled load cannot commit a late completion and a retry can complete independently
+  ---
+  duration_ms: 0.627
+  type: 'test'
+  ...
+# Subtest: parent cancellation propagates through ROM, WASM and initialization waits
+ok 10 - parent cancellation propagates through ROM, WASM and initialization waits
+  ---
+  duration_ms: 0.401542
+  type: 'test'
+  ...
+# Subtest: successful cleanup removes the deadline rather than aborting later playback
+ok 11 - successful cleanup removes the deadline rather than aborting later playback
+  ---
+  duration_ms: 29.227167
+  type: 'test'
+  ...
+# Subtest: idle lines are composed, never repeat in a row, rotate speakers, escalate with idleness and never name the sides
+ok 12 - idle lines are composed, never repeat in a row, rotate speakers, escalate with idleness and never name the sides
+  ---
+  duration_ms: 1.929083
+  type: 'test'
+  ...
+# Subtest: direct accessible actions complete the same package journey
+ok 13 - direct accessible actions complete the same package journey
+  ---
+  duration_ms: 13.020708
+  type: 'test'
+  ...
+# Subtest: booklet endpoints clamp and direct play also opens the package
+ok 14 - booklet endpoints clamp and direct play also opens the package
+  ---
+  duration_ms: 0.103083
+  type: 'test'
+  ...
+# title: "EGRESS.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_2M
+# ext ram size: EXT_RAM_SIZE_8K
+# header checksum: 0x97 [OK]
+# Subtest: actual runtime connects native joypad input so A changes static menu UI, then releases its buffer
+ok 15 - actual runtime connects native joypad input so A changes static menu UI, then releases its buffer
+  ---
+  duration_ms: 696.775333
+  type: 'test'
+  ...
+# title: "EGRESS.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_2M
+# ext ram size: EXT_RAM_SIZE_8K
+# header checksum: 0x97 [OK]
+# Subtest: real binjgb initializes from the explicit WASM bytes and video notifications follow written frames
+ok 16 - real binjgb initializes from the explicit WASM bytes and video notifications follow written frames
+  ---
+  duration_ms: 10.625041
+  type: 'test'
+  ...
+# title: "EGRESS.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_2M
+# ext ram size: EXT_RAM_SIZE_8K
+# header checksum: 0x97 [OK]
+# Subtest: runtime cancellation stops a stalled ROM request and permits a fresh retry
+ok 17 - runtime cancellation stops a stalled ROM request and permits a fresh retry
+  ---
+  duration_ms: 11.757
+  type: 'test'
+  ...
+# title: "EGRESS.EXE"
+# cgb flag: CGB_FLAG_REQUIRED
+# sgb flag: SGB_FLAG_NONE
+# cart type: CART_TYPE_MBC5_RAM_BATTERY
+# rom size: ROM_SIZE_2M
+# ext ram size: EXT_RAM_SIZE_8K
+# header checksum: 0x97 [OK]
+# Subtest: runtime cancellation stops a stalled WASM request and permits a fresh retry
+ok 18 - runtime cancellation stops a stalled WASM request and permits a fresh retry
+  ---
+  duration_ms: 15.062625
+  type: 'test'
+  ...
+# Subtest: late WASM initialization after cancellation cannot allocate an emulator
+ok 19 - late WASM initialization after cancellation cannot allocate an emulator
+  ---
+  duration_ms: 9.668541
+  type: 'test'
+  ...
+# Subtest: 128 KiB battery memory survives serialization and stays per-ROM
+ok 20 - 128 KiB battery memory survives serialization and stays per-ROM
+  ---
+  duration_ms: 26.465667
+  type: 'test'
+  ...
+# Subtest: malformed and blocked storage are surfaced without silently modifying bytes
+ok 21 - malformed and blocked storage are surfaced without silently modifying bytes
+  ---
+  duration_ms: 0.244667
+  type: 'test'
+  ...
+# Subtest: invalid ROM identities and oversized saves are rejected
+ok 22 - invalid ROM identities and oversized saves are rejected
+  ---
+  duration_ms: 0.084291
+  type: 'test'
+  ...
+# Subtest: a save from an earlier ROM revision carries over when the new ROM has none
+ok 23 - a save from an earlier ROM revision carries over when the new ROM has none
+  ---
+  duration_ms: 0.202
+  type: 'test'
+  ...
+# Subtest: phone gameplay projects near 320 by 288 pixels with the correct orientation and aspect
+ok 24 - phone gameplay projects near 320 by 288 pixels with the correct orientation and aspect
+  ---
+  duration_ms: 1.24275
+  type: 'test'
+  ...
+# Subtest: responsive game framing fits narrow phones, tablets and desktops without flattening the LCD
+ok 25 - responsive game framing fits narrow phones, tablets and desktops without flattening the LCD
+  ---
+  duration_ms: 1.363833
+  type: 'test'
+  ...
+# Subtest: a camera-only resize keeps animating until it converges and then stops
+ok 26 - a camera-only resize keeps animating until it converges and then stops
+  ---
+  duration_ms: 0.601916
+  type: 'test'
+  ...
+# Subtest: only new visible frames upload; unchanged paused, booklet and large-screen views stay idle
+ok 27 - only new visible frames upload; unchanged paused, booklet and large-screen views stay idle
+  ---
+  duration_ms: 0.752792
+  type: 'test'
+  ...
+# Subtest: returning from a large screen while paused uploads the latest dirty frame exactly once
+ok 28 - returning from a large screen while paused uploads the latest dirty frame exactly once
+  ---
+  duration_ms: 0.315958
+  type: 'test'
+  ...
+# Subtest: every tour shot centres its subject in the free frame at desktop, tablet and phone sizes
+ok 29 - every tour shot centres its subject in the free frame at desktop, tablet and phone sizes
+  ---
+  duration_ms: 2.095666
+  type: 'test'
+  ...
+# Subtest: the tour runs in order: assemble, cartridge drop, lift, flight, slot, power, screen, flip, collapse, door
+ok 30 - the tour runs in order: assemble, cartridge drop, lift, flight, slot, power, screen, flip, collapse, door
+  ---
+  duration_ms: 0.461083
+  type: 'test'
+  ...
+# Subtest: the room is fixed by its seed: the cells under the handheld are there from the start and the path to the door never falls
+ok 31 - the room is fixed by its seed: the cells under the handheld are there from the start and the path to the door never falls
+  ---
+  duration_ms: 5.146333
+  type: 'test'
+  ...
+# Subtest: scroll tour advances the same package without overriding deliberate interaction
+ok 32 - scroll tour advances the same package without overriding deliberate interaction
+  ---
+  duration_ms: 1.239417
+  type: 'test'
+  ...
+# Subtest: physical object hit test follows the projected quadrilateral rather than its empty bounding corners
+ok 33 - physical object hit test follows the projected quadrilateral rather than its empty bounding corners
+  ---
+  duration_ms: 0.099084
+  type: 'test'
+  ...
+1..33
+# tests 33
+# suites 0
+# pass 33
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1208.404458

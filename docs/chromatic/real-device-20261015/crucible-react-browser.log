@@ -1,0 +1,25 @@
+[WebServer] (node:65686) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 12 tests using 1 worker
+
+(node:65697) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [desktop] › browser-tests/chromatic.spec.ts:3:1 › Chromatic preview selects by capability and never calls hardware or uploads data (816ms)
+  ✓   2 [desktop] › browser-tests/chromatic.spec.ts:34:1 › On glass opens the preview in another tab and keeps the existing room (2.9s)
+  ✓   3 [desktop] › browser-tests/chromatic.spec.ts:47:1 › leaving Play offers Chromatic in the action strip without changing its controls (12.5s)
+  ✓   4 [desktop] › browser-tests/chromatic.spec.ts:60:1 › shared theme and direct header entry work at first paint and with a keyboard (7.5s)
+(node:66288) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   5 [tablet] › browser-tests/chromatic.spec.ts:3:1 › Chromatic preview selects by capability and never calls hardware or uploads data (784ms)
+  ✓   6 [tablet] › browser-tests/chromatic.spec.ts:34:1 › On glass opens the preview in another tab and keeps the existing room (4.8s)
+  ✓   7 [tablet] › browser-tests/chromatic.spec.ts:47:1 › leaving Play offers Chromatic in the action strip without changing its controls (10.0s)
+  ✓   8 [tablet] › browser-tests/chromatic.spec.ts:60:1 › shared theme and direct header entry work at first paint and with a keyboard (8.7s)
+(node:67187) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   9 [phone] › browser-tests/chromatic.spec.ts:3:1 › Chromatic preview selects by capability and never calls hardware or uploads data (811ms)
+  ✓  10 [phone] › browser-tests/chromatic.spec.ts:34:1 › On glass opens the preview in another tab and keeps the existing room (3.3s)
+  ✓  11 [phone] › browser-tests/chromatic.spec.ts:47:1 › leaving Play offers Chromatic in the action strip without changing its controls (10.9s)
+  ✓  12 [phone] › browser-tests/chromatic.spec.ts:60:1 › shared theme and direct header entry work at first paint and with a keyboard (6.6s)
+
+  12 passed (1.3m)

@@ -1,0 +1,78 @@
+title: "EGRESS.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_2M
+ext ram size: EXT_RAM_SIZE_8K
+header checksum: 0x97 [OK]
+{ ticks: 83886080, frames: 1186, audio: 234 }
+{"proof":"Node/WASM core only; no browser, sound-device, mobile or physical-controller pass","romSha256":"72a14c35a8b766cedf61718cb3ceafcd5313b3c139b2ee547d98079dcc20bcb0","frames":1186,"audioBuffers":234,"framebufferSha256":"bb67a9b7291eb1612c2f8da4105e8ed81644e1b24921e809a15f4d9a8d5c640f","afterNativeAFrameSha256":"ad44738e07684d351b935400abadb29407b011b9177557ce5fa7f616f89df6a7"}
+✔ vendored binjgb runs the real development cartridge and roundtrips 8 KiB SRAM (1091.174625ms)
+✔ independent fingers and keys own their releases (11.007208ms)
+✔ disconnect clears the pad without clearing held touch (0.236375ms)
+✔ opposite directions neutralize and recover when a source releases (0.133917ms)
+✔ standard mapping includes axes, deadzone, and all hardware buttons (0.252584ms)
+✔ disconnected and nonstandard pads do not send guessed input (0.101917ms)
+✔ keyboard instructions match the implemented bindings (0.082083ms)
+✔ an unresponsive download or initialization has a bounded, visible error (17.699042ms)
+✔ cancelled load cannot commit a late completion and a retry can complete independently (0.490833ms)
+✔ parent cancellation propagates through ROM, WASM and initialization waits (0.392667ms)
+✔ successful cleanup removes the deadline rather than aborting later playback (33.235708ms)
+✔ idle lines are composed, never repeat in a row, rotate speakers, escalate with idleness and never name the sides (9.652416ms)
+✔ direct accessible actions complete the same package journey (1.577375ms)
+✔ booklet endpoints clamp and direct play also opens the package (0.222375ms)
+title: "EGRESS.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_2M
+ext ram size: EXT_RAM_SIZE_8K
+header checksum: 0x97 [OK]
+✔ actual runtime connects native joypad input so A changes static menu UI, then releases its buffer (1080.830458ms)
+title: "EGRESS.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_2M
+ext ram size: EXT_RAM_SIZE_8K
+header checksum: 0x97 [OK]
+✔ real binjgb initializes from the explicit WASM bytes and video notifications follow written frames (17.395ms)
+title: "EGRESS.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_2M
+ext ram size: EXT_RAM_SIZE_8K
+header checksum: 0x97 [OK]
+✔ runtime cancellation stops a stalled ROM request and permits a fresh retry (11.164667ms)
+title: "EGRESS.EXE"
+cgb flag: CGB_FLAG_REQUIRED
+sgb flag: SGB_FLAG_NONE
+cart type: CART_TYPE_MBC5_RAM_BATTERY
+rom size: ROM_SIZE_2M
+ext ram size: EXT_RAM_SIZE_8K
+header checksum: 0x97 [OK]
+✔ runtime cancellation stops a stalled WASM request and permits a fresh retry (14.656459ms)
+✔ late WASM initialization after cancellation cannot allocate an emulator (12.385333ms)
+✔ 128 KiB battery memory survives serialization and stays per-ROM (153.5065ms)
+✔ malformed and blocked storage are surfaced without silently modifying bytes (5.731208ms)
+✔ invalid ROM identities and oversized saves are rejected (0.349042ms)
+✔ a save from an earlier ROM revision carries over when the new ROM has none (0.426542ms)
+✔ phone gameplay projects near 320 by 288 pixels with the correct orientation and aspect (1.520625ms)
+✔ responsive game framing fits narrow phones, tablets and desktops without flattening the LCD (1.305375ms)
+✔ a camera-only resize keeps animating until it converges and then stops (0.227291ms)
+✔ only new visible frames upload; unchanged paused, booklet and large-screen views stay idle (0.23875ms)
+✔ returning from a large screen while paused uploads the latest dirty frame exactly once (0.179292ms)
+✔ every tour shot centres its subject in the free frame at desktop, tablet and phone sizes (2.055625ms)
+✔ the tour runs in order: assemble, cartridge drop, lift, flight, slot, power, screen, flip, collapse, door (0.358042ms)
+✔ the room is fixed by its seed: the cells under the handheld are there from the start and the path to the door never falls (3.272ms)
+✔ scroll tour advances the same package without overriding deliberate interaction (2.642166ms)
+✔ physical object hit test follows the projected quadrilateral rather than its empty bounding corners (0.257834ms)
+ℹ tests 33
+ℹ suites 0
+ℹ pass 33
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2336.797625

@@ -1,0 +1,14 @@
+{
+  "egress": {
+    "/": "b6eeca4e9f02520078f608ff50be9f44bf02ebdc4180a4296f2ef2bc722f8fcc",
+    "/chromatic/": "88eee8858cb41ae634a60f09c919147542e65899e50303f71113e4fb86732417",
+    "/chromatic/NOTICE.md": "9f51d52ce4e234979afcef8502e9d17b4f7db2f2a61d2c5b1a0065c4872c6be4",
+    "/chromatic/LICENSES/Apache-2.0.txt": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+  },
+  "crucible": {
+    "/": "4b87f3d7fd345f27a94eed989fcfba0e90472761d1f43b417b2c9ecf6914ef23",
+    "/chromatic/": "3712eab4b8d67413fdabc2c721875b0c36ac545da71d0a5cbec76b5afb6d721e",
+    "/chromatic/NOTICE.md": "9f51d52ce4e234979afcef8502e9d17b4f7db2f2a61d2c5b1a0065c4872c6be4",
+    "/chromatic/LICENSES/Apache-2.0.txt": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+  }
+}
