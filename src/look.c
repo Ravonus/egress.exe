@@ -310,9 +310,10 @@ static uint8_t launch(uint8_t i) {
     look_present[i >> 3] |= BIT(i); /* what it will be */
     h = cell_meta(i);
     look_present[i >> 3] &= (uint8_t)~BIT(i);
-    if (meta_pal[h] & LOOK_META_BANK0) {
+    if ((meta_pal[h] & LOOK_META_BANK0) && ((meta_pal[h] & 7u) == LOOK_PAL_FLOOR || (meta_pal[h] & 7u) == LOOK_PAL_WALL ||
+                                             (meta_pal[h] & 7u) == LOOK_PAL_VOID)) {
       /* a card in bank 0 flies as itself (worn carpet, a ceiling tile); glass glitches in unseen (its palette is
-       * not one of the assembly's two) */
+       * not one of the assembly's two). Items and thin ice fly in as a slab (their palettes aren't either). */
       c_meta[k] = h;
       if ((meta_pal[h] & 7u) == LOOK_PAL_VOID) c_kind[k] = K_GLITCH;
     } else

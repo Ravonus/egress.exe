@@ -78,7 +78,7 @@ static const uint8_t card[T_TYPES - T_CRUMBLE] = {
     M_GLITCH0,      /* T_GLITCH: + the beat's phase (puzzle_meta) */
     M_WALL_NOTE,    /* T_PAPER: a wall of notes and posters */
     M_SLAB_CRACK,   /* T_PLANK: cardboard over a hole */
-    M_SLAB_A,       /* T_ITEM: drawn as its name (puzzle_draw_item) */
+    M_SLAB_A,       /* T_ITEM: its piece's card, M_ITEM0 + piece - 1 (puzzle_meta) */
     M_WALL_SWITCH,  /* T_SOCKET */
     M_BATTERY,      /* T_SOCKET_ON */
     M_GATE,         /* T_DEAD: a dead shutter */
@@ -90,8 +90,8 @@ static const uint8_t card[T_TYPES - T_CRUMBLE] = {
     M_CEIL0,        /* T_CEIL */
     M_CEIL0 + 1u,   /* T_CEIL_1 */
     M_GLASS,        /* T_GLASS */
-    M_ICE,          /* T_ICE (placeholder; no crack card yet) */
-    M_ICE,          /* T_ICE_1 */
+    M_ICE,          /* T_ICE: thin ice */
+    M_ICE1,         /* T_ICE_1: cracked, one step from giving way */
 };
 
 /* the glitch beat as the look shows it: solid, flicker at its end, gone, flicker before it comes back */
@@ -103,28 +103,11 @@ static uint8_t beat_phase(void) {
 uint8_t puzzle_meta(uint8_t i) BANKED {
   uint8_t t = cell_type(i);
   if (t == T_GLITCH) return (uint8_t)(M_GLITCH0 + beat_phase());
+  if (t == T_ITEM) { /* the piece lying there, as an office thing that carries its element */
+    t = eg_item_at(&room, i);
+    return (t && t <= LOOK_ITEMS) ? (uint8_t)(M_ITEM0 - 1u + t) : M_SLAB_A;
+  }
   return card[t - T_CRUMBLE];
-}
-
-/* a piece, by its first trait: HOT in the burn palette, WET and COLD in the wet one, else the HUD's ink */
-static uint8_t piece_pal(uint8_t p) {
-  uint8_t t = eg_piece_tags(p);
-  if (t & TG(TAG_HOT)) return LOOK_PAL_REACT_B;
-  if (t & (TG(TAG_WET) | TG(TAG_COLD))) return LOOK_PAL_REACT_A;
-  return LOOK_PAL_HUD;
-}
-
-/* a piece lying in the room: its four letters in the cell's 2x2 */
-void puzzle_draw_item(uint8_t i) BANKED {
-  uint8_t x = (uint8_t)(EG_X(i) << 1), y = (uint8_t)(EG_Y(i) << 1), m, p = eg_item_at(&room, i);
-  eg_piece_abbr(p, buf);
-  m = piece_pal(p);
-  buf[4] = buf[2];
-  buf[5] = buf[3];
-  buf[2] = 0;
-  buf[6] = 0;
-  text_at(0, x, y, buf, m);
-  text_at(0, x, (uint8_t)(y + 1u), buf + 4, m);
 }
 
 /* --- using a piece --- */
