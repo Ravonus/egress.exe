@@ -671,6 +671,25 @@ void main(void) {
     log_spr[slot] = LSAT((uint16_t)(t5 - t4));
     log_wait[slot] = LSAT((uint16_t)(t4 - t3));
 #endif
+#if FS
+    /* stats for headless emulators that only keep SRAM (SameBoy tester --sav): "EG", vbl, nflips, views,
+       vbl_end_max; fps over a window = d(nflips) / d(vbl) * 59.73 */
+    {
+      volatile uint8_t *sr = (volatile uint8_t *)0xA000u;
+      uint16_t vv = read_vbl();
+      ENABLE_RAM;
+      sr[0] = 'E';
+      sr[1] = 'G';
+      sr[2] = (uint8_t)vv;
+      sr[3] = (uint8_t)(vv >> 8);
+      sr[4] = (uint8_t)nflips;
+      sr[5] = (uint8_t)(nflips >> 8);
+      sr[6] = (uint8_t)nviews;
+      sr[7] = (uint8_t)(nviews >> 8);
+      sr[8] = vbl_end_max;
+      DISABLE_RAM;
+    }
+#endif
     pend_src = buf[cur];
     pend_view = nviews;
     pend = 1;

@@ -39,18 +39,19 @@ fi
 { echo "OBJ_ON = $OBJ"; echo "MAPADDR = $MAPADDR"; echo "STAGEADDR = $STAGEADDR"; echo "STAGEMAX = $STAGEMAX";
   echo "VSH = $VSH"; echo "VY0 = $VY0"; echo "OBJT0 = $OBJT0"; echo "FS = $FS"; echo "VOFF = $((255 - (H + 255) / 2))"; echo "VEND = $((255 - (H + 255) / 2 + H))"; echo "STRIP = $((H * 2))";
   echo "NRAYS = $((W / 4))"; echo "VIEW_H = $H"; echo "TW = $((W / 8))"; cat "$B/layout.inc" src/fill2.s; } > "$B/fill2.s"
-$LCC -c -o "$B/fill2.o" "$B/fill2.s"
+$LCC -c -o "$B/fill2.o" "$B/fill2.s"; [ -f "$B/fill2.o" ] || exit 1
 { echo "NRAYS = $((W / 4))"; echo "	.area _CODE"; cat src/cast2.s; } > "$B/cast2.s"
 $LCC -c -o "$B/cast2.o" "$B/cast2.s"
 LCDO=""
 DPAD=1; case " $* " in *NO_DMA_PAD*) DPAD=0;; esac
-if [ "$FS" = 1 ]; then { echo "VIEW_H = $H"; echo "TW = $((W / 8))"; echo "TH = $((H / 8))"; echo "OBJ_ON = $OBJ"; echo "DMA_PAD = $DPAD"; cat src/lcd2.s; } > "$B/lcd2.s"; $LCC -c -o "$B/lcd2.o" "$B/lcd2.s"; LCDO="$B/lcd2.o"; fi
+if [ "$FS" = 1 ]; then { echo "VIEW_H = $H"; echo "TW = $((W / 8))"; echo "TH = $((H / 8))"; echo "OBJ_ON = $OBJ"; echo "DMA_PAD = $DPAD"; cat src/lcd2.s; } > "$B/lcd2.s"; $LCC -c -o "$B/lcd2.o" "$B/lcd2.s"; [ -f "$B/lcd2.o" ] || exit 1; LCDO="$B/lcd2.o"; fi
 $LCC -c -o "$B/bank2.o" "$B/bank2_walls.s"
 $LCC -c -o "$B/bank3.o" "$B/bank3_floors.s"
 $LCC -c -o "$B/bank4.o" "$B/bank4_walls1.s"
 OBJS="$LCDO $B/main2.o $OBJA $B/fill2.o $B/cast2.o $B/core2.o $OBJB $B/tables2.o $B/tables2_abs.o $B/bank2.o $B/bank3.o $B/bank4.o"
 LF=""; [ "$FS" = 1 ] && LF="-Wl-g.STACK=0xCB00"
-$LCC -Wm-yC -Wm-yt0x19 -Wm-yo${ROMBANKS:-16} -Wm-yn"RAYCAST2" -Wl-j -Wl-m $LF -o "build/r2_$TAG.gbc" $OBJS
+CART="-Wm-yt0x19"; [ "$FS" = 1 ] && CART="-Wm-yt0x1B -Wm-ya1"  # fullscreen: MBC5 + 8 KB SRAM (stats for SameBoy)
+$LCC -Wm-yC $CART -Wm-yo${ROMBANKS:-16} -Wm-yn"RAYCAST2" -Wl-j -Wl-m $LF -o "build/r2_$TAG.gbc" $OBJS
 cc -O2 -std=c99 -Wall -Wextra -Isrc -I$B $DEFS ${HOSTDEFS:-} -o "build/host2_$TAG" src/host2.c src/core2.c "$B/tables2.c"
 ls -l "build/r2_$TAG.gbc" | awk '{print $5, $9}'
 # WRAM guard: C data must end below the fixed areas (billboard staging at 0xC800, or REC at 0xCB00 without OBJ)

@@ -73,7 +73,7 @@ _lyc_isr::
 .if OBJ_ON
 	.globl _built, _objpal
 .endif
-VBUDGET = 120
+VBUDGET = 112
 FLIPB = 22
 HUDMAP = (TH + 1) * 32 + 18	; the two fps digits
 
@@ -125,6 +125,19 @@ vbl_fs:
 	xor	a, a
 	ld	(_pal_dirty), a
 3$:
+	; the HUD's fps digits (VBK is 0 outside this routine)
+	ld	a, (_hud_dirty)
+	or	a, a
+	jr	z, 38$
+	xor	a, a
+	ld	(_hud_dirty), a
+	ld	a, (_hud_t)
+	ld	(0x9800 + HUDMAP), a
+	ld	(0x9C00 + HUDMAP), a
+	ld	a, (_hud_t + 1)
+	ld	(0x9800 + HUDMAP + 1), a
+	ld	(0x9C00 + HUDMAP + 1), a
+38$:
 	ld	hl, #_vbl
 	inc	(hl)
 	jr	nz, 4$
@@ -268,6 +281,13 @@ vbl_fs:
 	ldh	a, (0x44)
 	cp	a, #144
 	jr	nc, 71$
+	ld	b, a
+	ldh	a, (0x41)
+	and	a, #3
+	cp	a, #1
+	ld	a, #153		; LY reads 0 for most of line 153 (still mode 1)
+	jr	z, 71$
+	ld	a, b
 	add	a, #154
 71$:
 	ld	b, a
@@ -293,15 +313,4 @@ vbl_fs:
 	inc	hl
 	inc	(hl)
 80$:
-	ld	a, (_hud_dirty)
-	or	a, a
-	ret	z
-	xor	a, a
-	ld	(_hud_dirty), a
-	ld	a, (_hud_t)
-	ld	(0x9800 + HUDMAP), a
-	ld	(0x9C00 + HUDMAP), a
-	ld	a, (_hud_t + 1)
-	ld	(0x9800 + HUDMAP + 1), a
-	ld	(0x9C00 + HUDMAP + 1), a
 	ret
