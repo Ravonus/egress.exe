@@ -21,13 +21,13 @@ Metadata never modifies the ROM. Deduplicated files retain all ROM/save backup-g
 
 The cartridge panel now offers choose ROM → two-read verified backup → explicit review/confirmation → direct USB
 flash → ROM/save readback. Selecting an earlier backup restores its paired save. A missing paired save blocks restore.
-The current adapter supports MBC5 images within 2 MiB ROM / 32 KiB save access. RTC/MBC3 carts need their compatible
+The current adapter supports ROM-only and MBC5 images within 2 MiB ROM / 32 KiB save access. RTC/MBC3 carts need their compatible
 external programmer; oversized images are blocked. Protected bytes must match the current verified backup and are
 excluded from the write. No data is staged in ESP32 firmware flash. Interrupted jobs never retry or cancel automatically.
 
 ## Validation and limits
 
-- 53 shared cartridge/metadata tests pass, including identity changes, write refusal, unplug, corrupt readback,
+- 54 shared cartridge/metadata tests pass, including identity changes, write refusal, unplug, corrupt readback,
   protected bytes, and late duplicate data requests. The existing live-input prototype remains intact and unexposed.
 - 33 existing site emulator/save/interaction tests pass; the exact new cartridge runs in binjgb and round-trips SRAM.
 - Static production export passes. Browser checks pass at 320, 390, 768 and 1280 pixels: icon controls, no horizontal
@@ -38,9 +38,10 @@ excluded from the write. No data is staged in ESP32 firmware flash. Interrupted 
   verified local import, write guards and the signed v0.2.0 Mac helper link from the concurrent helper release.
 - No physical device was opened or written by these tests. Physical acceptance of the new browser writer is pending.
 
-Native game source: `92011bd`; canonical shared cartridge implementation: keel-engine `47d8f9a`.
-Site implementation: `7b46e0a`. The latest helper site commit `fcbfbd0` is preserved. Pre-existing site edits and native-UI evidence were left intact.
+Native game source: `92011bd`; canonical shared cartridge implementation: keel-engine `47d8f9a`, with ROM-only restore fix `b651836`.
+Site implementation: `7b46e0a`, with compatibility and repeatable browser checks in `4a16787`. The latest helper site commit `fcbfbd0` is preserved. Pre-existing site edits and native-UI evidence were left intact.
 
 Local raw evidence: `build/site-release-20261015/` in the game repository. Immutable files and prior ROM URLs remain
 on the host for cached pages. Mutable page/alias rollback copies are at
+`/opt/velatis-gateway/backups/egress-rom-20261015-2340` (final compatibility update), with the original release rollback at
 `/opt/velatis-gateway/backups/egress-rom-20261015-2329`.
