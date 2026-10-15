@@ -42,6 +42,7 @@ def main() -> int:
     ap.add_argument("--pose-frames", default="")
     ap.add_argument("--poses", type=Path)
     ap.add_argument("--stills-dir", type=Path)
+    ap.add_argument("--save-snaps", type=Path, help="keep the host-check inputs (map + camera) here")
     ap.add_argument("--shots", default="", help="frame:path,frame:path screenshots during the run")
     a = ap.parse_args()
 
@@ -135,12 +136,21 @@ def main() -> int:
         res.update(views=len(fpv), frames=span, fps_avg=round(len(fpv) * FPS_LCD / span, 2),
                    fps_min=round(FPS_LCD / max(fpv), 2), fps_max=round(FPS_LCD / min(fpv), 2),
                    fpv_hist={str(k): fpv.count(k) for k in sorted(set(fpv))})
+        # skip redraw: views whose walls ran (fill > 4 lines) vs views that kept the buffer (camera unchanged)
+        mov = [v for v in meas if v["fill"] > 4]
+        if mov and len(mov) < len(meas):
+            res.update(views_redrawn=len(mov), fps_redrawn=round(len(mov) * FPS_LCD / sum(v["fpv"] for v in mov), 2),
+                       fps_kept=round((len(meas) - len(mov)) * FPS_LCD / max(1, sum(v["fpv"] for v in meas if v["fill"] <= 4)), 2))
+            for key in ("upd", "ray", "fill", "flr", "spr"):
+                res[f"{key}_lines_redrawn"] = round(sum(v[key] for v in mov) / len(mov), 1)
         for key in ("upd", "ray", "fill", "flr", "spr", "wait"):
             vals = [v[key] for v in meas]
             res[f"{key}_lines_avg"] = round(sum(vals) / len(vals), 1)
             res[f"{key}_lines_max"] = max(vals)
         res["copy_lines_per_chunk"] = round(cl / cc, 2) if cc else None
     res["rom_bytes"] = a.rom.stat().st_size
+    if "_vbl_end_max" in sym:  # fullscreen: the line where the VBlank copy work ended (must stay <= 153)
+        res["vbl_end_line_max"] = u8("vbl_end_max")
 
     def freeze_on():
         mem[sym["_freeze"]] = 1
@@ -166,16 +176,23 @@ def main() -> int:
                 for n in ("cam_x", "cam_y", "cam_a"):
                     blob += bytes([u8(n), u8(n, 1)])
                 inp.write_bytes(blob)
+                if a.save_snaps:
+                    a.save_snaps.mkdir(parents=True, exist_ok=True)
+                    (a.save_snaps / f"snap{k}.bin").write_bytes(blob)
                 subprocess.run([str(host), str(inp), str(out)], check=True)
                 ref = out.read_bytes()
             lb = u8("last_buf")
             bp = mem[sym["_buf"] + 2 * lb] | (mem[sym["_buf"] + 2 * lb + 1] << 8)
+            fsb = 2 + lb if "_hud_pal" in sym else None  # fullscreen: framebuffers in WRAM banks 2/3
             gb = bytes(mem[sym["_ray_h"] + i] for i in range(nrays))
             gb += bytes(mem[sym["_ray_u"] + i] for i in range(nrays))
             gb += bytes(mem[sym["_ray_t"] + i] for i in range(nrays))
             gb += bytes(mem[sym["_ray_d"] + i] for i in range(2 * nrays))
-            gb += bytes(mem[bp + i] for i in range(bufsz))
+            gb += bytes(mem[bp + i] if fsb is None else mem[fsb, bp + i] for i in range(bufsz))
             checks += 1
+            hb = res.setdefault("ray_h_buckets", {"lt8": 0, "lt16": 0, "lt32": 0, "lt64": 0, "ge64": 0})
+            for hv in gb[:nrays]:
+                hb["lt8" if hv < 8 else "lt16" if hv < 16 else "lt32" if hv < 32 else "lt64" if hv < 64 else "ge64"] += 1
             if gb != ref:
                 bad += 1
                 diffs = [i for i, (x, y) in enumerate(zip(gb, ref)) if x != y]

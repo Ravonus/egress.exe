@@ -20,7 +20,7 @@
 .if OBJ_ON
 	.globl _oam_dma
 .endif
-_map = 0xD800
+_map = MAPADDR
 
 	.area _DATA
 _w_buf:	.ds 2
@@ -68,6 +68,9 @@ W_E1 = 0xFFF8
 W_CTK1 = 0xFFF9
 W_BOT = 0xFFFA
 F_N = 0xFFFB
+W_BK = 0xFFFC		; baked walls: block bank, block offset in that bank (W_AL lo, W_AH hi)
+W_AH = 0xFFFD
+W_AL = 0xFFF7
 
 F_J = 0xFFB8
 F_Y0 = 0xFFB9
@@ -86,8 +89,8 @@ F_STL = 0xFFC5
 F_STH = 0xFFC6
 F_B0 = 0xFFC7
 FMIN = 0xC8		; HRAM 0xFFC8: per tile column, first row with any floor (C fills it)
-CMAX = 0xD8		; HRAM 0xFFD8: per tile column, first row with all floor + ceiling visible
-F_B1 = 0xFFE8
+CMAX = FMIN + TW	; HRAM: per tile column, first row with all floor + ceiling visible
+F_B1 = 0xFFF6
 PF0 = 0xFF93
 PF1 = 0xFF94
 PF2 = 0xFF95
@@ -115,6 +118,8 @@ F_CV0 = 0xFFA6
 F_CV1 = 0xFFA7
 F_K = 0xFFA8
 F_VIS = 0xFFA9
+F_YS = 0xFFAA		; partial path: first row of a slot-0 run
+F_NST = 0xFFAB		; partial path: slot-0 rows stored outright
 REC = 0xCB00		; per tile column {fv0, fv1, cv0, cv1} (C fills it)
 
 	.area _CODE
@@ -463,6 +468,10 @@ wcol:
 	add	hl, bc
 	ld	a, (hl)
 	ldh	(W_H), a
+.if HB
+	cp	a, #HB
+	jp	c, wfast
+.endif
 	cp	a, #MIPH
 	ld	a, #2
 	jr	nc, 1011$
@@ -543,27 +552,76 @@ wcol:
 	ld	hl, #_ray_fv
 	add	hl, bc
 	ld	(hl), a
-	; slot 0 zeroes its rows above and below the wall
+wz0:
+	; slot 0 zeroes only the rows where ray i + 1 shows wall and ray i does not (floors OR into those; they store
+	; the rest): [a1, min(vt, b1)) and [max(bot, a1), b1), a1 = max(vt1, VOFF), b1 = min(vt1 + h1, VEND)
 	ldh	a, (W_SLOT)
 	or	a, a
 	jr	nz, 110$
+	inc	c
+	ld	hl, #_ray_h
+	add	hl, bc
+	dec	c
+	ld	l, (hl)
+	ld	h, #>VTOP
+	ld	a, (hl)
+	ld	h, a			; h = vt1
+	add	a, l
+	cp	a, #VEND
+	jr	c, 1051$
+	ld	a, #VEND
+1051$:
+	ld	l, a			; l = b1
+	ld	a, h
+	cp	a, #VOFF
+	jr	nc, 1052$
+	ld	a, #VOFF
+1052$:
+	ld	h, a			; h = a1
+	; widened to the horizon band [H - ZBAND, ZBAND) (the floors skip its d = 0 rows; colour 0 there)
+	cp	a, #VOFF + VIEW_H - ZBAND
+	jr	c, 1056$
+	ld	h, #VOFF + VIEW_H - ZBAND
+1056$:
+	ld	a, l
+	cp	a, #VOFF + ZBAND
+	jr	nc, 1057$
+	ld	l, #VOFF + ZBAND
+1057$:
+	; top part: n = min(vt, b1) - a1
 	ld	a, d
-	cp	a, #VOFF + 1
-	jr	c, 105$
-	sub	a, #VOFF
+	cp	a, l
+	jr	c, 1053$
+	ld	a, l
+1053$:
+	sub	a, h
+	jr	c, 1054$
+	jr	z, 1054$
+	push	hl
 	ld	b, a
+	ld	a, h
+	sub	a, #VOFF
+	add	a, a
+	ld	c, a
 	ldh	a, (W_STL)
+	add	a, c
 	ld	l, a
 	ldh	a, (W_STH)
 	ld	h, a
 	call	ws_zero
-105$:
+	pop	hl
+1054$:
+	; bottom part: n = b1 - max(bot, a1)
 	ld	a, e
-	cp	a, #VEND
-	jr	nc, 110$
+	cp	a, h
+	jr	nc, 1055$
+	ld	a, h
+1055$:
 	ld	c, a
-	ld	a, #VEND
+	ld	a, l
 	sub	a, c
+	jr	c, 110$
+	jr	z, 110$
 	ld	b, a
 	ld	a, c
 	sub	a, #VOFF
@@ -576,6 +634,11 @@ wcol:
 	ld	h, a
 	call	ws_zero
 110$:
+.if HB
+	ldh	a, (W_H)
+	cp	a, #HB
+	jp	c, wbake
+.endif
 	; colour table key = (side * 6 + kclass) * 16, cached per slot
 	ldh	a, (W_K)
 	add	a, #<KCLASS
@@ -688,6 +751,158 @@ wl0:
 	jp	wdone
 wl1:
 	RUNLOOP	1, ws_or, wd_or, wp_or
+.if HB
+	jp	wdone
+; baked short wall (h < HB): its 2h slot-0 bytes from the pack_wb.py banks, stored (slot 0) or swapped and ORed
+; (slot 1) by an unrolled copy entered at WBT's entry for h. The colour / pattern caches stay valid.
+wfast:
+	; h < HB: everything per height from WBT (h << 4), bank 2 for the zeroing's VTOP
+	swap	a
+	ld	l, a
+	ld	h, #0
+	ld	de, #_WBT
+	add	hl, de
+	ld	a, #2
+	ldh	(__current_bank), a
+	ld	(0x2000), a
+	ld	a, (hl+)
+	ldh	(W_BK), a
+	ld	a, (hl+)
+	ldh	(W_AL), a
+	ld	a, (hl+)
+	ldh	(W_AH), a
+	ld	a, (hl+)
+	ldh	(W_C), a
+	ld	a, (hl+)
+	ldh	(W_ROW), a
+	push	hl
+	ld	a, (hl+)
+	ld	hl, #_ray_cv
+	add	hl, bc
+	ld	(hl), a
+	pop	hl
+	inc	hl
+	ld	a, (hl+)
+	push	hl
+	ld	hl, #_ray_fv
+	add	hl, bc
+	ld	(hl), a
+	pop	hl
+	ld	a, (hl+)
+	ld	d, a
+	ld	a, (hl+)
+	ld	e, a
+	ld	a, l
+	ldh	(W_RNL), a
+	ld	a, h
+	ldh	(W_RNH), a
+	ld	hl, #_ray_t
+	add	hl, bc
+	ld	a, (hl)
+	ldh	(W_T), a
+	jp	wz0
+wbake:
+	; the stored copy (slot 0) or swap + OR (slot 1) of the 2h baked bytes; the colour / pattern caches stay valid
+	ldh	a, (W_C)
+	or	a, a
+	jp	z, wdone
+	ld	b, a
+	ldh	a, (W_RNL)
+	ld	l, a
+	ldh	a, (W_RNH)
+	ld	h, a
+	ldh	a, (W_SLOT)
+	or	a, a
+	jr	z, 1$
+	inc	hl
+	inc	hl
+1$:
+	ld	a, (hl+)
+	ld	h, (hl)
+	ld	l, a
+	ld	de, #wdone
+	push	de			; the copy's ret goes to wdone
+	push	hl			; the ret below enters the copy
+	; column id = ID[t << 4 | u] (bank WB0 at 0x4000); source = block + (id << shift): bank W_BK + (src >> 14)
+	ldh	a, (W_I)
+	add	a, #<_ray_u
+	ld	l, a
+	ld	a, #0
+	adc	a, #>_ray_u
+	ld	h, a
+	ld	c, (hl)
+	ldh	a, (W_T)
+	ld	l, a
+	ld	h, #0
+	add	hl, hl
+	add	hl, hl
+	add	hl, hl
+	add	hl, hl
+	ld	a, l
+	or	a, c
+	ld	l, a
+	add	hl, hl
+	ld	a, h
+	add	a, #0x40
+	ld	h, a
+	ld	a, #WB0
+	ldh	(__current_bank), a
+	ld	(0x2000), a
+	ld	a, (hl+)
+	ld	h, (hl)
+	ld	l, a
+2$:
+	add	hl, hl
+	dec	b
+	jr	nz, 2$
+	ldh	a, (W_AL)
+	add	a, l
+	ld	l, a
+	ldh	a, (W_AH)
+	adc	a, h
+	ld	h, a
+	rlca
+	rlca
+	and	a, #3
+	ld	c, a
+	ldh	a, (W_BK)
+	add	a, c
+	ldh	(__current_bank), a
+	ld	(0x2000), a
+	ld	a, h
+	and	a, #0x3F
+	or	a, #0x40
+	ld	d, a
+	ld	e, l
+	; dest = strip + (vt - VOFF) * 2
+	ldh	a, (W_ROW)
+	ld	c, a
+	ldh	a, (W_STL)
+	add	a, c
+	ld	l, a
+	ldh	a, (W_STH)
+	ld	h, a
+	ret
+; the unrolled copies: 2 (HB - 1) bytes, entered 2h bytes before the end
+wcp0:
+	.rept	2 * (HB - 1)
+	ld	a, (de)
+	inc	e
+	ld	(hl+), a
+	.endm
+wcp0_end::
+	ret
+wcp1:
+	.rept	2 * (HB - 1)
+	ld	a, (de)
+	inc	e
+	swap	a
+	or	a, (hl)
+	ld	(hl+), a
+	.endm
+wcp1_end::
+	ret
+.endif
 wdone:
 	ldh	a, (W_I)
 	inc	a
@@ -775,7 +990,7 @@ sra4:
 	rlca
 	ld	l, a
 	and	a, #3
-	or	a, #0xD8
+	or	a, #>MAPADDR
 	ld	h, a
 	ld	a, l
 	and	a, #0xE0
@@ -867,6 +1082,32 @@ pup:
 	jr	nz, pup
 	ret
 
+pst:
+	ldh	a, (c)
+	and	a, d
+	ld	(hl+), a
+	ldh	a, (c)
+	and	a, e
+	ld	(hl+), a
+	inc	c
+	dec	b
+	jr	nz, pst
+	ret
+
+pdst:
+	ldh	a, (c)
+	and	a, d
+	ld	(hl+), a
+	ldh	a, (c)
+	and	a, e
+	ld	(hl-), a
+	dec	hl
+	dec	hl
+	inc	c
+	dec	b
+	jr	nz, pdst
+	ret
+
 pdown:
 	ldh	a, (c)
 	and	a, d
@@ -883,8 +1124,34 @@ pdown:
 	jr	nz, pdown
 	ret
 
-; one slot of a partial tile: k0 = max(fv - y0, 0); rows k0..FR-1
-	.macro	PSLOT	fv, cv, mask, fr, ?l1, ?l2, ?l3, ?l4
+; one slot of a partial tile: k0 = max(fv - y0, 0); rows k0..FR-1. Slot 0 (ofv/ocv = slot 1's rows, split = 1)
+; ORs only the rows where slot 1 shows wall (the walls zeroed just those rows) and stores the rest outright
+; (slot 1 then ORs its nibble in), so the walls need not zero the slot-0 rows that only floors cover.
+	.macro	PSPLIT	ofv, pw, fr
+	ldh	(F_YS), a
+	ld	a, #fr
+	sub	a, c
+	ld	b, a
+	ld	a, c
+	add	a, #<pw
+	ld	c, a
+	ldh	a, (F_YS)
+	ld	d, a
+	ldh	a, (ofv)
+	sub	a, d
+	jr	nc, .+3
+	xor	a, a
+	cp	a, b
+	jr	c, .+3
+	ld	a, b
+	ld	d, a
+	ld	a, b
+	sub	a, d
+	ldh	(F_NST), a
+	ld	b, d
+	.endm
+
+	.macro	PSLOT	fv, cv, mask, fr, split, ofv, ocv, ?l1, ?l2, ?l3, ?l4, ?l5, ?l6
 	ldh	a, (F_Y0)
 	ld	b, a
 	ldh	a, (fv)
@@ -893,9 +1160,12 @@ pdown:
 	xor	a, a
 l1:
 	cp	a, #fr
-	jr	nc, l2
+	jp	nc, l2
 	ld	c, a
 	add	a, b
+.if split
+	push	af
+.endif
 	add	a, a
 	ld	l, a
 	ldh	a, (F_STL)
@@ -903,19 +1173,35 @@ l1:
 	ld	l, a
 	ldh	a, (F_STH)
 	ld	h, a
+.if split
+	pop	af
+	PSPLIT	ofv, PF0, fr
+.else
 	ld	a, #fr
 	sub	a, c
 	ld	b, a
 	ld	a, c
 	add	a, #<PF0
 	ld	c, a
+.endif
 	ldh	a, (P_FL)
 	and	a, #mask
 	ld	d, a
 	ldh	a, (P_FL + 1)
 	and	a, #mask
 	ld	e, a
+.if split
+	inc	b
+	dec	b
+	call	nz, pup
+	ldh	a, (F_NST)
+	or	a, a
+	jr	z, l2
+	ld	b, a
+	call	pst
+.else
 	call	pup
+.endif
 l2:
 	ldh	a, (F_Y0)
 	ld	b, a
@@ -925,9 +1211,12 @@ l2:
 	xor	a, a
 l3:
 	cp	a, #fr
-	jr	nc, l4
+	jp	nc, l4
 	ld	c, a
 	add	a, b
+.if split
+	push	af
+.endif
 	cpl
 	add	a, #VIEW_H
 	add	a, a
@@ -937,19 +1226,35 @@ l3:
 	ld	l, a
 	ldh	a, (F_STH)
 	ld	h, a
+.if split
+	pop	af
+	PSPLIT	ocv, PC0, fr
+.else
 	ld	a, #fr
 	sub	a, c
 	ld	b, a
 	ld	a, c
 	add	a, #<PC0
 	ld	c, a
+.endif
 	ldh	a, (P_CL)
 	and	a, #mask
 	ld	d, a
 	ldh	a, (P_CL + 1)
 	and	a, #mask
 	ld	e, a
+.if split
+	inc	b
+	dec	b
+	call	nz, pdown
+	ldh	a, (F_NST)
+	or	a, a
+	jr	z, l4
+	ld	b, a
+	call	pdst
+.else
 	call	pdown
+.endif
 l4:
 	.endm
 
@@ -1363,8 +1668,8 @@ f352:
 	ld	a, (hl)
 	ldh	(c), a
 	; per slot: floor rows from max(fv, y0), ceiling rows (mirrored) from max(cv, y0); OR into zeroed rows
-	PSLOT	F_FV0, F_CV0, 0xF0, fr
-	PSLOT	F_FV1, F_CV1, 0x0F, fr
+	PSLOT	F_FV0, F_CV0, 0xF0, fr, 1, F_FV1, F_CV1
+	PSLOT	F_FV1, F_CV1, 0x0F, fr, 0, F_FV1, F_CV1
 	pop	de
 	pop	bc
 f380:
@@ -1530,7 +1835,7 @@ BC_SL = 0xFFA6
 BC_SH = 0xFFA7
 BC_R0 = 0xFFA8
 BC_R1 = 0xFFA9
-STAGE_MAX = 24
+STAGE_MAX = STAGEMAX
 _bb_col::
 	ld	a, (_bbc_bank)
 	ldh	(__current_bank), a
@@ -1547,7 +1852,7 @@ _bb_col::
 	ldh	a, (BC_Y8)
 	cp	a, #49
 	jp	c, 30$
-	cp	a, #128
+	cp	a, #64 + VSH
 	jp	nc, 40$
 	ld	a, (_obj_stage_n)
 	cp	a, #STAGE_MAX
@@ -1568,10 +1873,10 @@ _bb_col::
 12$:
 	ldh	(BC_R0), a
 	ldh	a, (BC_Y8)
-	cp	a, #113
+	cp	a, #64 + VSH - 15
 	jr	c, 13$
 	ld	c, a
-	ld	a, #128
+	ld	a, #64 + VSH
 	sub	a, c
 	jr	14$
 13$:
@@ -1590,7 +1895,7 @@ _bb_col::
 	srl	a
 	srl	a
 	srl	a
-	add	a, #0xC8
+	add	a, #>STAGEADDR
 	ld	h, a
 	; de = src + r0 * 2
 	ldh	a, (BC_R0)
@@ -1604,7 +1909,24 @@ _bb_col::
 	ld	d, a
 	ldh	a, (BC_R0)
 	or	a, a
-	jr	z, 16$
+	jp	nz, 1405$
+	; whole tile (r0 0, r1 16, 32-byte aligned source): unrolled masked copy, the source steps with inc e
+	ldh	a, (BC_R1)
+	cp	a, #16
+	jp	nz, 16$
+	ld	a, e
+	and	a, #31
+	jp	nz, 16$
+	ld	a, (_bbc_mask)
+	ld	c, a
+	.rept	32
+	ld	a, (de)
+	inc	e
+	and	a, c
+	ld	(hl+), a
+	.endm
+	jp	20$
+1405$:
 	ld	b, a
 	xor	a, a
 15$:
@@ -1652,13 +1974,13 @@ _bb_col::
 	ld	h, (hl)
 	ld	l, a
 	ldh	a, (BC_Y8)
-	sub	a, #8
+	sub	a, #48 - VY0
 	ld	(hl+), a
 	ld	a, (_bbe_ox)
 	ld	(hl+), a
 	ld	a, (_obj_stage_n)
 	add	a, a
-	add	a, #96
+	add	a, #OBJT0
 	ld	(hl+), a
 	ld	a, (_bbe_attr)
 	ld	(hl+), a
@@ -1688,6 +2010,44 @@ _bb_col::
 	ld	a, #1
 	ldh	(__current_bank), a
 	ld	(0x2000), a
+	ret
+
+; band_max(b0 = a, n = e) -> a: the fullest of band[b0 .. b0 + n - 1] (n >= 1); band_add(b0 = a, n = e): += band_k
+	.globl	_band, _band_k
+_band_max::
+	ld	hl, #_band
+	add	a, l
+	ld	l, a
+	adc	a, h
+	sub	a, l
+	ld	h, a
+	ld	c, #0
+1$:
+	ld	a, (hl+)
+	cp	a, c
+	jr	c, 2$
+	ld	c, a
+2$:
+	dec	e
+	jr	nz, 1$
+	ld	a, c
+	ret
+
+_band_add::
+	ld	hl, #_band
+	add	a, l
+	ld	l, a
+	adc	a, h
+	sub	a, l
+	ld	h, a
+	ld	a, (_band_k)
+	ld	c, a
+1$:
+	ld	a, (hl)
+	add	a, c
+	ld	(hl+), a
+	dec	e
+	jr	nz, 1$
 	ret
 
 ; vis_fill: vpad[j0 + 2 + i] = vf_d < ray_d[j0 + i] ? 0x0F : 0, i < vf_n (the billboard's per-ray visibility)

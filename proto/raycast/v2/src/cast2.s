@@ -1,7 +1,7 @@
 ; cast_asm: every ray's DDA (v1's, with 16 texel columns per face: u = frac >> 4)
 	.globl _cast_init, _smulhi
 	.globl _cast_asm, _cam_x, _cam_y, _cam_a, _map, _ray_d, _T_COLOFF, _T_COLCOS, _T_DELTA, _T_COSABS
-	.globl _T_HEIGHT
+	.globl _T_HEIGHT, _ray_hc, _ray_hr, _ray_fr, _ray_mr, _ray_t, _ray_u, _ray_h
 
 ; cast scratch in HRAM (the walls/floors reuse it after the cast)
 c_i = 0xFFA4
@@ -17,12 +17,15 @@ c_dist = 0xFFB3
 c_side = 0xFFB5
 c_cell = 0xFFB6
 c_base = 0xFFB7
+c_col = 0xFFB9
+c_row = 0xFFBA
+c_fr = 0xFFBB
 
 	.area _CODE
 
-; hl = a * b  (quarter squares, page-aligned tables at 0x7800: lo bytes 0x7800-0x79FF, hi bytes 0x7A00-0x7BFF)
+; hl = a * b  (quarter squares, page-aligned tables at 0x6C00: lo bytes 0x6C00-0x6DFF, hi bytes 0x6E00-0x6FFF)
 ; in a, b; clobbers a, c, d, e
-SQLO = 0x78
+SQLO = 0x6C
 mul8:
 	ld	c, a
 	add	a, b
@@ -239,9 +242,37 @@ _cast_asm::
 	ldh	(c_base), a
 	ld	a, h
 	ldh	(c_base+1), a
+	; the even rays and the last one in full, then each odd ray from its neighbours when they hit the same face
 	xor	a, a
 	ldh	(c_i), a
-200$:
+1$:
+	call	cast1
+	ldh	a, (c_i)
+	add	a, #2
+	ldh	(c_i), a
+	cp	a, #NRAYS
+	jr	c, 1$
+	ld	a, #NRAYS - 1
+	ldh	(c_i), a
+	call	cast1
+	ld	a, #1
+	ldh	(c_i), a
+2$:
+.ifdef NOMID
+	call	cast1
+.else
+	call	mid1
+	call	nc, cast1
+.endif
+	ldh	a, (c_i)
+	add	a, #2
+	ldh	(c_i), a
+	cp	a, #NRAYS - 1
+	jr	c, 2$
+	ret
+
+; one full ray (c_i), with its hit record (ray_hc, ray_hr, ray_fr, ray_mr) for mid1
+cast1:
 	; a = (cam_a + coloff[i]) & 1023
 	ldh	a, (c_i)
 	ld	l, a
@@ -381,6 +412,26 @@ _cast_asm::
 	ldh	(c_side), a
 	ld	a, (hl)
 	ldh	(c_cell), a
+	; hit cell column / row (map at a 1 KB boundary: row = (h & 3) << 3 | l >> 5)
+	ld	a, l
+	and	a, #31
+	ldh	(c_col), a
+	push	bc			; bc = sd x (dist below)
+	ld	a, h
+	and	a, #3
+	ld	b, a
+	ld	a, l
+	swap	a
+	rrca
+	and	a, #7
+	ld	c, a
+	ld	a, b
+	add	a, a
+	add	a, a
+	add	a, a
+	or	a, c
+	ldh	(c_row), a
+	pop	bc
 	; dist = sd - dd of the side that hit
 	ldh	a, (c_side)
 	or	a, a
@@ -481,6 +532,7 @@ _cast_asm::
 231$:
 	sub	a, l
 232$:
+	ldh	(c_fr), a
 	swap	a
 	and	a, #15
 	ld	b, a
@@ -514,6 +566,7 @@ _cast_asm::
 233$:
 	sub	a, l
 234$:
+	ldh	(c_fr), a
 	swap	a
 	and	a, #15
 	ld	b, a
@@ -548,9 +601,278 @@ _cast_asm::
 	adc	a, #>_ray_t
 	ld	h, a
 	ld	(hl), b
-	ld	a, c
+	; hit record
+	ld	b, #0
+	ld	hl, #_ray_hc
+	add	hl, bc
+	ldh	a, (c_col)
+	ld	(hl), a
+	ld	hl, #_ray_hr
+	add	hl, bc
+	ldh	a, (c_row)
+	ld	(hl), a
+	ld	hl, #_ray_fr
+	add	hl, bc
+	ldh	a, (c_fr)
+	ld	(hl), a
+	; mirror: side 0 when !xpos, side 1 when ypos
+	ldh	a, (c_side)
+	or	a, a
+	jr	nz, 250$
+	ldh	a, (c_xpos)
+	xor	a, #1
+	jr	251$
+250$:
+	ldh	a, (c_ypos)
+251$:
+	ld	hl, #_ray_mr
+	add	hl, bc
+	ld	(hl), a
+	ret
+
+; ---------------------------------------------------------------------------------------------------------------
+; mid1: ray c_i from rays c_i - 1 and c_i + 1 (core2.c mid_ray, same arithmetic); carry set when done
+m_side = 0xFFA5
+m_h0 = 0xFFA6
+m_h1 = 0xFFA7
+m_fix = 0xFFA8
+m_la = 0xFFA9
+m_lb = 0xFFAA
+m_fr0 = 0xFFAB
+m_fr1 = 0xFFAC
+m_neg = 0xFFAD
+RTAB = 0x70
+HIXP = 0x6B
+mid1:
+	ldh	a, (c_i)
+	dec	a
+	ld	e, a
+	ld	d, #0
+	ld	hl, #_ray_t
+	add	hl, de
+	ld	a, (hl+)
+	inc	hl
+	xor	a, (hl)
+	and	a, #1
+	jp	nz, 90$
+	ld	a, (hl)
+	and	a, #1
+	ldh	(m_side), a
+	ld	hl, #_ray_h
+	add	hl, de
+	ld	a, (hl+)
+	ldh	(m_h0), a
 	inc	a
-	ldh	(c_i), a
-	cp	a, #NRAYS
-	jp	nz, 200$
+	jp	z, 90$
+	inc	hl
+	ld	a, (hl)
+	ldh	(m_h1), a
+	inc	a
+	jp	z, 90$
+	ldh	a, (m_side)
+	or	a, a
+	jr	nz, 10$
+	; side 0: same column; la, lb = rows
+	ld	hl, #_ray_hc
+	add	hl, de
+	ld	a, (hl+)
+	inc	hl
+	cp	a, (hl)
+	jp	nz, 90$
+	ldh	(m_fix), a
+	ld	hl, #_ray_hr
+	jr	11$
+10$:
+	ld	hl, #_ray_hr
+	add	hl, de
+	ld	a, (hl+)
+	inc	hl
+	cp	a, (hl)
+	jp	nz, 90$
+	ldh	(m_fix), a
+	ld	hl, #_ray_hc
+11$:
+	add	hl, de
+	ld	a, (hl+)
+	ldh	(m_la), a
+	ld	b, a
+	inc	hl
+	ld	a, (hl)
+	ldh	(m_lb), a
+	sub	a, b
+	inc	a
+	cp	a, #3
+	jp	nc, 90$
+	ld	hl, #_ray_fr
+	add	hl, de
+	ld	a, (hl+)
+	ldh	(m_fr0), a
+	inc	hl
+	ld	a, (hl)
+	ldh	(m_fr1), a
+	; r = RT[HIX[h0] << 6 | HIX[h1]]
+	ld	h, #HIXP
+	ldh	a, (m_h1)
+	ld	l, a
+	ld	c, (hl)
+	ldh	a, (m_h0)
+	ld	l, a
+	ld	l, (hl)
+	ld	h, #0
+	add	hl, hl
+	add	hl, hl
+	add	hl, hl
+	add	hl, hl
+	add	hl, hl
+	add	hl, hl
+	ld	a, l
+	or	a, c
+	ld	l, a
+	ld	a, h
+	add	a, #RTAB
+	ld	h, a
+	ld	b, (hl)
+	; dw = w1 - w0, |dw| into de, sign into m_neg
+	ldh	a, (m_fr0)
+	ld	c, a
+	ldh	a, (m_fr1)
+	sub	a, c
+	ld	e, a
+	ldh	a, (m_la)
+	ld	c, a
+	ldh	a, (m_lb)
+	sbc	a, c
+	ld	d, a
+	ld	a, #0
+	jr	nc, 20$
+	xor	a, a
+	sub	a, e
+	ld	e, a
+	ld	a, #0
+	sbc	a, d
+	ld	d, a
+	ld	a, #1
+20$:
+	ldh	(m_neg), a
+	push	bc
+	MULHI
+	pop	bc
+	; wm = w0 +- hl -> d = row/col along, e = frac
+	ldh	a, (m_neg)
+	or	a, a
+	jr	nz, 21$
+	ldh	a, (m_fr0)
+	add	a, l
+	ld	e, a
+	ldh	a, (m_la)
+	adc	a, h
+	ld	d, a
+	jr	22$
+21$:
+	ldh	a, (m_fr0)
+	sub	a, l
+	ld	e, a
+	ldh	a, (m_la)
+	sbc	a, h
+	ld	d, a
+22$:
+	; cell = side 0: (along & 31) << 5 | fix ; side 1: fix << 5 | (along & 31)
+	ldh	a, (m_side)
+	or	a, a
+	ld	a, d
+	jr	nz, 23$
+	and	a, #31
+	ld	l, a
+	ldh	a, (m_fix)
+	ld	c, a
+	jr	24$
+23$:
+	and	a, #31
+	ld	c, a
+	ldh	a, (m_fix)
+	ld	l, a
+24$:
+	ld	h, #0
+	add	hl, hl
+	add	hl, hl
+	add	hl, hl
+	add	hl, hl
+	add	hl, hl
+	ld	a, l
+	or	a, c
+	ld	l, a
+	ld	a, h
+	add	a, #>_map
+	ld	h, a
+	ld	a, (hl)
+	bit	7, a
+	jp	nz, 90$
+	; ray_t[i] = ((c - 1) << 1) | side
+	dec	a
+	add	a, a
+	ld	b, a
+	ldh	a, (m_side)
+	or	a, b
+	ld	b, a
+	ldh	a, (c_i)
+	ld	c, a
+	ld	a, b
+	ld	b, #0
+	ld	hl, #_ray_t
+	add	hl, bc
+	ld	(hl), a
+	; u = frac >> 4, mirrored like ray i - 1
+	ld	a, e
+	swap	a
+	and	a, #15
+	ld	d, a
+	ld	hl, #_ray_mr - 1
+	add	hl, bc
+	ld	a, (hl)
+	or	a, a
+	ld	a, d
+	jr	z, 25$
+	cpl
+	and	a, #15
+25$:
+	ld	hl, #_ray_u
+	add	hl, bc
+	ld	(hl), a
+	; ray_h[i] = (h0 + h1) >> 1
+	ldh	a, (m_h0)
+	ld	d, a
+	ldh	a, (m_h1)
+	add	a, d
+	rra
+	ld	hl, #_ray_h
+	add	hl, bc
+	ld	(hl), a
+	; ray_d[i] = (d0 + d1) >> 1 (17-bit sum)
+	ld	hl, #_ray_d - 2
+	add	hl, bc
+	add	hl, bc
+	ld	a, (hl+)
+	ld	e, a
+	ld	a, (hl+)
+	ld	d, a
+	inc	hl
+	inc	hl
+	ld	a, (hl+)
+	add	a, e
+	ld	e, a
+	ld	a, (hl)
+	adc	a, d
+	rra
+	ld	d, a
+	ld	a, e
+	rra
+	dec	hl
+	dec	hl
+	dec	hl
+	ld	(hl+), a
+	ld	(hl), d
+	scf
+	ret
+90$:
+	or	a, a
 	ret

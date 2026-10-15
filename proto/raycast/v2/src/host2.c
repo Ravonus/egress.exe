@@ -33,6 +33,7 @@ int main(int argc, char **argv) {
   fprintf(stderr, "steps %u runs %u vis %u rows s0 %u %u %u %u s1 %u %u %u %u\n", st_steps, st_allruns, st_runs, st_rows[0][0], st_rows[0][1], st_rows[0][2], st_rows[0][3], st_rows[1][0], st_rows[1][1], st_rows[1][2], st_rows[1][3]);
 #endif
 #ifdef STATS
+  { extern unsigned st_mid; fprintf(stderr, "mid rays %u\n", st_mid); }
   fprintf(stderr, "floor tiles skip %u fast %u part %u\n", st_fskip, st_ffast, st_fpart);
 #endif
   o = fopen(argv[2], "wb");
