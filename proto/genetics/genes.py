@@ -40,12 +40,19 @@ WEAPON = ["BLADE", "HAMMER", "WHIP", "GAUNTLET", "LAUNCHER"]
 # linked genes (readable at a glance): HEAVY sits on the size locus, the strongest affinity tints the clothes,
 # BLINK lines carry the ring-pattern, SMALL rides size 0.
 CLOTH_FOR_TAG = [5, 1, 2, 6, 3, 4, 7]
+CLOTH_ALT_FOR_TAG = [6, 2, 1, 7, 2, 7, 4]  # the second dye of each tag, worn when the accent gene is odd
 SKIN_ORDER = [5, 0, 1, 2, 3, 4]  # the skin gene is a light-to-deep ramp; the face generator's SKIN6 table is not ordered  # g4 accent index per tag
 
 # ---------------------------------------------------------------- rates (per child, out of 256)
-R_SKIN_SAME, R_SKIN_STEP = 176, 80  # same tone 69%, one step either way 31% (bounded)
-R_LOOK_KEEP = 200  # other look loci copy the parent 78%, else the mate
-R_MUT_LOOK = 6  # 2.3% a look locus mutates to any value
+R_SKIN_SAME, R_SKIN_STEP = 160, 88  # same tone 62.5%, one step 34.4%, two steps 3.1% (bounded; was 69/31/0)
+R_LOOK_KEEP = 184  # other look loci copy the parent 72%, else the mate (was 78%)
+R_MUT_LOOK = 6  # 2.3% a look locus mutates to any value (unchanged: the spread is recombination, not mutation)
+# sibling spread: no two of the three kids may share 4 or more of the 5 spread loci, nor wear the same clothes; a
+# later kid that does re-draws one locus from its own mate (recombination, not mutation), else a hashed value. Uses
+# its own hash, so the ability rolls are untouched.
+SPREAD_LOCI = (("hair", 5), ("mark", 8), ("accent", 8), ("shape", 8), ("neck", 4))
+SPREAD_MIN_DIFF = 2
+RING, POOL = 24, 16  # the save keeps 24 heirs (the tree); the mate pool is the newest 16 of them
 R_MUT_TRAIT = 1  # 0.4% per allele: about 1 new trait every 12 children (flagged)
 R_MUT_STAT = 24  # 9% a stat gene moves +/-1
 STAT_CAP, AFF_CAP, TRAITS_EXPRESSED = 7, 2, 2
@@ -87,12 +94,15 @@ def mate_for(parent, rng, pool):
     return m
 
 
-def child(parent, rng, pool):
+def child(parent, rng, pool, keep_mate=False):
     m = mate_for(parent, rng, pool)
     c = {"kind": parent["kind"], "flags": {"mutated": 0, "glitch": 0}}
     # skin: mostly the parent's, natural variation of one step
     r = rng.u8()
-    c["skin"] = parent["skin"] if r < R_SKIN_SAME else max(0, min(5, parent["skin"] + (1 if r & 1 else -1)))
+    step = 0 if r < R_SKIN_SAME else (1 if r < R_SKIN_SAME + R_SKIN_STEP else 2)
+    c["skin"] = max(0, min(5, parent["skin"] + (step if r & 1 else -step)))
+    if keep_mate:  # the mate's spread loci, for the sibling spread only (not part of the genome)
+        c["_mate"] = {k: m[k] for k, _ in SPREAD_LOCI}
     for k, n in (("shape", 8), ("mouth", 2), ("hair", 5), ("neck", 4), ("pat", 8), ("dith", 6), ("size", 3),
                  ("accent", 8), ("mark", 8), ("look", 3)):
         c[k] = parent[k] if rng.u8() < R_LOOK_KEEP else m[k]
@@ -120,6 +130,34 @@ def child(parent, rng, pool):
     return c
 
 
+def spread(sibs, seed):
+    """the three kids are rolled as a set: a later kid that shares 4+ of the 5 spread loci (the accent as worn) with
+    an earlier one takes one of them from its own mate (or, if the mate agrees, a hashed value). Its own hash stream,
+    so the abilities and the 9.4 selection numbers are unchanged."""
+    h = Rng(seed * 2654435761 + 1)
+
+    def seen(g, k):  # the accent is compared as worn (a dyed line's two shades), the rest as genes
+        return express(g)["accent"] if k == "accent" else g[k]
+
+    for i, c in enumerate(sibs):
+        mate = c.pop("_mate", None) or {}
+        for _ in range(8):  # bounded: in practice one or two passes settle it
+            prev = next((q for q in sibs[:i]
+                         if sum(seen(c, k) != seen(q, k) for k, _ in SPREAD_LOCI) < SPREAD_MIN_DIFF), None)
+            if prev is None:
+                break
+            same = [(k, n) for k, n in SPREAD_LOCI if seen(c, k) == seen(prev, k)]
+            k, n = same[h.pick(len(same))]
+            v = mate.pop(k, c[k])  # the mate's allele first, once; then a hashed new value
+            c[k] = v if v != c[k] else (c[k] + 1 + h.pick(n - 1)) % n
+        for _ in range(3):  # and no two kids in the same clothes (a dyed line still wears its two shades)
+            if express(c)["accent"] not in {express(q)["accent"] for q in sibs[:i]}:
+                break
+            v = mate.pop("accent", c["accent"])
+            c["accent"] = v if v != c["accent"] else (c["accent"] + 1 + h.pick(7)) % 8
+    return sibs
+
+
 def express(g):
     """phenotype: what the heir card shows and the game uses (caps and diminishing returns applied)"""
     d = g["dodge"]
@@ -134,7 +172,8 @@ def express(g):
     if tot > STAT_BUDGET:  # one shared 40-point budget across the four stats (scaled down, integer)
         stats = [v * STAT_BUDGET // tot for v in stats]
     size = 2 if "HEAVY" in traits else (0 if "SMALL" in traits else g["size"])
-    accent = CLOTH_FOR_TAG[top] if aff[top] else g["accent"]
+    dye = CLOTH_ALT_FOR_TAG if g["accent"] & 1 else CLOTH_FOR_TAG  # a fire line wears crimson or gold
+    accent = dye[top] if aff[top] >= AFF_CAP else g["accent"]  # only a full affinity dyes the clothes
     return {"dodge": DODGE[dodge], "weapon": WEAPON[g["weapon"][0]], "traits": traits,
             "aff": {TAGS[i]: aff[i] for i in range(len(TAGS)) if aff[i]}, "top": TAGS[top] if aff[top] else None,
             "stats": dict(zip(STATS, stats)), "size": size, "accent": accent}
@@ -176,7 +215,8 @@ def run(strategy, seed, gens=30):
     pool = []
     hist = []
     for gen in range(gens):
-        sibs = [child(parent, rng, pool) for _ in range(3)]
+        sibs = [child(parent, rng, pool, keep_mate=True) for _ in range(3)]
+        spread(sibs, seed * 31 + gen)
         if strategy == "random":
             pick = sibs[rng.pick(3)]
         else:
@@ -184,7 +224,7 @@ def run(strategy, seed, gens=30):
             cands = [s for s in sibs if score(strategy, s) == best]
             pick = cands[rng.pick(len(cands))]
         hist.append({"gen": gen + 1, "sibs": sibs, "pick": pick})
-        pool = (pool + [parent])[-16:]  # the gene pool: the last 16 ancestors (the lineage ring)
+        pool = (pool + [parent])[-POOL:]  # the gene pool: the newest 16 ancestors of the 24-heir ring
         parent = pick
     return hist
 

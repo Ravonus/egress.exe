@@ -209,6 +209,55 @@ static void shirt(void) {
     }
   }
 }
+/* EGRESS: what a human heir wears (acc_, from the mark gene), drawn over the head in the face's own three colours:
+ * ink for the material, light for its shine. Glasses and the visor are live features (crucible_avatar.c). */
+static void wear(void) {
+  int16_t top = (int16_t)cy_ - ry_, y;
+  uint8_t h, hi;
+  if (acc_ == ACC_PHONES) { /* a band over the crown, cups over the ears */
+    for (y = top - 3; y <= (int16_t)cy_ - 6; y++) {
+      uint8_t d = (uint8_t)(cy_ - y);
+      h = half((uint8_t)(rx_ + 3u), d, (uint8_t)(ry_ + 3u));
+      hi = half((uint8_t)(rx_ + 1u), d, (uint8_t)(ry_ + 1u));
+      if (!hi || y < top - 1) span(cx_ - h, cx_ + h, y, y == top - 3 ? 1 : 3);
+      else {
+        span(cx_ - h, cx_ - hi, y, 1);
+        span(cx_ + hi, cx_ + h, y, 1);
+      }
+    }
+    span(cx_ - half((uint8_t)(rx_ + 3u), (uint8_t)(ry_ + 2u), (uint8_t)(ry_ + 3u)), cx_ + half((uint8_t)(rx_ + 3u), (uint8_t)(ry_ + 2u), (uint8_t)(ry_ + 3u)), top - 2, 1);
+    rect(cx_ - rx_ - 4, cy_ - 4, cx_ - rx_ + 1, cy_ + 5, 1);
+    rect(cx_ + rx_ - 1, cy_ - 4, cx_ + rx_ + 4, cy_ + 5, 1);
+    rect(cx_ - rx_ - 3, cy_ - 3, cx_ - rx_ - 2, cy_ + 1, 3);
+    rect(cx_ + rx_ + 1, cy_ - 3, cx_ + rx_ + 2, cy_ + 1, 3);
+  } else if (acc_ == ACC_BEANIE) { /* a knit cap down to the brow: ribs in light, a turned-up cuff, a bobble */
+    int16_t cuff = top + (int16_t)(ry_ >> 1) + 1;
+    ellipse(cx_, top - 4, 3, 2, 1, 0);
+    rect(cx_ - 1, top - 5, cx_, top - 4, 3);
+    for (y = top - 2; y <= cuff + 2; y++) {
+      uint8_t d = (uint8_t)(y < (int16_t)cy_ ? cy_ - y : 0);
+      int16_t x;
+      h = half((uint8_t)(rx_ + 2u), d, (uint8_t)(ry_ + 2u));
+      if (!h) continue;
+      span(cx_ - h, cx_ + h, y, 1);
+      if (y >= cuff) {
+        if (y > cuff && y < cuff + 2) span(cx_ - h + 1, cx_ + h - 1, y, 3);
+      } else
+        for (x = cx_ - h + 2; x < cx_ + h - 1; x += 3) px((uint8_t)x, (uint8_t)y, 3);
+    }
+  } else if (acc_ == ACC_SCARF) { /* a wrap round the neck, striped, one end hanging */
+    int16_t y0 = (int16_t)cy_ + ry_ - 1;
+    for (y = y0; y <= y0 + 4; y++) {
+      int16_t x;
+      span(cx_ - 8, cx_ + 8, y, 1);
+      if (y > y0 && y < y0 + 4)
+        for (x = cx_ - 7; x <= cx_ + 7; x++)
+          if (((x + y) & 3) < 2) px((uint8_t)x, (uint8_t)y, 3);
+    }
+    rect(cx_ + 3, y0 + 5, cx_ + 7, y0 + 11, 1);
+    for (y = y0 + 6; y <= y0 + 10; y += 2) span(cx_ + 4, cx_ + 6, y, 3);
+  }
+}
 static void draw_human(void) {
   int16_t top = (int16_t)cy_ - ry_;
   rect(cx_ - 3, cy_ + ry_ - 2, cx_ + 3, W - 7, 1);
@@ -238,9 +287,10 @@ static void draw_human(void) {
     rect(cx_ - rx_ + 1, top, cx_ + rx_ - 1, top + 4, 1);
   } /* spikes */
   }
-  if (!hair_) rect(cx_ - rx_ / 2, top + 3, cx_ - rx_ / 2 + 2, top + 3, 3);
+  if (!hair_ && acc_ != ACC_BEANIE) rect(cx_ - rx_ / 2, top + 3, cx_ - rx_ / 2 + 2, top + 3, 3);
   span(cx_, cx_ + 1, ey_ + 4, 1);
   px((uint8_t)(cx_ + 1), (uint8_t)(ey_ + 3), 1); /* nose */
+  wear();
 }
 static void draw_poly(void) { /* low poly: a fan of facets around a nose point, lit from the top left */
   int16_t vx[8], vy[8], nx = cx_ + 2, ny = cy_ + 1;

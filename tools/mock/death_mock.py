@@ -38,27 +38,10 @@ GREEN = (140, 230, 150)
 # =====================================================================================================================
 # 1. the cause-of-death grammar and the epitaph pools (data the cartridge would carry; ~1.1 KB of strings)
 # =====================================================================================================================
-# A death record is filled at the killing blow (it is what the lineage ring stores, 3 bytes, see the doc):
-#   killer: kind + id (mob look, object, boss, hazard cell, reaction, void)
-#   how:    the reaction or damage that landed (picks the VERB)
-#   owner:  who set the killer in motion: SELF (pushed, made, reflected, planted, poured), MOB, BOSS, ROOM
-#   ctx:    flags at the moment: mid-dodge, carrying, one hit from a kill, seconds on the floor, boss phase
-VERB = {  # damage/reaction -> past participle (<= 11 chars)
-    "CRUSH": "CRUSHED", "BURN": "COOKED", "STEAM": "STEAMED", "FREEZE": "FROZEN", "SHORT": "SHORTED OUT",
-    "OVERGROW": "OVERGROWN", "GLITCH": "UNRENDERED", "SHATTER": "SHATTERED", "DROWN": "DROWNED", "MUD": "STUCK",
-    "BEAM": "ERASED", "LAVA": "MELTED",
-}
-BIOME_HIT = {  # a plain hit takes the biome's verb, so the line sounds like where it happened
-    "OFFICE": "FILED AWAY", "VENTS": "VENTED", "ATRIUM": "DUNKED", "SERVER": "DEFRAGGED", "MALL": "RUNG UP",
-    "GARDEN": "COMPOSTED", "ROOFTOP": "BLOWN OFF", "GLITCH": "DELETED",
-}
-PRON = {0: ("THEY", "THEIR", "THEMSELF"), 1: ("HE", "HIS", "HIMSELF"), 2: ("SHE", "HER", "HERSELF")}
-OWN_VERB = {"PUSHED": "PUSHED", "MADE": "MADE", "BREWED": "BREWED", "POURED": "POURED", "PLANTED": "PLANTED",
-            "REFLECTED": "REFLECTED", "DUG": "DUG", "THREW": "THREW", "LIT": "LIT"}
-CTX = [  # (flag, short clause) in priority order; the first that fits wins
-    ("one_hit", "ONE HIT SHORT"), ("mid_dodge", "MID-{DODGE}"), ("carrying", "{ITEM} IN HAND"),
-    ("fast", "{SECS}S IN"), ("phase", "PHASE {PHASE}"), ("last_heart", "LAST HEART"),
-]
+# The grammar, the epitaph pools and the 3-byte cause record live in death_text.py (shared with the tree mock, so the
+# card, the tree's node detail, a ghost and a talker print the same lines from the same stored bytes).
+from death_text import (EPITAPH, GRAMMAR_EXAMPLES, cause_lines, check_tables, choose_epitaph,  # noqa: E402
+                        epitaph_text, rec)
 
 
 def wrap(s, n=20):
@@ -73,98 +56,6 @@ def wrap(s, n=20):
         out.append(cur)
     return out
 
-
-def split2(sent, n=18):
-    """the sentence on 1 line, or broken at the word boundary that keeps both lines <= n (most balanced)"""
-    if len(sent) <= n:
-        return [sent]
-    best = None
-    for i, ch in enumerate(sent):
-        if ch == " " and len(sent[:i]) <= n and len(sent[i + 1:]) <= n:
-            k = abs(len(sent[:i]) - len(sent[i + 1:]))
-            if best is None or k < best[0]:
-                best = (k, [sent[:i], sent[i + 1:]])
-    return best[1] if best else None
-
-
-def a_an(noun):
-    return ("AN " if noun[0] in "AEIOU" and not noun.startswith("U") else "A ") + noun
-
-
-def cause(d):
-    """d: the death record (dict). Returns 1..2 lines of <= 18 chars. Fixed grammar, tried longest-first:
-       CAUSE  := VERB BY KILLER [ / TWIST ]
-       KILLER := POSS OWN NOUN        when owner is SELF and the thing is a reaction or projectile ("HER OWN STEAM")
-               | A/AN NOUN | THE BOSS
-       TWIST  := PRON OWN_VERB REFLEX ("SHE PUSHED HERSELF")  when owner is SELF and the thing is an object
-               | PRON OWN_VERB IT | CTX clause | ''
-       special: void fall = "LET GO OF / THE FLOOR ON F{n}"; boss = boss line replaces the twist (variation)."""
-    he, his, self_ = PRON[d.get("look", 0)]
-    if d["how"] == "VOID":
-        return ["LET GO OF", f"THE FLOOR ON F{d['floor']}"]
-    verb = VERB.get(d["how"]) or BIOME_HIT[d["biome"]]
-    noun = d["killer"]
-    own = d.get("owner") == "SELF"
-    if own and d.get("thing") == "reaction":
-        kps = [f"{his} OWN {noun}"]
-    else:
-        kps = [noun if d.get("thing") == "boss" else a_an(noun)]
-    twists = []
-    if own and d.get("thing") != "reaction":
-        ov = OWN_VERB[d["own_verb"]]
-        twists += [f"{he} {ov} {self_}", f"{he} {ov}"]  # a relative clause: "A CRT SHE PUSHED HERSELF"
-    for flag, cl in CTX:
-        if d.get(flag):
-            twists.append(", " + cl.format(DODGE=d.get("dodge", "ROLL"), ITEM=d.get("item", "MUG"),
-                                           SECS=d.get("secs", 8), PHASE=d.get("phase", 3)))
-    twists.append("")
-    for kp in kps:
-        for tw in twists:
-            sent = f"{verb} BY {kp}" + (tw if tw.startswith(",") or not tw else " " + tw)
-            lines = split2(sent)
-            if lines:
-                return lines
-            l1, l2 = f"{verb} BY {kp}", tw.lstrip(", ")
-            if tw and len(l1) <= 18 and len(l2) <= 18:
-                return [l1, l2]
-    return [verb, noun[:18]]
-
-
-EPITAPH = {  # the strongest-leaning truth axis and its sign pick the pool; the seed picks the line. Never a reveal.
-    ("SELF", +1): ["THE CHAIR WAS WARM", "SAME DESK, AGAIN", "THE BADGE FIT", "SHE KNEW THE WAY"],
-    ("SELF", -1): ["A STRANGER'S SHOES", "NOBODY KNEW HER", "THE NAME WAS NEW"],
-    ("CAUSE", +1): ["SOMEONE MIXED THIS", "IT WAS PUT HERE", "THE BENCH WAS WARM"],
-    ("CAUSE", -1): ["THE FLOOR GAVE UP", "ALWAYS LOOSE", "THE BUILDING SAGS"],
-    ("CULPRIT", +1): ["SHE HAD THE KEY", "HER HANDS, AGAIN", "SHE OPENED IT"],
-    ("CULPRIT", -1): ["THEY KNEW HER NAME", "SOMEONE WATCHED", "THE DOOR WAS DRAWN"],
-    ("REVERSIBLE", +1): ["NOT YET. NOT HERE", "IT CAN BE PUT BACK", "THE STAIRS WAIT"],
-    ("REVERSIBLE", -1): ["SOME DOORS STAY", "THE STAIRS WENT", "NOTHING CAME BACK"],
-}
-
-
-def epitaph(lean, seed):
-    """lean: {axis: signed byte}. The sex of the pronoun in a line is rewritten for the heir (SHE/HE/THEY)."""
-    ax = max(lean, key=lambda a: abs(lean[a]))
-    pool = EPITAPH[(ax, 1 if lean[ax] >= 0 else -1)]
-    return pool[seed % len(pool)]
-
-
-GRAMMAR_EXAMPLES = [
-    dict(how="CRUSH", killer="CRT", thing="object", owner="SELF", own_verb="PUSHED", look=2, biome="OFFICE"),
-    dict(how="FREEZE", killer="STEAM", thing="reaction", owner="SELF", look=2, biome="VENTS"),
-    dict(how="SHORT", killer="PUDDLE", thing="object", owner="SELF", own_verb="POURED", look=1, biome="SERVER"),
-    dict(how="HIT", killer="DAMP INTERN", thing="mob", owner="MOB", mid_dodge=True, dodge="ROLL", look=0,
-         biome="VENTS"),
-    dict(how="BURN", killer="ORB", thing="reaction", owner="SELF", look=1, biome="MALL"),
-    dict(how="OVERGROW", killer="SPROUT", thing="object", owner="SELF", own_verb="PLANTED", look=2, biome="GARDEN"),
-    dict(how="BURN", killer="SORRY LAMP", thing="mob", owner="MOB", last_heart=True, look=2, biome="SERVER"),
-    dict(how="BEAM", killer="OLD MONITOR", thing="boss", owner="BOSS", phase=3, look=0, biome="SERVER"),
-    dict(how="DROWN", killer="LEAK", thing="object", owner="ROOM", carrying=True, item="MUG", look=1,
-         biome="ATRIUM"),
-    dict(how="VOID", floor=2, look=2, biome="ROOFTOP"),
-    dict(how="HIT", killer="RIME TOASTER", thing="mob", owner="MOB", fast=True, secs=4, look=0, biome="MALL"),
-    dict(how="GLITCH", killer="NOCLIP MOTH", thing="mob", owner="MOB", look=1, biome="GLITCH"),
-]
 
 # =====================================================================================================================
 # 2. GBC legality: 8x8 tiles mapped to <= 8 palettes x 4 colours; sprite lines
@@ -292,11 +183,12 @@ GRAND, DEAD, SIBS, GEN = pick_family()
 HEIR = SS.make_heir(DEAD, "CORA", rim=YEL)
 HP = genes.express(DEAD)
 SIBN = ["VEDA", "OREN", "PIM"]
-DEATH = dict(how="CRUSH", killer="CRT", thing="object", owner="SELF", own_verb="PUSHED", look=DEAD["look"],
-             biome="OFFICE")
-CAUSE = cause(DEATH)
-LEAN = {"SELF": 52, "CAUSE": -20, "CULPRIT": 31, "REVERSIBLE": -8}
-EPI = epitaph(LEAN, 0)
+DEATH = rec("CRUSH", "SELF", "object", "CRT")  # the 3 cause bytes the node stores (offsets 17..19)
+CAUSE = cause_lines(DEATH, DEAD["look"], "OFFICE", 3, HP["dodge"])
+LEAN = {"SELF": 52, "CAUSE": -20, "CULPRIT": 31, "REVERSIBLE": -8}  # the truth lean at death (offsets 27..28)
+FEAT = None  # CORA's best feat type (offset 47): none, so a trait gives the keepsake
+EPI_ID = choose_epitaph(LEAN, HP["traits"], FEAT, 0)  # offset 20
+EPI = epitaph_text(EPI_ID, DEAD["look"], HP["traits"], FEAT)
 
 
 def heir_frame(pose, d=0, drain_k=0, lit=0):
@@ -1107,11 +999,13 @@ def variants():
 # =====================================================================================================================
 def main():
     if "--grammar" in sys.argv:
-        for d in GRAMMAR_EXAMPLES:
-            print(" / ".join(cause(d)))
+        check_tables()
+        for b, look, biome, floor in GRAMMAR_EXAMPLES:
+            print(b.hex(), " / ".join(cause_lines(b, look, biome, floor)))
         for (ax, sg), pool in EPITAPH.items():
-            assert all(len(x) <= 18 for x in pool), pool
-        print("epitaph:", EPI, "| cause:", CAUSE, "| heir:", HEIR["name"], HP["dodge"], HP["traits"], "gen", GEN)
+            print(ax, "+" if sg > 0 else "-", " | ".join(pool))
+        print("epitaph:", EPI, hex(EPI_ID), "| cause:", CAUSE, DEATH.hex(), "| heir:", HEIR["name"], HP["dodge"],
+              HP["traits"], "gen", GEN)
         return
     OUT.mkdir(parents=True, exist_ok=True)
     recs = {}

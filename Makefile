@@ -51,6 +51,12 @@ build/host/test_room: host/test_room.c host/eg_solve.c host/eg_solve.h src/core/
 	@mkdir -p $(dir $@)
 	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_room.c host/eg_solve.c src/core/eg_room.c
 
+# the ported face generator on the host, for the art tools and mocks (tools/avatar_png.py, tools/mock/*)
+AVATAR_SRC := src/avatar/crucible_avatar.c src/avatar/crucible_avatar_base.c
+build/host/avatar_dump: host/avatar_dump.c $(AVATAR_SRC) $(wildcard src/avatar/*.h)
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Wno-unused-function -DAVATAR_HOST -Isrc/avatar -o $@ host/avatar_dump.c $(AVATAR_SRC)
+
 test: build/host/test_room build/egress.gbc
 	build/host/test_room src/gen/eg_seeds.c
 	$(PY) tools/test_finish_rom.py

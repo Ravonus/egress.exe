@@ -30,7 +30,7 @@ uint8_t aura_x_[AURA_N], aura_y_[AURA_N], smoke_x_[4], smoke_y_[4];
 uint8_t style_, hair_, phase_, head_, eyes_, mouth_, gear_, pat_, neck_, hue_, rx_, ry_, cx_, cy_, ey_, es_, my_;
 uint8_t blink_, blink_t_, gaze_t_, mouth_t_, open_, glint_, light_, dirty_, bob_, bob_t_;
 int8_t gaze_;
-uint8_t dither_, mark_;
+uint8_t dither_, mark_, acc_;
 uint8_t avatar_still; /* 1: no idle bob (a fight: rows of a half-moved face would put 12 sprites on a line) */
 static uint8_t warp_, warp_out_; /* a glitch entrance (rows drop in) or exit (rows tear away) */
 uint16_t pal_[4];
@@ -328,6 +328,19 @@ static void compose(void) {
   }
   if (style_ == 8u) rays();
   draw_eyes();
+  if (acc_ == ACC_GLASSES) { /* frames over the eyes (and over a blink): rims, a bridge, the arms to the ears */
+    uint8_t k;
+    for (k = 0; k < 2u; k++) {
+      int16_t x = k ? (int16_t)cx_ + es_ : (int16_t)cx_ - es_;
+      span(x - 3, x + 3, ey_ - 2, 3); /* the rims catch the light on top, so they read on every skin tone */
+      span(x - 3, x + 3, ey_ + 1, 1);
+      rect(x - 3, ey_ - 1, x - 3, ey_, 1);
+      rect(x + 3, ey_ - 1, x + 3, ey_, 1);
+    }
+    span(cx_ - es_ + 4, cx_ + es_ - 4, ey_ - 1, 1);
+    span(cx_ - rx_ + 1, cx_ - es_ - 4, ey_ - 1, 1);
+    span(cx_ + es_ + 4, cx_ + rx_ - 1, ey_ - 1, 1);
+  }
   draw_mouth();
   shader();
   if (gear_ == 1u) {
@@ -409,6 +422,7 @@ void avatar_make(uint16_t seed, uint8_t faction) BANKED {
   rnd();
   rnd();
   mark_ = 0;
+  acc_ = 0;
   if (faction > 5u) faction = 0;
   wild = below(5) == 0u;
   dither_ = below(6);
@@ -627,6 +641,7 @@ void avatar_make_genome(const uint8_t *g) BANKED {
   hair_ = (uint8_t)(g[5] & 3u);
   phase_ = 0;
   mark_ = (uint8_t)((g[4] >> 3) & 7u);
+  acc_ = 0;
   switch (style_) { /* what each style allows: the genome's bit picks between the two the generator would roll */
   case 1:
     eyes_ = 8;
@@ -637,6 +652,11 @@ void avatar_make_genome(const uint8_t *g) BANKED {
     if (look == AV_LOOK_GIRL) hair_ = (gr & 1u) ? 3u : 2u;
     hue_ = 0xffu;
     mid = SKIN6[(uint8_t)(g[0] >> 4) % 6u];
+    if (mark_ <= ACC_BEANIE || mark_ == ACC_VISOR) { /* EGRESS: the mark gene is worn, as on the tree's busts */
+      acc_ = mark_;
+      mark_ = 0;
+    }
+    if (acc_ == ACC_VISOR) eyes_ = 1; /* the generator's own visor band, with its sweeping glint */
     break; /* a human's crown is its hair */
   case 2:
     eyes_ = (e & 1u) ? 5 : 3;

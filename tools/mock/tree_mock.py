@@ -28,6 +28,7 @@ from egkit import AP, FONT, ROOT  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "proto/genetics"))
 import genes  # noqa: E402
+import death_text as DT  # noqa: E402  (the 12b grammar and epitaph pools: the node prints what the card printed)
 
 OUT = ROOT / "docs/shots"
 W, H = 160, 144
@@ -205,10 +206,10 @@ def bust(g):
     if g["mouth"]:
         m[10][6] = m[10][9] = 1 if m[10][6] == 2 else m[10][6]
     # marks
-    if mark == 1:  # glasses
+    if mark == 1:  # glasses: a frame line over the eyes and the rims beside them, so the eyes still show
         for x in range(5, 11):
-            m[ey][x] = 1
-        m[ey - 1][5] = m[ey - 1][10] = 1
+            m[ey - 1][x] = 1
+        m[ey][5] = m[ey][10] = 1
     elif mark == 2:  # headphones
         for x in range(4, 12):
             if m[2][x] == 0:
@@ -250,8 +251,10 @@ def eff_hair(g):
     return gr if gr < 5 else 0
 
 
-CLOTH = [(128, 136, 184), (120, 176, 244), (64, 176, 172), (118, 200, 112), (168, 116, 236), (244, 116, 84),
-         (240, 196, 84), (236, 96, 196)]
+# the accent gene's 8 cloth colours: saturated and spread round the wheel, none near a skin tone (the old orange
+# read as skin on warm lines), so a family's busts differ in what they wear (9.6, "Tree colour")
+CLOTH = [(88, 112, 236), (120, 192, 252), (40, 184, 168), (112, 208, 96), (168, 108, 244), (228, 56, 92),
+         (244, 200, 64), (244, 100, 204)]
 
 
 def obj_pal(g):
@@ -265,27 +268,37 @@ NAMES = ["VEDA", "OREN", "PIM", "CORA", "MIRA", "JUNO", "TAVI", "ODA", "REN", "I
          "KAI", "ADA", "IVO", "NELL", "RUMI", "TEO", "ZIA", "OTTO", "MAE", "ELIO", "WREN", "AMAR", "SIV", "LEO",
          "NOOR", "HUGO", "IKA", "DESI"]
 BIOMES = ["OFFICE", "VENTS", "ATRIUM", "SERVER", "MALL", "GARDEN", "ROOF", "CORE"]
-CAUSES = ["A WISP", "THE DRAFT", "A FALL", "STEAM", "A TURRET", "THE COLLAPSE", "A MIMIC", "THE FLOOD", "A SHORT",
-          "THE NOISE"]
-EPITAPHS = [("LEFT THE", "LIGHTS ON"), ("COUNTED THE", "STAIRS TWICE"), ("KNEW THE", "WAY BACK"),
-            ("KEPT ONE MUG", "WARM"), ("HEARD THE HUM", "STOP"), ("WENT UP WHEN", "IT WENT DOWN"),
-            ("NEVER SAT", "DOWN"), ("DREAMT OF", "WINDOWS")]
-FEATS = [("CROWN", "FIRST BOSS"), ("FLASK", "RAREST MIX"), ("CROWN", "SLEW AN ELITE"), ("FLASK", "MADE GLASS")]
+# Death records as the node stores them: 3 cause bytes (12b.4 grammar), the epitaph id, the best feat's type.
+DEATHS = [
+    DT.rec("HIT", "MOB", "mob", "INTERN", "DAMP", "MID-{DODGE}"), DT.rec("CRUSH", "SELF", "object", "CRT"),
+    DT.rec("FREEZE", "SELF", "reaction", "STEAM"), DT.rec("SHORT", "SELF", "object", "PUDDLE"),
+    DT.rec("BURN", "MOB", "mob", "LAMP", "SORRY", "LAST HEART"), DT.rec("HIT", "MOB", "mob", "TOASTER", "RIME",
+                                                                        "{SECS}S IN", 4),
+    DT.rec("BEAM", "BOSS", "boss", "OLD MONITOR", 0, "PHASE {PHASE}", 2), DT.rec("VOID", "ROOM", "object", 0),
+    DT.rec("DROWN", "ROOM", "object", "LEAK", 0, "{ITEM} IN HAND", 0), DT.rec("GLITCH", "MOB", "mob", "MOTH", "NOCLIP"),
+    DT.rec("CRUSH", "SELF", "object", "FILING CABINET"), DT.rec("HIT", "MOB", "mob", "STAPLER", "OVERDUE", "ONE HIT SHORT"),
+    DT.rec("BURN", "SELF", "reaction", "ORB"), DT.rec("OVERGROW", "SELF", "object", "SPROUT"),
+]
+FEATS = [("CROWN", "FIRST BOSS", "BOSS"), ("FLASK", "RAREST MIX", "RECIPE"), ("CROWN", "SLEW AN ELITE", "ELITE"),
+         ("FLASK", "MADE GLASS", "RECIPE")]
 FACTIONS = ["COMPILE", "CHARGE", "SKY", "WATCH", "ROOT", "LOCK"]
-FOUNDERS_TO = 6  # G1..G6 compressed into the founders node; the ring holds G7..G22
+RING = genes.RING  # 24 heirs in the save's ring (9.5 / 9.6); the newest 16 are the mate pool
+FOUNDERS_TO = 6  # G1..G6 compressed into the founders node; the ring holds G7..G30
+PLAYED = FOUNDERS_TO + RING  # 30 played generations in the mock line; the kids waiting are G31
+NEXT = PLAYED + 1
 
 
 def build_line(seed=None):
-    """22 played generations bred for HEAVY, plus the 3 kids waiting at the heir pick (G23)"""
+    """30 played generations bred for HEAVY, plus the 3 kids waiting at the heir pick (G31)"""
     best = None
     for s in ([seed] if seed else range(1, 300)):
-        hist = genes.run("heavy", s * 7919, gens=22)
+        hist = genes.run("heavy", s * 7919, gens=PLAYED)
         r = genes.Rng(s * 7919)
         fnd = genes.founder(r)
-        picks = [h["pick"] for h in hist[:21]]
+        picks = [h["pick"] for h in hist[:PLAYED - 1]]
         heavy = ["HEAVY" in genes.express(p)["traits"] for p in picks[5:]]
         mut_spine = [i for i, p in enumerate(picks[5:], 7) if p["flags"]["mutated"]]
-        mut_sib = [i for i, h in enumerate(hist[5:21], 7) if any(x["flags"]["mutated"] for x in h["sibs"] if x is not h["pick"])]
+        mut_sib = [i for i, h in enumerate(hist[5:PLAYED - 1], 7) if any(x["flags"]["mutated"] for x in h["sibs"] if x is not h["pick"])]
         skins = {p["skin"] for p in picks}
         ok = heavy[:3].count(True) <= 1 and heavy[-6:].count(True) >= 5 and mut_spine and mut_sib and len(skins) >= 2
         if ok:
@@ -295,7 +308,7 @@ def build_line(seed=None):
     rng = genes.Rng(s * 31 + 5)
     t = dt.datetime(2026, 9, 14, 21, 3)
     line = []
-    for gi in range(22):  # G1..G22
+    for gi in range(PLAYED):  # G1..G30
         if gi == 0:
             g, sibs = None, []
         else:
@@ -307,20 +320,24 @@ def build_line(seed=None):
         t = t + life
     # the founder: the parent the sim started from (re-seeded identically)
     line[0]["g"] = genes.founder(genes.Rng(s * 7919))
-    kids = hist[21]["sibs"]
+    kids = hist[PLAYED - 1]["sibs"]
     for i, n in enumerate(line):
         p = genes.express(n["g"])
         n["name"] = NAMES[(i * 11 + s) % len(NAMES)]
         n["floor"] = min(8, 2 + (rng.u8() * 7 >> 8) + (1 if "HEAVY" in p["traits"] else 0))
         n["biome"] = BIOMES[(n["floor"] - 1) % 8]
-        n["cause"] = CAUSES[rng.pick(len(CAUSES))]
-        n["epitaph"] = EPITAPHS[rng.pick(len(EPITAPHS))]
+        n["cause_b"] = DEATHS[rng.pick(len(DEATHS))]
         n["feat"] = FEATS[rng.pick(len(FEATS))] if rng.u8() < 150 else None
         li = rng.pick(6)
         n["liked"], n["hated"] = FACTIONS[li], FACTIONS[(li + 1 + rng.pick(5)) % 6]
         n["ghosts"] = rng.pick(4)  # times met as a ghost / body in later runs
         n["died"] = line[i + 1]["born"] if i + 1 < len(line) else t
         n["truth"] = [((rng.u8() >> 4) - 8 + i // 2) for _ in range(4)]  # 4 axes, signed nibble lean
+        lean = dict(zip(("CAUSE", "CULPRIT", "REVERSIBLE", "SELF"), n["truth"]))  # TRUTH thread order
+        ft = n["feat"][2] if n["feat"] else None
+        n["epi_id"] = DT.choose_epitaph(lean, p["traits"], ft, rng.u8())
+        n["epitaph"] = DT.epitaph_text(n["epi_id"], n["g"]["look"], p["traits"], ft)
+        n["cause"] = DT.cause_lines(n["cause_b"], n["g"]["look"], n["biome"], n["floor"], p["dodge"])
         n["sibnames"] = [NAMES[(i * 7 + k * 13 + s + 3) % len(NAMES)] for k in range(2)]
     return line, kids, t
 
@@ -331,7 +348,7 @@ TOP = 8
 SPINE_X, SIB_X = 72, (40, 104)  # tile columns 9-10 (the live branch), 5-6 and 13-14 (roads not taken)
 MID = SPINE_X + 7
 WIN_Y, WIN_H = 16, 104  # the scrolling window between the fixed bars (top 2 tile rows, bottom 3)
-KIDS_ROW = 17
+KIDS_ROW = RING + 1
 
 
 def row_y(r):
@@ -438,7 +455,7 @@ SPARK = ["..#.....", ".#.#....", "..#....."]
 
 
 def build_tree(line, kids, view="FACES"):
-    """the whole tall tree: founders node, the 16-heir ring (G7-G22) with siblings, the 3 kids (G23)"""
+    """the whole tall tree: founders node, the 24-heir ring (G7-G30) with siblings, the 3 kids (G31)"""
     tall = row_y(KIDS_ROW) + 24
     L = Layer(160, tall)
     im = L.im
@@ -455,7 +472,7 @@ def build_tree(line, kids, view="FACES"):
     # ---- the ring
     for r, n in enumerate(ring, 1):
         y = row_y(r)
-        aura(im, SPINE_X, y, 0.5 + 0.5 * r / 16)
+        aura(im, SPINE_X, y, 0.5 + 0.5 * r / RING)
         nodes.append((r, SPINE_X, "played", n))
         for k, sx in enumerate(SIB_X):
             if k < len(n["sibs"]):
@@ -484,7 +501,7 @@ def build_tree(line, kids, view="FACES"):
             vline(im, MID, yc, yc + 7, CYAN, dotted=live)
             vline(im, MID + 1, yc, yc + 7, CYAN, dotted=live)
             if not live:  # the glow runs down the spine between nodes
-                aura(im, SPINE_X, yc - 4, 0.35 + 0.4 * r / 16, x0=72, x1=87, y0=yc, y1=yc + 8)
+                aura(im, SPINE_X, yc - 4, 0.35 + 0.4 * r / RING, x0=72, x1=87, y0=yc, y1=yc + 8)
     # ---- labels (TEXT): generation on the left; floor + biome on the right in the FACES view
     for (r, x, kind, data) in nodes:
         if x != SPINE_X:
@@ -496,7 +513,7 @@ def build_tree(line, kids, view="FACES"):
         elif kind == "played":
             text(im, 0, y, f"G{data['gen']}", WHITE, V1)
         else:
-            text(im, 0, y, "G23", PINK, V1)
+            text(im, 0, y, f"G{NEXT}", PINK, V1)
             text(im, 0, y + 8, "NEXT", PINK, V1)
         if view == "FACES" and kind != "kid":
             if kind == "founder":
@@ -594,7 +611,7 @@ def top_bar(view, line):
     lanes = view in ("LOOKS", "TRUTH")
     if view == "FACES":
         text(im, 0, 0, "THE LINE", WHITE)
-        text(im, 104, 0, "G1-G23", CYAN)
+        text(im, 104, 0, f"G1-G{NEXT}", CYAN)
         text(im, 0, 8, "FACES", PINK)
         text(im, 56, 8, "SEL:LOOKS", CYAN)
     elif view == "LOOKS":
@@ -652,7 +669,7 @@ def node_caption(n, view="FACES"):
     if kind == "sib":
         par, k = data
         return [(par["sibnames"][k] + " ", WHITE), ("NOT TAKEN", PINK)], [("A:LOOK  ", CYAN), ("LR:KIN", WHITE)]
-    return [("WAITING ", PINK), ("G23", WHITE)], [("A:PICK  ", CYAN), ("B:BACK", WHITE)]
+    return [("WAITING ", PINK), (f"G{NEXT}", WHITE)], [("A:PICK  ", CYAN), ("B:BACK", WHITE)]
 
 
 def bottom_bar(sel_node, view="FACES"):
@@ -818,11 +835,10 @@ def detail(n):
     bits(im, 80, 80, ICON["CRACK"], RED)
     text(im, 88, 80, n["hated"], RED)
     text(im, 0, 88, f"DIED F{n['floor']} {n['biome']}", WHITE)
-    text(im, 0, 96, "TAKEN BY " + n["cause"], PINK)
-    e1, e2 = n["epitaph"]
-    text(im, 0, 104, "'" + e1, MINT)
-    text(im, 8, 112, e2 + "'", MINT)
-    ic, fs = n["feat"] or ("CROWN", "FIRST BOSS")
+    for i, ln in enumerate(n["cause"]):  # the card's own cause lines, from the node's 3 cause bytes
+        text(im, 0, 96 + i * 8, ln, PINK)
+    text(im, 0, 112, f"'{n['epitaph']}'", MINT)  # the card's epitaph line, from the node's epitaph id
+    ic, fs, _ = n["feat"] or ("CROWN", "FIRST BOSS", "BOSS")
     bits(im, 0, 120, ICON[ic], YEL)
     text(im, 8, 120, fs, YEL)
     ImageDraw.Draw(im).rectangle((0, 128, 159, 143), fill=PANEL)
@@ -835,6 +851,51 @@ def detail(n):
     L = Layer(W, H)
     L.im = im
     return L, pals
+
+
+# ------------------------------------------------------------------------------------------------ the save (9.5 / 9.6)
+NODE = [  # (offset, size, field): one ring heir
+    (0, 14, "genome"), (14, 1, "name id"), (15, 1, "death floor + stage"), (16, 1, "biome + stage type + rift"),
+    (17, 3, "cause: verb, killer, twist"), (20, 1, "epitaph id"), (21, 1, "factions"), (22, 5, "birth stamp"),
+    (27, 2, "truth lean"), (29, 1, "kills"), (30, 1, "rooms"), (31, 1, "world ties"), (32, 12, "two siblings"),
+    (44, 3, "sky"), (47, 2, "best feat"),
+]
+NODE_BYTES = sum(n for _, n, _ in NODE)
+FOUNDERS_BYTES = 32 + 2 + 16  # G1's node bytes 0..31 + its best feat (47..48) + the elders' aggregates
+KIDS_BYTES, HEADER_BYTES, CRC_BYTES = 3 * 14, 6, 2
+
+
+def block_bytes(ring):
+    return HEADER_BYTES + ring * NODE_BYTES + FOUNDERS_BYTES + KIDS_BYTES + CRC_BYTES
+
+
+SRAM = [  # (start, size, content); the whole 8 KiB bank, 0xA000..0xBFFF
+    (0xA000, 32, "meta record A"), (0xA020, 32, "meta record B"),
+    (0xA040, 256, "mid-run continue A"), (0xA140, 256, "mid-run continue B"),
+    (0xA240, 128, "sky event scenes (section 19)"), (0xA2C0, 240, "free"),
+    (0xA3B0, 64, "inheritance"), (0xA3F0, 128, "seen history"), (0xA470, 256, "stats and book"),
+    (0xA570, block_bytes(RING), "tree copy A"), (0xA570 + block_bytes(RING), block_bytes(RING), "tree copy B"),
+    (0xA570 + 2 * block_bytes(RING), 0xB4C0 - 0xA570 - 2 * block_bytes(RING), "free"),
+    (0xB4C0, 32, "kept clock A/B (9.7.1)"), (0xB4E0, 16, "host clock block (9.7.1)"), (0xB4F0, 16, "free"),
+    (0xB500, 576, "face generator base layer"), (0xB740, 0xC000 - 0xB740, "free"),
+]
+
+
+def save_report():
+    """the tree record and the SRAM map, checked: contiguous, inside 8 KiB, both copies fit"""
+    assert [o for o, _, _ in NODE] == [sum(n for _, n, _ in NODE[:i]) for i in range(len(NODE))]
+    at = 0xA000
+    for start, size, _ in SRAM:
+        assert start == at and size >= 0, (hex(start), hex(at))
+        at += size
+    assert at == 0xC000
+    room = 0xB4C0 - 0xA570  # the tree's span, between the stats and the kept clock
+    largest = max(n for n in range(1, 64) if 2 * block_bytes(n) <= room)
+    return {"screen": "save", "ring": RING, "node_bytes": NODE_BYTES, "founders_bytes": FOUNDERS_BYTES,
+            "block_bytes": block_bytes(RING), "both_copies": 2 * block_bytes(RING),
+            "free_bytes": sum(sz for _, sz, c in SRAM if c == "free"),
+            "largest_ring_that_fits": largest,
+            "map": [f"{s:04X}-{s + sz - 1:04X} {sz:5d} {c}" for s, sz, c in SRAM]}
 
 
 # ------------------------------------------------------------------------------------------------ output
@@ -898,6 +959,7 @@ def main():
     sheet.paste(shots["tree_faces"].resize((640, 576), Image.NEAREST), (8, 164))
     sheet.paste(shots["tree_detail"].resize((640, 576), Image.NEAREST), (656, 164))
     sheet.save(OUT / "tree_contact.png")
+    reports.append(save_report())
     (OUT / "tree_report.json").write_text(json.dumps(reports, indent=1, default=str))
     for r in reports:
         print(r)

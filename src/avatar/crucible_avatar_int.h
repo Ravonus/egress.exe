@@ -30,6 +30,15 @@ extern uint8_t blink_, blink_t_, gaze_t_, mouth_t_, open_, glint_, light_, dirty
 extern int8_t gaze_;
 extern uint8_t dither_;
 extern uint8_t mark_; /* the player's mark (genome byte 4 bits 3..5): a 3x3 glyph on the forehead; 0 none */
+/* EGRESS: a human heir's worn accessory, from the same mark gene the tree's 16x16 busts read (so a mini bust and the
+ * 48x48 portrait match): 0 none, 1 glasses, 2 headphones, 3 scarf, 4 beanie, 7 visor. Marks 5 and 6 stay forehead
+ * glyphs. Talker faces (avatar_make) never wear one. */
+extern uint8_t acc_;
+#define ACC_GLASSES 1u
+#define ACC_PHONES 2u
+#define ACC_SCARF 3u
+#define ACC_BEANIE 4u
+#define ACC_VISOR 7u
 extern uint16_t pal_[4];
 extern uint8_t *buf_;
 void avatar_base(void) BANKED; /* draws the face's base (style, gear, pattern) and finds its aura */
