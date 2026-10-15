@@ -25,8 +25,8 @@ extern uint8_t weapon_frame; /* 0 idle, 1 strike, 0xFF hidden */
 extern uint8_t obj_count;    /* OAM entries of the last built view (debug / measure) */
 void obj_init(void);
 void obj_build(uint8_t cur);
-void obj_vbl_upload(void);
-void obj_vbl_flip(void);
+void obj_vbl_upload(uint8_t b);
+void obj_vbl_flip(uint8_t b);
 #else
 #define obj_init()
 #define obj_build(c)

@@ -141,6 +141,8 @@ def main() -> int:
             res[f"{key}_lines_max"] = max(vals)
         res["copy_lines_per_chunk"] = round(cl / cc, 2) if cc else None
     res["rom_bytes"] = a.rom.stat().st_size
+    if "_vbl_end_max" in sym:  # fullscreen: the line where the VBlank copy work ended (must stay <= 153)
+        res["vbl_end_line_max"] = u8("vbl_end_max")
 
     def freeze_on():
         mem[sym["_freeze"]] = 1
@@ -170,11 +172,12 @@ def main() -> int:
                 ref = out.read_bytes()
             lb = u8("last_buf")
             bp = mem[sym["_buf"] + 2 * lb] | (mem[sym["_buf"] + 2 * lb + 1] << 8)
+            fsb = 2 + lb if "_hud_pal" in sym else None  # fullscreen: framebuffers in WRAM banks 2/3
             gb = bytes(mem[sym["_ray_h"] + i] for i in range(nrays))
             gb += bytes(mem[sym["_ray_u"] + i] for i in range(nrays))
             gb += bytes(mem[sym["_ray_t"] + i] for i in range(nrays))
             gb += bytes(mem[sym["_ray_d"] + i] for i in range(2 * nrays))
-            gb += bytes(mem[bp + i] for i in range(bufsz))
+            gb += bytes(mem[bp + i] if fsb is None else mem[fsb, bp + i] for i in range(bufsz))
             checks += 1
             if gb != ref:
                 bad += 1

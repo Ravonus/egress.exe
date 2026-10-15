@@ -50,8 +50,15 @@ extern const uint8_t T_HV2[16 * 256];
 
 /* walls 1..127 (texture id), open cells 0x80 | floor/ceiling set; on the cartridge it sits at 0xD800 (1 KB aligned,
    so the floor asm builds cell addresses from bits; the asm defines _map there) */
+#ifndef FS
+#define FS 0
+#endif
 #ifdef __SDCC
+#if FS
+#define map ((uint8_t *)0xCC00u) /* bank 0: the framebuffers own WRAM banks 2/3 at 0xD000 */
+#else
 #define map ((uint8_t *)0xD800u)
+#endif
 #else
 extern uint8_t map[MAPW * MAPW];
 #endif

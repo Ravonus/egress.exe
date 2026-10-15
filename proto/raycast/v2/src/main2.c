@@ -16,9 +16,29 @@
 #define SCENE 0 /* 0 walk (v1 views), 1 combat, 2 puzzle, 3 biome blend, 4 title walk */
 #endif
 
+#if FS
+/* fullscreen: the TH framebuffer tile rows sit in map rows 0..TH-1 and every row is shown twice (lyc_isr in
+   lcd2.s steps SCY back one line every other line), filling lines 0..2*VIEW_H-1; the HUD is map rows TH, TH+1,
+   shown right below with no extra SCY write. VRAM (both banks, 0x8000 mode) mirrors the view's WRAM bank: view
+   tiles 0-159 (0x8000), billboard OBJ tiles 160-215, so the copy is one linear GDMA run. Bank 0 224-244: HUD
+   glyphs; bank 1 216-255: the fixed OBJ tiles (crown, spark, weapon). */
+#define VX 0
+#define VY 0
+#define HUDROW TH
+#include <gb/isr.h>
+extern void lyc_isr(void);
+ISR_VECTOR(VECTOR_STAT, lyc_isr)
+uint8_t hud_pal[8];
+uint8_t pend_buf;
+#else
 #define VX ((20 - TW) / 2)
 #define VY ((18 - TH) / 2)
+#endif
+#if FS
+#define HUDT 224
+#else
 #define HUDT 200
+#endif
 #define FRAMET (HUDT + 20)
 
 #define MOVE_SPD 4u
@@ -47,6 +67,7 @@ uint8_t log_upd[LOGN], log_ray[LOGN], log_fill[LOGN], log_flr[LOGN], log_spr[LOG
 const uint8_t log_u8 = 1;
 #define LSAT(v) ((v) > 255u ? 255u : (uint8_t)(v))
 uint16_t nviews, nflips, copy_lines, copy_calls;
+uint8_t vbl_end_max;
 
 void dma_pad(void) __naked {
   __asm
@@ -88,6 +109,14 @@ static void bkpal_write(void) {
   }
 }
 
+#if FS
+/* lcd2.s: lyc_isr also runs the VBlank work at LY 144 (SCY reset, palette 0, the GDMA queue and the flip); the
+   VBlank interrupt itself stays disabled */
+extern uint8_t q_len, q_off;
+#if OBJ_ON
+extern uint8_t objn[2];
+#endif
+#else
 void vbl_isr(void) {
   uint8_t l0;
   vbl++;
@@ -122,7 +151,7 @@ void vbl_isr(void) {
   else {
     /* chunk 1: this view's billboard tiles into the hidden bank, then OAM + OBJ palettes */
     VBK_REG = front ^ 1u;
-    obj_vbl_upload();
+    obj_vbl_upload(last_buf);
     copy_lines += (uint8_t)(LY_REG - l0);
     copy_calls++;
   }
@@ -131,7 +160,7 @@ void vbl_isr(void) {
   front ^= 1u;
   LCDC_REG ^= LCDCF_BG9C00;
 #if OBJ_ON
-  obj_vbl_flip();
+  obj_vbl_flip(last_buf);
 #endif
   if (pal_dirty) {
     bkpal_write();
@@ -141,6 +170,7 @@ void vbl_isr(void) {
   nflips++;
   pend = 0;
 }
+#endif
 
 static uint16_t read_vbl(void) {
   uint16_t v;
@@ -450,6 +480,50 @@ static uint8_t char_tile(char c) {
 static const palette_color_t HUDPAL[4] = {RGB8(232, 214, 244), RGB8(250, 204, 222), RGB8(178, 164, 230),
                                           RGB8(82, 78, 148)};
 
+#if FS
+static void video_init(void) {
+  uint8_t x, y, t, b;
+  const uint8_t *hp = (const uint8_t *)HUDPAL;
+  pal_blend(PAL_OFFICE, PAL_OFFICE, 0);
+  set_bkg_palette(0, 8, pal_cur);
+  pal_dirty = 0;
+  for (x = 0; x < 8u; x++) hud_pal[x] = hp[x];
+  /* view + billboard tiles zeroed in both banks; HUD glyphs and the 'b' frame tile in bank 0 (224..244) */
+  for (b = 0; b < 2u; b++) {
+    VBK_REG = b;
+    memset((void *)0x8000u, 0, 216u * 16u);
+  }
+  VBK_REG = 0;
+  memcpy((void *)(0x8000u + HUDT * 16u), T_HUDTILES, 20u * 16u);
+  memcpy((void *)(0x8000u + (HUDT + 20u) * 16u), T_HUDTILES + (20u + 2u) * 16u, 16u);
+  for (y = 0; y < 32u; y++)
+    for (x = 0; x < 32u; x++) {
+      uint16_t o = (uint16_t)y * 32u + x;
+      uint8_t in = y < TH && x < TW, a = 0;
+      if (in) {
+        t = (uint8_t)(x * TH + y);
+        a = y; /* one palette per framebuffer tile row (the ceiling/floor gradient) */
+      } else if (y == HUDROW) {
+        t = (uint8_t)(HUDT + 20u); /* the 'b' frame tile: a rule under the view */
+      } else if (y == HUDROW + 1u) {
+        t = HUDT + 19u;
+        if (x >= 1u && x < 11u) t = char_tile(TITLE[x - 1u]);
+        if (x >= 14u && x < 17u) t = char_tile("FPS"[x - 14u]);
+      } else {
+        t = HUDT + 19u;
+      }
+      VBK_REG = 0;
+      *(uint8_t *)(0x9800u + o) = t;
+      *(uint8_t *)(0x9C00u + o) = t;
+      VBK_REG = 1;
+      *(uint8_t *)(0x9800u + o) = a;
+      *(uint8_t *)(0x9C00u + o) = in ? (uint8_t)(a | 0x08u) : 0u;
+    }
+  VBK_REG = 0;
+  SCX_REG = 0;
+  SCY_REG = 0;
+}
+#else
 static void video_init(void) {
   uint8_t x, y, t, a;
   uint8_t zero[16];
@@ -495,6 +569,7 @@ static void video_init(void) {
   SCX_REG = 0;
   SCY_REG = 0;
 }
+#endif
 
 /* ---- scenes ---- */
 #include "scenes2.h"
@@ -504,8 +579,12 @@ void main(void) {
   uint8_t slot;
   DISPLAY_OFF;
   cpu_fast();
+#if FS
+  buf[0] = buf[1] = (uint8_t *)0xD000u; /* WRAM banks 2 and 3 (SVBK = 2 + cur while a view renders) */
+#else
   buf[0] = (uint8_t *)0xCC00u; /* page-aligned framebuffers below the map (0xD800); DATA stays under 0xCB00 */
   buf[1] = (uint8_t *)0xD200u;
+#endif
   gen_maze();
   walker_init();
   dress();
@@ -515,11 +594,21 @@ void main(void) {
   { extern void cast_init(void); cast_init(); }
 #endif
   obj_init();
+#if FS
   LCDC_REG = (uint8_t)((LCDC_REG | LCDCF_BG8000 | LCDCF_BGON) & (uint8_t)~LCDCF_BG9C00);
+#else
+  LCDC_REG = (uint8_t)((LCDC_REG | LCDCF_BG8000 | LCDCF_BGON) & (uint8_t)~LCDCF_BG9C00);
+#endif
   front = 0;
   disable_interrupts();
+#if FS
+  LYC_REG = 1u;
+  STAT_REG = STATF_LYC;
+  set_interrupts(LCD_IFLAG);
+#else
   add_VBL(vbl_isr);
   set_interrupts(VBL_IFLAG);
+#endif
   enable_interrupts();
   DISPLAY_ON;
   lastv = read_vbl();
@@ -540,26 +629,48 @@ void main(void) {
     t1 = now();
     cast_all();
     t2 = now();
+#if FS
+    SVBK_REG = (uint8_t)(2u + cur);
+#endif
     walls_all(buf[cur]);
     t2b = now();
-    
 #ifndef NOFLOOR
     floors_all(buf[cur]);
 #endif
-
     t3 = now();
+#if FS
+    /* staging + OAM buffer live in this view's WRAM bank: build first, then wait for the previous copy */
+    obj_build(cur);
+    t4 = now();
+    while (pend) {
+    }
+    t5 = now();
+#else
     while (pend) { /* the staging area and OAM buffer are free once the previous view is up */
     }
     t4 = now();
     obj_build(cur);
     t5 = now();
+#endif
     slot = (uint8_t)(nviews & (LOGN - 1));
     log_upd[slot] = LSAT((uint16_t)(t1 - t0));
     log_ray[slot] = LSAT((uint16_t)(t2 - t1));
     log_fill[slot] = LSAT((uint16_t)(t2b - t2));
     log_flr[slot] = LSAT((uint16_t)(t3 - t2b));
+#if FS
+    log_spr[slot] = LSAT((uint16_t)(t4 - t3));
+    log_wait[slot] = LSAT((uint16_t)(t5 - t4));
+    pend_buf = cur;
+#if OBJ_ON
+    q_len = (uint8_t)(TW * TH + (objn[cur] << 1));
+#else
+    q_len = (uint8_t)(TW * TH);
+#endif
+    q_off = 0;
+#else
     log_spr[slot] = LSAT((uint16_t)(t5 - t4));
     log_wait[slot] = LSAT((uint16_t)(t4 - t3));
+#endif
     pend_src = buf[cur];
     pend_view = nviews;
     pend = 1;

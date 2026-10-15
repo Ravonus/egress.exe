@@ -20,7 +20,7 @@
 .if OBJ_ON
 	.globl _oam_dma
 .endif
-_map = 0xD800
+_map = MAPADDR
 
 	.area _DATA
 _w_buf:	.ds 2
@@ -86,8 +86,8 @@ F_STL = 0xFFC5
 F_STH = 0xFFC6
 F_B0 = 0xFFC7
 FMIN = 0xC8		; HRAM 0xFFC8: per tile column, first row with any floor (C fills it)
-CMAX = 0xD8		; HRAM 0xFFD8: per tile column, first row with all floor + ceiling visible
-F_B1 = 0xFFE8
+CMAX = FMIN + TW	; HRAM: per tile column, first row with all floor + ceiling visible
+F_B1 = 0xFFF6
 PF0 = 0xFF93
 PF1 = 0xFF94
 PF2 = 0xFF95
@@ -775,7 +775,7 @@ sra4:
 	rlca
 	ld	l, a
 	and	a, #3
-	or	a, #0xD8
+	or	a, #>MAPADDR
 	ld	h, a
 	ld	a, l
 	and	a, #0xE0
@@ -1530,7 +1530,7 @@ BC_SL = 0xFFA6
 BC_SH = 0xFFA7
 BC_R0 = 0xFFA8
 BC_R1 = 0xFFA9
-STAGE_MAX = 24
+STAGE_MAX = STAGEMAX
 _bb_col::
 	ld	a, (_bbc_bank)
 	ldh	(__current_bank), a
@@ -1547,7 +1547,7 @@ _bb_col::
 	ldh	a, (BC_Y8)
 	cp	a, #49
 	jp	c, 30$
-	cp	a, #128
+	cp	a, #64 + VSH
 	jp	nc, 40$
 	ld	a, (_obj_stage_n)
 	cp	a, #STAGE_MAX
@@ -1568,10 +1568,10 @@ _bb_col::
 12$:
 	ldh	(BC_R0), a
 	ldh	a, (BC_Y8)
-	cp	a, #113
+	cp	a, #64 + VSH - 15
 	jr	c, 13$
 	ld	c, a
-	ld	a, #128
+	ld	a, #64 + VSH
 	sub	a, c
 	jr	14$
 13$:
@@ -1590,7 +1590,7 @@ _bb_col::
 	srl	a
 	srl	a
 	srl	a
-	add	a, #0xC8
+	add	a, #>STAGEADDR
 	ld	h, a
 	; de = src + r0 * 2
 	ldh	a, (BC_R0)
@@ -1652,13 +1652,13 @@ _bb_col::
 	ld	h, (hl)
 	ld	l, a
 	ldh	a, (BC_Y8)
-	sub	a, #8
+	sub	a, #48 - VY0
 	ld	(hl+), a
 	ld	a, (_bbe_ox)
 	ld	(hl+), a
 	ld	a, (_obj_stage_n)
 	add	a, a
-	add	a, #96
+	add	a, #OBJT0
 	ld	(hl+), a
 	ld	a, (_bbe_attr)
 	ld	(hl+), a

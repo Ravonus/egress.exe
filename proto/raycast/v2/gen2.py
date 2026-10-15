@@ -103,13 +103,15 @@ def main() -> None:
     ap.add_argument("--split", type=int, default=32)
     ap.add_argument("--fogfar", type=float, default=FOG_FAR, help="cells where the fog is total (rows past it are skipped)")
     ap.add_argument("--sidek", type=int, default=4)
+    ap.add_argument("--vs", type=int, default=1, help="vertical display scale (2: rows are doubled on screen by SCY)")
     a = ap.parse_args()
     FOGFAR[0] = a.fogfar
     a.out.mkdir(parents=True, exist_ok=True)
     W, H, FR = a.w, a.h, a.fr
     n = W // 4
     half = math.tan(math.radians(FOV / ANG * 360 / 2))
-    proj = (W / 2) / half
+    proj = (W / 2) / half  # horizontal, in screen px
+    projv = proj / a.vs  # vertical, in framebuffer rows (each shown a.vs times)
 
     cos_abs, delta = [], []
     for i in range(ANG):
@@ -122,12 +124,12 @@ def main() -> None:
         ang = math.atan(x)
         coloff.append(round(ang / (2 * math.pi) * ANG) % ANG)
         colcos.append(min(255, round(math.cos(ang) * 256)))
-    height = [max(1, min(255, round(proj / (max(p, 1) / 64)))) for p in range(2048)]
+    height = [max(1, min(255, round(projv / (max(p, 1) / 64)))) for p in range(2048)]
     voff = 255 - (H + 255) // 2
     vtop = [(voff + ((H - h) >> 1)) & 255 for h in range(256)]
     hv2 = [[(h * (k + 1)) >> 4 for h in range(256)] for k in range(16)]
 
-    fog_k = [16 if h < 1 else fogk(proj / h) for h in range(256)]
+    fog_k = [16 if h < 1 else fogk(projv / h) for h in range(256)]
     fogpat = []
     for k in range(17):
         for row in range(4):
@@ -142,13 +144,13 @@ def main() -> None:
     while o < H // 2:
         fr = a.frfar if o < a.split else FR
         fr = min(fr, H // 2 - o)
-        d = proj / (2 * (o + fr / 2))
+        d = projv / (2 * (o + fr / 2))
         fd.append(0 if fogk(d) >= 16 else min(255, round(d * 16)))
         fy0.append(H // 2 + o)
         fnr.append(fr)
         o += fr
     for y in range(H // 2, H):
-        d = proj / (2 * (y - H / 2 + 0.5))
+        d = projv / (2 * (y - H / 2 + 0.5))
         k = fogk(d)
         fpat[y] = fogpat[k * 4 + (y & 3)]
         yc = H - 1 - y
