@@ -68,8 +68,9 @@ W_E1 = 0xFFF8
 W_CTK1 = 0xFFF9
 W_BOT = 0xFFFA
 F_N = 0xFFFB
-W_BK = 0xFFFC		; baked walls: bank, address high byte
+W_BK = 0xFFFC		; baked walls: block bank, block offset in that bank (W_AL lo, W_AH hi)
 W_AH = 0xFFFD
+W_AL = 0xFFF7
 
 F_J = 0xFFB8
 F_Y0 = 0xFFB9
@@ -767,6 +768,8 @@ wfast:
 	ld	a, (hl+)
 	ldh	(W_BK), a
 	ld	a, (hl+)
+	ldh	(W_AL), a
+	ld	a, (hl+)
 	ldh	(W_AH), a
 	ld	a, (hl+)
 	ldh	(W_C), a
@@ -820,7 +823,7 @@ wbake:
 	ld	de, #wdone
 	push	de			; the copy's ret goes to wdone
 	push	hl			; the ret below enters the copy
-	; source = ((t << 4 | u) << shift): bank W_BK + (src >> 14), address W_AH + (src & 0x3FFF)
+	; column id = ID[t << 4 | u] (bank WB0 at 0x4000); source = block + (id << shift): bank W_BK + (src >> 14)
 	ldh	a, (W_I)
 	add	a, #<_ray_u
 	ld	l, a
@@ -838,11 +841,26 @@ wbake:
 	ld	a, l
 	or	a, c
 	ld	l, a
+	add	hl, hl
+	ld	a, h
+	add	a, #0x40
+	ld	h, a
+	ld	a, #WB0
+	ldh	(__current_bank), a
+	ld	(0x2000), a
+	ld	a, (hl+)
+	ld	h, (hl)
+	ld	l, a
 2$:
 	add	hl, hl
 	dec	b
 	jr	nz, 2$
-	ld	a, h
+	ldh	a, (W_AL)
+	add	a, l
+	ld	l, a
+	ldh	a, (W_AH)
+	adc	a, h
+	ld	h, a
 	rlca
 	rlca
 	and	a, #3
@@ -853,9 +871,7 @@ wbake:
 	ld	(0x2000), a
 	ld	a, h
 	and	a, #0x3F
-	ld	c, a
-	ldh	a, (W_AH)
-	add	a, c
+	or	a, #0x40
 	ld	d, a
 	ld	e, l
 	; dest = strip + (vt - VOFF) * 2

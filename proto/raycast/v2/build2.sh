@@ -48,7 +48,7 @@ if [ "$HB" != 0 ]; then
   for f in "$B"/bank*_wb.s; do n=$(basename "$f" .s); $LCC -c -o "$B/$n.o" "$f"; [ -f "$B/$n.o" ] || exit 1; OBJW="$OBJW $B/$n.o"; done
   RB=16; while [ $RB -lt $((16 + NWB)) ]; do RB=$((RB * 2)); done
 fi
-{ echo "OBJ_ON = $OBJ"; echo "HB = $HB"; echo "MAPADDR = $MAPADDR"; echo "STAGEADDR = $STAGEADDR"; echo "STAGEMAX = $STAGEMAX";
+{ echo "OBJ_ON = $OBJ"; echo "HB = $HB"; echo "WB0 = 16"; echo "MAPADDR = $MAPADDR"; echo "STAGEADDR = $STAGEADDR"; echo "STAGEMAX = $STAGEMAX";
   echo "VSH = $VSH"; echo "VY0 = $VY0"; echo "OBJT0 = $OBJT0"; echo "FS = $FS"; echo "VOFF = $((255 - (H + 255) / 2))"; echo "VEND = $((255 - (H + 255) / 2 + H))"; echo "STRIP = $((H * 2))";
   echo "NRAYS = $((W / 4))"; echo "VIEW_H = $H"; echo "TW = $((W / 8))"; cat "$B/layout.inc" src/fill2.s; [ "$HB" != 0 ] && cat "$B/wbt.inc"; true; } > "$B/fill2.s"
 $LCC -c -o "$B/fill2.o" "$B/fill2.s"; [ -f "$B/fill2.o" ] || exit 1
