@@ -41,6 +41,8 @@ dithered tiles, objects, panels, HUD and the M2 font), with faces from the share
 | `docs/shots/mock_cond.png` | a conditional kill: shielded until WET, then SHOCKED (the means are in the room) |
 | `docs/shots/mock_mobs.png` | generated mob looks: 8 of one family, tag tells, elites of every size, an animation strip |
 | `docs/shots/mobs/family_*.png` | 64 generated variants per family (readability and content review) |
+| `docs/shots/mock_obstacles.png` | living obstacles (7.7): six at game scale with their tags, a 4x zoom, an elite beside them, the hit that bounces |
+| `docs/shots/mock_obstacle_room.png` | an office room with THE MOVER and glass: start, steer, crack, solved, a mistake and its dead state (solver-checked) |
 | `docs/shots/mock_boss.png` | a boss concept in its arena, tearing tiles out of a half-flooded floor |
 | `docs/shots/mock_title.png` | the PRESS START title around a real raycaster frame (section 15) |
 | `docs/shots/anim.png` | animation states: 8 directions (5 drawn plus 3 mirrored), walk, idle, combo, charge, roll, blink, hurt, death |
@@ -229,6 +231,16 @@ Each room has exactly one named **trick** (the aha), 0–2 **supporting** tricks
 | 9 | **Collapse drop** | gravity is a tool | collapse the cell under a CRT so it falls onto the plate below / onto a mob |
 | 10 | **Short circuit** | wet things conduct | RAIN on the floor + ELECTRIC → the whole wet area powers a door (and shocks mobs on it) |
 
+**Obstacle tricks (from B2).** Living obstacles (7.7) can't die. They are room machinery, and they add four trick
+types:
+
+| # | Trick | The aha | Typical chain |
+| --- | --- | --- | --- |
+| 11 | **Rush hour** | it keeps its route, so time it | wait for the gap in a patroller's loop; a block in its path reverses it |
+| 12 | **Steer the heavy** | it breaks what you can't | a block or a lure turns the heavy wanderer into the glass you need broken (`mock_obstacle_room.png`) |
+| 13 | **Mirror** | it copies you, flipped | use walls to desync the mirror until it pushes the second block onto its plate |
+| 14 | **The stare** | it moves only when you look away | keep the sentry in sight; blocks, steam and darkness break the sight line |
+
 **Red herrings** are real ingredients whose recipes lead somewhere plausible but wrong. Examples: SALT in a Kettle
 room, or enough FIRE to burn the only wooden bridge. They must never soft-lock the room. The generator checks every
 red-herring use against the solver: either it is harmless, or the room re-supplies the consumed ingredient (a spring,
@@ -332,6 +344,10 @@ tile wobbles, drops into the void, and leaves a pit.
   fragile and mobs can never break them, so mobs alone never doom a room before you get a chance.
 - Mobs breaking tiles can still create a dead state, but only where the player could have prevented it, by luring
   the mob or killing it first. The generator verifies that a player who handles the mobs can still win.
+- **Living obstacles** (7.7) follow the same breakage rules (the heavy wanderer counts 2, and it breaks glass
+  partitions by walking in) and the same protected cells. They can't be killed, so the generator checks them more
+  strictly: the idle rollout and the baked solution must be passive-safe, so their dead states only ever follow a
+  player mistake.
 
 **Puzzles (new trick types for 3.1)**
 - One-way glass path: each tile is usable once, so plan the route.
@@ -357,7 +373,8 @@ For the 16x14 room that is 224 bytes of WRAM, plus a per-kind ROM table of a few
 reports the measured cost.
 
 **Build.** B1 adds the office kinds (worn carpet, ceiling tile, glass, glitched glass), the protected-cell rule, and
-2–3 of the trick types. B2 adds the mob breakage and the lure trick. B4 adds the other biomes' kinds.
+2–3 of the trick types. B2 adds the mob breakage, the lure trick and the first living obstacles (7.7), with the
+office glass partition that only a heavy obstacle breaks. B4 adds the other biomes' kinds.
 
 ### 3.5 The difficulty ramp: a designed curriculum
 
@@ -370,6 +387,8 @@ Rooms are procedural, but the order you meet them in is designed. Each mechanic 
 | **Combine** | mixed with mechanics learned earlier (glass + push, glitched glass + reaction, step count + mob lure) |
 | **Test** | a harder mixed room, or a stage-type variant |
 
+- **Obstacles have curriculum slots too.** Each living-obstacle behaviour has its own introduce → test track (the
+  table in 7.7). It enters alone, one obstacle per room, before it ever combines.
 - **Seen mechanics.** The game tracks which mechanics the heir and the line have seen, using the seen history (9.5)
   and the family tree. An unseen mechanic never goes into a hard combination.
 - **Difficulty is a vector** from the solver and the sim:
@@ -378,7 +397,9 @@ Rooms are procedural, but the order you meet them in is designed. Each mechanic 
   - dead-state ratio;
   - the number of distinct insights needed;
   - the mechanic count;
-  - enemy pressure.
+  - enemy pressure;
+  - obstacle load: the summed difficulty costs of the room's living obstacles (7.7), plus its rescue windows (states
+    one wait away from lost).
 - **The target rises with depth and generation, in waves, not monotonically:** tension → a release room → a spike →
   rest/landing. Mixed rooms get more frequent with depth, and late floors mostly combine 2–3 mechanics plus a
   twist.
@@ -410,7 +431,7 @@ to back and keeps a "seen" history (the last 6 types and the last 10 tricks) so 
 | Holdout | survive N waves (2–4) while the egress assembles or charges | the charge pauses when you leave its ring; waves arrive from the void as glitch-in cards |
 | Escort / protect | a talker or a fragile object reaches the exit / survives | it walks a generated path; you clear and shield it |
 | Chase / collapse | reach the exit before the collapse wave | the floor drops behind you at a set speed; shortcuts need recipes |
-| Hunt | kill the marked target | the target has a kill condition (section 7.3); the means are in the room |
+| Hunt | kill the marked target | the target has a kill condition (section 7.3); the means are in the room. Never a living obstacle (7.7). |
 | Mid-boss / boss arena | win the fight | 2–3 phases, environment use (section 7.5) |
 | Heist / trade | take or buy the thing, get out | a talker's shop: barter recipes, tokens or a heart; stealing triggers a holdout |
 | Dark room | reach the exit lit | GLOWS lights a radius; SHINY reflects light / a beam onto a receiver |
@@ -932,7 +953,7 @@ Every boss = a **boss template** (body plan, arena rule, 3 phases) + generated p
 - use the biome hazard.
 
 The player can turn the same tools against them: freeze the flood to stand on, drop the torn tile back on the boss,
-reflect its orbs.
+reflect its orbs. Bosses can also summon or command living obstacles (7.7).
 
 **Phases** demand different moves:
 1. dodge-heavy (lunges and slams);
@@ -1014,6 +1035,324 @@ affix count scale with depth and generation):
   sting in the music key, a 12-frame pause, and the camera nudging toward it.
 - **Tiny swarm elites:** glow, particles and the size bump only.
 - **Elite mimics:** stay disguised as the object; the only giveaway is a 3-pixel shimmer travelling round the rim.
+
+### 7.7 Living obstacles (B2, owner request)
+
+Mobs that can't die. They are part of the puzzle machinery, not combat targets. Every rule is deterministic, so the
+solver simulates them exactly. They are a seeded variant of the mob schema: a mobgen look plus a matrix record.
+
+Mocks: `mock_obstacles.png` (six looks, a 4x zoom, an elite beside them) and `mock_obstacle_room.png` (an office room
+with THE MOVER and glass). The room is modelled and checked in `tools/mock/obstacle_room.py`. The drawing script is
+`tools/mock/obstacle_mock.py`.
+
+**The clock.**
+- Obstacles act on the **room tick**: one tick every 24 frames (0.4 s), fixed. Their step sounds land on it.
+- The player still moves freely (section 8). At each tick the game latches the player's cell (the hitbox centre) and
+  their 8-way facing.
+- A move tweens over the tick's 24 frames. The cell changes at the tick, and all collisions use cells, not pixels.
+- The solver models the player as moving at most one cardinal cell per tick. A real player walks about 1.5 cells per
+  tick. Being faster only adds options, so any plan the solver finds can be played.
+
+**Tick order.** This runs on tick frames, inside step 3 (mob AI) of 5.2's frame order:
+
+| # | Step | Detail |
+| --- | --- | --- |
+| 1 | latch | the player's cell P, facing F and previous cell P'. Tiles the player left since the last tick have already cracked, and pushes and pickups have already happened (3.4). |
+| 2 | statuses | stun, freeze, root and wake counters drop by 1. A counter that reaches 0 frees the obstacle from step 4 on. |
+| 3 | sense | all obstacles at once, against the latched state: the sentry's sight test, the lure scan, noise flags raised since the last tick, the mirror's delta P − P'. |
+| 4 | act | slot order 0 → 2, each on its phase (period 1 or 2 ticks). Pick the target cell, resolve it (table below), then move, push, eat or toggle. Later slots see where earlier slots moved. |
+| 5 | tile effects | step-off cracks (heavy counts 2), partition breaks, phase toggles, darkness. They go into the terrain commit queue (≤ 6 per frame). |
+| 6 | dead check | the 3.4 flood fill, only if a tile, block or item changed this tick. |
+
+**Collision and crush resolution** (shared by every behaviour):
+
+| Target cell holds | Result | Exceptions |
+| --- | --- | --- |
+| a wall, the exit door, a pit | blocked | the drifter passes phasable walls; the patroller rides its rail over pits |
+| a block | blocked | the pusher pushes it one cell if the cell beyond is free (onto floor glass it falls through, 3.4) |
+| another mob or obstacle | blocked | none. A cell is never shared and two mobs never swap. The lower slot wins a contested cell. |
+| a glass partition | blocked | the heavy wanderer breaks it and walks in |
+| an item (token, key, ingredient) | walks over it | the eater eats it |
+| the player | **shove**: the player moves one cell along the obstacle's path, the obstacle moves in, no damage | **Pinned** (the shove cell is solid): **trample**. That's 1 hit, and the player and the obstacle swap cells. The sentry **catches** instead (below). |
+
+- "Blocked" runs the behaviour's own blocked rule: turn right, reverse or hold.
+- A body never counts as a block. You can't steer an obstacle by standing in its way; you get shoved. Only solid things
+  steer it.
+- It never traps you. Trampling always frees you.
+- An obstacle never falls. Floor glass breaks *behind* it, when it steps off (as for the player), and it never steps
+  into a pit.
+
+**The ten behaviours.** The tiles column gives each one's weight on fragile tiles (3.4).
+
+| Behaviour | Step rule | When blocked | Tiles | Items | Blocks | Period |
+| --- | --- | --- | --- | --- | --- | --- |
+| **Patroller** | the next cell of its route: a closed loop of ≤ 8 runs, each (direction, length) | reverses and walks the loop backwards | rides a rail: never cracks, ignores pits | passes over | blocked: reverses | 1 |
+| **Heavy wanderer** | straight ahead | turns right, without moving that tick | weight 2; breaks glass partitions by walking in | passes over | doesn't push | 2 |
+| **Pusher** | straight ahead; a block ahead is pushed and it follows | turns right (also when the block can't move) | weight 1 | passes over | pushes one block | 2 |
+| **Eater/collector** | straight ahead | turns right | weight 1 | eats any item in a cell it enters (holds up to 4) | doesn't push | 1 |
+| **Mirror** | the player's delta flipped on its axis (variant X, Y or both), applied x then y | that axis holds; the other still moves (the desync is the puzzle) | weight 1 | picks up nothing | pushes like the player | each tick the player moved |
+| **Sentry** | only while unseen: one cell toward the player, on the axis with the bigger gap (x on a tie) | tries the other axis, else holds | weight 1 | passes over | doesn't push | 1 |
+| **Light-eater** | as the wanderer, or along a route (variant) | turns right / reverses | darkens radius 2 (Chebyshev): the dark palette row, and GLOWS rules apply | passes over | doesn't push | 2 |
+| **Glitch drifter** | straight ahead, through phasable walls | reverses at the room's outer edge | toggles each phasable cell it leaves (open ↔ solid) | passes over | doesn't push | 2 |
+| **Follower** | dormant until the player passes next to it; then it moves into P' every tick, always one step behind | holds | weight 1 | passes over | doesn't push | 1 |
+| **Sleeper** | asleep: solid, holds. Woken: a 2-tick yawn tell, then its awake rule (variant: patroller or wanderer) | as its awake rule | as its awake rule | as its awake rule | as its awake rule | 1 or 2 |
+
+Rule details:
+- **Lures.** At the sense step, the wanderer turns toward the nearest lure in its row or column with a clear line,
+  within 5 cells (ties go N, E, S, W). The eater does the same for any item within 4: food is its lure.
+- **Lure sources.** A token you drop on the cell you face is a lure; you can pick it up again unless something eats it.
+  Noise is also a lure, and it wakes sleepers within 4: breaking glass, a dropped CRT, a STEAM burst at a vent,
+  LIGHTNING, and a LOUD heir moving within 2.
+- **The eater coughs up.** A stunned eater drops everything it holds onto its cell and the nearest free cells. A key it
+  eats is never lost, because a parry is always in the kit (6).
+- **The drifter's limits.** It toggles only cells the generator marked phasable: glitch cells and flagged interior
+  walls. It never toggles outer walls, door thresholds or protected cells. It skips a toggle when the cell holds the
+  player, a block or an item, so nothing ever ends up inside a wall.
+- **The sentry's catch.** If the sentry enters the player's cell, that is 1 hit. It then snaps back to its plinth
+  (its start cell) in a static burst.
+- **Light.** A placed GLOWS object makes the cells within 1 of it count as walls for the light-eater. A carried light
+  makes dark cells count as lit for the sight test.
+
+**The sentry's facing test.**
+- **2D.** Let v = sentry cell − P (in cells), and f = the 8-way facing as a grid vector, with diagonals (±1, ±1).
+  - The player faces the sentry when v·f > 0 and |v × f| ≤ v·f. That is a 90° cone, in integers, with two
+    multiplies and no division.
+  - To be seen, the sentry must also be in line of sight. The Bresenham line between the cell centres must not cross a
+    wall, a closed partition or a block (a crate hides it), and no STEAM or FOG cell can sit on that line.
+  - Its cell must also not be DARK, unless the player carries a light.
+  - If any of these fails, it is unseen, and it moves.
+- **3D (15.2).** The sentry is seen when its billboard drew at least one unoccluded 4 px column in the last view. The
+  renderer already computes that per column against the wall depths, so the view's FOV is the cone. The LOS, smoke and
+  dark rules are the same. It moves only on ticks when the last view didn't show it.
+- **Weeping-angel read.** The sentry has 3 poses and changes pose with every unseen move. When you look back, it is
+  closer and in a new pose. It makes no step sound. Within 2 cells, it makes a one-frame static skitter.
+
+**Interactions through the reaction table (5.2).** Obstacles take statuses but never damage.
+
+| Effect on an obstacle | Result |
+| --- | --- |
+| any hit, from any weapon or reaction | 0 damage; a spark and a clink (below) |
+| parry (A then B) timed on its shove or trample | **stunned** 4 ticks (a perfect parry: 6) |
+| COLD (FREEZE, COLD × WET) | **frozen** 6 ticks (deep freeze, COLD × COLD: 10); a frost rim; solid like a block, but it can't be pushed |
+| HOT on a frozen obstacle | thaws at once. Thaw/shatter's ×2 and the shatter never apply. |
+| WET then SHOCK (short circuit) | stunned 4 ticks; it chains across WET cells as usual |
+| ALIVE (OVERGROW) | **rooted** 6 ticks: it can turn but not move |
+| GLITCH (STATIC, GLITCH BURST: "scrambles mob AI") | **reversed** once: facing +2, route direction flipped, mirror axis swapped. Deterministic, never random. |
+| STEAM or FOG on a sight line | blocks the sentry's sight test: it moves while you can't see it |
+| GLOWS | repels the light-eater; lights dark cells, so the sentry can be seen |
+| a lure or noise | turns the wanderer or the eater, and wakes the sleeper (above) |
+| freeze during a sleeper's yawn | it goes back to sleep |
+
+- **Stops are brief by rule.** After any stop (stun, freeze or root) ends, that obstacle ignores stops for 4 ticks.
+  You can't lock one down forever.
+- **A stopped obstacle is readable.** Its glyph stops flickering and dims, then blinks fast over its last 2 ticks: a
+  countdown with no number.
+- **Using them** is the other half of the puzzle:
+  - a wanderer breaks the glass you need broken;
+  - a pusher moves a block you can't reach onto a plate;
+  - a follower you lead onto a plate, then stun, is a weight;
+  - a mirror pushes the second block;
+  - an eater carries a key over a pit (stun it on the far side);
+  - a drifter opens a wall;
+  - a light-eater's dark hides you from a turret.
+
+**Clearly invincible** (`mock_obstacles.png`). The same language in every biome:
+- **Body:** CHROME (banded metal tinted for the biome, with a white specular line) or DARK (near-ink, with a chrome
+  rim at the top-left key light, like the heirs).
+- **Outline:** a solid 1 px INK cut-out outside the silhouette.
+- **Halo:** one still Bayer checker ring outside that, in one colour. It never pulses.
+- **Glyph:** ∞ (mobile obstacles) or a lock (anchored ones: the sentry, a sleeping sleeper), 2 px above the head. It
+  flickers like a failing neon (on 6 frames, off 2) and never bobs.
+
+| | Elite (7.6) | Obstacle |
+| --- | --- | --- |
+| outline | a colour line in palette 7 that pulses | an ink cut-out plus a still halo |
+| above the head | a crown that bobs 1 px | ∞ or a lock that flickers |
+| particles | orbiting, in the affix colours | none |
+| size | bumped one class | its true size |
+| a hit | a white flash and HP lost | a spark and a clink, never a flash |
+| palettes | body A, overlay B, elite 7 | body A (chrome or dark), overlay B (halo, specular, cue); never palette 7 |
+| tag | the pink `ELITE` chip plus affix words | a steel-rimmed panel with the glyph, a name and a rule line |
+| rewards | 2x tokens | none. It is never a hunt target and never counts as a kill. |
+
+- **Never an elite.** The record reuses the affix slots (below), so an obstacle can't carry an affix.
+- **Every hit bounces off.** A 2-frame spark from the particle pool, your 2-frame hitstop and a 3 px weapon recoil. No
+  shake, no flash, no number.
+- **First sight**, once per run for each behaviour:
+  - the name tag for 2 s, with a 12-frame pause;
+  - a low static swell instead of the elite sting;
+  - the camera nudges toward it, as for elites.
+  The rule line never changes between biomes, so players learn the verb, not the name. Each behaviour also has a fixed
+  cue colour in overlay B (eyes, accents): patroller amber, wanderer coral, pusher green, eater sky, mirror violet,
+  sentry red.
+
+**Name tags per biome.** Each name is `THE` plus a noun (≤ 14 characters). The rule line is ≤ 20 characters, so the
+tag fits two text rows of the 160 px screen.
+
+| Behaviour (rule line) | Office | Vents | Atrium | Server farm | Mall | Garden | Rooftop | Glitch core |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Patroller (WALKS ITS ROUTE) | COMMUTER | SWEEPER | TIDE | CRON JOB | SHOPPER | SPRINKLER | NIGHT BUS | LOOP |
+| Heavy wanderer (CRACKS ITS PATH) | MOVER | BOILER | SANDBAG | MAINFRAME | FORKLIFT | BOULDER | WATER TANK | DEAD WEIGHT |
+| Pusher (SHOVES WHAT IT FACES) | FILE CART | BLOWER | CURRENT | PACKET | TRAY CART | BARROW | GUST | OVERFLOW |
+| Eater (EATS WHAT IT REACHES) | SHREDDER | LINT TRAP | DRAIN | COLLECTOR | VACUUM | COMPOST | GULL | NULL |
+| Mirror (COPIES YOU, FLIPPED) | OTHER TEMP | ECHO | SURFACE | BACKUP | DISPLAY | TWIN BUD | SHADOW | DUPLICATE |
+| Sentry (MOVES WHEN UNSEEN) | COAT RACK | WATCHER | STATUE | CAMERA | MANNEQUIN | TOPIARY | GARGOYLE | STARE |
+| Light-eater (EATS THE LIGHT) | POWER CUT | SOOT | DEEP END | BLACKOUT | LAST CALL | NIGHTSHADE | ECLIPSE | VOID |
+| Drifter (PHASES THE WALLS) | REORG | DRIFT | UNDERTOW | PATCH | REFIT | MIST | STATIC | NOCLIP |
+| Follower (BLOCKS YOUR WAY BACK) | REPLY ALL | DRAG | WAKE | LOG | QUEUE | BURR | TAILWIND | AFTERIMAGE |
+| Sleeper (WAKES ON NOISE) | STANDBY | DORMANT | DEEP | IDLE | ALARM | BULB | SIREN | DAEMON |
+
+The looks come from the family's bodies (7.6), so a TOPIARY is a garden body and a MOVER is an office filing cabinet.
+Names are titles, not likenesses: no obstacle is drawn as a person.
+
+**Mobgen and the record.** An obstacle is a seeded variant inside the existing schemas.
+- **Matrix record** (`mx_mob`, 7 bytes, unchanged size):
+  - `beh = BH_OBSTACLE` (new value 6) and `def = DF_INVULN` (new value 8);
+  - `atk` holds the **rule** (0–9; an obstacle has no attack, its contact rule is its "attack");
+  - `el` keeps the tag, so a COLD sentry still shows its frost rim and reacts as COLD;
+  - `af[0]` and `af[1]` hold parameter bytes A and B, so it can't take an elite affix.
+  - `mx_mob_valid` gains a rule ↔ body table: wanderer → heavy, drifter → phaser, patroller → walker or flyer,
+    sentry → walker or mimic, and so on.
+- **Baked room record**, 4 bytes per obstacle:
+
+| Byte | Bits |
+| --- | --- |
+| 0 | rule (4) · period − 1 (1) · hand, right or left (1) · DARK body (1) · lock glyph (1) |
+| 1 | start cell (8: 16x14 = 224 cells) |
+| 2 | start direction (2) · variant (3: mirror axis, sleeper's awake rule, light-eater route) · flags (3: lure, noise, starts asleep) |
+| 3 | parameter: route index, wake radius, or darkness radius |
+
+- **Routes.** A per-room table of up to 8 runs per route, one byte each (direction 2 bits, length 6 bits).
+- **The look** is drawn by mobgen from (room seed, slot), so it costs no bytes. The look struct gains an `obst` bit and
+  a chrome ramp pick. The HALO topper is banned (it would read as the halo). Tag cues show only when tagged.
+- **Cost:**
+  - ROM: 4 B × ≤ 3 per baked room, plus ≤ 8 B per route;
+  - WRAM: 8 B per obstacle at runtime (cell, a 2-byte tween, direction or route index, counters, belly, flags), so
+    24 B per room.
+- **Difficulty cost** (the `mx_mob_cost` analogue, read by 3.5): patroller 2, wanderer 3, pusher 3, eater 2,
+  mirror 4, sentry 3, light-eater 2, drifter 4, follower 2, sleeper 2.
+
+**Solver state** (`host/eg_solve.c`, the same model as `obstacle_room.py`):
+- **Per obstacle, ≤ 3 bytes:**
+  - position (8 bits) and direction (2);
+  - phase (1);
+  - route index (3) and route direction (1);
+  - the stop counter (3) and the immunity counter (3);
+  - awake (1), and the belly as a bitmask of the room's ≤ 6 objects (6).
+  Drifter rooms add a bitmask of phasable cells (≤ 8).
+- **Search size.** Measured in the mock room: the reachable states hold 9,996 distinct player, block and tile
+  configurations. Adding THE MOVER's cell, direction and phase makes **482,274 (×48)**. The mover reaches all 200
+  combinations open to it (25 cells × 4 directions × 2 phases).
+  - *Clocked* obstacles multiply the space by at most their route length (×2 if they can reverse). That covers a
+    patroller with no blocks near it and a sleeper that never wakes.
+  - *Free* obstacles multiply it by up to cells × 4 × period: the wanderer, pusher, eater, mirror, sentry, follower and
+    drifter.
+- **Cap per room:** at most 3 obstacle slots. An L obstacle takes 2 slots, and there is at most one L. At most 2 are
+  free movers. The bake rejects any room over 4M solver states.
+
+**Fairness** (in `obstacle_room.py` and run by the generator on every candidate room):
+1. **The start is winnable.**
+2. **Idle rollout.** The player only waits for two full obstacle cycles (or 2·4·period·(W+H) ticks), and every state
+   stays winnable. Obstacles never make a room unwinnable on their own before the player acts.
+3. **Only player mistakes.** Every state on the baked solution is **passive-safe**: waiting there, for any number of
+   ticks, never makes the room unwinnable. The player never has to race an obstacle to keep a room alive, so a
+   room-losing deadline only exists after a mistake.
+   - Those deadline states are counted as **rescue windows**: winnable now, but one more wait loses the room. The
+     count goes into the difficulty vector.
+   - This matches the fragile-tile rule: breaking is the puzzle, and the order is the player's.
+4. **Protected cells (3.4).** An obstacle never cracks or toggles a protected cell.
+5. **The runtime hint never lies.** The flood fill closes only cells that can't reopen (walls and pits). Blocks,
+   obstacles and unbroken partitions count as open, so `THE ROOM FORGETS` never fires on a room that can still be won.
+   It can miss a Sokoban dead end, which the solver scores offline instead.
+
+**The mock room** (`mock_obstacle_room.png`, office, 10x7):
+- **The setup.** THE MOVER loops the walls of the left hall. The exit sits in an alcove behind a glass partition and a
+  1-step glass landing. There is a crate and a CRT (the herring).
+- **The solution (24 ticks).** Push the crate into the top-left corner (tick 7). The mover, walking north, hits it and
+  turns east down row 2. It walks through the partition (tick 15) and shuttles in the corridor. Slip in behind it and
+  leave over the landing.
+- **The mistake.** Push the CRT into the corridor behind the mover "to trap it" (tick 28). It comes back west, the CRT
+  turns it north onto the landing, and the landing breaks behind it (tick 37). The solver knows the room is lost at
+  tick 36; the hint shows at tick 37.
+- **Solver numbers:**
+  - 482,274 states, 31.7% of them dead;
+  - the first fatal move is possible at tick 7;
+  - the idle rollout and the solution are both passive-safe;
+  - 140 rescue-window states.
+
+**Curriculum (3.5).** Each behaviour goes introduce → develop → combine → test, like every other mechanic:
+
+| Behaviour | Arrives | Introduce (alone) | Develop | Combine with |
+| --- | --- | --- | --- | --- |
+| Patroller | B2, office | time one crossing | two loops out of phase | push blocks (a block reverses it), fragile tiles |
+| Heavy wanderer | B2, office | steer it with one block into one partition (the mock room) | a lure plus a turn | glass routes, the CRT herring |
+| Sleeper | B2, vents | wake it, on purpose | wake it at the right moment | glass (breaking is noise) |
+| Pusher | B3 | it pushes the block you can't reach | two blocks, in the right order | plates, pits |
+| Eater | B3 | grab the key first | bait it, stun it, take the cough-up | thieves, treasure (4b) |
+| Sentry | B3, then 3D stages | one stare across a room | two sentries, one sight line | darkness, steam, 3D corridors |
+| Mirror | B4 | one block, one plate | wall desyncs | pushers |
+| Follower | B4 | lead it onto a plate | no going back | one-way glass |
+| Light-eater | B4, dark rooms | it hides the floor | repel it with a light | sentries (unseen in its dark) |
+| Drifter | B4, glitch core | it opens a wall | it closes the one behind you | MAGIC/CRYSTAL phasing |
+
+- Obstacle load is part of the difficulty vector: the sum of the difficulty costs, plus the rescue-window count.
+- The seen-history rule holds: an unseen behaviour never goes into a combine room.
+
+**GBC costs** (budgets; the CPU figures are estimates, not yet measured):
+
+| Item | Cost |
+| --- | --- |
+| OBJ, M (16 px) | 2 body + 2 overlay + 1 glyph = 5 entries, 4 per line (8x16 mode) |
+| OBJ, L (24 px) | 6 body + 3 overlay + 1 glyph = 10 entries, 6 per line |
+| OAM per room | ≤ 15. Obstacles draw from the mob pool of 16 (5.5). 3 M, or 1 L + 1 M. |
+| 10-per-line | the per-band counter drops overlays first, so the body, ink outline and silhouette stay. The glyph sits on its own line. |
+| sprite tiles | M: 8 per frame (body and overlay); L: 18. Two shared glyph tiles (∞ and lock). Frames stream as mob frames do. |
+| palettes | body A (chrome ramp or dark) and overlay B (halo, specular, cue). Palette 7 is never used. |
+| CPU per tick | sense and act ≤ 1,500 M-cycles per obstacle (the sentry's Bresenham line is ≤ 16 cells) |
+| CPU per frame | tween and OAM build ≈ 300 M-cycles per obstacle |
+| dead check | a 224-cell flood fill, ≈ 9,000 M-cycles, only on ticks that changed something. It runs on the frame after the tick, split over 2 frames if needed, so the 27,000 M-cycle worst case (5.5) holds. |
+
+**SFX and FX** (in the music key, section 14):
+- **A hit.** A clink: pulse 1 at 12.5% duty, a falling fifth over 6 frames. DARK bodies give a 4-frame static hiss
+  instead. Plus the spark from the particle pool. Never a hurt sound.
+- **Steps.** The wanderer thuds low on each move, and the 3.4 break sounds play as it cracks things. The patroller ticks
+  softly in time. The sentry is silent, except for the static skitter within 2 cells.
+- **A sleeper waking.** A rising yawn tone and a `!` flash on its 2-tick tell.
+- **Stopped.** The shared status FX (frost rim, roots, stun stars). The glyph dims and stops flickering, then blinks
+  out its last 2 ticks.
+- **First sight.** The static swell and the steel-rimmed tag.
+
+**Bosses (7.5).** Bosses can summon or command obstacles. Obstacles are never bosses, and summoned ones glitch out
+when the boss falls.
+- **Summon.** A phase drops 1–2 obstacles from the void as glitch-in cards, onto unprotected cells, within the cap.
+  Boss rooms allow 2 obstacles.
+- **Command.** One telegraphed command per boss tell (24 frames or more), all deterministic:
+  - REVERSE: every patroller reverses;
+  - WAKE: every sleeper wakes;
+  - FETCH: the boss's target cell becomes a lure for wanderers and eaters;
+  - LIGHTS: light-eaters double their radius for 6 ticks.
+- **Examples:**
+  - THE TENANT drags MOVERs across the office arena's glass, cracking it ring by ring. You steer them into the cells
+    under its own feet.
+  - OLD MONITOR kills the lights and sets CAMERAs (sentries) in the dark.
+  - LIFEGUARD runs TIDEs (patrollers) in lanes across the flood.
+  - THE GARDENER closes the arena with TOPIARY sentries.
+
+**Other stages.**
+- **Holdout.** Obstacles are moving cover and lanes. In combat stages a patroller or wanderer shoves regular mobs just
+  as it shoves the player. A mob shoved into a pit falls, and that counts as the player's kill.
+- **Chase/collapse.** A follower is the collapse at your heels. A wanderer crosses your escape line. The collapse
+  front is modelled as a clocked obstacle, so the same solver checks the stage.
+- **3D stages (15.2).** The sentry in a corridor is the signature use:
+  - it starts 4 or more cells behind you;
+  - it moves only on views where none of its columns drew, so a sidestep or backstep (B) to look back holds it;
+  - a catch is 1 hit and it snaps back to its plinth.
+  Patrollers cross junctions, so you time the crossing. The mover cracks floor cells, which swaps the floor set.
+  Obstacles count toward the 3-mobs-in-view rule. At the 3 nearest billboard sizes, the glyph is a 2-column topper.
+
+**Build.** B2 brings the clock, the resolution table, the patroller, the heavy wanderer and the sleeper, the record and
+the solver extension, plus the fairness checks in the bake. B3 adds the pusher, eater and sentry, and the sentry's 3D
+test with the 3D stages. B4 adds the rest.
 
 ---
 
@@ -2500,6 +2839,8 @@ floors. The feasibility checks came first, and each is in a GIF:
   around you, which is cheap (a different fog table page).
 - *Keys and egress:* a key is a billboard pickup. The egress door uses the exit texture.
 - *Collapse:* cells behind you flip to solid wall over a few views, with a dust burst.
+- *Living obstacles (7.7):* the sentry in a corridor moves only on views where none of its columns drew. Patrollers
+  cross junctions.
 - *Landmarks:* unique decor (clock, CRT, fan) is placed once per zone, so a player can navigate without a map.
 - The 2D solver checks the cell graph unchanged. 3D only adds line of sight, and the generator keeps every switch
   visible from its door's approach.
