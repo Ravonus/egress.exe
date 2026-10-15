@@ -425,7 +425,7 @@ void setup_screen(void) BANKED {
     text_at(0, 2, 2, "SETUP", 7);
     text_at(0, 3, 6, "CLOCK", 4);
     text_at(0, 3, 8, "BACK", 4);
-    text_at(0, 1, 15, "A PICK  B BACK", 5);
+    text_at(0, 1, 16, "A PICK  B BACK", 5);
     /* help: saves move between the plain and the clock-chip cartridge both ways; set the clock once after a move */
     text_at(0, 1, 13, "MOVED THE SAVE? SET", 4);
     text_at(0, 1, 14, "THE CLOCK ONCE.", 4);
