@@ -33,5 +33,6 @@ uint8_t clock_needs_ask(void) BANKED;
 void clock_screen(uint8_t first) BANKED; /* WHAT IS TODAY? (first boot) / SET THE CLOCK (SETUP) */
 void setup_screen(void) BANKED;
 void clock_title_line(uint8_t phase) BANKED; /* the title's clock row */
+void clock_title_text(uint8_t phase, char *s) BANKED; /* the same row as 18 characters into s[19] */
 
 #endif

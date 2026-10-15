@@ -6,6 +6,7 @@
 #include "egress.h"
 #include "gen/art.h"
 #include "clock.h"
+#include "title3d/t3d.h"
 
 static void screen_reset(void) {
   if (screen_dark)
@@ -32,50 +33,18 @@ static uint8_t wait_frames(uint8_t n, uint8_t skip_on_press) {
   return 0;
 }
 
+/* The PRESS START title is the 3D walk in src/title3d (the logo, PRESS START, the clock row and the seed are drawn
+ * there). It returns with every palette black and the LCD on, after START/A (play) or SELECT (SETUP). */
 void title_screen(void) BANKED {
-  uint8_t blink, setup;
   while (1) {
-    blink = 0;
-    setup = 0;
     game_mode = MODE_TITLE;
     screen_reset();
-    art_load_game(); /* the font into VRAM bank 1 */
-    art_show_picture(1, pal_bg);
-    text_at(0, 4, 15, "PRESS START", 5);
-    clock_title_line(0);
-    text_at(0, 3, 17, "A KEEL CARTRIDGE", 5);
-    pal_commit(0);
-    SHOW_BKG;
-    DISPLAY_ON;
-    music_play(SONG_LOBBY);
-    music_fade(0);
-    fade_to(0, 8);
-    while (1) {
-      frame_wait();
-      sound_tick();
-      input_poll();
-      blink++;
-      if ((blink & 31u) == 0u) {
-        text_at(0, 4, 15, (blink & 32u) ? "           " : "PRESS START", 5);
-        if ((blink & 63u) == 0u) clock_title_line((uint8_t)(blink >> 6));
-      }
-      if (joy_pressed & J_SELECT) {
-        setup = 1;
-        break;
-      }
-      if (joy_pressed & (J_START | J_A)) break;
-    }
-    if (setup) { /* SETUP: the clock (and later the other settings) */
-      sfx(SFX_STEP);
-      fade_to(8, 0);
+    if (title3d_run() == T3D_SELECT) { /* SETUP: the clock (and later the other settings) */
       setup_screen();
       continue;
     }
-    sfx(SFX_EXIT);
-    run_seed = dbg_seed ? dbg_seed : (uint16_t)(DIV_REG ^ (frame_count << 3) ^ ((uint16_t)blink << 8));
+    run_seed = dbg_seed ? dbg_seed : (uint16_t)(DIV_REG ^ (frame_count << 3) ^ (t3d_seed << 8) ^ t3d_vbl);
     if (!run_seed) run_seed = 0x2b1du;
-    music_fade(1);
-    fade_to(8, 0);
     if (clock_needs_ask()) clock_screen(1); /* a new save asks once: WHAT IS TODAY? */
     return;
   }

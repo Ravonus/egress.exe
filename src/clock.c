@@ -258,8 +258,8 @@ static void fmt_off(char *s, int8_t q) {
   s[6] = 0;
 }
 
-void clock_title_line(uint8_t phase) BANKED {
-  char s[19];
+/* the title's clock row as text (18 characters): the 3D title draws it in its own font */
+void clock_title_text(uint8_t phase, char *s) BANKED {
   egc_ymd v;
   memset(s, ' ', 18);
   s[18] = 0;
@@ -276,6 +276,11 @@ void clock_title_line(uint8_t phase) BANKED {
     s[11] = ' ';
     fmt_time(s + 13, &v);
   }
+}
+
+void clock_title_line(uint8_t phase) BANKED {
+  char s[19];
+  clock_title_text(phase, s);
   text_at(0, 1, 16, s, 5);
 }
 

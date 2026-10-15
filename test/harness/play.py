@@ -29,6 +29,8 @@ from pathlib import Path
 from PIL import Image
 from pyboy import PyBoy
 
+import title3d  # noqa: E402  (test/harness/title3d.py: the 3D title checks)
+
 MODE_BOOT, MODE_TITLE, MODE_PLAY, MODE_CLEAR, MODE_DEAD = range(5)
 EG_W, EG_N = 16, 224
 T_MASK, T_EMPTY, T_DIRT, T_BRICK, T_ROCK = 0x0F, 0, 1, 3, 4
@@ -412,6 +414,19 @@ def run_death(g: Game, out: Path, report: dict) -> bool:
         g.tick(40)
         g.press("a")
         report["death_back_to_title"] = g.wait_mode(MODE_TITLE, 600)
+        if report["death_back_to_title"] and out is not None:
+            # the 3D title again after a run: it re-inits its memory, walks a new seed, and START plays again
+            v0 = g.peek16("t3d_nviews")
+            g.tick(150)
+            g.shot(out / "b1_title_return.png")
+            report["title_return_views"] = (g.peek16("t3d_nviews") - v0) & 0xFFFF
+            report["title_return_seed"] = f"{g.peek16('t3d_seed'):04X}"
+            for _ in range(40):
+                g.press("start")
+                if g.wait_mode(MODE_PLAY, 20):
+                    break
+            report["title_return_plays"] = g.peek("game_mode") == MODE_PLAY
+            took = took and report["title_return_views"] > 40 and report["title_return_plays"]
     return took
 
 
@@ -587,6 +602,7 @@ def main() -> int:
     ap.add_argument("rom", type=Path)
     ap.add_argument("out", type=Path)
     ap.add_argument("--egtool", type=Path, default=Path("build/host/egtool"))
+    ap.add_argument("--t3d-host", type=Path, default=Path("build/host/t3d_host"))
     ap.add_argument("--audio", type=Path, help="record the title and floor music as WAV into this directory")
     ap.add_argument("--only", choices=["boot", "solve", "combat", "death", "landing", "boss"])
     a = ap.parse_args()
@@ -602,6 +618,7 @@ def main() -> int:
         results["boot"] = g.wait_mode(MODE_TITLE, 1500)
         g.tick(60)
         g.shot(a.out / "02_title.png")
+        results["title3d"] = title3d.title_pass(g, a.out, report, a.t3d_host)
         if a.audio:
             g.audio.clear()
             g.tick(60 * 20)

@@ -1,0 +1,557 @@
+"""Generate the 3D title's tables (the v2 raycaster of proto/raycast/v2, laid out for the game's ROM and WRAM).
+
+    python tools/title3d/gen_t3d.py src/title3d/gen [--host build/t3d_host]
+
+Writes into the output directory (committed, rebuilt by `make` when this tool or its art changes):
+
+  t3d_layout.inc     constants for the asm: view size, the WRAM layout, table addresses inside the three banks
+  t3d_bank_w0.s      ROM bank blob: walls (full-size texture runs), projection, fog, colour tables
+  t3d_bank_fl.s      ROM bank blob: floors/ceilings, the per-angle floor constants, and the cast's tables
+  t3d_bank_w1.s      ROM bank blob: walls mip (8-row texture runs for walls shorter than 32 px)
+  t3d_tex.h          texture / set / palette ids for the C side
+  t3d_data.h         the title's C-side constants: biome palettes, the logo, the font, the frame tiles
+
+Each blob is exactly 16 KiB in an autobanked area (_CODE_255), so the bank packer gives it a bank of its own and it
+starts at 0x4000: the asm addresses its tables absolutely. The asm reads the blob's bank from ___bank_t3d_*.
+
+With --host DIR it also writes DIR/tables2.c and DIR/tex_ids.h for the host build of the same renderer C
+(proto/raycast/v2/src/core2.c + host2.c), which the harness diffs against the cartridge's framebuffer.
+"""
+
+from __future__ import annotations
+
+import argparse
+import math
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+import t3d_art as A  # noqa: E402
+
+ANG = 1024
+FOV = 192
+FOG_NEAR, FOG_FAR = 3.0, 10.0
+W, H = 96, 64
+MIPH = 32
+SIDEK = 4
+
+# WRAM (banks 2 and 3 hold the same layout while the title runs; see src/title3d/t3d.h)
+MAP_ADDR = 0xD000
+FB_ADDR = 0xD400
+REC_ADDR = 0xDA00
+
+WALLS = [
+    ("O_BASE0", lambda: A.office_base(0)),
+    ("O_BASE1", lambda: A.office_base(1)),
+    ("O_BASE2", lambda: A.office_base(2)),
+    ("O_OUTLET", lambda: A.office_decor("outlet", 0)),
+    ("O_POSTER", lambda: A.office_decor("poster", 1)),
+    ("O_VENT", lambda: A.office_decor("vent", 2)),
+    ("O_EXIT", lambda: A.office_decor("exit", 0)),
+    ("O_CRT", lambda: A.office_decor("crt", 1)),
+    ("O_STAIN", lambda: A.office_decor("stain", 2)),
+    ("O_WATER", lambda: A.office_decor("water", 0)),
+    ("O_TEAR", lambda: A.office_decor("tear", 1)),
+    ("O_CLOCK", lambda: A.office_decor("clock", 2)),
+    ("O_DOOR", lambda: A.office_door(False)),
+    ("O_DOOREXIT", lambda: A.office_door(True)),
+    ("O_BURN0", lambda: A.office_burn(0)),
+    ("O_BURN1", lambda: A.office_burn(1)),
+    ("O_BURN2", lambda: A.office_burn(2)),
+    ("O_CHAR", lambda: A.office_char()),
+    ("V_BASE0", lambda: A.vents_base(0)),
+    ("V_BASE1", lambda: A.vents_base(1)),
+    ("V_BASE2", lambda: A.vents_base(2)),
+    ("V_GRATE", lambda: A.vents_decor("grate", 0)),
+    ("V_FAN", lambda: A.vents_decor("fan", 1)),
+    ("V_PIPES", lambda: A.vents_decor("pipes", 0)),
+    ("V_HAZARD", lambda: A.vents_decor("hazard", 1)),
+    ("V_SIGN", lambda: A.vents_decor("sign", 0)),
+    ("V_STEAM", lambda: A.vents_decor("steam", 2)),
+    ("V_LADDER", lambda: A.vents_decor("ladder", 0)),
+    ("V_HATCH", lambda: A.vents_hatch()),
+    ("B_OV4", lambda: A.blend(A.office_base(0), A.vents_base(0), 4)),
+    ("B_OV8", lambda: A.blend(A.office_base(0), A.vents_base(0), 8)),
+    ("B_OV12", lambda: A.blend(A.office_base(0), A.vents_base(0), 12)),
+]
+
+SETS = [
+    ("S_OFFICE", A.office_floor(True), A.office_ceiling(True)),
+    ("S_OFFDARK", A.office_floor(False), A.office_ceiling(False)),
+    ("S_VENTS", A.vents_floor(True), A.vents_ceiling(True)),
+    ("S_VENTDARK", A.vents_floor(False), A.vents_ceiling(False)),
+]
+for _f in (4, 8, 12):
+    SETS.append((f"S_BLEND{_f}", A.tex_blend_sets(SETS[0][1], SETS[2][1], _f),
+                 A.tex_blend_sets(SETS[0][2], SETS[2][2], _f)))
+SETS.append(("S_SPARE", A.office_floor(True), A.office_ceiling(True)))  # 8 sets: the asm masks the set with & 7
+
+PALS = ["office", "vents", "dark"]
+
+
+def fogk(d: float) -> int:
+    return max(0, min(16, round((d - FOG_NEAR) * 16 / (FOG_FAR - FOG_NEAR))))
+
+
+def runs_of(col):
+    rl = []
+    for v in range(16):
+        if v == 15 or col[v + 1] != col[v]:
+            rl += [v, col[v]]
+    return rl
+
+
+def carr(name, ctype, vals, per=16, static=True):
+    rows = [", ".join(str(v) for v in vals[i: i + per]) for i in range(0, len(vals), per)]
+    st = "static " if static else ""
+    return f"{st}const {ctype} {name}[{len(vals)}] = {{\n  " + ",\n  ".join(rows) + "\n};\n"
+
+
+def blob(out: Path, name: str, parts) -> int:
+    """a 16 KiB bank image: parts (key, addr, bytes) at absolute addresses from 0x4000, zero padded"""
+    img = bytearray()
+    for key, addr, data in sorted(parts, key=lambda p: p[1]):
+        off = addr - 0x4000
+        assert off >= len(img), (name, key, hex(addr), hex(0x4000 + len(img)))
+        img += bytes(off - len(img))
+        img += bytes(data)
+    used = len(img)
+    assert used <= 0x4000, (name, used)
+    img += bytes(0x4000 - used)
+    lines = [f"; generated by tools/title3d/gen_t3d.py: {name} ({used} bytes used, padded to the whole bank)",
+             f"\t.module {name}", f"\t.globl ___bank_{name}", f"___bank_{name} = 255", "\t.area _CODE_255",
+             f"_{name}::"]
+    for i in range(0, len(img), 32):
+        lines.append("\t.db " + ",".join(f"0x{b:02X}" for b in img[i: i + 32]))
+    (out / f"{name}.s").write_text("\n".join(lines) + "\n")
+    return used
+
+
+# ------------------------------------------------------------------------------------------------------------------
+# the title's 2D art: the EGRESS.EXE logo (bank 0 tiles), the font (bank 1 tiles), the frame around the view
+# ------------------------------------------------------------------------------------------------------------------
+LOGO_GLYPHS = {
+    "E": ["######", "##....", "##....", "#####.", "##....", "##....", "##....", "######"],
+    "G": [".#####", "##....", "##....", "##.###", "##...#", "##...#", "##...#", ".#####"],
+    "R": ["#####.", "##..##", "##..##", "#####.", "##.##.", "##..##", "##..##", "##..##"],
+    "S": [".#####", "##....", "##....", ".####.", "....##", "....##", "....##", "#####."],
+    "X": ["##..##", "##..##", ".####.", "..##..", "..##..", ".####.", "##..##", "##..##"],
+    ".": ["......", "......", "......", "......", "......", "......", "..##..", "..##.."],
+}
+LOGO_TEXT = "EGRESS.EXE"
+
+FONT5 = {
+    " ": ["00000"] * 7,
+    "0": ["01110", "10001", "10011", "10101", "11001", "10001", "01110"],
+    "1": ["00100", "01100", "00100", "00100", "00100", "00100", "01110"],
+    "2": ["01110", "10001", "00001", "00110", "01000", "10000", "11111"],
+    "3": ["11110", "00001", "00001", "01110", "00001", "00001", "11110"],
+    "4": ["00010", "00110", "01010", "10010", "11111", "00010", "00010"],
+    "5": ["11111", "10000", "11110", "00001", "00001", "10001", "01110"],
+    "6": ["00110", "01000", "10000", "11110", "10001", "10001", "01110"],
+    "7": ["11111", "00001", "00010", "00100", "01000", "01000", "01000"],
+    "8": ["01110", "10001", "10001", "01110", "10001", "10001", "01110"],
+    "9": ["01110", "10001", "10001", "01111", "00001", "00010", "01100"],
+    "A": ["01110", "10001", "10001", "11111", "10001", "10001", "10001"],
+    "B": ["11110", "10001", "10001", "11110", "10001", "10001", "11110"],
+    "C": ["01110", "10001", "10000", "10000", "10000", "10001", "01110"],
+    "D": ["11110", "10001", "10001", "10001", "10001", "10001", "11110"],
+    "E": ["11111", "10000", "10000", "11110", "10000", "10000", "11111"],
+    "F": ["11111", "10000", "10000", "11110", "10000", "10000", "10000"],
+    "G": ["01110", "10001", "10000", "10111", "10001", "10001", "01111"],
+    "H": ["10001", "10001", "10001", "11111", "10001", "10001", "10001"],
+    "I": ["01110", "00100", "00100", "00100", "00100", "00100", "01110"],
+    "J": ["00111", "00010", "00010", "00010", "00010", "10010", "01100"],
+    "K": ["10001", "10010", "10100", "11000", "10100", "10010", "10001"],
+    "L": ["10000", "10000", "10000", "10000", "10000", "10000", "11111"],
+    "M": ["10001", "11011", "10101", "10101", "10001", "10001", "10001"],
+    "N": ["10001", "10001", "11001", "10101", "10011", "10001", "10001"],
+    "O": ["01110", "10001", "10001", "10001", "10001", "10001", "01110"],
+    "P": ["11110", "10001", "10001", "11110", "10000", "10000", "10000"],
+    "Q": ["01110", "10001", "10001", "10001", "10101", "10010", "01101"],
+    "R": ["11110", "10001", "10001", "11110", "10100", "10010", "10001"],
+    "S": ["01111", "10000", "10000", "01110", "00001", "00001", "11110"],
+    "T": ["11111", "00100", "00100", "00100", "00100", "00100", "00100"],
+    "U": ["10001", "10001", "10001", "10001", "10001", "10001", "01110"],
+    "V": ["10001", "10001", "10001", "10001", "10001", "01010", "00100"],
+    "W": ["10001", "10001", "10001", "10101", "10101", "10101", "01010"],
+    "X": ["10001", "10001", "01010", "00100", "01010", "10001", "10001"],
+    "Y": ["10001", "10001", "01010", "00100", "00100", "00100", "00100"],
+    "Z": ["11111", "00001", "00010", "00100", "01000", "10000", "11111"],
+    ".": ["00000", "00000", "00000", "00000", "00000", "01100", "01100"],
+    ",": ["00000", "00000", "00000", "00000", "01100", "00100", "01000"],
+    ":": ["00000", "01100", "01100", "00000", "01100", "01100", "00000"],
+    "-": ["00000", "00000", "00000", "11111", "00000", "00000", "00000"],
+    "/": ["00001", "00010", "00010", "00100", "01000", "01000", "10000"],
+    "'": ["00100", "00100", "01000", "00000", "00000", "00000", "00000"],
+    "!": ["00100", "00100", "00100", "00100", "00100", "00000", "00100"],
+    "?": ["01110", "10001", "00001", "00110", "00100", "00000", "00100"],
+    "+": ["00000", "00100", "00100", "11111", "00100", "00100", "00000"],
+    ">": ["01000", "00100", "00010", "00001", "00010", "00100", "01000"],
+    "*": ["00000", "00000", "00100", "01110", "00100", "00000", "00000"],  # the separator dot
+}
+FONT_ORDER = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.,:-/'!?+>*"
+
+# 2bpp tile from an 8x8 grid of colour indices
+def tile2bpp(pix):
+    out = []
+    for y in range(8):
+        lo = hi = 0
+        for x in range(8):
+            c = pix[y][x]
+            lo |= (c & 1) << (7 - x)
+            hi |= ((c >> 1) & 1) << (7 - x)
+        out += [lo, hi]
+    return out
+
+
+def glyph_tile(ch: str, ink: int) -> list[int]:
+    rows = FONT5[ch]
+    pix = [[0] * 8 for _ in range(8)]
+    for y, r in enumerate(rows):
+        for x, b in enumerate(r):
+            if b == "1":
+                pix[y][x + 1] = ink
+    return tile2bpp(pix)
+
+
+def logo_bitmap():
+    """160 x 24 px, colours: 0 bg, 1 pink, 2 cyan, 3 white. Glyphs 12 x 16 (6 x 8 at 2x) in 16-px cells, lines
+    4..19; the cyan ghost sits 2 px left (chromatic offset), a white rule tops each stroke, and every fourth glyph
+    row is a dark scanline gap (the neon tube)"""
+    Wd, Hd = 160, 24
+    mask = [[0] * Wd for _ in range(Hd)]
+    for i, ch in enumerate(LOGO_TEXT):
+        g = LOGO_GLYPHS[ch]
+        for gy, r in enumerate(g):
+            for gx, b in enumerate(r):
+                if b != "#":
+                    continue
+                for dy in range(2):
+                    for dx in range(2):
+                        mask[4 + gy * 2 + dy][i * 16 + 2 + gx * 2 + dx] = 1
+    img = [[0] * Wd for _ in range(Hd)]
+    for y in range(Hd):
+        for x in range(Wd):
+            if mask[y][x]:
+                img[y][x] = 1
+            elif x + 2 < Wd and mask[y][x + 2]:
+                img[y][x] = 2
+            elif x - 1 >= 0 and mask[y][x - 1] and y % 2 == 0:
+                img[y][x] = 2
+    for y in range(Hd):
+        for x in range(Wd):
+            if mask[y][x] and (y == 0 or not mask[y - 1][x]):
+                img[y][x] = 3
+            if mask[y][x] and (y - 4) % 4 == 3 and 4 < y < 19:
+                img[y][x] = 0 if (x // 2) % 3 else 2
+    return img
+
+
+def logo_tiles():
+    img = logo_bitmap()
+    tiles: list[list[int]] = []
+    tmap = []
+    for ty in range(3):
+        for tx in range(20):
+            pix = [img[ty * 8 + y][tx * 8: tx * 8 + 8] for y in range(8)]
+            t = tile2bpp(pix)
+            if t not in tiles:
+                tiles.append(t)
+            tmap.append(tiles.index(t))
+    return tiles, tmap
+
+
+def frame_tiles():
+    """bank 0, after the logo: 0 blank (colour 0), 1 side fill (colour 3), 2/3 left/right side edge, 4 top bar,
+    5 bottom bar, 6/7 top corners, 8/9 bottom corners, 10 backdrop with sparse dots"""
+    def grid(c):
+        return [[c] * 8 for _ in range(8)]
+    t = []
+    t.append(grid(0))                       # 0 blank (logo/text palettes: bg)
+    t.append(grid(3))                       # 1 side fill: the row's dark colour
+    p = grid(3)
+    for y in range(8):
+        p[y][7] = 2                         # 2 left frame: a mid rule against the view
+    t.append(p)
+    p = grid(3)
+    for y in range(8):
+        p[y][0] = 2                         # 3 right frame
+    t.append(p)
+    p = grid(0)                             # 4 top bar (logo palette): pink over cyan, then the view
+    for x in range(8):
+        p[5][x] = 1
+        p[6][x] = 2
+    t.append(p)
+    p = grid(0)                             # 5 bottom bar (text palette): a lavender rule under the view
+    for x in range(8):
+        p[0][x] = 2
+        p[2][x] = 2 if x % 2 else 0
+    t.append(p)
+    p = grid(0)                             # 6 top-left corner: the bar starts
+    for x in range(4, 8):
+        p[5][x] = 1
+        p[6][x] = 2
+    p[6][3] = 2
+    t.append(p)
+    p = grid(0)                             # 7 top-right corner
+    for x in range(0, 4):
+        p[5][x] = 1
+        p[6][x] = 2
+    p[5][4] = 1
+    t.append(p)
+    p = grid(0)                             # 8 bottom-left
+    for x in range(4, 8):
+        p[0][x] = 2
+    t.append(p)
+    p = grid(0)                             # 9 bottom-right
+    for x in range(0, 4):
+        p[0][x] = 2
+    t.append(p)
+    p = grid(3)                             # 10 side backdrop with sparse mid dots
+    p[1][2] = 2
+    p[5][6] = 2
+    t.append(p)
+    return [b for x in t for b in tile2bpp(x)]
+
+
+def rgb555(c):
+    r, g, b = (max(0, min(255, int(v))) >> 3 for v in c)
+    return r | (g << 5) | (b << 10)
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("out", type=Path)
+    ap.add_argument("--host", type=Path)
+    a = ap.parse_args()
+    out = a.out
+    out.mkdir(parents=True, exist_ok=True)
+    FR, FRFAR, SPLIT = 2, 4, 32
+    n = W // 4
+    half = math.tan(math.radians(FOV / ANG * 360 / 2))
+    proj = (W / 2) / half
+
+    cos_abs, delta = [], []
+    for i in range(ANG):
+        c = abs(math.cos(2 * math.pi * i / ANG))
+        cos_abs.append(min(255, round(c * 256)))
+        delta.append(0x7F00 if c < 1e-6 else min(0x7F00, round(256 / c)))
+    coloff, colcos = [], []
+    for i in range(n):
+        x = ((i + 0.5) / n * 2 - 1) * half
+        ang = math.atan(x)
+        coloff.append(round(ang / (2 * math.pi) * ANG) % ANG)
+        colcos.append(min(255, round(math.cos(ang) * 256)))
+    height = [max(1, min(255, round(proj / (max(p, 1) / 64)))) for p in range(2048)]
+    voff = 255 - (H + 255) // 2
+    vtop = [(voff + ((H - h) >> 1)) & 255 for h in range(256)]
+    hv2 = [[(h * (k + 1)) >> 4 for h in range(256)] for k in range(16)]
+    fog_k = [16 if h < 1 else fogk(proj / h) for h in range(256)]
+    fogpat = []
+    for k in range(17):
+        for row in range(4):
+            nib = 0
+            for x in range(4):
+                if A.bayer(x, row) >= k:
+                    nib |= 8 >> x
+            fogpat.append(nib << 4 | nib)
+    fd, fpat, fy0, fnr = [], [0] * H, [], []
+    o = 0
+    while o < H // 2:
+        fr = FRFAR if o < SPLIT else FR
+        fr = min(fr, H // 2 - o)
+        d = proj / (2 * (o + fr / 2))
+        fd.append(0 if fogk(d) >= 16 else min(255, round(d * 16)))
+        fy0.append(H // 2 + o)
+        fnr.append(fr)
+        o += fr
+    for y in range(H // 2, H):
+        d = proj / (2 * (y - H / 2 + 0.5))
+        k = fogk(d)
+        fpat[y] = fogpat[k * 4 + (y & 3)]
+        yc = H - 1 - y
+        fpat[yc] = fogpat[k * 4 + (yc & 3)]
+    x0 = (0.5 / n * 2 - 1) * half
+    lk = [round(x0 * 64), round(2 * half / n * 2048)]
+
+    woff, wruns = [], []
+    for _, fn in WALLS:
+        t = fn()
+        for u in range(16):
+            woff.append(len(wruns))
+            wruns += runs_of([t[v][u] for v in range(16)])
+    nmip0 = len(woff)
+    for _, fn in WALLS:
+        t = fn()
+        for u in range(16):
+            col = [t[v][u] for v in range(16)]
+            com = max(set(col), key=col.count)
+            m1 = []
+            for j in range(8):
+                a0, a1 = col[2 * j], col[2 * j + 1]
+                c = a1 if (a0 == com and a1 != com) else a0
+                m1 += [c, c]
+            woff.append(len(wruns))
+            wruns += runs_of(m1)
+    ftex = []
+    for _, fl, ce in SETS:
+        for v in range(16):
+            for u in range(16):
+                ftex.append(fl[v][u] | (ce[v][u] << 2))
+    bpal = []
+    for p in PALS:
+        for row in A.biome_palettes(p):
+            for c in row:
+                r, g, b = (v >> 3 for v in c)
+                bpal.append(r | (g << 5) | (b << 10))
+
+    # ---- walls banks ----
+    hv2_flat = [v for row in hv2 for v in row]
+    nr0 = woff[nmip0]
+    base_runs = 0x5600 + 2 * nmip0
+    v0t = []
+    for h in range(256):
+        v = 0
+        while v < 15 and vtop[h] + hv2[v][h] <= voff:
+            v += 1
+        v0t.append(v)
+    woff_abs, woff_abs1 = [], []
+    for o in woff[:nmip0]:
+        woff_abs += [(base_runs + o) & 255, (base_runs + o) >> 8]
+    for o in woff[nmip0:]:
+        o = base_runs + o - nr0
+        woff_abs1 += [o & 255, o >> 8]
+    assert fogpat[32] == 0x55 and fogpat[33] == 0xAA
+    side1 = [0, 2, 2, 3]
+    ct = bytearray(512)
+    for slot in range(2):
+        m = 0x0F if slot else 0xF0
+        for side in range(2):
+            for kc in range(6):
+                for c in range(4):
+                    cc = side1[c] if side else c
+                    lo, hi = (m if cc & 1 else 0), (m if cc & 2 else 0)
+                    mode = (0, 2, 2, 1, 2, 3)[kc]
+                    if side and c == 2 and kc in (0, 1):
+                        mode = 1 if SIDEK == 8 else 4
+                    if lo == 0 and hi == 0:
+                        mode = 3
+                    off = slot * 256 + (side * 6 + kc) * 16 + c * 4
+                    ct[off: off + 4] = bytes([lo, hi, mode, 0])
+    kclass = [0] + [1] * (SIDEK - 1) + [2] * (8 - SIDEK) + [3] + [4] * 7 + [5]
+    common = [("HV2", 0x4000, hv2_flat), ("VTOP", 0x5000, vtop), ("FOGK", 0x5100, fog_k), ("FOGPAT", 0x5200, fogpat),
+              ("KCLASS", 0x5280, kclass), ("CTAB", 0x5300, ct), ("V0T", 0x5500, v0t)]
+    lay = {k: ad for k, ad, _ in common}
+    n0 = blob(out, "t3d_bank_w0", common + [("WOFF", 0x5600, woff_abs), ("WRUNS", base_runs, wruns[:nr0])])
+    n1 = blob(out, "t3d_bank_w1", common + [("WOFF", 0x5600, woff_abs1), ("WRUNS", base_runs, wruns[nr0:])])
+    lay["WOFF"] = 0x5600
+    lay["WRUNS"] = base_runs
+
+    # ---- floors bank (+ the cast's tables) ----
+    sq = [i * i // 4 for i in range(512)]
+    nib = [0x00, 0x0F, 0xF0, 0xFF]
+    lo16 = [nib[((i >> 2) & 1) << 1 | (i & 1)] for i in range(16)]
+    hi16 = [nib[((i >> 3) & 1) << 1 | ((i >> 1) & 1)] for i in range(16)]
+    ftex_end = 0x4400 + len(ftex)
+
+    def scos(ang):
+        ang &= 1023
+        v = cos_abs[ang]
+        return v if (ang < 256 or ang >= 768) else -v
+
+    def i8(v):
+        return ((v + 128) & 255) - 128
+
+    lkt = [[], [], [], []]
+    for ca in range(1024):
+        cs, sn = scos(ca), scos(ca - 256)
+        lkt[0].append(i8((cs >> 2) - ((lk[0] * sn) >> 8)) & 255)
+        lkt[1].append(i8((sn >> 2) + ((lk[0] * cs) >> 8)) & 255)
+        lkt[2].append(i8((lk[1] * -sn) >> 8) & 255)
+        lkt[3].append(i8((lk[1] * cs) >> 8) & 255)
+    ftex0 = [((b & 1) << 7) | ((b & 2) << 5) | ((b & 4) << 3) | ((b & 8) << 1) for b in ftex]
+    ftex1 = [v >> 4 for v in ftex0]
+    lut = []
+    for bl, bh in ((7, 3), (6, 2), (5, 1), (4, 0)):
+        lut += [(0xF0 if x >> bl & 1 else 0) | (0x0F if x >> bh & 1 else 0) for x in range(256)]
+    u16 = lambda vals: [b for v in vals for b in (v & 255, v >> 8)]  # noqa: E731
+    flparts = [("SQLO", 0x4000, [v & 255 for v in sq]), ("SQHI", 0x4200, [v >> 8 for v in sq]),
+               ("FTEX", 0x4400, ftex0), ("FD", ftex_end, fd), ("FPAT", ftex_end + 0x40, fpat),
+               ("FY0", ftex_end + 0xC0, fy0), ("FN", ftex_end + 0xE0, fnr), ("NLO", ftex_end + 0x100, lo16),
+               ("NHI", ftex_end + 0x110, hi16), ("NIB", ftex_end + 0x120, nib), ("FTEX1", ftex_end + 0x200, ftex1),
+               ("FLUT", ftex_end + 0x200 + len(ftex1), lut),
+               ("CT_COSABS", 0x5A00, cos_abs), ("CT_COLOFF", 0x5E00, u16(coloff)), ("CT_COLCOS", 0x5E40, colcos),
+               ("LKT", 0x6000, lkt[0] + lkt[1] + lkt[2] + lkt[3]),
+               ("CT_DELTA", 0x7000, u16(delta)), ("CT_HEIGHT", 0x7800, height)]
+    nf = blob(out, "t3d_bank_fl", flparts)
+    lay.update({k: ad for k, ad, _ in flparts})
+
+    inc = ["; generated by tools/title3d/gen_t3d.py", "OBJ_ON = 0", f"VOFF = {voff}", f"VEND = {voff + H}",
+           f"STRIP = {H * 2}", f"NRAYS = {n}", f"VIEW_H = {H}", f"TW = {W // 8}",
+           f"T3D_MAP = 0x{MAP_ADDR:04X}", f"MAPHI = 0x{MAP_ADDR >> 8:02X}", f"REC = 0x{REC_ADDR:04X}",
+           f"SQPG = 0x{lay['SQLO'] >> 8:02X}"]
+    inc += [f"{k} = 0x{v:04X}" for k, v in lay.items()]
+    inc += [f"NFROW = {len(fd)}", f"FR = {FR}", f"MIPH = {MIPH}", "MIPOFF = 0", f"SIDEK = {SIDEK}"]
+    (out / "t3d_layout.inc").write_text("\n".join(inc) + "\n")
+
+    hdr = ["/* generated by tools/title3d/gen_t3d.py */", "#ifndef T3D_TEX_H", "#define T3D_TEX_H"]
+    for i, (name, _) in enumerate(WALLS):
+        hdr.append(f"#define {name} {i + 1}u")
+    hdr += [f"#define NWALLTEX {len(WALLS)}u", f"#define NFROWS {len(fd)}u", f"#define MIPH {MIPH}u",
+            f"#define SIDEK {SIDEK}u", f"#define MIPN {nmip0}u"]
+    for i, (name, _, _) in enumerate(SETS):
+        hdr.append(f"#define {name} {i}u")
+    for i, p in enumerate(PALS):
+        hdr.append(f"#define PAL_{p.upper()} {i}u")
+    hdr.append("#endif")
+    (out / "t3d_tex.h").write_text("\n".join(hdr) + "\n")
+
+    # ---- C-side data: palettes, logo, font, frame ----
+    ltiles, lmap = logo_tiles()
+    ftiles = frame_tiles()
+    font1, font2 = [], []
+    for ch in FONT_ORDER:
+        font1 += glyph_tile(ch, 1)
+        font2 += glyph_tile(ch, 2)
+    dark = A.BIOMES["office"]["dark"]
+    bg = tuple(v * 0.92 for v in dark)
+    logo_pal = [rgb555(c) for c in (bg, (255, 92, 182), (84, 232, 248), (250, 244, 255))]
+    text_pal = [rgb555(c) for c in (bg, (244, 236, 255), (160, 142, 222), (255, 92, 182))]
+    d = ["/* generated by tools/title3d/gen_t3d.py, do not edit (included once, by src/title3d/title3d.c) */",
+         f"#define T3D_LOGO_NT {len(ltiles)}u", f"#define T3D_FRAME_NT {len(ftiles) // 16}u",
+         f"#define T3D_FONT_N {len(FONT_ORDER)}u", f'#define T3D_FONT_ORDER "{FONT_ORDER}"']
+    d.append(carr("T3D_BPAL", "uint16_t", bpal))
+    d.append(carr("T3D_LOGO_PAL", "uint16_t", logo_pal))
+    d.append(carr("T3D_TEXT_PAL", "uint16_t", text_pal))
+    d.append(carr("T3D_LOGO_TILES", "uint8_t", [b for t in ltiles for b in t]))
+    d.append(carr("T3D_LOGO_MAP", "uint8_t", lmap, per=20))
+    d.append(carr("T3D_FRAME_TILES", "uint8_t", ftiles))
+    d.append(carr("T3D_FONT1", "uint8_t", font1))
+    d.append(carr("T3D_FONT2", "uint8_t", font2))
+    (out / "t3d_data.h").write_text("\n".join(d))
+
+    if a.host:
+        a.host.mkdir(parents=True, exist_ok=True)
+        s = ["/* generated by tools/title3d/gen_t3d.py --host */", '#include "ray2.h"', ""]
+        for name, ctype, vals in [("T_COSABS", "uint8_t", cos_abs), ("T_DELTA", "uint16_t", delta),
+                                  ("T_COLOFF", "uint16_t", coloff), ("T_COLCOS", "uint8_t", colcos),
+                                  ("T_HEIGHT", "uint8_t", height), ("T_VTOP", "uint8_t", vtop),
+                                  ("T_FOGK", "uint8_t", fog_k), ("T_FOGPAT", "uint8_t", fogpat),
+                                  ("T_FD", "uint8_t", fd), ("T_FY0", "uint8_t", fy0), ("T_FN", "uint8_t", fnr),
+                                  ("T_FPAT", "uint8_t", fpat), ("T_WOFF", "uint16_t", woff),
+                                  ("T_WRUNS", "uint8_t", wruns), ("T_FTEX", "uint8_t", ftex), ("T_LK", "int8_t", lk),
+                                  ("T_BPAL", "uint16_t", bpal), ("T_HUDTILES", "uint8_t", [0]),
+                                  ("T_HV2", "uint8_t", hv2_flat)]:
+            s.append(carr(name, ctype, vals, static=False))
+        (a.host / "tables2.c").write_text("\n".join(s))
+        (a.host / "tex_ids.h").write_text((out / "t3d_tex.h").read_text().replace("T3D_TEX_H", "TEX_IDS_H")
+                                          .replace("#endif", "extern const uint16_t T_BPAL[];\n"
+                                                   "extern const uint8_t T_HUDTILES[];\n#endif"))
+    print(f"t3d: walls {n0}+{n1} B, floors+cast {nf} B, logo {len(ltiles)} tiles, frame {len(ftiles) // 16}, "
+          f"font {len(FONT_ORDER)} x 2, rows {len(fd)}")
+
+
+if __name__ == "__main__":
+    main()
