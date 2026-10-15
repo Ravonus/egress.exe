@@ -1,0 +1,196 @@
+TAP version 13
+# Subtest: selects the best fitting release dynamically, independent of input order
+ok 1 - selects the best fitting release dynamically, independent of input order
+  ---
+  duration_ms: 1.265834
+  type: 'test'
+  ...
+# Subtest: unknown, inferred and malformed physical capabilities never select
+ok 2 - unknown, inferred and malformed physical capabilities never select
+  ---
+  duration_ms: 0.713084
+  type: 'test'
+  ...
+# Subtest: save memory, mapper, peripheral and validation can select a smaller edition
+ok 3 - save memory, mapper, peripheral and validation can select a smaller edition
+  ---
+  duration_ms: 0.16875
+  type: 'test'
+  ...
+# Subtest: board writer limit is separate from the selected game and never authorizes a write
+ok 4 - board writer limit is separate from the selected game and never authorizes a write
+  ---
+  duration_ms: 0.104833
+  type: 'test'
+  ...
+# Subtest: protected bytes require proof for this exact release and connection
+ok 5 - protected bytes require proof for this exact release and connection
+  ---
+  duration_ms: 0.19175
+  type: 'test'
+  ...
+# Subtest: overlapping or missing write ranges cannot silently cover a ROM
+ok 6 - overlapping or missing write ranges cannot silently cover a ROM
+  ---
+  duration_ms: 0.086
+  type: 'test'
+  ...
+# Subtest: a ROM header describes requirements, never cartridge capacity
+ok 7 - a ROM header describes requirements, never cartridge capacity
+  ---
+  duration_ms: 3.115958
+  type: 'test'
+  ...
+# Subtest: choosers immediately call the real browser API with correct hardware filters
+ok 8 - choosers immediately call the real browser API with correct hardware filters
+  ---
+  duration_ms: 1.312416
+  type: 'test'
+  ...
+# Subtest: grants list excludes unrelated hardware and does not open devices
+ok 9 - grants list excludes unrelated hardware and does not open devices
+  ---
+  duration_ms: 0.744917
+  type: 'test'
+  ...
+# Subtest: decoder handles every frame split boundary and interleaved console lines
+ok 10 - decoder handles every frame split boundary and interleaved console lines
+  ---
+  duration_ms: 0.987667
+  type: 'test'
+  ...
+# Subtest: decoder rejects corrupt CRC, oversized frame and unbounded line
+ok 11 - decoder rejects corrupt CRC, oversized frame and unbounded line
+  ---
+  duration_ms: 0.628292
+  type: 'test'
+  ...
+# Subtest: actual session opens at 115200, holds reset pins low, reads health and redacts secrets
+ok 12 - actual session opens at 115200, holds reset pins low, reads health and redacts secrets
+  ---
+  duration_ms: 724.151
+  type: 'test'
+  ...
+# Subtest: stock unsupported Wi-Fi command preserves real firmware and open connection
+ok 13 - stock unsupported Wi-Fi command preserves real firmware and open connection
+  ---
+  duration_ms: 508.224083
+  type: 'test'
+  ...
+# Subtest: only read commands are permitted, including preventing staged flash writes
+ok 14 - only read commands are permitted, including preventing staged flash writes
+  ---
+  duration_ms: 0.7155
+  type: 'test'
+  ...
+# Subtest: unplug rejects an active request and releases the port
+ok 15 - unplug rejects an active request and releases the port
+  ---
+  duration_ms: 213.608083
+  type: 'test'
+  ...
+# Subtest: timeout closes session rather than accepting late responses
+ok 16 - timeout closes session rather than accepting late responses
+  ---
+  duration_ms: 22.317667
+  type: 'test'
+  ...
+# Subtest: cartridge geometry uses measured flash response and rejects malformed geometry
+ok 17 - cartridge geometry uses measured flash response and rejects malformed geometry
+  ---
+  duration_ms: 0.886625
+  type: 'test'
+  ...
+# Subtest: busy or unfinished jobs are never canceled or overwritten
+ok 18 - busy or unfinished jobs are never canceled or overwritten
+  ---
+  duration_ms: 304.937209
+  type: 'test'
+  ...
+# Subtest: verified backup performs two full reads for ROM and save and reconstructs blank banks
+ok 19 - verified backup performs two full reads for ROM and save and reconstructs blank banks
+  ---
+  duration_ms: 1326.758417
+  type: 'test'
+  ...
+# Subtest: whole-read CRC and missing coverage fail closed
+ok 20 - whole-read CRC and missing coverage fail closed
+  ---
+  duration_ms: 608.246042
+  type: 'test'
+  ...
+# Subtest: two valid CRC reads with different bytes are not a verified backup
+ok 21 - two valid CRC reads with different bytes are not a verified backup
+  ---
+  duration_ms: 516.979625
+  type: 'test'
+  ...
+# Subtest: USB bridge checks endpoints then reads IDCODE without configuration/erase opcodes
+ok 22 - USB bridge checks endpoints then reads IDCODE without configuration/erase opcodes
+  ---
+  duration_ms: 0.6865
+  type: 'test'
+  ...
+# Subtest: a console still booting receives another read-only wake within the same deadline
+ok 23 - a console still booting receives another read-only wake within the same deadline
+  ---
+  duration_ms: 1805.681375
+  type: 'test'
+  ...
+# Subtest: SRAM parser reverses wire bytes and computes configuration checksum excluding row trailer
+ok 24 - SRAM parser reverses wire bytes and computes configuration checksum excluding row trailer
+  ---
+  duration_ms: 1.042875
+  type: 'test'
+  ...
+# Subtest: wrong official engine bytes cannot pass the pinned digest gate
+ok 25 - wrong official engine bytes cannot pass the pinned digest gate
+  ---
+  duration_ms: 3.894375
+  type: 'test'
+  ...
+# Subtest: SRAM loader uses volatile configuration only, exits final bit, and checks DONE
+ok 26 - SRAM loader uses volatile configuration only, exits final bit, and checks DONE
+  ---
+  duration_ms: 4.071833
+  type: 'test'
+  ...
+# Subtest: wrong hardware ID aborts before any configuration instruction
+ok 27 - wrong hardware ID aborts before any configuration instruction
+  ---
+  duration_ms: 0.226417
+  type: 'test'
+  ...
+# Subtest: load without DONE is rejected
+ok 28 - load without DONE is rejected
+  ---
+  duration_ms: 1.394125
+  type: 'test'
+  ...
+# Subtest: preparation waits for physical disconnect/reconnect then verifies engine identity
+ok 29 - preparation waits for physical disconnect/reconnect then verifies engine identity
+  ---
+  duration_ms: 512.336666
+  type: 'test'
+  ...
+# Subtest: an unfinished operation stops preparation before download or FPGA changes
+ok 30 - an unfinished operation stops preparation before download or FPGA changes
+  ---
+  duration_ms: 0.412833
+  type: 'test'
+  ...
+# Subtest: missing console loss, missing return and unconfirmed engine never succeed
+ok 31 - missing console loss, missing return and unconfirmed engine never succeed
+  ---
+  duration_ms: 514.22525
+  type: 'test'
+  ...
+1..31
+# tests 31
+# suites 0
+# pass 31
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6088.083

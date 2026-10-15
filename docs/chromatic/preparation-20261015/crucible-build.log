@@ -1,0 +1,52 @@
+npm warn Unknown user config "minimum-release-age". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> crucible-site@0.1.0 build
+> next build
+
+   ▲ Next.js 15.5.22
+   - Experiments (use with caution):
+     · cpus: 1
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 1367ms
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/23) ...
+   Generating static pages (5/23) 
+   Generating static pages (11/23) 
+   Generating static pages (17/23) 
+ ✓ Generating static pages (23/23)
+   Finalizing page optimization ...
+   Collecting build traces ...
+   Exporting (0/2) ...
+ ✓ Exporting (2/2)
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                      177 B         162 kB
+├ ○ /_not-found                            132 B         102 kB
+├ ○ /apple-icon.png                          0 B            0 B
+├ ○ /chromatic                           16.9 kB         130 kB
+├ ○ /how-it-works                        2.53 kB         119 kB
+├ ○ /how-it-works/opengraph-image.png        0 B            0 B
+├ ○ /how-it-works/twitter-image.png          0 B            0 B
+├ ○ /icon.png                                0 B            0 B
+├ ○ /icon.svg                                0 B            0 B
+├ ○ /join                                  652 B         163 kB
+├ ○ /join/opengraph-image.png                0 B            0 B
+├ ○ /join/twitter-image.png                  0 B            0 B
+├ ○ /manifest.webmanifest                  132 B         102 kB
+├ ○ /opengraph-image.png                     0 B            0 B
+├ ○ /robots.txt                            132 B         102 kB
+├ ○ /sitemap.xml                           132 B         102 kB
+├ ○ /trailer                             2.21 kB         104 kB
+├ ○ /trailer/opengraph-image.png             0 B            0 B
+├ ○ /trailer/twitter-image.png               0 B            0 B
+└ ○ /twitter-image.png                       0 B            0 B
++ First Load JS shared by all             102 kB
+  ├ chunks/280d0483-0ae6f23f9ac570fe.js  54.2 kB
+  ├ chunks/491-5cc810fa0ce4412a.js       45.8 kB
+  └ other shared chunks (total)          2.01 kB
+
+
+○  (Static)  prerendered as static content
+

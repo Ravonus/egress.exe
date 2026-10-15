@@ -1,0 +1,20 @@
+{
+  "egress": {
+    "chromatic/index.html": "2dc586c772191aabcdf9360fd441d64558a308eca482bb37e7f447630a6ac70d",
+    "chromatic/provenance.json": "e057b6abba0251a22ae56bc70052ce0a28be9172917eac81db46aa3dff46d9d1",
+    "chromatic/index.txt": "7b5f6fb5088500eb1d9091afd80678cc0f88ba9b55e7d2fe58ac12bd95a5b9ed",
+    "chromatic/cartridge.js": "3bedcefeb72421285b412d43aa5292087fc0dfbbf1687da959aa83fcf9a3c228",
+    "chromatic/LICENSE.txt": "cabead0e38fc8766f174225e5e9a5c566cc4570676bb0bc31ca23f7af143211a",
+    "chromatic/NOTICE.md": "2180e26ad735140fa1c3ae3232e2b46778f50a0a6eb4b8fd281fbac718cd4307",
+    "chromatic/LICENSES/Apache-2.0.txt": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+  },
+  "crucible": {
+    "chromatic/index.html": "97e39e567f4af977ca8d042e47307f2686c4b1dd3eeb311aeef4703c4eeedc40",
+    "chromatic/provenance.json": "9b875b57142ad042c0b311e0fccb85cadeee1c3a894bc253c1994598140b3276",
+    "chromatic/index.txt": "ea3c0148d98e3cd546c923be4304811097d7c2f55d467ec84b308f94e0bb4c0e",
+    "chromatic/cartridge.js": "3bedcefeb72421285b412d43aa5292087fc0dfbbf1687da959aa83fcf9a3c228",
+    "chromatic/LICENSE.txt": "cabead0e38fc8766f174225e5e9a5c566cc4570676bb0bc31ca23f7af143211a",
+    "chromatic/NOTICE.md": "2180e26ad735140fa1c3ae3232e2b46778f50a0a6eb4b8fd281fbac718cd4307",
+    "chromatic/LICENSES/Apache-2.0.txt": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+  }
+}
