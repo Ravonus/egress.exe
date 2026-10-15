@@ -2,6 +2,7 @@
 #include <gb/gb.h>
 #include <gb/cgb.h>
 #include "play.h"
+#include "puzzle.h"
 
 const int8_t fdx[4] = {0, 0, -1, 1}, fdy[4] = {-1, 1, 0, 0};
 uint8_t meta_tile[M_COUNT][4], meta_pal[M_COUNT];
@@ -19,7 +20,7 @@ uint8_t is_cracked(uint8_t i) NONBANKED { return (uint8_t)(cracked[i >> 3] & (ui
 
 static uint8_t solid_player(uint8_t i) {
   uint8_t t = cell_type(i);
-  return (uint8_t)(t == T_WALL || t == T_ROCK || t == T_BRICK || (t == T_DOOR && !door_open));
+  return (uint8_t)(t == T_DOOR ? !door_open : !EG_PASSABLE(t)); /* B1: water, shutters, paper, sockets block too */
 }
 uint8_t box_free(uint8_t x, uint8_t y) NONBANKED {
   uint8_t l = (uint8_t)(x - 5u), r = (uint8_t)(x + 4u), t = (uint8_t)(y - 5u), b = (uint8_t)(y + 4u);
@@ -88,7 +89,12 @@ static uint8_t meta_for(uint8_t i) {
 }
 
 void draw_cell(uint8_t i) NONBANKED {
-  uint8_t m = meta_for(i), a[4];
+  uint8_t m, a[4];
+  if (cell_type(i) >= T_CRUMBLE) { /* B1 puzzle cells: src/puzzle.c */
+    puzzle_draw(i);
+    return;
+  }
+  m = meta_for(i);
   a[0] = a[1] = a[2] = a[3] = (uint8_t)(meta_pal[m] | 0x08u);
   VBK_REG = 1;
   set_bkg_tiles((uint8_t)(EG_X(i) << 1), (uint8_t)(EG_Y(i) << 1), 2, 2, a);

@@ -232,3 +232,5 @@ void eg_tags_text(uint8_t piece, char *out) EG_BANKED {
   for (; *s && n < 18u; s++) out[n++] = *s;
   out[n] = 0;
 }
+
+uint8_t eg_piece_tags(uint8_t piece) EG_BANKED { return piece < P_COUNT ? PC_TAGS(piece) : 0u; }

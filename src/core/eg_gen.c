@@ -325,7 +325,7 @@ uint8_t eg_generate(eg_room *r, uint16_t seed, uint8_t tier) EG_BANKED {
       for (k = 0u; k != nneed; k++) {
         t = eg_recipe(h, need[k]);
         if (!t) continue;
-        if (needop[k] && (PC_TAGS(t) & PC_TAGS(need[k])) == PC_TAGS(need[k])) continue;
+        if (needop[k] && (eg_piece_tags(t) & eg_piece_tags(need[k])) == eg_piece_tags(need[k])) continue;
         for (i = 0u; i != dup; i++)
           if (extra[i] == k) break;
         if (i == dup && dup < EG_MAX_ITEM) extra[dup++] = k;

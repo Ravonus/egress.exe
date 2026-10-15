@@ -14,7 +14,7 @@ MAPPER ?= mbc5
 
 SRC := src/main.c src/screens.c src/play.c src/grid.c src/hud.c src/player.c src/actors.c src/sprites.c src/boss.c \
 	src/sound.c src/boot/keel_boot.c src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c src/core/eg_clock.c src/gen/art.c src/gen/art_pics.c \
-	src/gen/eg_seeds.c
+	src/gen/eg_seeds.c src/puzzle.c
 MAPPER_SRC := src/run.c src/clock.c
 OBJ := $(patsubst src/%.c,build/obj/%.o,$(SRC))
 OBJ_mbc5 := $(OBJ) $(patsubst src/%.c,build/obj-mbc5/%.o,$(MAPPER_SRC))

@@ -8,6 +8,7 @@
 #include <gb/cgb.h>
 #include <string.h>
 #include "play.h"
+#include "puzzle.h"
 #include "run.h"
 #include "gen/eg_seeds.h"
 
@@ -42,6 +43,11 @@ static void floor_build(void) {
     k = (uint8_t)(run_seed * 5u + (run_seed >> 8) + floor_no * 37u);
     for (i = 0;; i++) {
       floor_seed = eg_seed_pick(floor_tier, (uint8_t)(k + i));
+      if (dbg_fseed) { /* B1 harness: this exact room, once */
+        floor_seed = dbg_fseed;
+        floor_tier = dbg_ftier;
+        dbg_fseed = 0;
+      }
       if (eg_generate(&room, floor_seed, floor_tier)) break;
     }
   }
@@ -66,6 +72,7 @@ static void floor_build(void) {
   grav_t = GRAVITY_FRAMES;
   if (!boss_floor) actors_spawn();
   cells_reset();
+  pocket_reset(); /* B1 */
 }
 
 static void camera(uint8_t snap) {
@@ -214,7 +221,7 @@ static uint8_t floor_play(void) {
     if (paused) continue;
     /* hold SELECT to put the floor back the way it was (it costs half a heart) */
     if ((joy & J_SELECT) && !boss_floor) {
-      if (++sel_t == 60u) {
+      if (sel_t != 61u && ++sel_t == 60u) { /* 61: still held from closing the bench */
         sel_t = 0;
         tokens = floor_tokens0;
         if (pl_hp > 1u) pl_hp--;
@@ -225,8 +232,14 @@ static uint8_t floor_play(void) {
         hud_msg("IT RESETS.");
         continue;
       }
-    } else
+    } else {
+      if (sel_t && sel_t < 20u && !boss_floor && pl_state == PS_FREE) { /* B1: a tap of SELECT opens the bench */
+        bench_run();
+        sel_t = 61u;
+        continue;
+      }
       sel_t = 0;
+    }
     if (acts.frames != 0xffffu) acts.frames++;
     if (freeze) {
       freeze--;

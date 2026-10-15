@@ -52,7 +52,9 @@ enum {
 #define PC_MAG(p) ((uint8_t)(eg_piece[p][3] >> 4))
 #define PC_CD(p) ((uint8_t)(eg_piece[p][3] & 15u))
 #define PC_FLAGS(p) (eg_piece[p][4])
-extern const uint8_t eg_piece[P_COUNT][EG_PIECE_BYTES];
+extern const uint8_t eg_piece[P_COUNT][EG_PIECE_BYTES]; /* in a switched bank on the cartridge: read it from other
+                                                         banks through eg_piece_tags */
+uint8_t eg_piece_tags(uint8_t piece) EG_BANKED;
 
 /* the recipe for two pieces (either order), or 0 */
 uint8_t eg_recipe(uint8_t a, uint8_t b) EG_BANKED;

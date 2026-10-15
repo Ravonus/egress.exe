@@ -27,6 +27,8 @@ extern uint8_t dbg_god;        /* the player takes no damage */
 extern uint8_t dbg_no_enemies; /* floors spawn no enemies */
 extern uint16_t dbg_seed;      /* nonzero: the run seed */
 extern uint8_t dbg_floor;      /* nonzero: the run starts on this floor (10: the Watchman) */
+extern uint16_t dbg_fseed;     /* B1 harness: nonzero: the next floor is this room seed, at tier dbg_ftier */
+extern uint8_t dbg_ftier;
 
 /* main.c: frame pacing and the LCD split (sprites off under the HUD) */
 extern uint8_t hud_line; /* LY at which sprites turn off; 144 = never */

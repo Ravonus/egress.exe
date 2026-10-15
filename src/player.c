@@ -5,6 +5,7 @@
 #include <gb/gb.h>
 #include <gb/cgb.h>
 #include "play.h"
+#include "puzzle.h"
 
 uint8_t pl_x, pl_y, pl_hp, pl_hp_max, pl_state, pl_face;
 uint8_t pl_t, pl_inv, pl_combo, pl_queue, pl_charge, roll_cd, push_t, hit_mask, walk_t, combo_gap;
@@ -61,7 +62,8 @@ static void collect(void) {
     hud_dirty = 1;
     if (keys_held == room.keys) open_door();
     else hud_msg("KEYCARD");
-  }
+  } else if (t == T_ITEM)
+    puzzle_pick(i); /* B1: a piece into the pocket */
 }
 
 static void try_push(int8_t dir) {
@@ -77,12 +79,10 @@ static void try_push(int8_t dir) {
   beyond = (uint8_t)(dir > 0 ? ahead + 1u : ahead - 1u);
   if (++push_t < 10u) return;
   push_t = 0;
-  if (room.c[beyond] != T_EMPTY || enemy_in_cell(beyond)) {
+  if (enemy_in_cell(beyond) || !eg_push(&room, ahead, beyond)) { /* B1: the shared rule (plates and pits too) */
     sfx(SFX_DENY);
     return;
   }
-  room.c[beyond] = T_ROCK;
-  room.c[ahead] = T_EMPTY;
   queue_cell(ahead);
   queue_cell(beyond);
   sfx(SFX_PUSH);

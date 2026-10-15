@@ -20,13 +20,19 @@ trimmed file.
 
 ## How rooms are made
 
-`src/core/eg_room.c` is shared verbatim by the cartridge and the host. It generates a 16x14 room from (seed, tier)
-and runs the CRT gravity step (fall, roll, held up by the player, hit the player). The host solver
-(`host/eg_solve.c`) searches settled boards, one board-changing act per step (dig, collect, push, break drywall, leave
-a cell that holds a CRT up), and every plan it returns is replayed through the same gravity code. `tools/bake_seeds.sh`
-keeps, per tier, the first 128 seeds whose rooms are not trivial (a keycard or the door reachable without moving
-anything) and solve within the tier's bounds; the cartridge only plays those seeds. The harness checks that the
-cartridge's room is byte-identical to the host's and drives the solver's plan through the real game to the door.
+`src/core` is shared verbatim by the cartridge and the host. `eg_gen.c` builds a 16x14 office room backwards from its
+door: it picks a trick (BURN paper and planks with something HOT, COLD PATH: freeze a flood to walk over it, SHORT
+CIRCUIT: shock a flood that touches a dead socket and the shutter under the door lifts, DEAD WEIGHT: lay a brick on a
+plate in the north wall), seals the door behind it, then places the pieces (FIRE, WATER, AIR, EARTH, METAL) that the
+bench (`eg_piece.c`: 11 recipes, the 8x8 trait reaction table) turns into the answer, each behind a lock of its own,
+plus a red herring or two. Floors are mostly open carpet: foam comes in a few deliberate patches (under 25% of every
+baked room). `eg_room.c` runs the CRT gravity step. The host solver (`host/eg_solve.c`) searches settled boards, one
+board- or pocket-changing act per step (dig, collect, pick up, push, break drywall, combine on the bench, use a piece
+on a cell), and every plan it returns is replayed through the same rules. `tools/bake_seeds.sh` keeps, per tier, the
+first 128 seeds whose rooms are not trivial, need their trick (proved: the trick's obstacle counted as concrete seals
+the goal), keep their herrings harmless, and solve within the tier's difficulty band; the cartridge only plays those
+seeds. `make test` re-checks every baked seed; the harness checks that the cartridge's room is byte-identical to the
+host's and drives the solver's plan, bench and all, through the real game to the door.
 
 ## A run
 
@@ -38,7 +44,8 @@ what the matrix leans toward. The battery save (two CRC-16 records in SRAM) keep
 unlocked mods, the things seen and a bounded trace of the matrix.
 
 Controls: d-pad move (lean into a CRT to push it), A lash (three-hit combo; hold to charge, release to spin), B dodge
-roll, START pause, hold SELECT to reset the floor (costs half a heart).
+roll, START pause, tap SELECT for the bench (combine two pieces with A, START uses the chosen piece on the cell you
+face), hold SELECT to reset the floor (costs half a heart).
 
 ## Layout
 
