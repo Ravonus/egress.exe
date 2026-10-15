@@ -5,18 +5,21 @@
  *                                (compared against the cartridge by the harness)
  *   egtool tier TIER COUNT [FIRST STRIDE]  the first COUNT seeds the tier accepts, trying FIRST, FIRST+STRIDE, ...
  *                                (stdout is flushed per seed)
- *   egtool survey TIER COUNT     one line per seed: trick, solve stats, difficulty, checks, accepted */
+ *   egtool survey TIER COUNT     one line per seed: trick, solve stats, difficulty, checks, accepted
+ *   egtool walls < "SEED TIER" lines   the wall-structure metric (host/eg_walls.c) per room, then the totals */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "eg_solve.h"
+#include "eg_walls.h"
+#include "../src/core/eg_obst.h"
 
 #define TIERS 6
 #define BUDGET 30000
 
 static char glyph(uint8_t v) {
-  static const char g[T_TYPES + 1] = ".:#=O$kD~_pGgw%Ph*SsXBbWVUEF|IJ";
+  static const char g[T_TYPES + 1] = ".:#=O$kD~_pGgw%Ph*SsXBbWVUEF|IJY";
   uint8_t t = v & T_MASK;
   return t < T_TYPES ? g[t] : '?';
 }
@@ -28,6 +31,8 @@ static void show(const eg_room *r) {
       char ch = glyph(r->c[i]);
       if ((r->c[i] & T_MASK) == T_ITEM) ch = (char)('a' + eg_item_at(r, (uint8_t)i) - 1);
       if (i == r->start) ch = '@';
+      for (int k = 0; k < r->nob; k++)
+        if (r->ob[k][1] == i) ch = (char)('1' + k); /* B2: obstacle slots */
       putchar(ch);
     }
     putchar('\n');
@@ -83,6 +88,16 @@ int main(int argc, char **argv) {
              eg_trick_needed(&r), eg_room_mech(&r));
       piece_list(&r, stdout);
       printf("\n");
+      for (int k = 0; k < r.nob; k++) /* B2: the obstacle records and the route */
+        printf("obstacle %d: rule %d %s%s%s dir %d variant %d arg %d%s\n", k + 1, OBA_RULE(r.ob[k][0]),
+               (r.ob[k][0] & OBA_P2) ? "period 2" : "period 1", (r.ob[k][3] & OBP_PHASE) ? " (odd)" : "",
+               (r.ob[k][0] & OBA_LEFT) ? " left-handed" : "", OBB_DIR(r.ob[k][2]), OBB_VAR(r.ob[k][2]),
+               OBP_ARG(r.ob[k][3]), (r.ob[k][2] & OBB_ASLEEP) ? " asleep" : "");
+      if (r.nrun) {
+        printf("route:");
+        for (int k = 0; k < r.nrun; k++) printf(" %c%d", "NESW"[r.run[k] >> 6], r.run[k] & 63);
+        printf("\n");
+      }
       return 0;
     }
     if (!strcmp(argv[1], "dump")) {
@@ -152,6 +167,26 @@ int main(int argc, char **argv) {
             tier, got, tried, gen_fail, unsolved, rejected, got ? steps / got : 0, got ? diff / got : 0, by_trick[0],
             by_trick[1], by_trick[2], by_trick[3], by_trick[4], by_trick[5]);
     return (!survey && got < per) ? 3 : 0;
+  }
+  if (argc >= 2 && !strcmp(argv[1], "walls")) { /* B2 part B: connected wall components, singleton share */
+    unsigned seed;
+    int tier, rooms = 0;
+    long cells = 0, comps = 0, single = 0, sfloat = 0, small = 0, anch = 0;
+    while (scanf("%u %d", &seed, &tier) == 2) {
+      eg_wall_stats w;
+      if (!eg_generate(&r, (uint16_t)seed, (uint8_t)tier)) continue;
+      eg_walls(&r, &w);
+      printf("%u %d cells %d comps %d single %d float %d small %d anchored %d\n", seed, tier, w.cells, w.comps,
+             w.single, w.single_float, w.small, w.anchored);
+      rooms++, cells += w.cells, comps += w.comps, single += w.single, sfloat += w.single_float, small += w.small;
+      anch += w.anchored;
+    }
+    printf("rooms %d wall-cells/room %.1f components/room %.2f cells/component %.2f singleton-share %.1f%% "
+           "floating-singleton-share %.1f%% small(<=2)-share %.1f%% anchored-share %.1f%%\n",
+           rooms, rooms ? (double)cells / rooms : 0, rooms ? (double)comps / rooms : 0,
+           comps ? (double)cells / comps : 0, comps ? 100.0 * single / comps : 0, comps ? 100.0 * sfloat / comps : 0,
+           comps ? 100.0 * small / comps : 0, comps ? 100.0 * anch / comps : 0);
+    return 0;
   }
   fprintf(stderr, "usage: egtool show|solve|dump SEED TIER | tier TIER COUNT | survey TIER COUNT\n");
   return 2;

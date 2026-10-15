@@ -131,11 +131,11 @@ src/gen/look_art.c src/gen/look_art.h: tools/bake_look.py tools/bake_art.py
 src/gen/music_data.h: tools/compose.py
 	$(PY) tools/compose.py $@
 
-ROOM_SRC := src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c
-ROOM_HDR := src/core/eg_room.h src/core/eg_piece.h host/eg_solve.h
-build/host/egtool: host/egtool.c host/eg_solve.c $(ROOM_SRC) $(ROOM_HDR)
+ROOM_SRC := src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c src/core/eg_obst.c host/eg_osolve.c
+ROOM_HDR := src/core/eg_room.h src/core/eg_piece.h host/eg_solve.h src/core/eg_obst.h host/eg_osolve.h
+build/host/egtool: host/egtool.c host/eg_solve.c host/eg_walls.c $(ROOM_SRC) $(ROOM_HDR)
 	@mkdir -p $(dir $@)
-	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/egtool.c host/eg_solve.c $(ROOM_SRC)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/egtool.c host/eg_solve.c host/eg_walls.c $(ROOM_SRC)
 
 # The seed table is baked on request only (minutes of solving): `make seeds`. `make test` re-solves every baked seed
 # with the current generator, so a generator change without a rebake fails the tests.
@@ -147,6 +147,11 @@ seeds: build/host/egtool tools/bake_seeds.sh
 build/host/egplan: host/egplan.c host/egrun.c src/core/eg_plan.c src/core/eg_plan.h src/gen/eg_seeds.c src/gen/eg_seeds.h
 	@mkdir -p $(dir $@)
 	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/egplan.c host/egrun.c src/core/eg_plan.c src/gen/eg_seeds.c -lm
+
+# B2 living obstacles: the core rules and the tick solver against the mock room (tools/mock/obstacle_room.py)
+build/host/test_obst: host/test_obst.c $(ROOM_SRC) $(ROOM_HDR)
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_obst.c $(ROOM_SRC)
 
 build/host/test_room: host/test_room.c host/eg_solve.c $(ROOM_SRC) $(ROOM_HDR)
 	@mkdir -p $(dir $@)
@@ -188,7 +193,8 @@ test-rtc: build/host/test_clock build/egress.gbc build/egress-rtc.gbc
 	$(PY) tools/mapper_audit.py build/linked-mbc5.map build/linked-mbc3.map
 	$(PY) test/rtc_test.py build/egress.gbc build/egress-rtc.gbc
 
-test: build/host/test_room build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir
+test: build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir
+	build/host/test_obst
 	build/host/test_room src/gen/eg_seeds.c
 	build/host/egplan check 1000
 	$(PY) test/harness/title3d.py build/egress.gbc --loops # the title: every loop at 30 fps, VRAM = the bake

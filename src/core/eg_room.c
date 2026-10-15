@@ -166,7 +166,8 @@ uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) {
 #else
   for (i = 0u; i != (uint8_t)EG_N; i++) c[i] &= (uint8_t)~F_MOVED;
 #endif
-  /* shutters follow the plates: up while any plate carries a CRT (a shutter doesn't drop on the player) */
+  /* shutters follow the plates: up while every plate carries a weight (a CRT, a laid brick or crate, an obstacle: B2;
+   * B1 rooms hold one plate), down otherwise (a shutter doesn't drop on the player, nor on an obstacle: F_OB) */
 #ifdef EG_GRAV_ASM
   if (!eg_plates_dirty) return res; /* no CRT came onto or off a plate: the shutters stay as they are */
   eg_plates_dirty = 0u;
@@ -175,9 +176,13 @@ uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) {
   gates = 0u;
   for (i = 0u; i != (uint8_t)EG_N; i++) {
     v = c[i];
-    if ((uint8_t)(v & (T_MASK | F_PLATE)) == (T_ROCK | F_PLATE) || v == T_BLOCK_PLATE) w = 1u;
+    if ((uint8_t)(v & (T_MASK | F_PLATE)) == (T_ROCK | F_PLATE) || v == T_BLOCK_PLATE || v == (T_PLATE | F_OB)) {
+      if (!(w & 2u)) w = 1u;
+    }
+    if (v == T_PLATE) w = 2u; /* a bare plate: every shutter stays down */
     if (v == T_GATE || v == T_GATE_OPEN) gates = 1u;
   }
+  if (w == 2u) w = 0u;
   if (gates)
     for (i = 0u; i != (uint8_t)EG_N; i++) {
       v = c[i];
@@ -209,6 +214,23 @@ uint8_t eg_push(eg_room *r, uint8_t rock, uint8_t to) {
   if (!EG_ROCK_OPEN(t) && t != T_PIT) return 0u;
   r->c[to] = t == T_PIT ? T_EMPTY : (uint8_t)(T_ROCK | (t == T_PLATE ? F_PLATE : 0u));
   r->c[rock] = ROCK_LEFT(r->c[rock]);
+  return 1u;
+}
+
+uint8_t eg_push_block(eg_room *r, uint8_t from, uint8_t to) {
+  uint8_t t = r->c[to], f = r->c[from];
+  if (!EG_CRATE(f)) return 0u;
+  if (t == T_GLASS || t == T_CEIL || t == T_CEIL_1)
+    t = T_PIT; /* through it, into the void: both gone */
+  else if (t == T_EMPTY)
+    t = T_BLOCK;
+  else if (t == T_PLATE)
+    t = T_BLOCK_PLATE;
+  else
+    return 0u;
+  r->c[to] = t;
+  r->c[from] = f == T_BLOCK_PLATE ? T_PLATE : T_EMPTY;
+  if (f == T_BLOCK_PLATE || t == T_BLOCK_PLATE) eg_plates_dirty = 1u;
   return 1u;
 }
 

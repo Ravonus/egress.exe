@@ -25,7 +25,14 @@ typedef struct {
   int dead;     /* of those, dead ends (eg_dead): unforgiving rooms have many */
   int fatal_depth; /* the fewest acts after which a fatal mistake was found (-1: none found) */
   int dead_at_start; /* EG_DEAD_* when the room is unwinnable before the player acts (a fault, not a mistake) */
+  /* B2 rooms with living obstacles are solved tick by tick (host/eg_osolve.c); these come from there */
+  int ob_rooms;       /* 1: this room has obstacles (the fields below are set) */
+  int ob_capped;      /* the exploration hit EG_OB_CAP */
+  int ob_start_live, ob_idle_ok, ob_idle_hits, ob_plan_ok; /* fairness 1-3 */
+  int ob_ticks, ob_hits, ob_rescue;
 } eg_stats;
+/* B2: the tick solver's state cap per room (7.7: rooms over 4M states are rejected) */
+#define EG_OB_CAP 4000000
 
 /* moves:
  *   'U' 'D' 'L' 'R'   step (dig, collect, pick up, push, walk)
@@ -63,8 +70,11 @@ int eg_glitch_ok(const eg_room *r);
 uint16_t eg_room_mech(const eg_room *r);
 int eg_insights(const eg_room *r);
 
-/* the score of 3.2: steps + 3 branching + 4 depth + 2 supporting tricks */
+/* the score of 3.2: steps + 3 branching + 4 depth + 2 supporting tricks. B2 obstacle rooms: ticks + 6 x the
+ * obstacle cost (7.7) + the rescue windows (one point per 50, at most 30) + 2 supporting obstacles */
 int eg_difficulty(const eg_room *r, const eg_stats *st);
+/* B2: the obstacle load of 7.7 (the sum of the obstacles' costs, plus one per 100 rescue windows, at most 10) */
+int eg_obstacle_load(const eg_room *r, const eg_stats *st);
 
 extern const char *const eg_trick_name[TRICK_COUNT];
 

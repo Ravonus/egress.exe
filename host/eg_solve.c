@@ -1,5 +1,6 @@
 /* Host room solver (see eg_solve.h). */
 #include "eg_solve.h"
+#include "eg_osolve.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -495,7 +496,32 @@ static size_t emit_plan(const eg_room *r0, const node *nodes, int last, uint8_t 
   return m;
 }
 
+/* B2: a room with living obstacles is solved by the tick solver (every state, fairness, the passive-safe plan) */
+static int solve_obstacles(const eg_room *r, char *moves, size_t cap, eg_stats *st) {
+  eg_ostats o;
+  memset(st, 0, sizeof *st);
+  st->ob_rooms = 1;
+  int ok = eg_osolve(r, EG_OB_CAP, EGO_NOISE, moves, cap, &o);
+  st->states = o.states;
+  st->dead = o.dead;
+  st->fatal_depth = o.fatal_depth;
+  st->dead_at_start = o.start_live ? 0 : EG_DEAD_DOOR;
+  st->ob_capped = o.capped;
+  st->ob_start_live = o.start_live;
+  st->ob_idle_ok = o.idle_ok;
+  st->ob_idle_hits = o.idle_hits;
+  st->ob_plan_ok = o.plan_ok;
+  st->ob_ticks = o.ticks;
+  st->ob_hits = o.hits;
+  st->ob_rescue = o.rescue;
+  st->steps = o.ticks;
+  st->actions = o.moves;
+  st->nodes = o.states;
+  return ok;
+}
+
 int eg_solve_ban(const eg_room *r, int budget, uint64_t ban, char *moves, size_t cap, eg_stats *st) {
+  if (r->nob) return solve_obstacles(r, moves, cap, st);
   node *nodes = malloc(sizeof(node) * (size_t)(budget + 1));
   hset hs;
   hs.mask = 1;
@@ -812,8 +838,20 @@ int eg_replay(const eg_room *r0, const char *moves) {
   return 0;
 }
 
+int eg_obstacle_load(const eg_room *r, const eg_stats *st) {
+  int load = 0;
+  for (int k = 0; k < r->nob; k++) load += eg_ob_cost[OBA_RULE(r->ob[k][0])];
+  int w = st->ob_rescue / 100;
+  return load + (w > 10 ? 10 : w);
+}
+
 int eg_difficulty(const eg_room *r, const eg_stats *st) {
   int sup = 0;
+  if (r->nob) {
+    int cost = 0, w = st->ob_rescue / 50;
+    for (int k = 0; k < r->nob; k++) cost += eg_ob_cost[OBA_RULE(r->ob[k][0])];
+    return st->ob_ticks + 6 * cost + (w > 30 ? 30 : w) + 2 * (r->nob - 1);
+  }
   for (int k = 0; k < TRICK_COUNT; k++)
     if (r->support & (1u << k)) sup++;
   return st->steps + 3 * st->branching100 / 100 + 4 * r->depth + 2 * sup;

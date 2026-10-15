@@ -53,14 +53,19 @@ enum {
   T_GLASS = 28,  /* glass over the void, 1 step: see-through */
   T_ICE = 29,    /* thin ice (COLD froze a flood), 2 steps; HOT thaws the connected ice back to water */
   T_ICE_1 = 30,
-  T_TYPES = 31
+  T_PARTITION = 31, /* B2: an office glass partition: solid; only a heavy obstacle breaks it, walking in (eg_obst.h) */
+  T_TYPES = 32
 };
 #define T_MASK 0x1fu
 #define F_FALL 0x80u  /* the CRT moved down or rolled on the last step */
 #define F_MOVED 0x40u /* scratch inside eg_gravity */
 #define F_PLATE 0x20u /* on a CRT: it rests on a pressure plate (the plate comes back when it leaves) */
+#define F_OB 0x80u    /* B2, on any cell but a CRT: a living obstacle stands here (src/core/eg_obst.h). Solid to the
+                         player, crates and other obstacles; masked off wherever the cell's type is read */
 
 #define EG_MAX_SPAWN 6u
+#define EG_MAX_OB 3u   /* B2: living obstacles per room (7.7: at most 3 slots, at most 2 free movers) */
+#define EG_MAX_RUN 8u  /* B2: route runs per room (one patroller loop) */
 #define EG_MAX_ITEM 6u /* = the pocket's size, so the pocket can never be full while an item lies in the room */
 #ifdef __SDCC
 #include <gb/gb.h>
@@ -88,6 +93,12 @@ typedef struct {
   /* protected cells (bit per cell): the landing, the door threshold, both sides of every lock opening, the trick's
    * apparatus, every piece and keycard. Never fragile, never broken by anything but the player's own plan. */
   uint8_t prot[EG_N / 8u];
+  /* B2 living obstacles (docs/redesign.md 7.7, src/core/eg_obst.h): the baked records (4 bytes each) and the room's
+   * route table (one byte per run: direction 2 bits | length 6 bits). Appended: the B1 layout above is unchanged. */
+  uint8_t nob;
+  uint8_t ob[EG_MAX_OB][4];
+  uint8_t nrun;
+  uint8_t run[EG_MAX_RUN];
 } eg_room;
 #define EG_PROT(r, i) ((r)->prot[(uint8_t)(i) >> 3] & (uint8_t)(1u << ((i) & 7u)))
 
@@ -138,6 +149,11 @@ uint8_t eg_rndn(uint8_t n); /* 0..n-1 */
 /* Push the resting CRT at `rock` into `to` (a neighbour): into open floor or a pit (which it fills). Returns 0 if
  * `to` can't take it. */
 uint8_t eg_push(eg_room *r, uint8_t rock, uint8_t to);
+/* B2: push the crate (a laid brick: T_BLOCK, or T_BLOCK_PLATE on a plate) at `from` into the neighbour `to`, Sokoban
+ * rules, by the player, a pusher or a mirror: onto carpet or a plate (T_BLOCK_PLATE: it weighs the plate); onto floor
+ * glass or a ceiling tile it smashes through (a pit, the crate gone). Anything else, a pit included, refuses (0). */
+#define EG_CRATE(v) ((v) == T_BLOCK || (v) == T_BLOCK_PLATE)
+uint8_t eg_push_block(eg_room *r, uint8_t from, uint8_t to);
 /* The player stepped off `cell`: rotten carpet gives way. Returns 1 if a pit opened. */
 uint8_t eg_leave(eg_room *r, uint8_t cell);
 /* how many shutters / plates the room has (the generator places at most a few) */
