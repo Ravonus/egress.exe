@@ -9,7 +9,7 @@ PY=../../../.venv/bin/python
 TAG=${W}x${H}_s${S}${SUFFIX:-}
 B=build/$TAG
 mkdir -p "$B"
-rm -f "$B"/bank*_wb.s "$B"/*.o "$B"/wbt.*
+rm -f "$B"/bank*_wb.s "$B"/*.o "$B"/wbt.* "build/r2_$TAG.gbc"
 OBJ=0; [ "$S" != 0 ] && [ "$S" != 4 ] && OBJ=1
 [ -n "$OBJFORCE" ] && OBJ=$OBJFORCE
 # gameplay stages (billboards on): the floor rows below mid-depth sample once per 8 rows instead of 4 (-32 lines)
@@ -71,6 +71,9 @@ END=$(grep -oE '[0-9A-F]{8}  s__HEAP\b' "build/r2_$TAG.map" | cut -c1-8)
 LIM=CB00; [ "$OBJ" = 1 ] && LIM=C800
 [ "$FS" = 1 ] && LIM=C980  # leaves 384 bytes of stack under REC
 [ $((0x$END)) -lt $((0x$LIM)) ] || { echo "WRAM overflow: data ends at 0x$END, limit 0x$LIM" >&2; exit 1; }
+# ROM0 + bank 1 code and data must end below the fixed tables (tables2_abs.s from 0x6B00)
+CE=$(grep -oE '[0-9A-F]{8}  s__GSFINA' "build/r2_$TAG.map" | cut -c1-8)
+[ -n "$CE" ] && [ $((0x$CE + 1)) -le $((0x6B00)) ] || { echo "code ends at 0x$CE, into the tables at 0x6B00" >&2; exit 1; }
 # fill2 (walls, floors, bb_col, WBT) runs or is read with other ROM banks mapped: it must sit in ROM0
 if [ "$HB" != 0 ]; then FE=$(grep -oE 'DEF _fill2_end 0x[0-9A-Fa-f]+' "build/r2_$TAG.noi" | awk '{print $3}')
   [ -n "$FE" ] && [ $((FE)) -le $((0x4000)) ] || { echo "fill2 ends at $FE, past ROM0" >&2; exit 1; }; fi

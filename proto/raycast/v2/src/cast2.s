@@ -23,9 +23,9 @@ c_fr = 0xFFBB
 
 	.area _CODE
 
-; hl = a * b  (quarter squares, page-aligned tables at 0x7800: lo bytes 0x7800-0x79FF, hi bytes 0x7A00-0x7BFF)
+; hl = a * b  (quarter squares, page-aligned tables at 0x6C00: lo bytes 0x6C00-0x6DFF, hi bytes 0x6E00-0x6FFF)
 ; in a, b; clobbers a, c, d, e
-SQLO = 0x78
+SQLO = 0x6C
 mul8:
 	ld	c, a
 	add	a, b
@@ -641,8 +641,8 @@ m_lb = 0xFFAA
 m_fr0 = 0xFFAB
 m_fr1 = 0xFFAC
 m_neg = 0xFFAD
-RTAB = 0x68
-HIXP = 0x7C
+RTAB = 0x70
+HIXP = 0x6B
 mid1:
 	ldh	a, (c_i)
 	dec	a

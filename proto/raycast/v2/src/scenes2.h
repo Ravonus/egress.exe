@@ -140,7 +140,12 @@ static void scene_update(uint8_t dt) {
   else if (t < 200u) c = O_BURN2;
   else if (t < 245u) c = O_CHAR;
   else c = (uint8_t)(0x80u | S_OFFICE);
-  map[PY * MAPW + PX] = c;
+  if (map[PY * MAPW + PX] != c) {
+    map[PY * MAPW + PX] = c;
+#if FS
+    map_ver++;
+#endif
+  }
 }
 
 #elif SCENE == 3

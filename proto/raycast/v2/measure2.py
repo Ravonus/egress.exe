@@ -136,6 +136,13 @@ def main() -> int:
         res.update(views=len(fpv), frames=span, fps_avg=round(len(fpv) * FPS_LCD / span, 2),
                    fps_min=round(FPS_LCD / max(fpv), 2), fps_max=round(FPS_LCD / min(fpv), 2),
                    fpv_hist={str(k): fpv.count(k) for k in sorted(set(fpv))})
+        # skip redraw: views whose walls ran (fill > 4 lines) vs views that kept the buffer (camera unchanged)
+        mov = [v for v in meas if v["fill"] > 4]
+        if mov and len(mov) < len(meas):
+            res.update(views_redrawn=len(mov), fps_redrawn=round(len(mov) * FPS_LCD / sum(v["fpv"] for v in mov), 2),
+                       fps_kept=round((len(meas) - len(mov)) * FPS_LCD / max(1, sum(v["fpv"] for v in meas if v["fill"] <= 4)), 2))
+            for key in ("upd", "ray", "fill", "flr", "spr"):
+                res[f"{key}_lines_redrawn"] = round(sum(v[key] for v in mov) / len(mov), 1)
         for key in ("upd", "ray", "fill", "flr", "spr", "wait"):
             vals = [v[key] for v in meas]
             res[f"{key}_lines_avg"] = round(sum(vals) / len(vals), 1)

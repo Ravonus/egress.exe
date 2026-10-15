@@ -67,6 +67,11 @@ uint8_t log_upd[LOGN], log_ray[LOGN], log_fill[LOGN], log_flr[LOGN], log_spr[LOG
 const uint8_t log_u8 = 1;
 #define LSAT(v) ((v) > 255u ? 255u : (uint8_t)(v))
 uint16_t nviews, nflips, copy_lines, copy_calls;
+#if FS
+/* skip redraw (camera and map unchanged): ray generation, the generation each buffer was drawn from */
+uint8_t map_ver, r_mv, r_ok, r_gen, b_gen[2] = {0xFFu, 0xFFu}, keep;
+uint16_t r_cx, r_cy, r_ca;
+#endif
 uint8_t vbl_end_max;
 
 void dma_pad(void) __naked {
@@ -634,6 +639,34 @@ void main(void) {
     lastv = v;
     scene_update(dt);
     t1 = now();
+#if FS && !defined(NOSKIP)
+    /* skip redraw: the rays are kept while the camera and map are unchanged, and this view's buffer (and the VRAM
+       bank it always goes to) still holds its pixels if it was last drawn from the same camera and map */
+    {
+      uint8_t same = (uint8_t)(cam_x == r_cx && cam_y == r_cy && cam_a == r_ca && map_ver == r_mv && r_ok);
+      if (!same) {
+        cast_all();
+        r_cx = cam_x;
+        r_cy = cam_y;
+        r_ca = cam_a;
+        r_mv = map_ver;
+        r_ok = 1;
+        r_gen++;
+      }
+      t2 = now();
+      SVBK_REG = (uint8_t)(2u + cur);
+      keep = (uint8_t)(b_gen[cur] == r_gen);
+      if (!keep) {
+        walls_all(buf[cur]);
+        t2b = now();
+#ifndef NOFLOOR
+        floors_all(buf[cur]);
+#endif
+        b_gen[cur] = r_gen;
+      } else
+        t2b = now();
+    }
+#else
     cast_all();
     t2 = now();
 #if FS
@@ -643,6 +676,7 @@ void main(void) {
     t2b = now();
 #ifndef NOFLOOR
     floors_all(buf[cur]);
+#endif
 #endif
     t3 = now();
 #if FS
@@ -674,6 +708,9 @@ void main(void) {
     q_len = (uint8_t)(TW * TH);
 #endif
     q_off = 0;
+#ifndef NOSKIP
+    if (keep) q_off = (uint8_t)(TW * TH); /* the tiles are already in that VRAM bank: billboards only */
+#endif
 #else
     log_spr[slot] = LSAT((uint16_t)(t5 - t4));
     log_wait[slot] = LSAT((uint16_t)(t4 - t3));
