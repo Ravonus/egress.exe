@@ -78,7 +78,7 @@ src/gen/art.c src/gen/art_pics.c src/gen/art.h: tools/bake_art.py
 
 # the floor's look: the office cards, the biome palettes (tools/bake_look.py borrows bake_art.py's helpers)
 src/gen/look_art.c src/gen/look_art.h: tools/bake_look.py tools/bake_art.py
-	$(PY) tools/bake_look.py src/gen --sheet docs/shots/b1_look_tiles.png
+	$(PY) tools/bake_look.py src/gen --sheet docs/shots/b1_look_tiles.png --fragile docs/shots/b1_fragile_tiles.png
 
 src/gen/music_data.h: tools/compose.py
 	$(PY) tools/compose.py $@

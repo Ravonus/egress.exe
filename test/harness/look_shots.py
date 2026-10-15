@@ -10,6 +10,10 @@ Writes, from power-on on a blank save, headless and deterministic:
   b1_look_floor2.png       another seed as the current generator makes it (foam-heavy)
   b1_look_assemble.gif     the floor assembling around the player, a beat of play, then the exit collapse (2x)
   b1_look_death.gif        the world letting go around a body (2x): the death collapse keeps the 8 neighbours
+  b1_fragile_room.png      the fragile floors in a room (1x and 3x): worn carpet's three stages, a ceiling tile's two,
+                           glass, glitched glass and a pit, set through the look's skins beside ordinary floor
+  b1_fragile_break.gif     the glitched glass's beat, worn carpet stepped through its stages, then each kind breaking
+                           (3x)
 and checks: the room assembles (look_busy_n reaches 0, the game reaches MODE_PLAY), every cell on screen is back in
 the world, and the collapse empties the world but for the kept cells. Exit status 1 if a check fails.
 """
@@ -55,6 +59,107 @@ def start(g: H.Game, seed: int, enemies: bool) -> bool:
 def gif(frames: list[Image.Image], path: Path, scale: int = 2, ms: int = 33) -> None:
     big = [f.resize((160 * scale, 144 * scale), Image.NEAREST) for f in frames]
     big[0].save(path, save_all=True, append_images=big[1:], duration=ms, loop=0, optimize=False)
+
+
+def look_ids() -> dict[str, int]:
+    h = Path(__file__).resolve().parents[2] / "src" / "gen" / "look_art.h"
+    ids = {}
+    for ln in h.read_text().splitlines():
+        p = ln.split()
+        if len(p) >= 3 and p[0] == "#define" and p[1].startswith("M_"):
+            ids[p[1][2:]] = int(p[2].rstrip("u"))
+    return ids
+
+
+def fragile(rom: Path, out: Path) -> dict:
+    M = look_ids()
+    rep: dict = {}
+    g = H.Game(rom)
+    start(g, 0x5EED, enemies=False)
+    a = g.addr("room")
+    for c in range(224):  # floor first, as in run 1
+        x, y = c % 16, c // 16
+        if g.pb.memory[a + c] & 0x0F == 1 and ((x // 3) + (y // 2)) % 4:
+            g.pb.memory[a + c] = 0
+    while g.peek("game_mode") != H.MODE_PLAY and g.frames < 4000:
+        g.tick()
+    g.tick(20)
+    room, skin = g.addr("room"), g.addr("look_skin")
+    px, py = g.peek("pl_x") >> 4, g.peek("pl_y") >> 4
+    cx, cy = g.peek("cam_x"), g.peek("cam_y")
+    # a row of the room on screen, two rows from the player at least: the stages in order, left to right, laid
+    # over whatever was there (the cells become carpet underneath)
+    show = ["CARPET0", "CARPET1", "CARPET2", "CEIL0", "CEIL1", "GLASS", "GLITCH0", "PIT"]
+    x0 = max(1, (cx + 15) // 16)
+    best = None
+    for y in range(1, 13):
+        sy = y * 16 - cy
+        if not (0 <= sy <= 96) or abs(y - py) < 2:
+            continue
+        xs = [x for x in range(x0, x0 + len(show) + 1)]
+        if xs[-1] > 14:
+            continue
+        walls = sum(1 for x in xs if g.pb.memory[room + y * 16 + x] & 0x0F in (2, 7))
+        if best is None or walls < best[0]:
+            best = (walls, y, xs)
+    if best is None:
+        return {"fragile_ok": False}
+    _, ry, xs = best
+    cells = [ry * 16 + x for x in xs]
+    for c in cells:
+        g.pb.memory[room + c] = 0
+    at = dict(zip(show, cells))
+    walk = cells[len(show)]  # a fresh worn carpet tile, stepped through its stages
+
+    def skin_set(c: int, m: int) -> None:
+        g.pb.memory[skin + c] = m + 1
+        g.poke("look_dbg_cell", c)
+        g.poke("look_dbg_kind", 0x80)
+        g.tick()
+
+    for nm, c in at.items():
+        skin_set(c, M[nm])
+    skin_set(walk, M["CARPET0"])
+    g.tick(8)
+    shot = frame(g)
+    pair = Image.new("RGB", (160 + 8 + 480, 432), (24, 22, 32))
+    pair.paste(shot, (0, 0))
+    pair.paste(shot.resize((480, 432), Image.NEAREST), (168, 0))
+    pair.save(out / "b1_fragile_room.png")
+    frames: list[Image.Image] = []
+
+    def run(n: int) -> None:
+        for _ in range(n):
+            g.tick()
+            frames.append(frame(g))
+
+    phases = set()
+    for _ in range(140):  # the glitch beat
+        g.tick()
+        frames.append(frame(g))
+        phases.add(g.peek("look_glitch_phase"))
+    rep["glitch_phases_seen"] = sorted(phases)
+    for st in (1, 2):  # worn carpet, stepped on
+        skin_set(walk, M["CARPET0"] + st)
+        frames.append(frame(g))
+        run(24)
+    breaks = [(walk, 1), (at["CEIL1"], 2), (at["GLASS"], 3), (at["GLITCH0"], 4), (at["CARPET0"], 0)]
+    for c, kind in breaks:
+        if kind == 4:  # wait for the glass to be there
+            for _ in range(120):
+                if g.peek("look_glitch_phase") == 0:
+                    break
+                run(1)
+        g.poke("look_dbg_cell", c)
+        g.poke("look_dbg_kind", kind if kind else 1)
+        run(34)
+    run(10)
+    rep["fragile_pits"] = sum(1 for c, _ in breaks if g.pb.memory[skin + c] == M["PIT"] + 1)
+    rep["fragile_idle"] = g.peek("look_busy_n") == 0
+    rep["fragile_ok"] = rep["fragile_pits"] == len(breaks) and rep["fragile_idle"] and phases == {0, 1, 2}
+    gif(frames, out / "b1_fragile_break.gif", scale=3)
+    g.stop()
+    return rep
 
 
 def main() -> int:
@@ -121,8 +226,11 @@ def main() -> int:
     gif(dframes, out / "b1_look_death.gif")
     rep["death_reached"] = ok2
     g.stop()
+    # 3. the fragile floors: skins in a room, the glitch beat, the stages, the breaks
+    rep.update(fragile(rom, out))
     print(json.dumps(rep, indent=2))
-    return 0 if rep["assembled"] and rep["cells_absent_after_assembly"] == 0 else 1
+    ok_all = rep["assembled"] and rep["cells_absent_after_assembly"] == 0 and rep["fragile_ok"]
+    return 0 if ok_all else 1
 
 
 if __name__ == "__main__":

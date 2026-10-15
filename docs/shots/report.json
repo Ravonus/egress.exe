@@ -1,6 +1,6 @@
 {
   "rom": "build/egress.gbc",
-  "size": 81920,
+  "size": 98304,
   "boot_mode_at_150": 0,
   "solve_started": true,
   "floor_seed": 40,
@@ -101,7 +101,7 @@
   "boss_strikes": 34,
   "boss_dead": true,
   "boss_hp_left": 0,
-  "boss_frames": 1799,
+  "boss_frames": 1800,
   "boss_shots": {
     "tell": true,
     "orbs": true,
