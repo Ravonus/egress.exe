@@ -10,6 +10,8 @@ Runs, each from power-on on a blank save, headless and deterministic:
            digging, pushing CRTs, breaking drywall) until the egress door takes the player to floor 2
   combat   a seeded run with enemies on (invulnerable): scripted lashes, a charged spin and dodge rolls near the
            enemies; checks enemies take damage and die, and screenshots the fight
+  heir     B1: the cartridge's heir equals genes.py's, the six inputs, 8-way / 4-way movement, the idle scheduler,
+           OAM per line in a fight and the boss, b1_heir_states.gif and b1_heir_play.png (test/harness/heir.py)
   death    a seeded run with enemies on and mortal: stands still until something kills the player; the run must end
            on the death screen and return to the title
 
@@ -344,7 +346,11 @@ def run_combat(g: Game, out: Path, report: dict) -> bool:
                 g.hold({"a"})  # hold through the lash and the charge, then let go: the spin
                 g.tick(40)
                 g.hold(set())
-                g.tick(3)
+                for _ in range(12):  # the charged attack starts on the release (hitstop can delay it)
+                    g.tick(1)
+                    if g.peek("pl_state") == 3:
+                        break
+                g.tick(2)
                 if g.peek("pl_state") == 3 and not spin_shot:
                     g.shot(out / "09_combat_spin.png")
                     spin_shot = True
@@ -588,7 +594,7 @@ def main() -> int:
     ap.add_argument("out", type=Path)
     ap.add_argument("--egtool", type=Path, default=Path("build/host/egtool"))
     ap.add_argument("--audio", type=Path, help="record the title and floor music as WAV into this directory")
-    ap.add_argument("--only", choices=["boot", "solve", "combat", "death", "landing", "boss"])
+    ap.add_argument("--only", choices=["boot", "solve", "combat", "death", "landing", "boss", "heir"])
     a = ap.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
     report: dict = {"rom": str(a.rom), "size": a.rom.stat().st_size}
@@ -645,6 +651,11 @@ def main() -> int:
         rec = read_save(g.stop())
         report["save_after_win"] = rec
         results["save_win"] = bool(rec and rec["wins"] == 1 and rec["unlocked"] & 0x20)
+
+    if a.only in (None, "heir"):  # B1: the heir's roll, moves, movement, idle, sprite budget and shots (heir.py)
+        import heir
+
+        results.update(heir.run_all(a.rom, a.out, report))
 
     report["results"] = results
     contact(a.out, sorted(p.name for p in a.out.glob("[0-2][0-9]_*.png")))
