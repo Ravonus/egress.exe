@@ -36,6 +36,25 @@ static void spr8(int16_t wx, int16_t wy, uint8_t tile, uint8_t pal) {
   move_sprite(oam_n, (uint8_t)sx, (uint8_t)sy);
   oam_n++;
 }
+/* room for one more 8x16 sprite at OAM y `oy` without an 11th on any of its lines (the hardware would drop it):
+ * the busiest of its lines is its top line or the top line of a sprite already placed over it */
+static uint8_t line_room(uint8_t oy) {
+  uint8_t ys[16], n = 0, k, j, c, top;
+  for (k = 0; k != oam_n; k++) {
+    uint8_t y = shadow_OAM[k].y;
+    if (y && (uint8_t)(y - oy + 15u) < 31u && n != 16u) ys[n++] = y; /* |y - oy| < 16: shares a line */
+  }
+  if (n < 10u) return 1;
+  for (j = 0; j <= n; j++) {
+    top = j == n ? oy : (ys[j] > oy ? ys[j] : oy); /* a candidate line, as the OAM y of a sprite starting there */
+    c = 1;
+    for (k = 0; k != n; k++)
+      if (ys[k] <= top && (uint8_t)(top - ys[k]) < 16u) c++;
+    if (c > 10u) return 0;
+  }
+  return 1;
+}
+
 /* 32x32: four columns of two 8x16 rows */
 static void spr32(int16_t wx, int16_t wy, uint8_t tile, uint8_t pal) {
   uint8_t r, c;
@@ -130,8 +149,9 @@ void draw_sprites(void) BANKED {
     if (orbs[k].live)
       spr8((int16_t)(orbs[k].x >> 4) - 4, (int16_t)(orbs[k].y >> 4) - 4, ST_ORB, orbs[k].friendly ? 4u : 5u);
   for (k = 0; k != MAXP; k++)
-    if (puffs[k].t) {
+    if (puffs[k].t) { /* cosmetic: left out where it would be an 11th sprite on a line */
       puffs[k].t--;
+      if (!line_room((uint8_t)((int16_t)puffs[k].y - 4 - (int16_t)((14u - puffs[k].t) >> 2) - cam_y + 12))) continue;
       spr8((int16_t)puffs[k].x - 4, (int16_t)puffs[k].y - 4 - (int16_t)((14u - puffs[k].t) >> 2), puffs[k].tile,
            puffs[k].pal);
     }
