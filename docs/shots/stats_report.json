@@ -1,0 +1,80 @@
+{
+ "layout": {
+  "record": 384,
+  "header": 4,
+  "lifetime_fields": 246,
+  "lifetime_share": 256,
+  "lineage_slot": 32,
+  "lineage_slots": 4,
+  "lineage_total": 128,
+  "spare": 4,
+  "crc_at": 382,
+  "both_copies": 768
+ },
+ "crc": {
+  "check_value": "0x29B1",
+  "single_bit_flips_caught": "165/165"
+ },
+ "roundtrip": {
+  "roundtrip_records": 2000
+ },
+ "ab": {
+  "ab_wrap_255_to_0": "B wins",
+  "torn_write": "A kept",
+  "blank": "fresh record"
+ },
+ "saturation": {
+  "u8": "254+1=255, 255+1=255, 252+250=255",
+  "u16": "65534+1=65535, 65535+1=65535, 65532+250=65535",
+  "u24": "16777214+1=16777215, 16777215+1=16777215, 16777212+250=16777215",
+  "packed": "deaths 0xFFFF, steps 0xFFFFFF, boss_gen 255 survive pack/unpack"
+ },
+ "favourites": {
+  "decay8_tags": "292/292 clear favourites right",
+  "recipes d4 (19 B)": "285/289 clear favourites right",
+  "recipes ss k=4 (12 B)": "208/289 clear favourites right",
+  "recipes ss k=6 (18 B)": "271/289 clear favourites right",
+  "recipes drift (400 x A then 60 x B)": "B"
+ },
+ "sram": {
+  "used": 5113,
+  "free": 3079,
+  "total": 8192,
+  "free_runs": [
+   "A2C0-A3AF (240)",
+   "AF68-B4BF (1368)",
+   "B740-BBFF (1216)",
+   "BF00-BFFE (255)"
+  ],
+  "claimed": "0xBC00-0xBEFF (768)",
+  "map": [
+   "A000-A01F    32 meta record A",
+   "A020-A03F    32 meta record B",
+   "A040-A13F   256 mid-run continue record A",
+   "A140-A23F   256 mid-run continue record B",
+   "A240-A2BF   128 sky event scenes (19)",
+   "A2C0-A3AF   240 free",
+   "A3B0-A3EF    64 inheritance",
+   "A3F0-A46F   128 seen history",
+   "A470-A56F   256 book (best tallies, recipe margins); the stats half moved to STATS",
+   "A570-AA6B  1276 tree copy A",
+   "AA6C-AF67  1276 tree copy B",
+   "AF68-B4BF  1368 free",
+   "B4C0-B4DF    32 kept clock A/B",
+   "B4E0-B4EF    16 HOST CLOCK block",
+   "B4F0-B4FF    16 RTC block",
+   "B500-B73F   576 face generator base layer",
+   "B740-BBFF  1216 free",
+   "BC00-BD7F   384 STATS record A (B3, 9.8)",
+   "BD80-BEFF   384 STATS record B (B3, 9.8)",
+   "BF00-BFFE   255 free",
+   "BFFF-BFFF     1 reserved: RTC access byte"
+  ]
+ },
+ "wram": {
+  "stage_accumulator": 78,
+  "bests_cache": 25,
+  "toast": 6,
+  "total": 109
+ }
+}

@@ -873,11 +873,13 @@ SRAM = [  # (start, size, content); the whole 8 KiB bank, 0xA000..0xBFFF
     (0xA000, 32, "meta record A"), (0xA020, 32, "meta record B"),
     (0xA040, 256, "mid-run continue A"), (0xA140, 256, "mid-run continue B"),
     (0xA240, 128, "sky event scenes (section 19)"), (0xA2C0, 240, "free"),
-    (0xA3B0, 64, "inheritance"), (0xA3F0, 128, "seen history"), (0xA470, 256, "stats and book"),
+    (0xA3B0, 64, "inheritance"), (0xA3F0, 128, "seen history"), (0xA470, 256, "book"),
     (0xA570, block_bytes(RING), "tree copy A"), (0xA570 + block_bytes(RING), block_bytes(RING), "tree copy B"),
     (0xA570 + 2 * block_bytes(RING), 0xB4C0 - 0xA570 - 2 * block_bytes(RING), "free"),
-    (0xB4C0, 32, "kept clock A/B (9.7.1)"), (0xB4E0, 16, "host clock block (9.7.1)"), (0xB4F0, 16, "free"),
-    (0xB500, 576, "face generator base layer"), (0xB740, 0xC000 - 0xB740, "free"),
+    (0xB4C0, 32, "kept clock A/B (9.7.1)"), (0xB4E0, 16, "host clock block (9.7.1)"), (0xB4F0, 16, "RTC block (16b)"),
+    (0xB500, 576, "face generator base layer"), (0xB740, 0xBC00 - 0xB740, "free"),
+    (0xBC00, 384, "STATS record A (9.8)"), (0xBD80, 384, "STATS record B (9.8)"), (0xBF00, 255, "free"),
+    (0xBFFF, 1, "RTC access byte (16b)"),
 ]
 
 

@@ -1,0 +1,52 @@
+[
+ {
+  "screen": "RUNS",
+  "bg_tile_violations": 0,
+  "bg_palettes_used": 7,
+  "unique_bg_tiles": 83,
+  "obj_palettes_used": 2,
+  "obj_violations": 0,
+  "sprites": 3,
+  "max_sprites_per_line": 2
+ },
+ {
+  "screen": "COMBAT",
+  "bg_tile_violations": 0,
+  "bg_palettes_used": 7,
+  "unique_bg_tiles": 90,
+  "obj_palettes_used": 2,
+  "obj_violations": 0,
+  "sprites": 3,
+  "max_sprites_per_line": 2
+ },
+ {
+  "screen": "RUNS blink",
+  "bg_tile_violations": 0,
+  "bg_palettes_used": 7,
+  "unique_bg_tiles": 83,
+  "obj_palettes_used": 2,
+  "obj_violations": 0,
+  "sprites": 3,
+  "max_sprites_per_line": 2
+ },
+ {
+  "screen": "COMBAT blink",
+  "bg_tile_violations": 0,
+  "bg_palettes_used": 7,
+  "unique_bg_tiles": 90,
+  "obj_palettes_used": 2,
+  "obj_violations": 0,
+  "sprites": 3,
+  "max_sprites_per_line": 2
+ },
+ {
+  "big_font_tiles": 23,
+  "glyphs": "0-9 F : ."
+ },
+ {
+  "screen": "toast row",
+  "colours_fit_HUD_palette": true,
+  "obj": "star 2 x 8x16 + 2 sparkles, OBJ5 (particles)",
+  "new_bg_tiles": 1
+ }
+]

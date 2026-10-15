@@ -50,6 +50,7 @@ dithered tiles, objects, panels, HUD and the M2 font), with faces from the share
 | `proto/genetics/out/tree_*.png`, `drift.png` | 30 generations of a family: faces and bred-for abilities |
 | `docs/shots/tree_*.png`, `tree_scroll.gif` | the family tree screen (section 9.6): live end, founders, a road not taken, LOOKS / STATS / TRUTH views, node detail |
 | `docs/shots/boot_compare.png` | the ported KEEL boot, frame by frame against CRUCIBLE's |
+| `docs/shots/mock_stats.png` | the STATS screen (9.8): RUNS and COMBAT at 1x and 3x, a NEW record blinking, the in-game record toast |
 
 These are mock-ups: hand-placed compositions of the kit's pieces. Mobs on the scene mocks are 2:1 reductions of the
 48 px faces; the generated mob looks are in `mock_mobs.png`.
@@ -1574,7 +1575,7 @@ both tree copies fit (`tree_report.json`, entry "save").
 | `0xA2C0`–`0xA3AF` | 240 | **free** (the old 16 x 20 lineage rows lived here) |
 | `0xA3B0`–`0xA3EF` | 64 | inheritance: mods unlocked 8, known recipes 6, forgotten 6, faction trace 6, truth leaning 8, reserved 28, CRC 2 |
 | `0xA3F0`–`0xA46F` | 128 | seen history: tricks, stage types and biomes recently dealt; book bits for the recipes; talks heard; treasure tallies |
-| `0xA470`–`0xA56F` | 256 | stats and book |
+| `0xA470`–`0xA56F` | 256 | book: best tallies per stage type (4b), recipe margins. The lifetime stats moved to their own record (9.8) |
 | `0xA570`–`0xAA6B` | 1,276 | **tree copy A** (9.6): header 6, ring 24 x 49, founders 50, waiting kids 42, CRC 2 |
 | `0xAA6C`–`0xAF67` | 1,276 | **tree copy B** (same layout; the higher valid sequence wins) |
 | `0xAF68`–`0xB4BF` | 1,368 | **free** |
@@ -1582,13 +1583,20 @@ both tree copies fit (`tree_report.json`, entry "save").
 | `0xB4E0`–`0xB4EF` | 16 | HOST CLOCK block (9.7.1) |
 | `0xB4F0`–`0xB4FF` | 16 | RTC block (16b): chip anchor base, fold count and flags. The RTC build only; the MBC5 build leaves it untouched |
 | `0xB500`–`0xB73F` | 576 | face generator base layer (`base_` in `crucible_avatar_int.h`, one 48x48 2bpp face) |
-| `0xB740`–`0xBFFE` | 2,239 | **free** (the old table reserved 2.75 KB for the face generator; the port only uses 576 B) |
+| `0xB740`–`0xBBFF` | 1,216 | **free** (the old table reserved 2.75 KB for the face generator; the port only uses 576 B) |
+| `0xBC00`–`0xBD7F` | 384 | **STATS record A** (B3, 9.8): header 4, lifetime fields 246, lineage slots 4 x 32, spare 4, CRC-16 |
+| `0xBD80`–`0xBEFF` | 384 | **STATS record B** (the same layout; the higher valid sequence wins) |
+| `0xBF00`–`0xBFFE` | 255 | **free** |
 | `0xBFFF` | 1 | reserved: the byte the RTC build's register access goes through (16b), never used for save data |
 
-- **Used: 4,345 bytes. Free: 3,847 bytes**, in three runs: 240 at `0xA2C0`, 1,368 at `0xAF68` and 2,239 at
-  `0xB740`.
+- **Used: 5,113 bytes. Free: 3,079 bytes**, in four runs: 240 at `0xA2C0`, 1,368 at `0xAF68`, 1,216 at `0xB740`
+  and 255 at `0xBF00`. Before B3 it was 4,345 used and 3,847 free.
+- **B3's claim is `0xBC00`–`0xBEFF` (768 bytes, the STATS A/B pair) and nothing else.** The other rows are run50's
+  to change: its shortcut and mid-run resume rows should come from the `0xA2C0`, `0xAF68` or `0xB740`–`0xBBFF`
+  runs. `tools/mock/stats_save.py` checks this map: contiguous, ending at `0xC000`, and the claim clear of every
+  other row.
 - **The lineage** (both tree copies plus inheritance) is 2,616 bytes, up from 432 for the first 16 x 20 ring.
-- **24 heirs fit with room to spare.** Between the stats (`0xA570`) and the kept clock (`0xB4C0`) there are 3,920
+- **24 heirs fit with room to spare.** Between the book (it ends at `0xA56F`) and the kept clock (`0xB4C0`) there are 3,920
   bytes; two copies of the tree block take 2 x (100 + 49 x N), so the largest ring that fits there is **37 heirs**
   (and more if the tree moved into the `0xB740` run).
 - The ring keeps the last 24 heirs. The newest 16 are the gene pool (9.3). An heir leaving the ring is folded into the
@@ -2211,6 +2219,368 @@ shower from 24 h before its peak to 12 h after; Halley ±30 days) is **sky-born*
 6. **Event-born (19.4).** Settled: simulated in 9.7.11, at most +0.9 against the ±3 bound. Still open: 9.2's
    flags table still says "spare". It belongs to the 9.2 owner to rename it SKYBORN.
 
+### 9.8 STATS: the screen and its record (B3, saves)
+
+A STATS screen in the spirit of the shared world's (CRUCIBLE keeps a list of personal records on a page turned with
+Left/Right). EGRESS's version is its own: eight pages of big numbers on synthwave cards, each with small icons and a
+line of flavour, and a NEW record blinks until you've seen it. The record behind it is small, fixed-size and A/B
+copied with a CRC like every other block in 9.5. Nothing is counted per frame. A stage collects its numbers in WRAM,
+and they are written to SRAM once, when the stage ends or the heir dies.
+
+**Files.**
+- `tools/mock/stats_save.py` is the byte layout and the host check: pack/unpack, CRC, A/B, saturation, the
+  favourite schemes against exact counts, and the SRAM map. `--table` prints the offset tables below, so the doc and
+  the check can't drift. Results are in `docs/shots/stats_report.json`.
+- `tools/mock/stats_mock.py` draws `docs/shots/mock_stats.png` from a packed record (pack → unpack → screen), checks
+  the CGB limits and writes `stats_mock_report.json`. Native frames: `mock_stats_runs_1x.png` and
+  `mock_stats_combat_1x.png`.
+
+![stats](shots/mock_stats.png)
+
+#### 9.8.1 What is tracked
+
+Lifetime (all lines) for everything, and per line where a line can be compared with another (9.8.3).
+
+| Page | Lifetime | Per line |
+| --- | --- | --- |
+| RUNS | runs, deaths, egresses (full clears), the deepest floor and its biome and generation, heirs played, lines founded, the longest-lived heir (and their name), total play time, the fastest biome clear, the fastest whole run | runs, egresses, deepest, generations, longest-lived heir |
+| COMBAT | kills, kills by mob family (8), elites, each biome's boss (times beaten and the generation of the first kill), damage dealt and taken, perfect parries, dodge-cancel lunges, kills by crush, by the void and by a reaction, the longest no-hit streak | kills, bosses beaten (mask) |
+| PUZZLES | rooms solved, THE ROOM FORGETS resets, glass broken, tiles collapsed, block pushes, living-obstacle rooms solved (outwitted), the fastest solve per trick type (14) | rooms solved |
+| BENCH | recipes made, discovered/38, the favourite recipe, reactions by type (the 12 of 12b), the most-used element (tag) | recipes made |
+| TREASURE | found / offered, hidden ones found, cursed items taken, tokens earned and spent, the best trade | treasure found, tokens earned |
+| LINEAGE | the most common trait, the rarest mutation seen (and when), the most-bred dodge style, ancestors met as ghosts or bodies, the longest line; the matrix: each faction's best and worst standing, lore read, truths glimpsed (a count, never named) | founder, founded date, open/closed, ghosts met, mutations and glitch births, the line's own dominant trait and dodge |
+| SKY | eclipse days played through, floors cleared under a retrograde, meteor wishes caught, birthdays celebrated, HALLEY (a first flag: you were there, and whether you kept the tail) | - |
+| ODDITIES | deaths by your own CRT, deaths by your own hand, steps taken, dozes (the 30 s idle), times you let go of the floor, the most visited biome | - |
+
+Per heir there is nothing new: the tree node already keeps kills and rooms cleared (9.6), and the epitaph its cause.
+
+**The run is changing.** A run is now about 50 floors over 8 biomes (branch run50). The layout already allows it: the
+floor is 6 bits (1..63), the biome 3, and bosses are counted per **biome slot** (8), whatever run50 settles as the
+boss that closes each biome. The fastest biome clear runs from a biome's first floor entry to its last floor's exit.
+
+#### 9.8.2 The record
+
+**Sizes.**
+- One copy: **384 bytes**, in two parts.
+  - **Lifetime share: 256 bytes:** a 4-byte header, **246 bytes of lifetime fields**, a 4-byte spare and the
+    2-byte CRC. The spare and the CRC sit at the end of the record, after the lineage slots.
+  - **Lineage: 128 bytes:** 4 slots x **32 bytes**.
+- Two copies (A/B): **768 bytes**, at `0xBC00`–`0xBEFF` (9.5).
+
+**Encodings.**
+- **Counters saturate.** They stick at their maximum and never wrap: u16 for most, u24 only for steps, times,
+  lifespans, kills, damage dealt, tokens, tiles collapsed, pushes and recipes made.
+- **Little-endian**, like the other records.
+- **Bitfields for firsts and flags.**
+- **The CRC** is CRC-16/CCITT-FALSE (the meta record's `egc_crc16`, with a 16-bit length) over bytes
+  `0x000`–`0x17D`.
+- **A/B.** The valid copy with the newer sequence wins (a serial compare, so 0 beats 255). A write goes to the older
+  copy, with the sequence and CRC last, so a power cut mid-write keeps the other copy.
+
+**Lifetime fields** (one copy; offsets from the record's start):
+
+| Offset | Size | Field | Page | Meaning |
+| --- | --- | --- | --- | --- |
+| `0x000` | 2 | `magic` (raw x 2) | - | 'S','T' |
+| `0x002` | 1 | `version` (u8) | - | 1 |
+| `0x003` | 1 | `seq` (u8) | - | write sequence; the newer valid copy wins (serial compare) |
+| `0x004` | 2 | `runs` (u16) | RUNS | runs started |
+| `0x006` | 2 | `deaths` (u16) | RUNS | heirs lost |
+| `0x008` | 2 | `egresses` (u16) | RUNS | full clears (the last floor's egress) |
+| `0x00A` | 2 | `deep` (u16) | RUNS | deepest: floor bits 0-5 (1..63), biome bits 6-8, spare 9-15 |
+| `0x00C` | 2 | `deep_gen` (u16) | RUNS | the generation (in its line) of that deepest run |
+| `0x00E` | 2 | `heirs` (u16) | RUNS | generations played, all lines |
+| `0x010` | 1 | `lines` (u8) | RUNS | lines founded |
+| `0x011` | 3 | `long_life` (u24) | RUNS | longest-lived heir, minutes (birth stamp to death) |
+| `0x014` | 1 | `long_name` (u8) | RUNS | that heir's name id |
+| `0x015` | 2 | `long_line` (u16) | LINEAGE | most generations in one line |
+| `0x017` | 3 | `play_s` (u24) | RUNS | total play time, seconds (194 days) |
+| `0x01A` | 2 | `fast_biome` (u16) | RUNS | fastest biome clear, seconds (0 = none) |
+| `0x01C` | 1 | `fast_biome_id` (u8) | RUNS | its biome (bits 0-2); bits 3-7 spare |
+| `0x01D` | 3 | `fast_egress` (u24) | RUNS | fastest whole run to the egress, seconds (0 = none) |
+| `0x020` | 3 | `kills` (u24) | COMBAT | all kills |
+| `0x023` | 16 | `kills_fam` (u16 x 8) | COMBAT | kills by mob family (one per biome, 7.1) |
+| `0x033` | 2 | `elites` (u16) | COMBAT | elites killed |
+| `0x035` | 8 | `boss_n` (u8 x 8) | COMBAT | each biome's boss slot: times beaten |
+| `0x03D` | 8 | `boss_gen` (u8 x 8) | COMBAT | generation of the first kill (0 never, 255 = 255+) |
+| `0x045` | 3 | `dmg_out` (u24) | COMBAT | damage dealt |
+| `0x048` | 2 | `dmg_in` (u16) | COMBAT | damage taken, half hearts |
+| `0x04A` | 2 | `parries` (u16) | COMBAT | perfect parries |
+| `0x04C` | 2 | `lunges` (u16) | COMBAT | dodge-cancel lunges (B then A) |
+| `0x04E` | 2 | `k_crush` (u16) | COMBAT | kills by crushing |
+| `0x050` | 2 | `k_void` (u16) | COMBAT | kills by the void (shoved or dropped) |
+| `0x052` | 2 | `k_react` (u16) | COMBAT | kills by a reaction |
+| `0x054` | 2 | `nohit` (u16) | COMBAT | longest no-hit streak, kills in a row |
+| `0x056` | 2 | `solved` (u16) | PUZZLES | puzzle rooms solved |
+| `0x058` | 2 | `forgets` (u16) | PUZZLES | THE ROOM FORGETS resets taken |
+| `0x05A` | 2 | `glass` (u16) | PUZZLES | glass broken (floor glass and partitions) |
+| `0x05C` | 3 | `collapsed` (u24) | PUZZLES | tiles collapsed under or behind you |
+| `0x05F` | 3 | `pushed` (u24) | PUZZLES | block pushes |
+| `0x062` | 2 | `outwit` (u16) | PUZZLES | rooms with a living obstacle solved (7.7) |
+| `0x064` | 14 | `trick_best` (u8 x 14) | PUZZLES | fastest solve per trick type 1-14, seconds (0 never, 255 = 4:15+) |
+| `0x072` | 3 | `mixes` (u24) | BENCH | recipes made |
+| `0x075` | 5 | `known` (raw x 5) | BENCH | recipes ever discovered: 38-bit mask (bits 38-39 spare) |
+| `0x07A` | 19 | `fav` (d4 x 38) | BENCH | favourite recipe: DECAY4, a nibble per recipe (halve all at 15) |
+| `0x08D` | 24 | `reacts` (u16 x 12) | BENCH | reactions triggered, by the 12 cause reactions (12b) |
+| `0x0A5` | 8 | `tags` (d8 x 8) | BENCH | element use by tag (HOT COLD WET SHINY ALIVE MAGIC GLITCH STONE) |
+| `0x0AD` | 2 | `t_found` (u16) | TREASURE | patches found |
+| `0x0AF` | 2 | `t_seen` (u16) | TREASURE | patches offered (the X of 'FOUND 2 OF X') |
+| `0x0B1` | 2 | `t_hidden` (u16) | TREASURE | hidden patches found |
+| `0x0B3` | 2 | `t_cursed` (u16) | TREASURE | cursed items taken |
+| `0x0B5` | 3 | `tok_in` (u24) | TREASURE | tokens earned |
+| `0x0B8` | 3 | `tok_out` (u24) | TREASURE | tokens spent |
+| `0x0BB` | 1 | `trade_id` (u8) | TREASURE | best trade: the item id |
+| `0x0BC` | 2 | `trade_gain` (u16) | TREASURE | best trade: ROM value minus the price paid, tokens |
+| `0x0BE` | 10 | `traits` (d8 x 10) | LINEAGE | expressed traits of played heirs, DECAY8 (9.2 order) |
+| `0x0C8` | 3 | `dodges` (d8 x 3) | LINEAGE | dodge styles of played heirs, DECAY8 (ROLL SLIDE BLINK) |
+| `0x0CB` | 1 | `rare_mut` (u8) | LINEAGE | rarest mutation seen: bits 0-3 trait, 4-7 rarity rank (lower is rarer) |
+| `0x0CC` | 2 | `rare_gen` (u16) | LINEAGE | the generation it appeared in |
+| `0x0CE` | 2 | `ghosts` (u16) | LINEAGE | ancestors met as ghosts or bodies |
+| `0x0D0` | 6 | `faction_pk` (raw x 6) | LINEAGE | per faction: high nibble best standing, low nibble worst (offset 8) |
+| `0x0D6` | 2 | `lore` (u16) | LINEAGE | lore fragments read |
+| `0x0D8` | 1 | `glimpses` (raw) | LINEAGE | truths glimpsed: 4 axes x 2 leanings (shown as a count, never named) |
+| `0x0D9` | 1 | `eclipses` (u8) | SKY | eclipse days played through |
+| `0x0DA` | 2 | `retros` (u16) | SKY | floors cleared under a retrograde |
+| `0x0DC` | 2 | `wishes` (u16) | SKY | meteor wishes caught |
+| `0x0DE` | 1 | `birthdays` (u8) | SKY | birthdays celebrated (solar returns played) |
+| `0x0DF` | 2 | `crt_self` (u16) | ODDITIES | deaths by your own CRT |
+| `0x0E1` | 2 | `self_deaths` (u16) | ODDITIES | deaths by your own hand (owner SELF) |
+| `0x0E3` | 3 | `steps` (u24) | ODDITIES | steps taken (16 px cells entered) |
+| `0x0E6` | 2 | `dozes` (u16) | ODDITIES | times the heir dozed off (30 s idle) |
+| `0x0E8` | 2 | `falls` (u16) | ODDITIES | times you let go of the floor |
+| `0x0EA` | 8 | `visits` (d8 x 8) | ODDITIES | floors entered per biome, DECAY8 |
+| `0x0F2` | 4 | `firsts` (raw x 4) | - | 32 first-time flags (FIRSTS below) |
+| `0x0F6` | 4 | `unseen` (raw x 4) | - | 32 NEW-record bits: set at commit, cleared when that page is viewed (they blink) |
+| `0x0FA` | 128 | lineage slots 0-3 (4 x 32) | LINEAGE | below |
+| `0x17A` | 4 | spare (zero) | - | |
+| `0x17E` | 2 | CRC-16/CCITT-FALSE, LE | - | over bytes 0x000-0x17D |
+
+**Firsts** (`firsts`, 32 bits, 24 used, in order): egress, elite, perfect parry, boss (any), all 8 bosses, egress
+with no hits taken, 38 of 38 recipes, solar eclipse, lunar eclipse, meteor wish, birthday, HALLEY (you were there),
+HALLEY'S TAIL kept, glitch birth, mutation, SKYBORN heir, a line of 10, a line of 30, every biome entered, a cursed
+item, a ghost met, own CRT death, a doze, 100 floors cleared. Firsts are the cheap fun facts: they cost a bit each,
+and the pages show them as lit icons.
+
+**NEW bits** (`unseen`, 32 bits, 24 used): deepest, fastest biome, fastest egress, longest life, longest line, no-hit
+streak, best trade, rarest mutation, new recipe, boss first kill, and one per trick type (14). The commit sets a bit
+when it beats a record. Viewing the page that shows that record clears it. While any bit is set, the title menu's
+STATS item and the pause menu's carry a small star.
+
+**Lineage slot** (32 bytes, 4 slots after the lifetime fields):
+
+| Offset | Size | Field | Meaning |
+| --- | --- | --- | --- |
+| 0 | 1 | `line_no` (u8) | line number (1, 2, 3...) |
+| 1 | 1 | `founder` (u8) | founder's name id |
+| 2 | 2 | `founded` (u16) | founded: days since 2000-01-01 (the kept clock) |
+| 4 | 1 | `state` (u8) | bit 0 used, bit 1 closed (NO ONE CAME AFTER), bits 2-5 the line's kind |
+| 5 | 2 | `gens` (u16) | generations |
+| 7 | 2 | `runs` (u16) | runs |
+| 9 | 1 | `egresses` (u8) | full clears |
+| 10 | 2 | `deep` (u16) | deepest floor and biome (the lifetime 'deep' packing) |
+| 12 | 3 | `kills` (u24) | kills |
+| 15 | 1 | `bosses` (raw) | biome boss slots beaten (8-bit mask) |
+| 16 | 2 | `solved` (u16) | puzzle rooms solved |
+| 18 | 2 | `mixes` (u16) | recipes made |
+| 20 | 2 | `t_found` (u16) | treasure found |
+| 22 | 3 | `tok_in` (u24) | tokens earned |
+| 25 | 3 | `long_life` (u24) | longest-lived heir, minutes |
+| 28 | 1 | `long_name` (u8) | that heir's name id |
+| 29 | 1 | `ghosts` (u8) | ancestors met as ghosts or bodies |
+| 30 | 1 | `muts` (raw) | mutations (low nibble) and glitch births (high nibble), saturating at 15 |
+| 31 | 1 | `dominant` (raw) | most common trait (bits 0-3, 0 none) and dodge style (bits 4-5); recounted from the tree ring at each pick |
+
+**Lineage slots.**
+- **Which lines are kept.** The live line always has a slot. When a line ends ("NO ONE CAME AFTER", 12b.7) its
+  slot is marked closed and kept. A fifth line reuses the oldest closed slot. Its numbers stay in the lifetime
+  fields, so nothing is lost from the totals, only that line's own column.
+- **The dominant trait and dodge** are recounted from the tree ring (24 nodes, plus the founders' trait mask) at each
+  heir pick, which is already in SRAM, and frozen when the line closes. They cost no counters.
+
+#### 9.8.3 Favourites and "most" values
+
+The schemes are chosen by the size of the alphabet. `stats_save.py` checks each one against exact counts on
+simulated play (Zipf tastes, 30 to 30,000 events; "clear" means the top item leads the next by 10% or more):
+
+| Value | Scheme | Bytes | Check |
+| --- | --- | --- | --- |
+| most-used element (8 tags), most visited biome (8), most common trait (10), most-bred dodge (3) | **DECAY8:** one u8 counter per kind. When the bumped counter would pass 255, every counter is halved first, then it is bumped. The favourite is the argmax (ties go to the lower id) | 1 per kind | 292/292 clear favourites right |
+| favourite recipe (38) | **DECAY4:** the same rule with one nibble per recipe (halve all at 15) | 19 | 285/289; it follows a change of taste (400 x A, then 60 x B gives B) |
+| (rejected) favourite recipe | Space-Saving top-k: (id, n) slots, a miss replaces the smallest | 12 (k=4), 18 (k=6) | 208/289 and 271/289: it loses the favourite when tastes are flat |
+| deepest, fastest, longest, best trade, rarest mutation | **running best:** one value (plus its id); replaced when beaten | as listed | exact |
+| reactions by type (12), kills by family (8), bosses (8) | exact saturating counters: the alphabet is small enough | 24, 16, 16 | exact |
+
+DECAY counts lean toward recent play, which suits a favourite: the screen shows what you reach for now, not what you
+did in your first ten hours. The exact totals (MIXES, the reaction counts) are kept separately, so no shown number
+depends on a decayed counter.
+
+#### 9.8.4 Counting without per-frame cost
+
+**During a stage** every counter is a WRAM byte or word, bumped at the event that already happens: a kill, a parry
+resolved, a cell entered (the fragile-tile code already sees it), a reaction resolved, a mix, a pickup, the idle
+animation's doze. That is a load, an add and a store, a few M-cycles per event, and nothing runs per frame.
+- **Timers** read the kept clock's VBlank count (9.7.1) at the start and at the end, so a room or stage time is one
+  subtraction, never a per-frame increment.
+- **Saturation.** Stage deltas are u8 where a stage can't reach 255 (kills, mixes, glass) and u16 where it can (damage,
+  steps, collapsed tiles). They saturate too.
+- **The mix log** holds 8 recipe ids a stage. A ninth mix still counts in MIXES; only its DECAY4 bump is skipped.
+
+**Stage accumulator in WRAM** (resident during play):
+
+| WRAM | Bytes | Note |
+| --- | --- | --- |
+| `d_kills` | 1 | kills this stage |
+| `d_fam` | 8 | kills by family |
+| `d_elites` | 1 |  |
+| `d_boss` | 1 | biome boss slot beaten (bit 7) + id |
+| `d_dmg_out` | 2 |  |
+| `d_dmg_in` | 1 | half hearts |
+| `d_parries` | 1 |  |
+| `d_lunges` | 1 |  |
+| `d_kcause` | 3 | crush, void, reaction kills |
+| `nohit_cur` | 2 | the live streak (run-long; reset on a hit) |
+| `d_solved` | 1 |  |
+| `d_forgets` | 1 |  |
+| `d_glass` | 1 |  |
+| `d_collapsed` | 2 |  |
+| `d_pushed` | 1 |  |
+| `d_outwit` | 1 |  |
+| `room_t0` | 2 | the room's entry frame stamp (from the kept clock) |
+| `d_mixes` | 1 |  |
+| `mix_log` | 8 | recipe ids made this stage, bumped into DECAY4 at commit (a 9th mix still counts in MIXES) |
+| `d_reacts` | 12 | per reaction |
+| `d_tags` | 8 | per tag |
+| `d_treasure` | 4 | found, seen, hidden, cursed |
+| `d_tokens` | 4 | earned u16, spent u16 |
+| `d_trade` | 3 | best trade this stage |
+| `d_ghosts` | 1 |  |
+| `d_steps` | 2 |  |
+| `d_dozes` | 1 |  |
+| `d_sky` | 1 | eclipse, retrograde, wish, birthday bits this stage |
+| `stage_t0` | 3 | stage entry frame stamp |
+| `bests` | 25 | bests cache, loaded at run start, updated live, written back at commit: deep floor 1, no-hit 2, trick bests 14, fastest biome 2, known-recipe mask 5, toast-fired flags 1 |
+| `toast` | 6 | queue of 4 record ids + timer + state |
+
+- **Resident WRAM: 109 bytes.** That's the stage accumulator (78), the bests cache (25) and the toast queue (6).
+- **The bests cache** holds the records that can fire a toast mid-stage. It is loaded from the record at run start,
+  updated live, and written back by the commit. So the screen and the toasts never touch SRAM during play.
+
+**The commit**, at stage end (behind the room's collapse into the next stage) and at death (at the start of the death
+card, 12b):
+1. Enable SRAM. Copy the valid copy over the older one.
+2. Merge in the stage deltas, all saturating:
+   - the lifetime fields and the live line's slot;
+   - the DECAY bumps;
+   - the bests cache's running bests;
+   - the firsts and NEW bits;
+   - milestones (below).
+3. Write the new sequence, then the CRC. Disable SRAM.
+4. Clear the deltas. The run-long no-hit streak is kept.
+
+**Commit cost.** About 100k M-cycles, almost all of it the bitwise CRC over 382 bytes (about 240 M-cycles a byte).
+That is roughly 3 frames at double speed, hidden in the transition. Boot verifies both copies, about 6 frames, under
+the KEEL boot. These are estimates, not yet measured on the cartridge. A 512-byte CRC table would cut them by about 4x
+if the boot ever needs the time.
+
+**Pausing mid-stage.** STATS opened from the pause menu draws the committed record plus the live deltas, so the
+numbers include the stage you are in.
+
+#### 9.8.5 The screen
+
+`mock_stats.png`: RUNS and COMBAT at 1x and 3x, a NEW record blinking, and the in-game toast over a real B1 capture.
+
+**Where it opens.**
+- **The title menu:** STATS sits under TREE (9.6).
+- **The pause menu:** resume, book, tree, **stats**, setup, leave (12).
+- B or START closes it and returns to wherever it was opened from.
+
+**Paging.** Left/Right flips through 8 pages and wraps: RUNS, COMBAT, PUZZLES, BENCH, TREASURE, LINEAGE, SKY,
+ODDITIES. A flip is a 3-frame VHS tear: SCX per line, the rewind look of the retrograde scene (19). Behind it, the
+new page's map and attributes are copied from a WRAM shadow, one VBlank each.
+
+**Layout** (20 x 18 tiles):
+
+| Rows | Content |
+| --- | --- |
+| 0 | header: page icon, page name, 8 page pips (the current one a cyan dash). The ◄ ► arrows are OBJ and bob 1 px every 16 frames: they are the paging cue |
+| 1, 5, 9, 13 | card rims on the void: cyan over pink, 2 px, corners cut (the EGRESS panel edge). Flat cards, no fake lighting |
+| 2–4, 6–8, 10–12 | three rows of cards: two 10-tile stat cards, or one 20-tile card for bars and icon rows |
+| 14–15 | the record strip: two lines of small text (`OLDEST ISA 4D 07H`, `FASTEST 4:12 OFFICE`) |
+| 16 | void |
+| 17 | the page's flavour line, centred, 18 glyphs at most (12) |
+
+**Stat cards.** Each card has an 8x8 icon and a label in lilac. Under them is the **big number**, in a VCR clock face:
+7-segment digits, 8x16 (two tiles each), cyan over pink with a 3-row dithered band and an ink shadow. After the
+number goes a small sub-value (`/347`, `G19`, `HRS`) or the NEW tag.
+
+**The pages:**
+
+| Page | Cards (big numbers) | Wide card | Strip | Flavour |
+| --- | --- | --- | --- | --- |
+| RUNS (mocked) | RUNS, DEATHS, EGRESS /runs, DEEPEST F47 G19, HEIRS, PLAYED HRS | - | oldest heir; fastest biome | SO MANY DOORS. |
+| COMBAT (mocked) | KILLS, NO-HIT, PARRIES, LUNGES | kills by family (8 bars, the top one mint); bosses (8 crowns, lit when beaten) and FIRST G4 | damage out and in; crush and void kills | THEY STARTED IT. |
+| PUZZLES | SOLVED, FORGETS, GLASS, PUSHED | the 14 trick glyphs in two rows, lit once solved, NEW ones blinking | the fastest trick best; outwitted and tiles collapsed | THE ROOM REMEMBERS. |
+| BENCH | MADE, FOUND 31/38 | the 12 reactions as bars; the favourite recipe's icon and name; the element as a tag chip | the top reaction and its count | STEAM, AGAIN? |
+| TREASURE | FOUND /offered, HIDDEN, TOKENS IN, OUT | cursed taken; the best trade (icon and gain) | find rate; hidden share | FINDERS, KEEPERS. |
+| LINEAGE | LINES, LONGEST LINE, GHOSTS | the common trait and dodge as chips; 6 faction pips (best and worst ticks); TRUTHS 3 GLIMPSED | the rarest mutation and its generation | SAME HANDS? |
+| SKY | ECLIPSES, RETROGRADES, WISHES, BIRTHDAYS | HALLEY: a lit comet if you were there, otherwise a dim 2061 | sky firsts as icons | THE SKY WATCHED. |
+| ODDITIES | STEPS (7 digits fit), DOZES, OWN CRT, LET GO | the most visited biome; own-hand deaths | the remaining firsts as icons | YOU WERE HERE. |
+
+- **LINEAGE's line slots.** On the LINEAGE page, Up/Down steps through ALL LINES (the lifetime numbers), THIS LINE
+  and the kept closed lines. Only the card values change.
+- **A NEW record blinks.** Its digits, its NEW tag and any small NEW value use BG palette 6. Palette 6 toggles every
+  16 frames between the digit colours and yellow/white: one 8-byte palette write blinks every NEW thing on the page
+  at once. One sparkle OBJ sits on each NEW number. Viewing a page clears its NEW bits; the screen writes them back
+  on close with the commit path (one A/B write).
+
+#### 9.8.6 The in-game toast
+
+The record toast is the HUD's own toast (`hud_msg` in `src/hud.c`): the window rises 8 px for one text row, for
+about 150 frames.
+- **The text** is 18 glyphs at most: `NO-HIT STREAK 48`, `DEEPEST EVER F48`, `KETTLE BEST 0:09`. It is led by a star
+  glyph, one extra HUD tile in the accent colour.
+- **The row glitches in:** 2 frames of per-line SCX tear.
+- **A 16x16 star** (2 x 8x16 OBJ in the particle palette, 5.5) pops above the row with 2 sparkles from the particle
+  pool. It settles, then blinks out a half at a time.
+- **The sound** is a two-note chime in the music's key (14).
+
+**What fires one:**
+- **Live records,** compared at the event against the bests cache:
+  - deeper than ever (on floor entry);
+  - the no-hit streak passing its best (once a run);
+  - a trick best (on solve);
+  - the fastest biome (on clear);
+  - a boss slot's first kill;
+  - a recipe never made before.
+- **Milestones,** found at the commit: a counter crossing 100, 1,000, 10,000 and so on (runs, kills, steps, recipes
+  made, rooms solved). These wait for the next safe moment.
+
+**Rules.**
+- A record toast never pre-empts a gameplay message; it waits while one shows.
+- None plays during a boss's phase change or the death sequence.
+- The queue holds 4. When it overflows, the oldest is dropped, and the page still blinks the record.
+
+#### 9.8.7 GBC budget (checked by `stats_mock.py`)
+
+| Item | Budget | Measured in the mock |
+| --- | --- | --- |
+| BG palettes | 8: VOID, FRAME, LABEL, DIGIT, ICON-A, ICON-B, NEW (blinks), HEAD | 0 tile violations on all 4 frames (both pages, both blink states) |
+| OBJ palettes | 2: arrows (white, cyan, pink) and sparkles (white, yellow, pink); the toast uses the play's particle palette | 0 violations; at most 2 sprites a line (3 on screen, at most 6 with 4 NEW records) |
+| BG tiles | **224 reserved** (3,584 B), loaded once by HDMA behind the opening fade: the small font in two inks (≤ 96), the big font (23), icons (≤ 64: 8 page icons plus about 7 a page), rims, pips, bars and crowns (≤ 32) | RUNS 83, COMBAT 90, both pages together 117 unique tiles |
+| Big-number font | 13 glyphs (0–9, F, :, .), 2 tiles each = 23 unique tiles, 368 B of ROM | 23 |
+| VRAM per page flip | map + attributes for 18 rows: 2 x 576 B by GDMA, one VBlank each | - |
+| WRAM, screen only | a 720 B shadow map and attributes plus a 384 B record copy = **1,104 B**, from the screen scratch the tree screen also uses (not resident in play) | - |
+| WRAM, in play | **109 B** (9.8.4) | - |
+| The toast | 1 extra HUD tile (the star glyph), 4 OBJ tiles (the 16x16 star), the particle palette, no new BG palette | the toast row fits the HUD palette |
+
+#### 9.8.8 Open questions
+
+1. **The fastest biome clear: one record or eight?** One per biome would cost 13 more bytes. The lifetime share
+   has 4 spare, so another field would have to shrink first.
+2. **Favourite counts.** DECAY values aren't counts, so the screen shows the favourite's name only. Is that enough?
+3. **Four line slots.** Enough, or should closed lines keep only a 16-byte summary so 6 fit?
+4. **Play time** counts unpaused play only (menus and pause don't count). Is that right?
+
 ---
 
 ## 10. Story: a small calamity
@@ -2313,8 +2683,9 @@ Every text screen gets a layout test in the harness, which renders every string 
 - tree (the lineage);
 - bench;
 - book (the recipes you know, with margins for fragments);
+- stats (9.8): eight pages of lifetime and per-line records, from the title menu and the pause menu;
 - landing (talker plus trader);
-- pause (resume, book, tree, setup, leave);
+- pause (resume, book, tree, stats, setup, leave);
 - setup (4/8-way, music and SFX volume, palette assist);
 - ending (the question).
 
@@ -3023,6 +3394,9 @@ Both builds use one layout, 9.5's map in SRAM bank 0. The only difference is the
 | `0xB4F0`–`0xB4FF` | 16 | **RTC block**: `RT`, version 1, flags (valid, folding, host), base u32 LE, folds, offset, CRC-16 | never touched | read/written |
 | `0xBFFF` | 1 | RTC access byte (the RTC port address; stray accesses land here on a flash cart without a clock) | never touched | reserved |
 
+The STATS record (`0xBC00`–`0xBEFF`, 9.8) is the same in both builds. It sits below the `0xBFFF` access byte, with
+255 free bytes between them.
+
 - **Board RAM.** An MBC3 board can carry 32 KiB of RAM (4 banks), but the header declares 8 KiB and the game uses
   bank 0 only. The RTC registers are mapped in through the same `0x4000` register (`0x08`–`0x0C`), not stored in
   RAM.
@@ -3146,6 +3520,9 @@ left in cycles. The ledger is folded in here when the fullscreen work lands (15.
 3. **The matrix:** pieces, the reaction table, weapons/mods, particles/FX/SFX.
 4. **Mobs, elites, conditions, stage types, biomes**; the stage sim.
 5. **Heirs, lineage, save, tree screen**; story fragments and the truth matrix.
+   - **B3 (saves)** includes the STATS record at `0xBC00`–`0xBEFF`, the stage accumulator and its commit at stage end
+     and death, the STATS screen (title and pause menus) and the record toasts (9.8). The checks:
+     `stats_save.py` (layout, CRC, A/B, saturation, favourites, SRAM map) and `stats_mock.py` (CGB limits).
 6. **Bosses.**
 7. **Music system.**
 8. **Title + FPS stages** (if the raycaster numbers hold up).
