@@ -2,38 +2,103 @@
  *   row top+0  the rim: the charge bar on the left, a white-over-pink rim line across the rest
  *   row top+1  hearts, tokens, keycards, the floor
  * A message is a toast above the HUD: the window rises 8 px (row 0 is the message, centred) for as long as it shows,
- * so the rim always separates it from the counters. Bank 0 so hud_msg can take a string from whichever bank calls. */
+ * so the rim always separates it from the counters. Bank 0 so hud_msg can take a string from whichever bank calls.
+ *
+ * Every write goes to a shadow of the window's three rows. hud_tick hands the rows that changed to a VBlank handler,
+ * which copies them into the window map and then moves the window if the toast opened or closed, so the rows and
+ * the window's height change in the same VBlank. Written a tile at a time through set_win_tiles (attribute, then
+ * tile, each waiting for VRAM) a toast cost ~120 scan lines of the frame; the VBlank copy is 20 bytes a row. The
+ * attributes never change (every HUD tile is LOOK_PAL_HUD in VRAM bank 1): hud_init writes them once. */
 #include <gb/gb.h>
 #include <gb/cgb.h>
+#include <string.h>
 #include "play.h"
 
-static uint8_t msg_t, top;
+static uint8_t msg_t, top, shown_top = 0xffu, rows_dirty, vbl_on;
+static volatile uint8_t vbl_rows, vbl_move, vbl_top; /* for hud_vbl: rows to copy, the window's new place */
+static uint8_t sh[3][20];   /* the window's rows 0..2, tiles */
+static uint8_t glyph[64];   /* ' ' .. '_' -> font tile (BT_FONT_ORDER); lower case folds to upper, but 'x' */
+static uint8_t glyph_x;     /* the font's own 'x' */
+static void hud_vbl(void) NONBANKED;
 #define HUD_Y 128u   /* the window's top without a toast */
 #define TOAST_Y 120u /* with one */
 
-static void hud_tile(uint8_t x, uint8_t y, uint8_t t, uint8_t pal) {
-  uint8_t a = (uint8_t)(pal | 0x08u);
-  VBK_REG = 1;
-  set_win_tiles(x, y, 1, 1, &a);
-  VBK_REG = 0;
-  set_win_tiles(x, y, 1, 1, &t);
+static void hud_tile(uint8_t x, uint8_t y, uint8_t t) {
+  sh[y][x] = t;
+  rows_dirty |= (uint8_t)(1u << y);
 }
 
-static const char blank20[] = "                    ";
+static uint8_t glyph_of(char ch) {
+  if (ch == 'x') return glyph_x;
+  if (ch >= 'a' && ch <= 'z') ch = (char)(ch - 32);
+  return ((uint8_t)ch >= 32u && (uint8_t)ch < 96u) ? glyph[(uint8_t)ch - 32u] : BT_FONT;
+}
+
+static void hud_text(uint8_t x, uint8_t y, const char *s) {
+  uint8_t *d = &sh[y][x];
+  while (*s && x != 20u) {
+    *d++ = glyph_of(*s++);
+    x++;
+  }
+  rows_dirty |= (uint8_t)(1u << y);
+}
+
+/* n as `digits` digits (at most 3), by subtraction: SDCC's 8-bit divide is a library call per digit */
+static void hud_num(uint8_t x, uint8_t y, uint8_t n, uint8_t digits) {
+  uint8_t *d = &sh[y][x], h = 0, t = 0, z = glyph['0' - 32];
+  while (n >= 100u) {
+    n -= 100u;
+    h++;
+  }
+  while (n >= 10u) {
+    n -= 10u;
+    t++;
+  }
+  if (digits == 3u) *d++ = (uint8_t)(z + h); /* the font's digits are consecutive, 0..9 */
+  if (digits >= 2u) *d++ = (uint8_t)(z + t);
+  *d = (uint8_t)(z + n);
+  rows_dirty |= (uint8_t)(1u << y);
+}
+
 static void hud_layout(uint8_t toast) {
   uint8_t i;
   top = toast;
-  for (i = 0; i != 3u; i++) text_at(1, 0, i, blank20, LOOK_PAL_HUD);
-  move_win(7, toast ? TOAST_Y : HUD_Y);
-  hud_line = toast ? TOAST_Y : HUD_Y;
-  for (i = 5u; i != 20u; i++) hud_tile(i, top, BT_RIM, LOOK_PAL_HUD);
+  memset(sh, BT_FONT, sizeof sh); /* BT_FONT is the space */
+  rows_dirty = 7u;
+  for (i = 5u; i != 20u; i++) sh[top][i] = BT_RIM;
   hud_charge();
   hud_draw();
 }
 
 void hud_init(void) NONBANKED {
+  static const char order[] = BT_FONT_ORDER;
+  uint8_t i, a[20];
+  memset(glyph, BT_FONT, sizeof glyph);
+  for (i = 0; order[i]; i++) {
+    uint8_t ch = (uint8_t)order[i];
+    if (ch == 'x') glyph_x = (uint8_t)(BT_FONT + i);
+    else if (ch >= 32u && ch < 96u) glyph[ch - 32u] = (uint8_t)(BT_FONT + i);
+  }
+  memset(a, (uint8_t)(LOOK_PAL_HUD | 0x08u), 20);
+  VBK_REG = 1;
+  for (i = 0; i != 3u; i++) set_win_tiles(0, i, 20, 1, a);
+  VBK_REG = 0;
   msg_t = 0;
   hud_layout(0);
+  /* the first rows and the window's place now (the display may be off: no VBlank to wait for) */
+  for (i = 0; i != 3u; i++) set_win_tiles(0, i, 20, 1, sh[i]);
+  rows_dirty = 0;
+  shown_top = 0;
+  CRITICAL {
+    vbl_rows = 0;
+    vbl_move = 0;
+  }
+  move_win(7, HUD_Y);
+  hud_line = HUD_Y;
+  if (!vbl_on) {
+    vbl_on = 1;
+    CRITICAL { add_VBL(hud_vbl); }
+  }
 }
 
 void hud_msg(const char *s) NONBANKED {
@@ -44,34 +109,65 @@ void hud_msg(const char *s) NONBANKED {
     return;
   }
   if (!top) hud_layout(1u);
-  else text_at(1, 0, 0, blank20, LOOK_PAL_HUD);
-  text_at(1, (uint8_t)((20u - (n > 20u ? 20u : n)) >> 1), 0, s, LOOK_PAL_HUD);
+  else memset(sh[0], BT_FONT, 20);
+  hud_text((uint8_t)((20u - (n > 20u ? 20u : n)) >> 1), 0, s);
   msg_t = 150u;
+}
+
+/* VBlank: the rows hud_tick handed over, then the window's place (rows first: never the new height over old rows) */
+static void hud_vbl(void) NONBANKED {
+  uint8_t v, *base;
+  if (vbl_rows) {
+    v = VBK_REG;
+    VBK_REG = 0;
+    base = (uint8_t *)((LCDC_REG & LCDCF_WIN9C00) ? 0x9C00u : 0x9800u);
+    if (vbl_rows & 1u) memcpy(base, sh[0], 20);
+    if (vbl_rows & 2u) memcpy(base + 32, sh[1], 20);
+    if (vbl_rows & 4u) memcpy(base + 64, sh[2], 20);
+    VBK_REG = v;
+    vbl_rows = 0;
+  }
+  if (vbl_move) {
+    WX_REG = 7u;
+    WY_REG = hud_line = vbl_top ? TOAST_Y : HUD_Y;
+    LYC_REG = hud_line;
+    vbl_move = 0;
+  }
 }
 
 void hud_tick(void) NONBANKED {
   if (msg_t && !--msg_t) hud_layout(0);
   if (hud_dirty) hud_draw();
+  if (!rows_dirty && top == shown_top) return;
+  CRITICAL {
+    vbl_rows |= rows_dirty;
+    if (top != shown_top) {
+      vbl_top = top;
+      vbl_move = 1;
+    }
+  }
+  rows_dirty = 0;
+  shown_top = top;
 }
 
 void hud_draw(void) NONBANKED {
-  uint8_t i, h, y = (uint8_t)(top + 1u);
-  for (i = 0; i != (uint8_t)(pl_hp_max >> 1); i++) {
-    h = pl_hp > (uint8_t)(i * 2u + 1u) ? 2u : (pl_hp > (uint8_t)(i * 2u) ? 1u : 0u);
-    hud_tile(i, y, (uint8_t)(h == 2u ? BT_HEART2 : (h == 1u ? BT_HEART1 : BT_HEART0)), LOOK_PAL_HUD);
-  }
-  hud_tile(5, y, BT_ICON_TOKEN, LOOK_PAL_HUD);
-  num_at(1, 6, y, tokens, 3, LOOK_PAL_HUD);
+  uint8_t i, n = (uint8_t)(pl_hp_max >> 1), hp = pl_hp, y = (uint8_t)(top + 1u);
+  uint8_t *d = sh[y];
+  for (i = 0; i != n; i++, hp = hp > 2u ? (uint8_t)(hp - 2u) : 0u) /* two halves a heart */
+    *d++ = hp >= 2u ? BT_HEART2 : (hp ? BT_HEART1 : BT_HEART0);
+  sh[y][5] = BT_ICON_TOKEN;
+  hud_num(6, y, tokens, 3);
   if (boss_floor) {
-    text_at(1, 10, y, "   ", LOOK_PAL_HUD);
+    sh[y][10] = sh[y][11] = sh[y][12] = sh[y][13] = BT_FONT;
   } else {
-    hud_tile(10, y, BT_ICON_KEY, LOOK_PAL_HUD);
-    num_at(1, 11, y, keys_held, 1, LOOK_PAL_HUD);
-    text_at(1, 12, y, "/", LOOK_PAL_HUD);
-    num_at(1, 13, y, room.keys, 1, LOOK_PAL_HUD);
+    sh[y][10] = BT_ICON_KEY;
+    hud_num(11, y, keys_held, 1);
+    sh[y][12] = glyph['/' - 32];
+    hud_num(13, y, room.keys, 1);
   }
-  text_at(1, 16, y, "F", LOOK_PAL_HUD);
-  num_at(1, 17, y, floor_no, 2, LOOK_PAL_HUD);
+  sh[y][16] = glyph['F' - 32];
+  hud_num(17, y, floor_no, 2);
+  rows_dirty |= (uint8_t)(1u << y);
   hud_dirty = 0;
 }
 
@@ -80,7 +176,7 @@ void hud_charge(void) NONBANKED {
   uint8_t lit = pl_charge >= full ? 40u : (uint8_t)((uint16_t)pl_charge * 40u / full);
   for (i = 0; i != 5u; i++) {
     uint8_t n = lit > 8u ? 8u : lit;
-    hud_tile(i, top, (uint8_t)(BT_BAR + n), LOOK_PAL_HUD);
+    hud_tile(i, top, (uint8_t)(BT_BAR + n));
     lit = (uint8_t)(lit - n);
   }
 }
