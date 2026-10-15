@@ -8,7 +8,7 @@ static void scene_update(uint8_t dt) {
 }
 #else
 
-static uint16_t sclock;
+uint16_t sclock; /* global so measure2.py can log the beat */
 /* looping clock without a division: dt is a few views at most */
 #define SCLOCK_STEP(dt) do { sclock += (dt); while (sclock >= LOOP) sclock -= LOOP; } while (0)
 
@@ -32,16 +32,19 @@ static uint16_t lerp_f(uint16_t a, uint16_t b, uint8_t f) {
 #define CELL(x) ((uint16_t)((x) * 256.0))
 
 #if SCENE == 1
-/* combat: a mob, a second mob and an elite come down an office room; the heir sidesteps a tell, strikes, kills the
-   first, parries the elite's wind-up, charges it, then backsteps the second mob. 7 s loop. */
-#define LOOP 420u
+/* combat: a mob, an elite and a second mob come down an office room; the heir sidesteps a tell, strikes, kills the
+   first, parries the elite's wind-up, charges it, then backsteps the second mob. 8 s loop.
+   Spawns are staggered for the CGB's 10-sprites-per-line limit: billboards share the horizon rows, so the columns
+   of every mob in view (plus the weapon's 2) must stay <= 10. The elite waits deep in the room (small) until the
+   first mob is down, and the second mob only enters after that. */
+#define LOOP 480u
 #ifndef ROOMX
-#define ROOMX 14 /* far wall of the room (cells): the depth knob for the combat budget */
+#define ROOMX 14 /* far wall of the room (cells) */
 #endif
 static void scene_init(void) {
   box(0, 0, 31, 31, 1);
   box(3, 3, ROOMX, 9, 0);
-  map[6u * MAPW + ROOMX + 1u] = 2; /* a door at the far end */
+  map[6u * MAPW + ROOMX + 1u] = 2;
   dress();
   cam_a = 0;
 }
@@ -62,41 +65,45 @@ static void scene_update(uint8_t dt) {
   SCLOCK_STEP(dt);
   t = sclock;
   walk = (t >> 3) & 1u ? BB_WALK1 : BB_WALK0;
-  /* camera: sidestep (B) at 150, lunge with the strikes at 170-200, backstep at 345 */
+  /* camera: sidestep (B) at 150, lunge with the strikes at 165-185, backstep at 425 */
   cam_x = lerp16(CELL(4.5), CELL(4.9), t, 165u, 185u);
-  if (t >= 330u) cam_x = lerp16(CELL(4.9), CELL(4.3), t, 345u, 360u);
+  if (t >= 410u) cam_x = lerp16(CELL(4.9), CELL(4.3), t, 425u, 440u);
   cam_y = t < 240u ? lerp16(CELL(6.5), CELL(5.9), t, 150u, 162u) : lerp16(CELL(5.9), CELL(6.5), t, 240u, 260u);
   cam_a = 0;
-  /* mob 0: approaches, tells at 120, attacks at 150 (dodged), is hit at 172 and 192, dies */
+  /* mob 0: approaches, tells at 110, attacks at 150 (dodged), is hit at 172 and 192, dies, gone at 228 */
   mob_at(0, 0, lerp16(CELL(ROOMX - 2.5), CELL(6.5), t, 0u, 110u), CELL(5.7));
   mob[0].frame = walk;
   if (t >= 110u && t < 150u) { mob[0].frame = BB_TELL; mob[0].fx = FX_TELL; }
   else if (t >= 150u && t < 166u) mob[0].frame = BB_ATTACK;
   else if ((t >= 172u && t < 182u) || (t >= 192u && t < 200u)) { mob[0].frame = BB_HURT; mob[0].fx = FX_HIT; }
   else if (t >= 200u) {
-    mob[0].frame = t < 214u ? BB_DIE0 : BB_DIE1;
+    mob[0].frame = t < 212u ? BB_DIE0 : BB_DIE1;
     mob[0].fx = FX_DEAD;
-    mob[0].fxt = (uint8_t)((t - 200u) / 3u);
-    if (t >= 250u) mob[0].on = 0;
+    mob[0].fxt = (uint8_t)((t - 200u) >> 1);
+    if (t >= 228u) mob[0].on = 0;
   }
-  /* mob 1: hangs back, then tells at 300 and attacks at 340 (backstepped) */
-  mob_at(1, 1, lerp16(CELL(ROOMX - 1.5), CELL(7.3), t, 20u, 300u), CELL(7.6));
-  mob[1].frame = walk;
-  if (t >= 300u && t < 340u) { mob[1].frame = BB_TELL; mob[1].fx = FX_TELL; }
-  else if (t >= 340u && t < 358u) mob[1].frame = BB_ATTACK;
-  /* the elite: slow, long tell at 220, parried at 262 (white flash + stagger), charged at 280-320 */
-  mob_at(2, 2, lerp16(CELL(ROOMX - 0.5), CELL(7.0), t, 40u, 220u), CELL(6.6));
+  /* the elite: holds deep in the room, closes in once mob 0 is down, long tell at 250, parried at 292 (white
+     flash + stagger), charged at 306-360 */
+  mob_at(2, 2, t < 228u ? lerp16(CELL(ROOMX - 0.5), CELL(ROOMX - 2.0), t, 40u, 228u)
+                        : lerp16(CELL(ROOMX - 2.0), CELL(7.0), t, 228u, 250u), CELL(6.6));
   mob[2].frame = (t >> 4) & 1u ? BB_WALK1 : BB_WALK0;
-  if (t >= 220u && t < 262u) { mob[2].frame = BB_TELL; mob[2].fx = FX_TELL; }
-  else if (t >= 262u && t < 276u) { mob[2].frame = BB_HURT; mob[2].fx = FX_HIT; }
-  else if (t >= 276u && t < 330u) {
-    mob[2].frame = ((t - 276u) % 16u) < 6u ? BB_HURT : BB_WALK0;
-    mob[2].fx = ((t - 276u) % 16u) < 6u ? FX_HIT : FX_NONE;
+  if (t >= 250u && t < 292u) { mob[2].frame = BB_TELL; mob[2].fx = FX_TELL; }
+  else if (t >= 292u && t < 306u) { mob[2].frame = BB_HURT; mob[2].fx = FX_HIT; }
+  else if (t >= 306u && t < 360u) {
+    mob[2].frame = ((t - 306u) & 15u) < 6u ? BB_HURT : BB_WALK0;
+    mob[2].fx = ((t - 306u) & 15u) < 6u ? FX_HIT : FX_NONE;
   }
-  /* weapon: strikes at 170, 190 (kill), the parry at 260, the charge 276-326 */
+  if (t >= 360u) mob[2].on = 0; /* broken and gone: the charge finished it */
+  /* mob 1: enters through the far door after the elite is engaged, tells at 380, attacks at 420 (backstepped) */
+  mob_at(1, 1, lerp16(CELL(ROOMX - 0.5), CELL(7.3), t, 300u, 380u), CELL(6.9));
+  mob[1].frame = walk;
+  if (t < 300u) mob[1].on = 0;
+  else if (t >= 380u && t < 420u) { mob[1].frame = BB_TELL; mob[1].fx = FX_TELL; }
+  else if (t >= 420u && t < 438u) mob[1].frame = BB_ATTACK;
+  /* weapon: strikes at 168, 188 (kill), the parry at 288, the charge 306-356 */
   weapon_frame = 0;
-  if ((t >= 168u && t < 176u) || (t >= 188u && t < 196u) || (t >= 258u && t < 266u) ||
-      (t >= 276u && t < 326u && ((t - 276u) % 16u) < 6u))
+  if ((t >= 168u && t < 176u) || (t >= 188u && t < 196u) || (t >= 288u && t < 296u) ||
+      (t >= 306u && t < 356u && ((t - 306u) & 15u) < 6u))
     weapon_frame = 1;
 }
 

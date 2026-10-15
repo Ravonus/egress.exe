@@ -95,8 +95,25 @@ def main() -> int:
             read_upto += 1
 
     total = a.warmup + a.frames
+    line_max, over, over_at = 0, 0, []
+    # # OBJ per scanline (8x16), from live OAM: the CGB shows at most 10
+
+    def oam_lines():
+        cnt = [0] * 144
+        for i in range(40):
+            y = mem[0xFE00 + 4 * i] - 16
+            for ly in range(max(0, y), min(144, y + 16)):
+                cnt[ly] += 1
+        return max(cnt)
+
     for f in range(total):
         pb.tick(1, True)
+        if f >= a.warmup:
+            m = oam_lines()
+            line_max = max(line_max, m)
+            if m > 10:
+                over += 1
+                over_at.append((f, m, u16("sclock") if "_sclock" in sym else -1))
         if f % 8 == 0:
             drain()
         if f in pose_frames:
@@ -112,7 +129,7 @@ def main() -> int:
         views[i]["fpv"] = (views[i]["flip"] - views[i - 1]["flip"]) & 0xFFFF
     meas = [v for v in views[1:] if v["flip"] > a.warmup]
     fpv = [v["fpv"] for v in meas]
-    res = {"rom": a.rom.name, "view": f"{W}x{H}"}
+    res = {"rom": a.rom.name, "view": f"{W}x{H}", "obj_line_max": line_max, "obj_frames_over10": over, "obj_over_at": over_at[:: max(1, len(over_at) // 12)]}
     if fpv:
         span = meas[-1]["flip"] - meas[0]["flip"] + meas[0]["fpv"]
         res.update(views=len(fpv), frames=span, fps_avg=round(len(fpv) * FPS_LCD / span, 2),
