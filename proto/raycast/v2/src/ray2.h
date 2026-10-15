@@ -23,7 +23,6 @@
 #define MAPW 32
 #define VOFF (255 - (VIEW_H + 255) / 2)
 #define VEND (VOFF + VIEW_H)
-#define NFROW (VIEW_H / 2 / FR)
 
 /* generated (tables2.c) */
 extern const uint8_t T_COSABS[1024];
@@ -34,7 +33,9 @@ extern const uint8_t T_HEIGHT[2048];
 extern const uint8_t T_VTOP[256];
 extern const uint8_t T_FOGK[256];    /* wall fog level 0..16 by wall height */
 extern const uint8_t T_FOGPAT[17 * 4]; /* 4-bit Bayer keep-pattern in both nibbles, [k][row & 3] */
-extern const uint8_t T_FD[NFROW];    /* floor sample row distance, 4.4 cells (0 = all haze) */
+extern const uint8_t T_FD[];   /* per floor row group: distance, 4.4 cells (0 = all haze) */
+extern const uint8_t T_FY0[];  /* group's first pixel row */
+extern const uint8_t T_FN[];   /* group's pixel rows (FR near, more toward the horizon) */
 extern const uint8_t T_FPAT[VIEW_H]; /* floor/ceiling fog pattern per pixel row */
 extern const uint16_t T_WOFF[];      /* wall runs offset, [tex][u] */
 extern const uint8_t T_WRUNS[];      /* (vend, colour) pairs, a column ends at vend 15 */

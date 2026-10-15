@@ -1,21 +1,22 @@
 ; cast_asm: every ray's DDA (v1's, with 16 texel columns per face: u = frac >> 4)
+	.globl _cast_init
 	.globl _cast_asm, _cam_x, _cam_y, _cam_a, _map, _ray_d, _T_COLOFF, _T_COLCOS, _T_DELTA, _T_COSABS
 	.globl _T_HEIGHT
 
-	.area _DATA
-c_i:	.ds 1
-c_a:	.ds 2
-c_ay:	.ds 2
-c_xpos:	.ds 1
-c_ypos:	.ds 1
-c_ddx:	.ds 2
-c_ddy:	.ds 2
-c_stx:	.ds 2
-c_sty:	.ds 2
-c_dist:	.ds 2
-c_side:	.ds 1
-c_cell:	.ds 1
-c_base:	.ds 2
+; cast scratch in HRAM (the walls/floors reuse it after the cast)
+c_i = 0xFFA4
+c_a = 0xFFA5
+c_ay = 0xFFA7
+c_xpos = 0xFFA9
+c_ypos = 0xFFAA
+c_ddx = 0xFFAB
+c_ddy = 0xFFAD
+c_stx = 0xFFAF
+c_sty = 0xFFB1
+c_dist = 0xFFB3
+c_side = 0xFFB5
+c_cell = 0xFFB6
+c_base = 0xFFB7
 
 	.area _CODE
 
@@ -69,6 +70,120 @@ mulhi:
 	inc	h
 	ret
 
+; DDA template, copied to WRAM by cast_init and patched per ray. in: bc = sdx, de = sdy, hl = cell; out: a = side
+dda_tpl:
+	ld	a, b
+	cp	a, d
+	jr	c, 1$
+	jr	nz, 2$
+	ld	a, c
+	cp	a, e
+	jr	nc, 2$
+1$:
+	ld	a, c
+	add	a, #0
+	ld	c, a
+	ld	a, b
+	adc	a, #0
+	ld	b, a
+	inc	hl
+	bit	7, (hl)
+	jr	nz, dda_tpl
+	xor	a, a
+	ret
+2$:
+	ld	a, e
+	add	a, #0
+	ld	e, a
+	ld	a, d
+	adc	a, #0
+	ld	d, a
+	ld	a, l
+	add	a, #0
+	ld	l, a
+	ld	a, h
+	adc	a, #0
+	ld	h, a
+	bit	7, (hl)
+	jr	nz, dda_tpl
+	ld	a, #1
+	ret
+dda_end:
+DDA_N = dda_end - dda_tpl
+DX_L = 12
+DX_H = 16
+XSTEP = 18
+DY_L = 27
+DY_H = 31
+SY_L = 35
+SY_H = 39
+
+; inline forms: MUL8 = hl = a * b ; MULHI = hl = (de * b) >> 8 (clobbers a, c, d, e)
+	.macro	MUL8	?l1
+	ld	c, a
+	add	a, b
+	ld	l, a
+	ld	a, #SQLO
+	adc	a, #0
+	ld	h, a
+	ld	e, (hl)
+	inc	h
+	inc	h
+	ld	d, (hl)
+	ld	a, c
+	sub	a, b
+	jr	nc, l1
+	cpl
+	inc	a
+l1:
+	ld	l, a
+	ld	h, #SQLO
+	ld	a, e
+	sub	a, (hl)
+	ld	e, a
+	inc	h
+	inc	h
+	ld	a, d
+	sbc	a, (hl)
+	ld	h, a
+	ld	l, e
+	.endm
+
+	.macro	MULHI	?l1
+	ld	a, e
+	ld	e, d
+	push	de
+	MUL8
+	pop	de
+	ld	a, e
+	ld	e, h
+	push	de
+	MUL8
+	pop	de
+	ld	a, e
+	add	a, l
+	ld	l, a
+	jr	nc, l1
+	inc	h
+l1:
+	.endm
+
+_cast_init::
+	ld	hl, #dda_tpl
+	ld	de, #dda_ram
+	ld	b, #DDA_N
+3$:
+	ld	a, (hl+)
+	ld	(de), a
+	inc	de
+	dec	b
+	jr	nz, 3$
+	ret
+
+	.area _DATA
+dda_ram:	.ds	48
+	.area _CODE
+
 _cast_asm::
 	ld	a, (#_cam_y+1)
 	ld	l, a
@@ -84,14 +199,14 @@ _cast_asm::
 	ld	de, #_map
 	add	hl, de
 	ld	a, l
-	ld	(c_base), a
+	ldh	(c_base), a
 	ld	a, h
-	ld	(c_base+1), a
+	ldh	(c_base+1), a
 	xor	a, a
-	ld	(c_i), a
+	ldh	(c_i), a
 200$:
 	; a = (cam_a + coloff[i]) & 1023
-	ld	a, (c_i)
+	ldh	a, (c_i)
 	ld	l, a
 	ld	h, #0
 	add	hl, hl
@@ -103,17 +218,17 @@ _cast_asm::
 	ld	a, (#_cam_a)
 	add	a, l
 	ld	l, a
-	ld	(c_a), a
-	ld	(c_ay), a
+	ldh	(c_a), a
+	ldh	(c_ay), a
 	ld	a, (#_cam_a+1)
 	adc	a, h
 	and	a, #3
 	ld	h, a
-	ld	(c_a+1), a
+	ldh	(c_a+1), a
 	; ay = a - 256
 	dec	a
 	and	a, #3
-	ld	(c_ay+1), a
+	ldh	(c_ay+1), a
 	; xpos = ((h + 1) & 2) == 0 ; ypos = (h & 2) == 0
 	ld	a, h
 	inc	a
@@ -122,22 +237,22 @@ _cast_asm::
 	jr	nz, 201$
 	inc	a
 201$:
-	ld	(c_xpos), a
+	ldh	(c_xpos), a
 	ld	a, h
 	and	a, #2
 	ld	a, #0
 	jr	nz, 202$
 	inc	a
 202$:
-	ld	(c_ypos), a
+	ldh	(c_ypos), a
 	; ddx = T_DELTA[a]
 	add	hl, hl
 	ld	de, #_T_DELTA
 	add	hl, de
 	ld	a, (hl+)
-	ld	(c_ddx), a
+	ldh	(c_ddx), a
 	ld	a, (hl)
-	ld	(c_ddx+1), a
+	ldh	(c_ddx+1), a
 	; ddy = T_DELTA[ay]
 	ld	hl, #c_ay
 	ld	a, (hl+)
@@ -147,141 +262,117 @@ _cast_asm::
 	ld	de, #_T_DELTA
 	add	hl, de
 	ld	a, (hl+)
-	ld	(c_ddy), a
+	ldh	(c_ddy), a
 	ld	a, (hl)
-	ld	(c_ddy+1), a
+	ldh	(c_ddy+1), a
 	; x side: stx, gx, sdx
-	ld	a, (c_xpos)
+	ldh	a, (c_xpos)
 	or	a, a
 	ld	a, (#_cam_x)
 	jr	z, 203$
 	cpl
 	ld	b, a
 	ld	a, #1
-	ld	(c_stx), a
+	ldh	(c_stx), a
 	xor	a, a
-	ld	(c_stx+1), a
+	ldh	(c_stx+1), a
 	jr	204$
 203$:
 	ld	b, a
 	ld	a, #0xFF
-	ld	(c_stx), a
-	ld	(c_stx+1), a
+	ldh	(c_stx), a
+	ldh	(c_stx+1), a
 204$:
 	ld	hl, #c_ddx
 	ld	a, (hl+)
 	ld	d, (hl)
 	ld	e, a
-	call	mulhi
+	MULHI
 	push	hl			; sdx
 	; y side: sty, gy, sdy
-	ld	a, (c_ypos)
+	ldh	a, (c_ypos)
 	or	a, a
 	ld	a, (#_cam_y)
 	jr	z, 205$
 	cpl
 	ld	b, a
 	ld	a, #32
-	ld	(c_sty), a
+	ldh	(c_sty), a
 	xor	a, a
-	ld	(c_sty+1), a
+	ldh	(c_sty+1), a
 	jr	206$
 205$:
 	ld	b, a
 	ld	a, #0xE0
-	ld	(c_sty), a
+	ldh	(c_sty), a
 	ld	a, #0xFF
-	ld	(c_sty+1), a
+	ldh	(c_sty+1), a
 206$:
 	ld	hl, #c_ddy
 	ld	a, (hl+)
 	ld	d, (hl)
 	ld	e, a
-	call	mulhi
+	MULHI
 	ld	d, h
 	ld	e, l			; de = sdy
 	pop	bc			; bc = sdx
+	; patch the RAM DDA's immediates for this ray
+	ldh	a, (c_ddx)
+	ld	(dda_ram + DX_L), a
+	ldh	a, (c_ddx+1)
+	ld	(dda_ram + DX_H), a
+	ldh	a, (c_ddy)
+	ld	(dda_ram + DY_L), a
+	ldh	a, (c_ddy+1)
+	ld	(dda_ram + DY_H), a
+	ldh	a, (c_xpos)
+	or	a, a
+	ld	a, #0x23		; inc hl
+	jr	nz, 207$
+	ld	a, #0x2B		; dec hl
+207$:
+	ld	(dda_ram + XSTEP), a
+	ldh	a, (c_sty)
+	ld	(dda_ram + SY_L), a
+	ldh	a, (c_sty+1)
+	ld	(dda_ram + SY_H), a
 	ld	hl, #c_base
 	ld	a, (hl+)
 	ld	h, (hl)
 	ld	l, a
-210$:
-	; DDA: bc = sdx, de = sdy, hl = map cell
-	ld	a, b
-	cp	a, d
-	jr	c, 211$
-	jr	nz, 215$
-	ld	a, c
-	cp	a, e
-	jr	nc, 215$
-211$:
-	; x step
-	ld	a, (c_ddx)
-	add	a, c
-	ld	c, a
-	ld	a, (c_ddx+1)
-	adc	a, b
-	ld	b, a
-	push	de
-	ld	a, (c_stx)
-	ld	e, a
-	ld	a, (c_stx+1)
-	ld	d, a
-	add	hl, de
-	pop	de
+	call	dda_ram
+	ldh	(c_side), a
 	ld	a, (hl)
-	bit	7, a
-	jr	nz, 210$
-	ld	(c_cell), a
-	xor	a, a
-	ld	(c_side), a
-	; dist = sdx - ddx
-	ld	a, (c_ddx)
+	ldh	(c_cell), a
+	; dist = sd - dd of the side that hit
+	ldh	a, (c_side)
+	or	a, a
+	jr	nz, 215$
+	ldh	a, (c_ddx)
 	ld	e, a
 	ld	a, c
 	sub	a, e
-	ld	(c_dist), a
-	ld	a, (c_ddx+1)
+	ldh	(c_dist), a
+	ldh	a, (c_ddx+1)
 	ld	e, a
 	ld	a, b
 	sbc	a, e
-	ld	(c_dist+1), a
+	ldh	(c_dist+1), a
 	jr	220$
 215$:
-	; y step
-	ld	a, (c_ddy)
-	add	a, e
-	ld	e, a
-	ld	a, (c_ddy+1)
-	adc	a, d
-	ld	d, a
-	push	de
-	ld	a, (c_sty)
-	ld	e, a
-	ld	a, (c_sty+1)
-	ld	d, a
-	add	hl, de
-	pop	de
-	ld	a, (hl)
-	bit	7, a
-	jr	nz, 210$
-	ld	(c_cell), a
-	ld	a, #1
-	ld	(c_side), a
-	; dist = sdy - ddy
-	ld	a, (c_ddy)
+	ldh	a, (c_ddy)
 	ld	c, a
 	ld	a, e
 	sub	a, c
-	ld	(c_dist), a
-	ld	a, (c_ddy+1)
+	ldh	(c_dist), a
+	ldh	a, (c_ddy+1)
 	ld	c, a
 	ld	a, d
 	sbc	a, c
-	ld	(c_dist+1), a
+	ldh	(c_dist+1), a
 220$:
 	; perp = mulhi(dist, colcos[i])
-	ld	a, (c_i)
+	ldh	a, (c_i)
 	add	a, #<_T_COLCOS
 	ld	l, a
 	ld	a, #0
@@ -292,10 +383,10 @@ _cast_asm::
 	ld	a, (hl+)
 	ld	d, (hl)
 	ld	e, a
-	call	mulhi
+	MULHI
 	; ray_d[i] = perp
 	push	hl
-	ld	a, (c_i)
+	ldh	a, (c_i)
 	ld	e, a
 	ld	d, #0
 	ld	hl, #_ray_d
@@ -320,7 +411,7 @@ _cast_asm::
 	ld	hl, #_T_HEIGHT
 	add	hl, de
 	ld	b, (hl)
-	ld	a, (c_i)
+	ldh	a, (c_i)
 	add	a, #<_ray_h
 	ld	l, a
 	ld	a, #0
@@ -328,7 +419,7 @@ _cast_asm::
 	ld	h, a
 	ld	(hl), b
 	; u
-	ld	a, (c_side)
+	ldh	a, (c_side)
 	or	a, a
 	jr	nz, 230$
 	; side 0: off from |sin| = T_COSABS[ay]; base fy; sign ypos; mirror if !xpos
@@ -343,8 +434,8 @@ _cast_asm::
 	ld	a, (hl+)
 	ld	d, (hl)
 	ld	e, a
-	call	mulhi
-	ld	a, (c_ypos)
+	MULHI
+	ldh	a, (c_ypos)
 	or	a, a
 	ld	a, (#_cam_y)
 	jr	z, 231$
@@ -356,7 +447,7 @@ _cast_asm::
 	swap	a
 	and	a, #15
 	ld	b, a
-	ld	a, (c_xpos)
+	ldh	a, (c_xpos)
 	or	a, a
 	jr	nz, 240$
 	ld	a, #15
@@ -376,8 +467,8 @@ _cast_asm::
 	ld	a, (hl+)
 	ld	d, (hl)
 	ld	e, a
-	call	mulhi
-	ld	a, (c_xpos)
+	MULHI
+	ldh	a, (c_xpos)
 	or	a, a
 	ld	a, (#_cam_x)
 	jr	z, 233$
@@ -389,7 +480,7 @@ _cast_asm::
 	swap	a
 	and	a, #15
 	ld	b, a
-	ld	a, (c_ypos)
+	ldh	a, (c_ypos)
 	or	a, a
 	jr	z, 240$
 	ld	a, #15
@@ -397,7 +488,7 @@ _cast_asm::
 	ld	b, a
 240$:
 	; ray_u[i] = b
-	ld	a, (c_i)
+	ldh	a, (c_i)
 	ld	c, a
 	add	a, #<_ray_u
 	ld	l, a
@@ -406,11 +497,11 @@ _cast_asm::
 	ld	h, a
 	ld	(hl), b
 	; ray_t[i] = ((cell-1) << 1) | side
-	ld	a, (c_cell)
+	ldh	a, (c_cell)
 	dec	a
 	add	a, a
 	ld	b, a
-	ld	a, (c_side)
+	ldh	a, (c_side)
 	or	a, b
 	ld	b, a
 	ld	a, c
@@ -422,7 +513,7 @@ _cast_asm::
 	ld	(hl), b
 	ld	a, c
 	inc	a
-	ld	(c_i), a
+	ldh	(c_i), a
 	cp	a, #NRAYS
 	jp	nz, 200$
 	ret

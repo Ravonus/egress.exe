@@ -5,7 +5,7 @@
 
 static uint8_t fb[BUFSZ];
 #ifdef STATS
-unsigned st_runs, st_allruns, st_rows[2][4];
+unsigned st_fskip, st_ffast, st_fpart, st_steps, st_runs, st_allruns, st_rows[2][4];
 #endif
 
 static uint16_t rd16(FILE *f) {
@@ -30,7 +30,10 @@ int main(int argc, char **argv) {
   floors_all(fb);
 #endif
 #ifdef STATS
-  fprintf(stderr, "runs %u vis %u rows s0 %u %u %u %u s1 %u %u %u %u\n", st_allruns, st_runs, st_rows[0][0], st_rows[0][1], st_rows[0][2], st_rows[0][3], st_rows[1][0], st_rows[1][1], st_rows[1][2], st_rows[1][3]);
+  fprintf(stderr, "steps %u runs %u vis %u rows s0 %u %u %u %u s1 %u %u %u %u\n", st_steps, st_allruns, st_runs, st_rows[0][0], st_rows[0][1], st_rows[0][2], st_rows[0][3], st_rows[1][0], st_rows[1][1], st_rows[1][2], st_rows[1][3]);
+#endif
+#ifdef STATS
+  fprintf(stderr, "floor tiles skip %u fast %u part %u\n", st_fskip, st_ffast, st_fpart);
 #endif
   o = fopen(argv[2], "wb");
   fwrite(ray_h, 1, NRAYS, o);

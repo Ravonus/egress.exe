@@ -494,6 +494,9 @@ void main(void) {
   dress();
   scene_init();
   video_init();
+#ifdef CAST_ASM
+  { extern void cast_init(void); cast_init(); }
+#endif
   obj_init();
   LCDC_REG = (uint8_t)((LCDC_REG | LCDCF_BG8000 | LCDCF_BGON) & (uint8_t)~LCDCF_BG9C00);
   front = 0;

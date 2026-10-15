@@ -65,6 +65,9 @@ void cast_all(void) {
         side = 1;
       }
       c = map[idx & (MAPW * MAPW - 1)];
+#ifdef STATS
+      { extern unsigned st_steps; st_steps++; }
+#endif
       if (c < 0x80u) break; /* walls are 1..127; open cells are 0x80 | floor set */
     }
     perp = mulhi(d, T_COLCOS[i]);
@@ -173,27 +176,9 @@ extern uint16_t f_cx8, f_cy8;
 extern uint8_t f_minfv;
 void floors_asm(void);
 void floors_all(uint8_t *buf) {
-  int16_t cs = scos(cam_a), sn = scos((uint16_t)(cam_a - 256u));
-  uint8_t i, m = VIEW_H;
-  f_lx = (int8_t)((cs >> 2) - (((int16_t)T_LK[0] * sn) >> 8));
-  f_ly = (int8_t)((sn >> 2) + (((int16_t)T_LK[0] * cs) >> 8));
-  f_ux = (int8_t)(((int16_t)T_LK[1] * -sn) >> 8);
-  f_uy = (int8_t)(((int16_t)T_LK[1] * cs) >> 8);
+  /* f_lx..f_uy (per camera angle, LKT in bank 3), REC, FMIN, CMAX and f_minfv are set up by floors_asm */
   f_cx8 = (uint16_t)(cam_x << 3);
   f_cy8 = (uint16_t)(cam_y << 3);
-  for (i = 0; i < TW; i++) {
-    uint8_t f0 = ray_fv[2u * i], f1 = ray_fv[2u * i + 1u], c0 = ray_cv[2u * i], c1 = ray_cv[2u * i + 1u];
-    uint8_t *rec = (uint8_t *)(0xCB00u + 4u * i);
-    uint8_t fmin = f0 < f1 ? f0 : f1;
-    rec[0] = f0;
-    rec[1] = f1;
-    rec[2] = c0;
-    rec[3] = c1;
-    *(volatile uint8_t *)(0xFFC8u + i) = fmin; /* FMIN */
-    *(volatile uint8_t *)(0xFFD8u + i) = c0 > c1 ? c0 : c1; /* CMAX */
-    if (fmin < m) m = fmin;
-  }
-  f_minfv = m;
   w_buf = buf;
   floors_asm();
 }
@@ -228,11 +213,11 @@ void floors_all(uint8_t *buf) {
   uint8_t j, minfv = VIEW_H, i;
   for (i = 0; i < NRAYS; i++)
     if (ray_fv[i] < minfv) minfv = ray_fv[i];
-  for (j = 0; j < NFROW; j++) {
-    uint8_t y0 = (uint8_t)(VIEW_H / 2 + j * FR);
+  for (j = 0; j < NFROWS; j++) {
+    uint8_t y0 = T_FY0[j], fr = T_FN[j];
     uint8_t d = T_FD[j], t, k;
     uint16_t px, py, sx, sy;
-    if ((uint8_t)(y0 + FR - 1u) < minfv) continue;
+    if ((uint8_t)(y0 + fr - 1u) < minfv) continue;
     px = (uint16_t)(cx8 + ((uint16_t)((int16_t)d * lx) << 1));
     py = (uint16_t)(cy8 + ((uint16_t)((int16_t)d * ly) << 1));
     sx = (uint16_t)(((int16_t)d * ux) >> 4);
@@ -240,8 +225,8 @@ void floors_all(uint8_t *buf) {
     for (t = 0; t < TW; t++) {
       uint8_t i0 = (uint8_t)(t * 2u), b0 = 0, b1 = 0;
       uint8_t *col = buf + (uint16_t)t * STRIP;
-      uint8_t vis0 = (uint8_t)(y0 + FR - 1u) >= ray_fv[i0];
-      uint8_t vis1 = (uint8_t)(y0 + FR - 1u) >= ray_fv[i0 + 1u];
+      uint8_t vis0 = (uint8_t)(y0 + fr - 1u) >= ray_fv[i0];
+      uint8_t vis1 = (uint8_t)(y0 + fr - 1u) >= ray_fv[i0 + 1u];
       if (d) {
         if (vis0) {
           uint8_t hx = (uint8_t)(px >> 8), hy = (uint8_t)(py >> 8);
@@ -258,8 +243,12 @@ void floors_all(uint8_t *buf) {
         px = (uint16_t)(px + sx);
         py = (uint16_t)(py + sy);
       }
+#ifdef STATS
+      { extern unsigned st_fskip, st_ffast, st_fpart; uint8_t fm = ray_fv[i0] < ray_fv[i0+1u] ? ray_fv[i0] : ray_fv[i0+1u]; uint8_t cm = ray_cv[i0] > ray_cv[i0+1u] ? ray_cv[i0] : ray_cv[i0+1u];
+        if ((uint8_t)(y0 + fr - 1u) < fm) st_fskip++; else if (y0 >= cm && y0 >= ray_fv[i0] && y0 >= ray_fv[i0+1u]) st_ffast++; else st_fpart++; }
+#endif
       if (!(vis0 | vis1)) continue;
-      for (k = 0; k < FR; k++) {
+      for (k = 0; k < fr; k++) {
         uint8_t y = (uint8_t)(y0 + k), yc = (uint8_t)(VIEW_H - 1u - y);
         uint8_t f = (uint8_t)(((y >= ray_fv[i0]) ? 2u : 0u) | ((y >= ray_fv[i0 + 1u]) ? 1u : 0u));
         uint8_t g = (uint8_t)(((y >= ray_cv[i0]) ? 2u : 0u) | ((y >= ray_cv[i0 + 1u]) ? 1u : 0u));

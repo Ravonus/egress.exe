@@ -98,6 +98,8 @@ def main() -> None:
     ap.add_argument("--w", type=int, default=96)
     ap.add_argument("--h", type=int, default=64)
     ap.add_argument("--fr", type=int, default=2)
+    ap.add_argument("--frfar", type=int, default=4)
+    ap.add_argument("--split", type=int, default=32)
     a = ap.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
     W, H, FR = a.w, a.h, a.fr
@@ -130,11 +132,17 @@ def main() -> None:
                 if A.bayer(x, row) >= k:
                     nib |= 8 >> x
             fogpat.append(nib << 4 | nib)
-    fd, fpat = [], [0] * H
-    for j in range(H // 2 // FR):
-        o = j * FR + FR / 2
-        d = proj / (2 * o)
+    # floor sample-row groups from the horizon down: FRFAR rows per group while o < SPLIT (far, fogged), then FR
+    fd, fpat, fy0, fnr = [], [0] * H, [], []
+    o = 0
+    while o < H // 2:
+        fr = a.frfar if o < a.split else FR
+        fr = min(fr, H // 2 - o)
+        d = proj / (2 * (o + fr / 2))
         fd.append(0 if fogk(d) >= 16 else min(255, round(d * 16)))
+        fy0.append(H // 2 + o)
+        fnr.append(fr)
+        o += fr
     for y in range(H // 2, H):
         d = proj / (2 * (y - H / 2 + 0.5))
         k = fogk(d)
@@ -193,6 +201,8 @@ def main() -> None:
     s.append(arr("T_FOGK", "uint8_t", fog_k))
     s.append(arr("T_FOGPAT", "uint8_t", fogpat))
     s.append(arr("T_FD", "uint8_t", fd))
+    s.append(arr("T_FY0", "uint8_t", fy0))
+    s.append(arr("T_FN", "uint8_t", fnr))
     s.append(arr("T_FPAT", "uint8_t", fpat))
     s.append("#ifndef __SDCC /* the cartridge reads these from the bank blobs (bank2_walls.s, bank3_floors.s) */")
     s.append(arr("T_WOFF", "uint16_t", woff))
@@ -235,7 +245,14 @@ def main() -> None:
     hv2_flat = [v for row in hv2 for v in row]
     # mip 0 in bank 2, mip 1 in bank 4 (same table layout; the asm maps the bank by wall height)
     nr0 = woff[nmip0] if nmip0 < len(woff) else len(wruns)
-    base_runs = 0x5500 + 2 * nmip0
+    base_runs = 0x5600 + 2 * nmip0
+    # first run end (vend) that can reach the screen, per wall height: earlier runs end at or above VOFF
+    v0t = []
+    for h in range(256):
+        v = 0
+        while v < 15 and vtop[h] + hv2[v][h] <= voff:
+            v += 1
+        v0t.append(v)
     woff_abs, woff_abs1 = [], []
     for o in woff[:nmip0]:
         woff_abs += [(base_runs + o) & 255, (base_runs + o) >> 8]
@@ -261,15 +278,30 @@ def main() -> None:
     kclass = [0] + [1] * 7 + [2] + [3] * 7 + [4]
     lay2, n2 = blob("_CODE_2", [("HV2", 0x4000, hv2_flat), ("VTOP", 0x5000, vtop), ("FOGK", 0x5100, fog_k),
                                 ("FOGPAT", 0x5200, fogpat), ("KCLASS", 0x5280, kclass), ("CTAB", 0x5300, ct),
-                                ("WOFF", 0x5500, woff_abs), ("WRUNS", base_runs, wruns[:nr0])],
+                                ("V0T", 0x5500, v0t), ("WOFF", 0x5600, woff_abs), ("WRUNS", base_runs, wruns[:nr0])],
                     "bank2_walls")
     blob("_CODE_4", [("HV2", 0x4000, hv2_flat), ("VTOP", 0x5000, vtop), ("FOGK", 0x5100, fog_k),
                      ("FOGPAT", 0x5200, fogpat), ("KCLASS", 0x5280, kclass), ("CTAB", 0x5300, ct),
-                     ("WOFF", 0x5500, woff_abs1), ("WRUNS", base_runs, wruns[nr0:])], "bank4_walls1")
+                     ("V0T", 0x5500, v0t), ("WOFF", 0x5600, woff_abs1), ("WRUNS", base_runs, wruns[nr0:])], "bank4_walls1")
     nib = [0x00, 0x0F, 0xF0, 0xFF]
     lo16 = [nib[((i >> 2) & 1) << 1 | (i & 1)] for i in range(16)]  # index (c0 << 2) | c1, bit 0 of each
     hi16 = [nib[((i >> 3) & 1) << 1 | ((i >> 1) & 1)] for i in range(16)]
     ftex_end = 0x4400 + len(ftex)
+    # per camera angle: f_lx, f_ly, f_ux, f_uy (int8, same integer math as core2.c's floors_all), 4 x 1 KB
+    def scos(a):
+        a &= 1023
+        v = cos_abs[a]
+        return v if (a < 256 or a >= 768) else -v
+    def i8(v):
+        return ((v + 128) & 255) - 128
+    lkt = [[], [], [], []]
+    for ca in range(1024):
+        cs, sn = scos(ca), scos(ca - 256)
+        lkt[0].append(i8((cs >> 2) - ((lk[0] * sn) >> 8)) & 255)
+        lkt[1].append(i8((sn >> 2) + ((lk[0] * cs) >> 8)) & 255)
+        lkt[2].append(i8((lk[1] * -sn) >> 8) & 255)
+        lkt[3].append(i8((lk[1] * cs) >> 8) & 255)
+    lkt_flat = lkt[0] + lkt[1] + lkt[2] + lkt[3]
     # asm form: slot-0 texel planes in bits 7-4 (floor lo, floor hi, ceil lo, ceil hi), slot-1 copy in bits 3-0;
     # the OR of both samples indexes four 256-byte pages giving the tile bytes directly
     ftex0 = [((b & 1) << 7) | ((b & 2) << 5) | ((b & 4) << 3) | ((b & 8) << 1) for b in ftex]
@@ -278,12 +310,14 @@ def main() -> None:
     for bl, bh in ((7, 3), (6, 2), (5, 1), (4, 0)):
         lut += [(0xF0 if x >> bl & 1 else 0) | (0x0F if x >> bh & 1 else 0) for x in range(256)]
     lay3, n3 = blob("_CODE_3", [("SQLO", 0x4000, [v & 255 for v in sq]), ("SQHI", 0x4200, [v >> 8 for v in sq]),
-                                ("FTEX", 0x4400, ftex0), ("FD", ftex_end, fd), ("FPAT", ftex_end + 0x40, fpat),
+                                ("FTEX", 0x4400, ftex0), ("FD", ftex_end, fd), ("FPAT", ftex_end + 0x40, fpat), ("FY0", ftex_end + 0x80, fy0),
+                                ("FN", ftex_end + 0xA0, fnr),
                                 ("NLO", ftex_end + 0x100, lo16), ("NHI", ftex_end + 0x110, hi16),
                                 ("NIB", ftex_end + 0x120, nib), ("FTEX1", ftex_end + 0x200, ftex1),
-                                ("FLUT", ftex_end + 0x200 + len(ftex1), lut)], "bank3_floors")
+                                ("FLUT", ftex_end + 0x200 + len(ftex1), lut),
+                                ("LKT", 0x6000, lkt_flat)], "bank3_floors")
     inc = [f"{k} = 0x{v:04X}" for k, v in {**lay2, **lay3}.items()]
-    inc += [f"NFROW = {H // 2 // FR}", f"FR = {FR}", f"MIPH = {MIPH}", "MIPOFF = 0"]
+    inc += [f"NFROW = {len(fd)}", f"FR = {FR}", f"MIPH = {MIPH}", "MIPOFF = 0"]
     (a.out / "layout.inc").write_text("\n".join(inc) + "\n")
     print(f"bank2 {n2} B, bank3 {n3} B")
 
@@ -291,6 +325,7 @@ def main() -> None:
     for i, (name, _) in enumerate(WALLS):
         hdr.append(f"#define {name} {i + 1}u")
     hdr.append(f"#define NWALLTEX {len(WALLS)}u")
+    hdr.append(f"#define NFROWS {len(fd)}u")
     hdr.append(f"#define MIPH {MIPH}u")
     hdr.append(f"#define MIPN {nmip0}u")
     for i, (name, _, _) in enumerate(SETS):

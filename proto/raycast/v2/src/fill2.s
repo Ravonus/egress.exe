@@ -11,7 +11,7 @@
 	.globl _walls_asm, _floors_asm, _w_buf
 	.globl _f_lx, _f_ly, _f_ux, _f_uy, _f_cx8, _f_cy8, _f_minfv
 	.globl __current_bank
-	.globl _map
+	.globl _map, _cam_a
 _map = 0xD800
 
 	.area _DATA
@@ -46,6 +46,10 @@ W_ROW = 0xFFB4
 W_T = 0xFFB5
 W_CTK = 0xFFB6
 W_PM = 0xFFB7
+W_E1 = 0xFFF8
+W_CTK1 = 0xFFF9
+W_BOT = 0xFFFA
+F_N = 0xFFFB
 
 F_J = 0xFFB8
 F_Y0 = 0xFFB9
@@ -135,6 +139,24 @@ ws_zero:
 	ret
 
 ws_or:
+	srl	b
+	jr	nc, 1$
+	ld	a, (hl)
+	or	a, d
+	ld	(hl+), a
+	ld	a, (hl)
+	or	a, e
+	ld	(hl+), a
+	inc	b
+	dec	b
+	ret	z
+1$:
+	ld	a, (hl)
+	or	a, d
+	ld	(hl+), a
+	ld	a, (hl)
+	or	a, e
+	ld	(hl+), a
 	ld	a, (hl)
 	or	a, d
 	ld	(hl+), a
@@ -142,38 +164,83 @@ ws_or:
 	or	a, e
 	ld	(hl+), a
 	dec	b
-	jr	nz, ws_or
+	jr	nz, 1$
 	ret
+
+; checker writers, two rows per pass: row A = d/e, row B = c/(W_E1) (c = d ^ lo-toggle, W_E1 = e ^ (W_HT))
+	.macro	WD_SWAP
+	ld	a, d
+	ld	d, c
+	ld	c, a
+	ld	a, e
+	push	af
+	ldh	a, (W_E1)
+	ld	e, a
+	pop	af
+	ldh	(W_E1), a
+	inc	b
+	dec	b
+	ret	z
+	.endm
 
 wd_set:
 	ld	a, d
-	ld	(hl+), a
 	xor	a, c
-	ld	d, a
-	ld	a, e
-	ld	(hl+), a
+	ld	c, a
 	ldh	a, (W_HT)
 	xor	a, e
-	ld	e, a
+	ldh	(W_E1), a
+	srl	b
+	jr	nc, 1$
+	ld	a, d
+	ld	(hl+), a
+	ld	a, e
+	ld	(hl+), a
+	WD_SWAP
+1$:
+	ld	a, d
+	ld	(hl+), a
+	ld	a, e
+	ld	(hl+), a
+	ld	a, c
+	ld	(hl+), a
+	ldh	a, (W_E1)
+	ld	(hl+), a
 	dec	b
-	jr	nz, wd_set
+	jr	nz, 1$
 	ret
 
 wd_or:
+	ld	a, d
+	xor	a, c
+	ld	c, a
+	ldh	a, (W_HT)
+	xor	a, e
+	ldh	(W_E1), a
+	srl	b
+	jr	nc, 1$
 	ld	a, (hl)
 	or	a, d
 	ld	(hl+), a
-	ld	a, d
-	xor	a, c
-	ld	d, a
 	ld	a, (hl)
 	or	a, e
 	ld	(hl+), a
-	ldh	a, (W_HT)
-	xor	a, e
-	ld	e, a
+	WD_SWAP
+1$:
+	ld	a, (hl)
+	or	a, d
+	ld	(hl+), a
+	ld	a, (hl)
+	or	a, e
+	ld	(hl+), a
+	ld	a, (hl)
+	or	a, c
+	ld	(hl+), a
+	ldh	a, (W_E1)
+	or	a, (hl)
+	ld	(hl+), a
 	dec	b
-	jr	nz, wd_or
+	jr	nz, 1$
 	ret
 
 wp_set:
@@ -209,13 +276,13 @@ wp_or:
 ; Per column: a 4-colour table (mode, lo, hi) is copied from CTAB into HRAM (skipped when the same as the previous
 ; column's); runs then write contiguously down the strip, so the dest pointer only moves with the writers.
 ; modes: 0 plain, 1 checker (50%), 2 Bayer pattern (HRAM 0xFFA0-3), 3 zero (slot 0) / skip (slot 1)
-CTH = 0xE8			; HRAM 0xFFE8: 4 x [lo, hi, mode, -]
+CTH0 = 0xB8			; HRAM 0xFFB8 / 0xFFC8: per slot 4 x [lo, hi, mode, -] (floors' HRAM, free here)
+CTH1 = 0xC8
 
 	.macro	RUNLOOP	slot, w_set, w_d, w_p
 1$:
 	ld	a, (de)
 	inc	de
-	ldh	(W_VEND), a
 	add	a, #>HV2
 	ld	b, a
 	ldh	a, (W_H)
@@ -244,7 +311,11 @@ CTH = 0xE8			; HRAM 0xFFE8: 4 x [lo, hi, mode, -]
 	jr	z, 9$
 	add	a, a
 	add	a, a
-	add	a, #CTH
+.if slot
+	add	a, #CTH1
+.else
+	add	a, #CTH0
+.endif
 	ld	c, a
 	push	de
 	ldh	a, (c)
@@ -300,13 +371,11 @@ CTH = 0xE8			; HRAM 0xFFE8: 4 x [lo, hi, mode, -]
 8$:
 	pop	de
 9$:
-	ldh	a, (W_VEND)
-	cp	a, #15
-	jr	z, 10$
+	ldh	a, (W_BOT)
+	ld	c, a
 	ldh	a, (W_R)
-	cp	a, #VEND
+	cp	a, c
 	jp	nz, 1$
-10$:
 	.endm
 
 _walls_asm::
@@ -323,6 +392,7 @@ _walls_asm::
 	dec	a
 	ldh	(W_PATK), a
 	ldh	(W_CTK), a
+	ldh	(W_CTK1), a
 wcol:
 	ldh	a, (W_I)
 	ld	c, a
@@ -418,6 +488,10 @@ wcol:
 	ld	a, e
 	sub	a, #VOFF
 104$:
+	push	af
+	add	a, #VOFF
+	ldh	(W_BOT), a
+	pop	af
 	ld	hl, #_ray_fv
 	add	hl, bc
 	ld	(hl), a
@@ -469,19 +543,27 @@ wcol:
 	swap	a
 	ld	b, a
 	ldh	a, (W_SLOT)
-	or	a, b
-	ld	b, a
+	or	a, a
+	jr	nz, 112$
 	ldh	a, (W_CTK)
 	cp	a, b
 	jr	z, 113$
 	ld	a, b
 	ldh	(W_CTK), a
-	and	a, #0xF0
 	ld	l, a
-	ldh	a, (W_SLOT)
-	add	a, #>CTAB
-	ld	h, a
-	ld	c, #CTH
+	ld	h, #>CTAB
+	ld	c, #CTH0
+	jr	1125$
+112$:
+	ldh	a, (W_CTK1)
+	cp	a, b
+	jr	z, 113$
+	ld	a, b
+	ldh	(W_CTK1), a
+	ld	l, a
+	ld	h, #>CTAB + 1
+	ld	c, #CTH1
+1125$:
 	.rept	4
 	ld	a, (hl+)
 	ldh	(c), a
@@ -517,7 +599,25 @@ wcol:
 	ld	a, (hl)
 	ldh	(0xFFA3), a
 115$:
-	; start: r = max(vt, VOFF), hl = strip + (r - VOFF) * 2, de = runs
+	; runs; skip the ones that end above the screen (tall walls); r = max(vt, VOFF), hl = strip + (r - VOFF) * 2
+	ldh	a, (W_RNL)
+	ld	e, a
+	ldh	a, (W_RNH)
+	ld	d, a
+	ldh	a, (W_H)
+	ld	l, a
+	ld	h, #>V0T
+	ld	b, (hl)
+	ld	a, (de)
+	cp	a, b
+	jr	nc, 1159$
+1158$:
+	inc	de
+	inc	de
+	ld	a, (de)
+	cp	a, b
+	jr	c, 1158$
+1159$:
 	ldh	a, (W_VT)
 	cp	a, #VOFF
 	jr	nc, 116$
@@ -532,10 +632,6 @@ wcol:
 	ld	l, a
 	ldh	a, (W_STH)
 	ld	h, a
-	ldh	a, (W_RNL)
-	ld	e, a
-	ldh	a, (W_RNH)
-	ld	d, a
 	ldh	a, (W_SLOT)
 	or	a, a
 	jp	nz, wl1
@@ -740,7 +836,7 @@ pdown:
 	ret
 
 ; one slot of a partial tile: k0 = max(fv - y0, 0); rows k0..FR-1
-	.macro	PSLOT	fv, cv, mask, ?l1, ?l2, ?l3, ?l4
+	.macro	PSLOT	fv, cv, mask, fr, ?l1, ?l2, ?l3, ?l4
 	ldh	a, (F_Y0)
 	ld	b, a
 	ldh	a, (fv)
@@ -748,7 +844,7 @@ pdown:
 	jr	nc, l1
 	xor	a, a
 l1:
-	cp	a, #FR
+	cp	a, #fr
 	jr	nc, l2
 	ld	c, a
 	add	a, b
@@ -759,7 +855,7 @@ l1:
 	ld	l, a
 	ldh	a, (F_STH)
 	ld	h, a
-	ld	a, #FR
+	ld	a, #fr
 	sub	a, c
 	ld	b, a
 	ld	a, c
@@ -780,7 +876,7 @@ l2:
 	jr	nc, l3
 	xor	a, a
 l3:
-	cp	a, #FR
+	cp	a, #fr
 	jr	nc, l4
 	ld	c, a
 	add	a, b
@@ -793,7 +889,7 @@ l3:
 	ld	l, a
 	ldh	a, (F_STH)
 	ld	h, a
-	ld	a, #FR
+	ld	a, #fr
 	sub	a, c
 	ld	b, a
 	ld	a, c
@@ -809,36 +905,7 @@ l3:
 l4:
 	.endm
 
-_floors_asm::
-	ld	a, #3
-	ldh	(__current_bank), a
-	ld	(0x2000), a
-	xor	a, a
-	ldh	(F_J), a
-300$:
-	ldh	a, (F_J)
-	ld	c, a
-.if FR - 1
-	add	a, a
-.endif
-.if FR - 2
-	add	a, a
-.endif
-	add	a, #VIEW_H / 2
-	ldh	(F_Y0), a
-	add	a, #FR - 1
-	ldh	(F_YL), a
-	ld	hl, #_f_minfv
-	cp	a, (hl)
-	jp	c, 390$
-	ld	a, c
-	add	a, #<FD
-	ld	l, a
-	ld	h, #>FD
-	ld	a, (hl)
-	or	a, a
-	jp	z, 390$
-	ldh	(F_D), a
+	.macro	FROWS	fr, ?f310, ?f320, ?f330, ?f340, ?f350, ?f351, ?f352, ?f380
 	; row patterns: floor rows y0.., ceiling rows H-1-y0..; NOFOG when all are 0xFF
 	ld	b, #0xFF
 	ldh	a, (F_Y0)
@@ -853,7 +920,7 @@ _floors_asm::
 	ldh	(PF1), a
 	and	a, b
 	ld	b, a
-.if FR - 2
+.if fr - 2
 	ld	a, (hl+)
 	ldh	(PF2), a
 	and	a, b
@@ -875,7 +942,7 @@ _floors_asm::
 	ldh	(PC1), a
 	and	a, b
 	ld	b, a
-.if FR - 2
+.if fr - 2
 	ld	a, (hl-)
 	ldh	(PC2), a
 	and	a, b
@@ -940,7 +1007,7 @@ _floors_asm::
 	ldh	(F_STH), a
 	xor	a, a
 	ldh	(F_T), a
-310$:
+f310:
 	; any floor in this tile column on these rows?
 	ldh	a, (F_T)
 	add	a, #FMIN
@@ -950,10 +1017,10 @@ _floors_asm::
 	ld	l, a
 	ldh	a, (F_YL)
 	cp	a, l
-	jr	nc, 320$
+	jr	nc, f320
 	STEP	F_S2XL, F_S2XH, F_S2YL, F_S2YH
-	jp	380$
-320$:
+	jp	f380
+f320:
 	; all visible on every row?
 	ldh	a, (F_T)
 	add	a, #CMAX
@@ -962,7 +1029,7 @@ _floors_asm::
 	ld	l, a
 	ldh	a, (F_Y0)
 	cp	a, l
-	jp	c, 350$
+	jp	c, f350
 	; ---- fast path ----
 	SAMPLE	FTEX
 	ldh	(F_B0), a
@@ -995,9 +1062,9 @@ _floors_asm::
 	ld	h, a
 	ldh	a, (NOFOG)
 	inc	a
-	jr	nz, 330$
+	jr	nz, f330
 	; no fog: plain stores
-	.rept	FR
+	.rept	fr
 	ld	a, d
 	ld	(hl+), a
 	ld	a, e
@@ -1005,7 +1072,7 @@ _floors_asm::
 	.endm
 	ldh	a, (F_Y0)
 	cpl
-	add	a, #VIEW_H + 1 - FR
+	add	a, #VIEW_H + 1 - fr
 	add	a, a
 	ld	l, a
 	ldh	a, (F_STL)
@@ -1013,14 +1080,14 @@ _floors_asm::
 	ld	l, a
 	ldh	a, (F_STH)
 	ld	h, a
-	.rept	FR
+	.rept	fr
 	ld	a, b
 	ld	(hl+), a
 	ld	a, c
 	ld	(hl+), a
 	.endm
-	jr	340$
-330$:
+	jr	f340
+f330:
 	ldh	a, (PF0)
 	and	a, d
 	ld	(hl+), a
@@ -1033,7 +1100,7 @@ _floors_asm::
 	ldh	a, (PF1)
 	and	a, e
 	ld	(hl+), a
-.if FR - 2
+.if fr - 2
 	ldh	a, (PF2)
 	and	a, d
 	ld	(hl+), a
@@ -1050,7 +1117,7 @@ _floors_asm::
 	; ceiling rows H-FR-y0 .. H-1-y0 (top to bottom: PC(FR-1) .. PC0)
 	ldh	a, (F_Y0)
 	cpl
-	add	a, #VIEW_H + 1 - FR
+	add	a, #VIEW_H + 1 - fr
 	add	a, a
 	ld	l, a
 	ldh	a, (F_STL)
@@ -1058,7 +1125,7 @@ _floors_asm::
 	ld	l, a
 	ldh	a, (F_STH)
 	ld	h, a
-.if FR - 2
+.if fr - 2
 	ldh	a, (PC3)
 	and	a, b
 	ld	(hl+), a
@@ -1084,11 +1151,11 @@ _floors_asm::
 	ldh	a, (PC0)
 	and	a, c
 	ld	(hl), a
-340$:
+f340:
 	pop	de
 	pop	bc
-	jp	380$
-350$:
+	jp	f380
+f350:
 	; ---- partial path: per-ray visibility, per-row masks ----
 	ldh	a, (F_T)
 	add	a, a
@@ -1110,19 +1177,19 @@ _floors_asm::
 	ld	l, a
 	ldh	a, (F_YL)
 	cp	a, l
-	jr	c, 351$
+	jr	c, f351
 	SAMPLE	FTEX
 	ldh	(F_B0), a
-351$:
+f351:
 	STEP	F_SXL, F_SXH, F_SYL, F_SYH
 	ldh	a, (F_FV1)
 	ld	l, a
 	ldh	a, (F_YL)
 	cp	a, l
-	jr	c, 352$
+	jr	c, f352
 	SAMPLE	FTEX1
 	ldh	(F_B1), a
-352$:
+f352:
 	STEP	F_SXL, F_SXH, F_SYL, F_SYH
 	push	bc
 	push	de
@@ -1148,11 +1215,11 @@ _floors_asm::
 	ld	a, (hl)
 	ldh	(c), a
 	; per slot: floor rows from max(fv, y0), ceiling rows (mirrored) from max(cv, y0); OR into zeroed rows
-	PSLOT	F_FV0, F_CV0, 0xF0
-	PSLOT	F_FV1, F_CV1, 0x0F
+	PSLOT	F_FV0, F_CV0, 0xF0, fr
+	PSLOT	F_FV1, F_CV1, 0x0F, fr
 	pop	de
 	pop	bc
-380$:
+f380:
 	; next tile column (strips are 128 bytes, page-aligned buffers)
 	ldh	a, (F_STL)
 	add	a, #<STRIP
@@ -1164,7 +1231,128 @@ _floors_asm::
 	inc	a
 	ldh	(F_T), a
 	cp	a, #TW
-	jp	nz, 310$
+	jp	nz, f310
+	jp	390$
+	.endm
+
+_floors_asm::
+	ld	a, #3
+	ldh	(__current_bank), a
+	ld	(0x2000), a
+	; camera-angle constants from LKT (bank 3)
+	ld	a, (_cam_a)
+	ld	l, a
+	ld	a, (_cam_a + 1)
+	and	a, #3
+	add	a, #>LKT
+	ld	h, a
+	ld	a, (hl)
+	ld	(_f_lx), a
+	ld	a, h
+	add	a, #4
+	ld	h, a
+	ld	a, (hl)
+	ld	(_f_ly), a
+	ld	a, h
+	add	a, #4
+	ld	h, a
+	ld	a, (hl)
+	ld	(_f_ux), a
+	ld	a, h
+	add	a, #4
+	ld	h, a
+	ld	a, (hl)
+	ld	(_f_uy), a
+	; per tile: REC {fv0, fv1, cv0, cv1}, FMIN = min fv, CMAX = max cv; f_minfv
+	ld	a, #VIEW_H
+	ld	(_f_minfv), a
+	ld	hl, #_ray_fv
+	ld	de, #REC
+	ld	c, #FMIN
+1$:
+	ld	a, (hl+)
+	ld	(de), a
+	inc	e
+	ld	b, a
+	ld	a, (hl+)
+	ld	(de), a
+	inc	e
+	inc	e
+	inc	e
+	cp	a, b
+	jr	c, 2$
+	ld	a, b
+2$:
+	ldh	(c), a
+	ld	b, a
+	ld	a, (_f_minfv)
+	cp	a, b
+	jr	c, 3$
+	ld	a, b
+	ld	(_f_minfv), a
+3$:
+	inc	c
+	ld	a, c
+	cp	a, #FMIN + TW
+	jr	nz, 1$
+	ld	hl, #_ray_cv
+	ld	de, #REC + 2
+	ld	c, #CMAX
+4$:
+	ld	a, (hl+)
+	ld	(de), a
+	inc	e
+	ld	b, a
+	ld	a, (hl+)
+	ld	(de), a
+	inc	e
+	inc	e
+	inc	e
+	cp	a, b
+	jr	nc, 5$
+	ld	a, b
+5$:
+	ldh	(c), a
+	inc	c
+	ld	a, c
+	cp	a, #CMAX + TW
+	jr	nz, 4$
+	xor	a, a
+	ldh	(F_J), a
+300$:
+	ldh	a, (F_J)
+	ld	c, a
+	add	a, #<FY0
+	ld	l, a
+	ld	h, #>FY0
+	ld	a, (hl)
+	ldh	(F_Y0), a
+	ld	b, a
+	ld	a, c
+	add	a, #<FN
+	ld	l, a
+	ld	a, (hl)
+	ldh	(F_N), a
+	add	a, b
+	dec	a
+	ldh	(F_YL), a
+	ld	hl, #_f_minfv
+	cp	a, (hl)
+	jp	c, 390$
+	ld	a, c
+	add	a, #<FD
+	ld	l, a
+	ld	h, #>FD
+	ld	a, (hl)
+	or	a, a
+	jp	z, 390$
+	ldh	(F_D), a
+	ldh	a, (F_N)
+	cp	a, #4
+	jp	z, 3004$
+	FROWS	2
+3004$:
+	FROWS	4
 390$:
 	ldh	a, (F_J)
 	inc	a
