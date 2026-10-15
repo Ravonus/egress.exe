@@ -285,6 +285,118 @@ thousands of rooms per trick and depth, and the ROM picks from them by seed.
 | CRAFT | MADE results are stronger (ladder +1 ledge, shovel +1 depth) |
 | ELEMENT | only the four starters on the floor; everything must be made |
 
+### 3.4 Fragile and trap tiles (owner request)
+
+A data-driven family of floor tiles that break under weight. The rules are shared by the cartridge and the solver
+(`src/core`). The break reuses the assembly/collapse animation the owner signed off ("this is what I wanted"): the
+tile wobbles, drops into the void, and leaves a pit.
+
+**Per-kind properties (ROM table):**
+- `steps_to_break`: 1–N. Each step shows the next crack stage (hairline → split → shattered, as dithered tiles with a
+  readable count), with a sound and a wobble. The last step collapses it into a pit.
+- `reset`: none, timed (ticks), or on room reset.
+- `breakable_by` mask: player, heavy, mob_walker, mob_heavy, mob_burrower, boss, falling, reaction.
+- `flags`: see-through (the void shows through), phased (solid only on the beat), wooden (HOT burns it),
+  from-reaction (made by a reaction).
+- A break SFX per kind, in the music key.
+
+**Kinds by biome:**
+
+| Biome | Kind | Steps | Notes |
+| --- | --- | --- | --- |
+| office | worn carpet tile | 3 | tears |
+| office | ceiling-tile floor | 2 | crunches |
+| any (office in B1) | glass | 1 | shatters into dithered shards and a sparkle; see-through to the void |
+| any (office in B1) | glitched glass | – | flickers in and out on a beat; safe only while solid; fails if stood on in the off phase |
+| vents | rusted grate | 2 | |
+| flooded atrium | thin ice (COLD reaction on water) | 1–2 | |
+| flooded atrium | soggy board | 2 | |
+| server farm | raised floor panel | 1 | pops up |
+| mall | escalator step | 1 | drops |
+| dream garden | cloud tile | 1 | fades after you leave it |
+| rooftop | skylight | 1 | glass |
+| glitch core | corrupted tile | 1–3 (random) | the count is shown by its glitch level |
+
+**Triggers**
+- A player step counts 1. The HEAVY trait counts double.
+- A dodge roll counts once. A blink skips the count.
+- A carried or pushed block counts too: a CRT pushed onto glass breaks it. So do falling objects.
+- Reactions: HOT burns a wooden tile, and COLD freezes water into thin ice, which is then fragile.
+
+**Mobs, by tag**
+- Heavy mobs break the fragile tiles under them. Burrowers come up through some tiles. Flyers never trigger them.
+  Bosses can rip marked tiles out.
+- Luring a heavy mob across glass to drop it into the void is a valid kill. It joins the conditional-kill system
+  (7.3) as "dies only if dropped".
+- **Protected cells:** landing pads, door thresholds, and the cells the solver marks critical. They are never
+  fragile and mobs can never break them, so mobs alone never doom a room before you get a chance.
+- Mobs breaking tiles can still create a dead state, but only where the player could have prevented it, by luring
+  the mob or killing it first. The generator verifies that a player who handles the mobs can still win.
+
+**Puzzles (new trick types for 3.1)**
+- One-way glass path: each tile is usable once, so plan the route.
+- Step-count routing: cross the 2-step tiles in the right order.
+- Lure the heavy mob to open a shortcut (B2, when mobs arrive).
+- Glitched-glass rhythm crossing.
+- Treasure sometimes sits across a fragile path, as a risk tier (4b).
+
+**Breaking is the puzzle (Sokoban-style, owner's correction).** Breaking the wrong tiles, or breaking them in the
+wrong order, can make the room unsolvable. Then you reset it.
+- **Solver.** It models step counts, the beat phase and pits. A room must be solvable from its start state, and the
+  order matters.
+- **The solver scores how unforgiving a room is.** It records the share of reachable states that are dead ends, and
+  the earliest move at which a fatal mistake is possible. Both feed the difficulty vector (3.5).
+- **Dead-state detection at runtime.** After a break or a push, a flood fill on the 16x14 grid checks the common dead
+  cases: the exit cut off, or a required item unreachable.
+  - On a dead state, a soft glitch hint shows `THE ROOM FORGETS`, with a hold-SELECT prompt.
+  - Holding SELECT resets the room, as it already does. The reset costs something small: a token, or the world
+    decays a little, plus one matrix trace. Never a death.
+
+**Memory.** One byte per cell of runtime state: a 3-bit step count, a broken flag, a protected flag and 3 spare bits.
+For the 16x14 room that is 224 bytes of WRAM, plus a per-kind ROM table of a few bytes per kind. The B1 puzzle branch
+reports the measured cost.
+
+**Build.** B1 adds the office kinds (worn carpet, ceiling tile, glass, glitched glass), the protected-cell rule, and
+2–3 of the trick types. B2 adds the mob breakage and the lure trick. B4 adds the other biomes' kinds.
+
+### 3.5 The difficulty ramp: a designed curriculum
+
+Rooms are procedural, but the order you meet them in is designed. Each mechanic goes through four stages:
+
+| Stage | What the room is |
+| --- | --- |
+| **Introduce** | the new mechanic ALONE in a gentle room: readable, few dead states, one clear aha |
+| **Develop** | the same mechanic with a twist: more steps, or an order that matters |
+| **Combine** | mixed with mechanics learned earlier (glass + push, glitched glass + reaction, step count + mob lure) |
+| **Test** | a harder mixed room, or a stage-type variant |
+
+- **Seen mechanics.** The game tracks which mechanics the heir and the line have seen, using the seen history (9.5)
+  and the family tree. An unseen mechanic never goes into a hard combination.
+- **Difficulty is a vector** from the solver and the sim:
+  - solution length;
+  - branching;
+  - dead-state ratio;
+  - the number of distinct insights needed;
+  - the mechanic count;
+  - enemy pressure.
+- **The target rises with depth and generation, in waves, not monotonically:** tension → a release room → a spike →
+  rest/landing. Mixed rooms get more frequent with depth, and late floors mostly combine 2–3 mechanics plus a
+  twist.
+- **A light adaptive bias.** Several resets or deaths on one mechanic make the next room that uses it a notch
+  gentler. Fast clears make it a notch harder. The bias is bounded, so it never trivialises.
+- **No repeats.** Never the same trick at the same difficulty back to back, and the deck's seen-history rule stays.
+- **On the cartridge:**
+  - the baked seed table also stores each seed's difficulty vector and mechanic set;
+  - a run planner picks seeds to fit the curriculum and the target wave, deterministic from the run seed plus the seen
+    history;
+  - picking is a table lookup.
+- **Verification:**
+  - a host tool generates 1,000 runs headlessly;
+  - it plots the difficulty components by room index;
+  - it checks that introduce comes before combine in 100% of runs;
+  - it shows the wave shape and the mixed-puzzle share by depth.
+  The plots go here once B1's puzzle branch produces them (`docs/shots/b1_curve_*.png`).
+
 ---
 
 ## 4. Stages: not always "find the key, open the door"
@@ -1129,12 +1241,13 @@ both tree copies fit (`tree_report.json`, entry "save").
 | `0xAF68`–`0xB4BF` | 1,368 | **free** |
 | `0xB4C0`–`0xB4DF` | 32 | kept clock, two 16-byte records (9.7.1) |
 | `0xB4E0`–`0xB4EF` | 16 | HOST CLOCK block (9.7.1) |
-| `0xB4F0`–`0xB4FF` | 16 | **free** |
+| `0xB4F0`–`0xB4FF` | 16 | RTC block (16b): chip anchor base, fold count and flags. The RTC build only; the MBC5 build leaves it untouched |
 | `0xB500`–`0xB73F` | 576 | face generator base layer (`base_` in `crucible_avatar_int.h`, one 48x48 2bpp face) |
-| `0xB740`–`0xBFFF` | 2,240 | **free** (the old table reserved 2.75 KB for the face generator; the port only uses 576 B) |
+| `0xB740`–`0xBFFE` | 2,239 | **free** (the old table reserved 2.75 KB for the face generator; the port only uses 576 B) |
+| `0xBFFF` | 1 | reserved: the byte the RTC build's register access goes through (16b), never used for save data |
 
-- **Used: 4,328 bytes. Free: 3,864 bytes**, in four runs: 240 at `0xA2C0`, 1,368 at `0xAF68`, 16 at `0xB4F0` and
-  2,240 at `0xB740`.
+- **Used: 4,345 bytes. Free: 3,847 bytes**, in three runs: 240 at `0xA2C0`, 1,368 at `0xAF68` and 2,239 at
+  `0xB740`.
 - **The lineage** (both tree copies plus inheritance) is 2,616 bytes, up from 432 for the first 16 x 20 ring.
 - **24 heirs fit with room to spare.** Between the stats (`0xA570`) and the kept clock (`0xB4C0`) there are 3,920
   bytes; two copies of the tree block take 2 x (100 + 49 x N), so the largest ring that fits there is **37 heirs**
@@ -1375,7 +1488,7 @@ The tree block, one copy:
 It is kept as two copies, A/B with the sequence byte (the meta record's rule), so a power cut mid-write can't lose
 the family: copy A at `0xA570`–`0xAA6B`, copy B at `0xAA6C`–`0xAF67`, **2,552 bytes**. The inheritance block
 (`0xA3B0`, 64 bytes) is unchanged. **Lineage total: 2,616 bytes** (was 432 for the first ring, 1,764 for a 16-heir
-ring of 47-byte nodes). The rest of the bank is in 9.5's map: 3,864 bytes stay free, and the largest ring that fits
+ring of 47-byte nodes). The rest of the bank is in 9.5's map: 3,847 bytes stay free, and the largest ring that fits
 the same span is 37. These totals supersede the 16-heir figures quoted in 9.7.3 (752 / 850 / 1,700 bytes).
 
 **Open questions:**
@@ -2485,11 +2598,15 @@ is tested on the host.
   - 14–15: CRC-16/CCITT.
 - **HOST CLOCK** (9.7.1's version-2 block) is read at power-on. If it is valid, it sets the clock silently with
   quality HOST, and the magic is zeroed.
-- **Stale, and the drift prompt.** A clock resumed from SRAM after a power-off is quality STALE (0). While it is
-  stale and was ever set, the title row cycles every ~2 s between the date, `MAY HAVE DRIFTED` and
-  `SELECT TO SET IT`. It never blocks play. Setting the clock, a host block, or a working RTC clears the prompt.
-  - A cart without a clock cannot measure how long it was off. So a "long gap" here means any power-off since the
-    last set (see 16b.7).
+- **Stale, and the drift prompt (owner's rule).** A clock resumed from SRAM after a power-off is quality STALE (0).
+  - On the set-once build, the prompt shows once per power-on, from the **2nd power-on since the last set** (the
+    saved power-on count `boots` >= 2). The 1st power-on after a set is usually the same day, so it stays quiet.
+  - While it shows, the title row cycles every ~2 s between the date, `MAY HAVE DRIFTED` and `SELECT TO SET IT`. It
+    never blocks play.
+  - On the RTC build, it never shows while the chip is healthy. If the chip fails the probe, the fallback follows the
+    set-once rule.
+  - Setting the clock, a host block, or a working RTC clears it.
+  - A cart without a clock cannot measure how long it was off, so the power-on count stands in for a "long gap".
 - **Range.** Years 2000–2135: the RTC base is a u32 of seconds since 2000.
 
 ### 16b.3 The RTC build
@@ -2575,6 +2692,8 @@ Both builds use one layout, 9.5's map in SRAM bank 0. The only difference is the
   boot the chip is used.
 - **RTC → MBC5: works.** The kept clock resumes, stale. The RTC block is ignored and left byte-for-byte intact, so
   moving back still finds it.
+- **SETUP help.** The SETUP screen says `MOVED THE SAVE? SET THE CLOCK ONCE.` Moving saves between the two builds is
+  supported in both directions (16b.5).
 - **Caveat.** The RTC block belongs to one chip. If a save moves to a different MBC3 cart or emulator without its
   clock state, two things can happen:
   - The new counter reads earlier than the kept clock: it is rejected (the fallback).
@@ -2631,6 +2750,38 @@ seconds. The cart only ever writes DH (to start a halted chip or clear carry), s
    to its owner.
 3. **Moving an RTC save to another MBC3 chip** can carry a wrong base when the new counter reads later (16b.5).
    Re-asking whenever the RTC block's chip looks foreign would need a chip signature that MBC3 does not have.
+
+## 16c. Target hardware and LCD modes
+
+**Priority (owner, 2026-10-15)**
+1. **The ModRetro Chromatic.** It is the primary hardware: most players will use it.
+2. **SameBoy-accurate emulators.** SameBoy models the real-hardware quirks from test ROMs.
+3. **Original GBCs, other flash carts and looser emulators**, through SAFE mode.
+
+**One ROM, two LCD paths.** SETUP has a row, "LCD MODE: FAST / SAFE"; the default is FAST.
+- **SAFE** uses only documented CGB features (Pan Docs), and it must still meet the fps floors:
+  - double speed;
+  - HDMA/GDMA in mode 0/1;
+  - LY/SCY row doubling;
+  - mid-frame palette writes inside their safe windows.
+- **FAST** may also use undocumented or tight-timing tricks that buy real fps.
+- A quick boot self-test measures the LY/STAT timing the fast path relies on, and auto-switches to SAFE when it falls
+  outside the expected window.
+- There is no separate experimental ROM.
+
+**The ship rule.** A FAST trick ships when it passes in BOTH SameBoy and on the owner's Chromatic, using the trick
+test ROM. Agreement with an original GBC is not required, since SAFE covers it. Caveat: the Chromatic is an FPGA, and
+a trick verified on it is not guaranteed on an original GBC on undocumented edges. That is why SAFE stays in the ROM.
+
+**Trick test ROM.** Each trick runs on its own with a pass/fail pattern on screen. It runs headless in SameBoy with a
+screenshot compare against reference PNGs. A person can also read it by eye on the Chromatic in under a minute.
+
+**PyBoy is not the judge of timing.** It isn't cycle-accurate for HDMA, mid-scanline writes or STAT/LY interrupt
+latency. Every fullscreen 3D and title change is checked in SameBoy too, and its frames are compared with PyBoy's.
+
+**The trick ledger.** The renderer reports name each trick, the hardware feature it relies on, its path
+(SAFE/FAST) and the timing margin left in cycles. That ledger is folded in here when the fullscreen work lands
+(15.1/15.2).
 
 ---
 

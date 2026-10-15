@@ -12,6 +12,7 @@
 #include "core/eg_piece.h"
 #include "core/eg_plan.h"
 #include "run.h"
+#include "look.h"
 
 uint8_t pocket[EG_MAX_ITEM], pocket_n;
 uint8_t puzzle_dirty, frag_skip, floor_resets;
@@ -29,7 +30,8 @@ void pocket_reset(void) BANKED {
   pl_cell = pl_safe = room.start;
   frag_pend = 255u;
   puzzle_dirty = frag_skip = dead_t = 0;
-  beat_was = 2u;
+  beat_was = 255u;
+  look_glitch_period = 0; /* the puzzle drives the beat (frame-based, EG_BEAT_LEN; the solver's model is a window) */
   pocket_n = 0;
   bench_on = 0;
   bench_cur = 0;
@@ -62,84 +64,74 @@ void puzzle_pick(uint8_t cell) BANKED {
   }
 }
 
-/* --- stand-in looks for the cell types from T_CRUMBLE up (the look branch maps the same ids to its own tiles) ---
- * one row per type: the existing metatile drawn, and the palette it is drawn in */
-static const uint8_t look[T_TYPES - T_CRUMBLE][2] = {
-    {M_CARPET_C, 1},    /* T_CRUMBLE    rotten carpet: carpet in the foam's plum */
-    {M_WALL_CAP, 6},    /* T_PIT        a hole, the void: the wall cap in navy */
-    {M_TOKEN, 6},       /* T_PLATE      a pressure plate: the token disc in keycard navy and blue */
-    {M_BRICK, 4},       /* T_GATE       a shutter: board in the CRT's taupe */
-    {M_CARPET_A, 4},    /* T_GATE_OPEN  the shutter up: carpet, cyan-lit */
-    {M_FOAM_A, 4},      /* T_WATER      the flood: ripples in the CRT's cyan */
-    {M_CARPET_C, 4},    /* T_GLITCH     glitched glass, on the beat: cyan-lit carpet (off the beat: the void) */
-    {M_BRICK_CRACK, 5}, /* T_PAPER      paper and posters: cracked board in brass and cream */
-    {M_CARPET_B, 5},    /* T_PLANK      a cardboard plank: carpet in brass */
-    {0, 0},             /* T_ITEM       drawn as its four letters (below) */
-    {M_KEY, 3},         /* T_SOCKET     a dead socket: the card slot in grey */
-    {M_KEY, 7},         /* T_SOCKET_ON  live: in EXIT green */
-    {M_WALL_VENT, 7},   /* T_DEAD       a dead shutter: the vent grille in dark green */
-    {M_BRICK, 1},       /* T_BLOCK      a laid brick: board in brick plum */
-    {M_BRICK, 1},       /* T_BLOCK_PLATE */
-    {M_CARPET_B, 5},    /* T_WORN       worn carpet tile: brass (crack stages: carpet, carpet, cracked board) */
-    {M_CARPET_C, 5},    /* T_WORN_1 */
-    {M_BRICK_CRACK, 5}, /* T_WORN_2 */
-    {M_BRICK, 3},       /* T_CEIL       a ceiling tile: blue-grey board, then cracked */
-    {M_BRICK_CRACK, 3}, /* T_CEIL_1 */
-    {M_WALL_CAP, 4},    /* T_GLASS      glass over the void: the void, cyan-tinted */
-    {M_CARPET_C, 3},    /* T_ICE        thin ice: pale blue-white carpet, then foam-cracked */
-    {M_FOAM_B, 3},      /* T_ICE_1 */
+/* --- the cards (b1-look, src/gen/look_art.h) the puzzle cells show; a fragile kind's stage is its first card + the
+ * steps taken, the same order as the cell ids (src/core/eg_room.h) --- */
+static const uint8_t card[T_TYPES - T_CRUMBLE] = {
+    M_CRUMBLE,      /* T_CRUMBLE */
+    M_PIT,          /* T_PIT */
+    M_PLATE,        /* T_PLATE */
+    M_GATE,         /* T_GATE */
+    M_GATE_OPEN,    /* T_GATE_OPEN */
+    M_WET,          /* T_WATER (the look's placeholder reaction card) */
+    M_GLITCH0,      /* T_GLITCH: + the beat's phase (puzzle_meta) */
+    M_WALL_NOTE,    /* T_PAPER: a wall of notes and posters */
+    M_SLAB_CRACK,   /* T_PLANK: cardboard over a hole */
+    M_SLAB_A,       /* T_ITEM: drawn as its name (puzzle_draw_item) */
+    M_WALL_SWITCH,  /* T_SOCKET */
+    M_BATTERY,      /* T_SOCKET_ON */
+    M_GATE,         /* T_DEAD: a dead shutter */
+    M_CRATE,        /* T_BLOCK: a laid brick */
+    M_CRATE,        /* T_BLOCK_PLATE */
+    M_CARPET0,      /* T_WORN */
+    M_CARPET0 + 1u, /* T_WORN_1 */
+    M_CARPET0 + 2u, /* T_WORN_2 */
+    M_CEIL0,        /* T_CEIL */
+    M_CEIL0 + 1u,   /* T_CEIL_1 */
+    M_GLASS,        /* T_GLASS */
+    M_ICE,          /* T_ICE (placeholder; no crack card yet) */
+    M_ICE,          /* T_ICE_1 */
 };
 
-/* a piece's palette, by its first trait: HOT plum-pink, WET and COLD blue-chalk, STONE ochre, SHINY cyan, else green */
-static uint8_t piece_pal(uint8_t p) {
-  uint8_t t = eg_piece_tags(p);
-  if (t & TG(TAG_HOT)) return 1u;
-  if (t & (TG(TAG_WET) | TG(TAG_COLD))) return 3u;
-  if (t & TG(TAG_SHINY)) return 4u;
-  if (t & TG(TAG_STONE)) return 0u;
-  return 7u;
+/* the glitch beat as the look shows it: solid, flicker at its end, gone, flicker before it comes back */
+static uint8_t beat_phase(void) {
+  uint8_t f = (uint8_t)(frame_count & (EG_BEAT_LEN - 1u));
+  return f < EG_BEAT_ON - 16u ? 0u : (f < EG_BEAT_ON ? 1u : (f < EG_BEAT_LEN - 16u ? 2u : 1u));
 }
 
-void puzzle_draw(uint8_t i) BANKED {
-  uint8_t t = cell_type(i), x = (uint8_t)(EG_X(i) << 1), y = (uint8_t)(EG_Y(i) << 1), m, a[4];
-  if (t == T_ITEM) {
-    uint8_t p = eg_item_at(&room, i);
-    eg_piece_abbr(p, buf);
-    m = piece_pal(p);
-    buf[4] = buf[2];
-    buf[5] = buf[3];
-    buf[2] = 0;
-    buf[6] = 0;
-    text_at(0, x, y, buf, m);
-    text_at(0, x, (uint8_t)(y + 1u), buf + 4, m);
-    return;
-  }
-  if (t == T_GLITCH && !eg_beat_on(frame_count)) t = T_PIT; /* off the beat: the void shows */
-  if (t == T_PIT) { /* the void: the HUD's night blue */
-    text_at(0, x, y, "  ", 4);
-    text_at(0, x, (uint8_t)(y + 1u), "  ", 4);
-    return;
-  }
-  if (t == T_GLASS) { /* glass: a glint over the void */
-    text_at(0, x, y, "/ ", 4);
-    text_at(0, x, (uint8_t)(y + 1u), " /", 4);
-    return;
-  }
-  m = look[t - T_CRUMBLE][0];
-  a[0] = a[1] = a[2] = a[3] = (uint8_t)(look[t - T_CRUMBLE][1] | 0x08u);
-  VBK_REG = 1;
-  set_bkg_tiles(x, y, 2, 2, a);
-  VBK_REG = 0;
-  set_bkg_tiles(x, y, 2, 2, meta_tile[m]);
+uint8_t puzzle_meta(uint8_t i) BANKED {
+  uint8_t t = cell_type(i);
+  if (t == T_GLITCH) return (uint8_t)(M_GLITCH0 + beat_phase());
+  return card[t - T_CRUMBLE];
+}
+
+/* a piece, by its first trait: HOT in the burn palette, WET and COLD in the wet one, else the HUD's ink */
+static uint8_t piece_pal(uint8_t p) {
+  uint8_t t = eg_piece_tags(p);
+  if (t & TG(TAG_HOT)) return LOOK_PAL_REACT_B;
+  if (t & (TG(TAG_WET) | TG(TAG_COLD))) return LOOK_PAL_REACT_A;
+  return LOOK_PAL_HUD;
+}
+
+/* a piece lying in the room: its four letters in the cell's 2x2 */
+void puzzle_draw_item(uint8_t i) BANKED {
+  uint8_t x = (uint8_t)(EG_X(i) << 1), y = (uint8_t)(EG_Y(i) << 1), m, p = eg_item_at(&room, i);
+  eg_piece_abbr(p, buf);
+  m = piece_pal(p);
+  buf[4] = buf[2];
+  buf[5] = buf[3];
+  buf[2] = 0;
+  buf[6] = 0;
+  text_at(0, x, y, buf, m);
+  text_at(0, x, (uint8_t)(y + 1u), buf + 4, m);
 }
 
 /* --- using a piece --- */
 static uint8_t body(uint8_t *occ) {
   uint8_t n = 0, c, k, a, b, xs[2], ys[2];
-  xs[0] = (uint8_t)(pl_x - 5u);
-  xs[1] = (uint8_t)(pl_x + 4u);
-  ys[0] = (uint8_t)(pl_y - 5u);
-  ys[1] = (uint8_t)(pl_y + 4u);
+  xs[0] = (uint8_t)(pl_x - 6u); /* the mover's 12x12 box (core/eg_move) */
+  xs[1] = (uint8_t)(pl_x + 5u);
+  ys[0] = (uint8_t)(pl_y - 6u);
+  ys[1] = (uint8_t)(pl_y + 5u);
   for (a = 0; a != 2u; a++)
     for (b = 0; b != 2u; b++) {
       c = cell_at(xs[b], ys[a]);
@@ -198,46 +190,48 @@ static uint8_t use(uint8_t slot) {
 
 /* --- the bench: an overlay on the window, over the bottom of the room --- */
 #define BENCH_Y 72u
+#define BP LOOK_PAL_HUD     /* the bench's ink */
+#define HP LOOK_PAL_REACT_B /* what is chosen */
 static void line(uint8_t y, const char *s) {
-  text_at(1, 0, y, "                    ", 4);
-  text_at(1, 0, y, s, 4);
+  text_at(1, 0, y, "                    ", BP);
+  text_at(1, 0, y, s, BP);
 }
 
 static void bench_draw(void) {
   uint8_t k, r = 0;
-  text_at(1, 0, 0, "POCKET    BENCH     ", 4);
+  text_at(1, 0, 0, "POCKET    BENCH     ", BP);
   for (k = 0; k != EG_MAX_ITEM; k++) {
-    text_at(1, 0, (uint8_t)(k + 1u), "          ", 4);
+    text_at(1, 0, (uint8_t)(k + 1u), "          ", BP);
     if (k >= pocket_n) {
-      text_at(1, 1, (uint8_t)(k + 1u), k ? "" : (pocket_n ? "" : "EMPTY"), 4);
+      text_at(1, 1, (uint8_t)(k + 1u), k ? "" : (pocket_n ? "" : "EMPTY"), BP);
       continue;
     }
     eg_piece_name(pocket[k], buf);
-    text_at(1, 1, (uint8_t)(k + 1u), buf, (uint8_t)(sock[0] == k || sock[1] == k ? 5u : 4u));
-    if (k == bench_cur) text_at(1, 0, (uint8_t)(k + 1u), ">", 5);
+    text_at(1, 1, (uint8_t)(k + 1u), buf, (uint8_t)(sock[0] == k || sock[1] == k ? HP : BP));
+    if (k == bench_cur) text_at(1, 0, (uint8_t)(k + 1u), ">", HP);
   }
   for (k = 0; k != 2u; k++) {
-    text_at(1, 10, (uint8_t)(k + 1u), "          ", 4);
-    text_at(1, 10, (uint8_t)(k + 1u), k ? "+" : " ", 4);
+    text_at(1, 10, (uint8_t)(k + 1u), "          ", BP);
+    text_at(1, 10, (uint8_t)(k + 1u), k ? "+" : " ", BP);
     if (sock[k] != 255u) {
       eg_piece_name(pocket[sock[k]], buf);
-      text_at(1, 11, (uint8_t)(k + 1u), buf, 5);
+      text_at(1, 11, (uint8_t)(k + 1u), buf, HP);
     } else
-      text_at(1, 11, (uint8_t)(k + 1u), "-", 4);
+      text_at(1, 11, (uint8_t)(k + 1u), "-", BP);
   }
-  text_at(1, 10, 3, "          ", 4);
+  text_at(1, 10, 3, "          ", BP);
   if (sock[1] != 255u) {
     r = eg_recipe(pocket[sock[0]], pocket[sock[1]]);
-    text_at(1, 10, 3, ">", 5);
+    text_at(1, 10, 3, ">", HP);
     if (r) {
       eg_piece_name(r, buf);
-      text_at(1, 11, 3, buf, 5);
+      text_at(1, 11, 3, buf, HP);
     } else
-      text_at(1, 11, 3, "NOTHING", 4);
+      text_at(1, 11, 3, "NOTHING", BP);
   }
-  text_at(1, 10, 4, "          ", 4);
-  text_at(1, 10, 5, "          ", 4);
-  text_at(1, 10, 6, "          ", 4);
+  text_at(1, 10, 4, "          ", BP);
+  text_at(1, 10, 5, "          ", BP);
+  text_at(1, 10, 6, "          ", BP);
   /* the traits of what the A button would make, else of the piece under the cursor */
   eg_tags_text(r ? r : (pocket_n ? pocket[bench_cur] : 0u), buf);
   line(7, buf);
@@ -246,7 +240,7 @@ static void bench_draw(void) {
 
 static void bench_close(void) {
   bench_on = 0;
-  clear_map(1, 4);
+  clear_map(1, BP);
   hud_draw();
   hud_charge();
   move_win(7, 128);
@@ -257,14 +251,15 @@ void bench_run(void) BANKED {
   uint8_t a, b, r;
   sock[0] = sock[1] = 255u;
   if (bench_cur >= pocket_n) bench_cur = 0;
-  clear_map(1, 4);
+  clear_map(1, BP);
   bench_draw();
   hud_line = BENCH_Y;
   move_win(7, BENCH_Y);
   sfx(SFX_STEP);
   bench_on = 1; /* up and listening (the harness waits for this) */
   while (1) {
-    wait_frames(1);
+    frame_wait(); /* no hud_tick here: a toast closing would move the window under the bench */
+    sound_tick();
     input_poll();
     if (joy_pressed & J_SELECT) break;
     if (joy_pressed & (J_UP | J_DOWN)) {
@@ -289,8 +284,6 @@ void bench_run(void) BANKED {
         bench_cur = (uint8_t)(pocket_n - 1u);
         sock[0] = sock[1] = 255u;
         sfx(SFX_CHARGED);
-        eg_piece_name(r, buf);
-        hud_msg(buf);
         bench_draw();
       } else if (pocket_n && sock[0] != bench_cur) {
         sock[sock[0] == 255u ? 0u : 1u] = bench_cur;
@@ -357,16 +350,17 @@ uint8_t puzzle_frag_hit(uint8_t cell, uint8_t who) BANKED {
         frag_t[j][1] = eg_frag[k].reset_ticks;
         break;
       }
-  queue_cell(cell);
-  look_collapse(cell);
+  puzzle_break_fx(cell, k);
   puzzle_dirty = 1u;
   return 1u;
 }
 
-/* the hook b1-look's per-tile collapse replaces (a puff and a crack for now) */
-void look_collapse(uint8_t cell) BANKED {
-  puff((uint8_t)(EG_X(cell) * 16u + 8u), (uint8_t)(EG_Y(cell) * 16u + 8u), 6, ST_PUFF);
-  sfx(SFX_BREAK);
+/* a fragile cell of kind k just broke: b1-look's per-tile break (a wobble, then the fall or the shards, the sound;
+ * the cell shows M_PIT at once) */
+void puzzle_break_fx(uint8_t cell, uint8_t k) BANKED {
+  static const uint8_t look_kind[FK_COUNT] = {LOOK_FRAG_CARPET, LOOK_FRAG_CARPET, LOOK_FRAG_CEIL,
+                                              LOOK_FRAG_GLASS,  LOOK_FRAG_GLITCH, LOOK_FRAG_GLASS};
+  look_break_tile(cell, k < FK_COUNT ? look_kind[k] : LOOK_FRAG_AUTO);
 }
 
 static uint8_t body_on(uint8_t cell) {
@@ -379,8 +373,10 @@ static uint8_t body_on(uint8_t cell) {
 /* every frame of play: the beat, the player's steps on fragile floor, falls, timed resets, the dead-room hint */
 void puzzle_tick(void) BANKED {
   uint8_t c = cell_at(pl_x, pl_y), t, on = (uint8_t)eg_beat_on(frame_count), j;
-  if (on != beat_was) { /* the glitched glass flips */
+  on = beat_phase();
+  if (on != beat_was) { /* the glitched glass changes phase (solid, flicker, gone) */
     beat_was = on;
+    look_glitch_beat(on);
     j = 0;
     do {
       if (cell_type(j) == T_GLITCH) queue_cell(j);
@@ -392,17 +388,17 @@ void puzzle_tick(void) BANKED {
     pl_cell = c;
   }
   if (frag_pend != 255u && !body_on(frag_pend)) {
+    j = eg_frag_kind_of(cell_type(frag_pend));
     if (eg_step_off(&room, frag_pend, BB_PLAYER, 1u)) {
-      look_collapse(frag_pend);
+      puzzle_break_fx(frag_pend, j);
       puzzle_dirty = 1u;
-    }
-    queue_cell(frag_pend);
+    } else
+      queue_cell(frag_pend); /* the next crack stage */
     frag_pend = 255u;
   }
   t = cell_type(c);
   if (EG_PASSABLE(t) && !EG_FRAGILE(t) && t != T_GLITCH) pl_safe = c;
-  if ((t == T_PIT || (t == T_GLITCH && !on)) && pl_state != PS_EXIT) { /* a fall: hurt, and back to firm floor */
-    look_collapse(c);
+  if ((t == T_PIT || (t == T_GLITCH && !eg_beat_on(frame_count))) && pl_state != PS_EXIT) { /* a fall: hurt, and back to firm floor */
     player_hurt(1u, pl_x, pl_y);
     psx = cell_sub(EG_X(pl_safe));
     psy = cell_sub(EG_Y(pl_safe));
@@ -422,7 +418,7 @@ void puzzle_tick(void) BANKED {
     puzzle_dirty = 0;
     if (!dead_t && eg_dead(&room, c, pocket, pocket_n)) {
       dead_t = 120u;
-      hud_msg("ROOM FORGETS"); /* "THE ROOM FORGETS" is 16: the HUD line holds 14 */
+      hud_msg("THE ROOM FORGETS");
       sfx(SFX_TELL);
       shake = 4u;
     }

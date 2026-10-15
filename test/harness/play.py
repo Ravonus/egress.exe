@@ -10,6 +10,8 @@ Runs, each from power-on on a blank save, headless and deterministic:
            digging, pushing CRTs, breaking drywall) until the egress door takes the player to floor 2
   combat   a seeded run with enemies on (invulnerable): scripted lashes, a charged spin and dodge rolls near the
            enemies; checks enemies take damage and die, and screenshots the fight
+  heir     B1: the cartridge's heir equals genes.py's, the six inputs, 8-way / 4-way movement, the idle scheduler,
+           OAM per line in a fight and the boss, b1_heir_states.gif and b1_heir_play.png (test/harness/heir.py)
   death    a seeded run with enemies on and mortal: stands still until something kills the player; the run must end
            on the death screen and return to the title
 
@@ -116,7 +118,7 @@ class Game:
         return out.getvalue()[:8192]
 
 
-def start_run(g: Game, god: bool, no_enemies: bool, seed: int = SEED, floor: int = 0) -> bool:
+def start_run(g: Game, god: bool, no_enemies: bool, seed: int = SEED, floor: int = 0, fade: int = 40) -> bool:
     if not g.wait_mode(MODE_TITLE, 1500):
         return False
     g.tick(30)
@@ -130,7 +132,7 @@ def start_run(g: Game, god: bool, no_enemies: bool, seed: int = SEED, floor: int
             break
     else:
         return False
-    g.tick(40)  # the fade in
+    g.tick(fade)  # the fade in
     return True
 
 
@@ -479,7 +481,11 @@ def run_combat(g: Game, out: Path, report: dict) -> bool:
                 g.hold({"a"})  # hold through the lash and the charge, then let go: the spin
                 g.tick(40)
                 g.hold(set())
-                g.tick(3)
+                for _ in range(12):  # the charged attack starts on the release (hitstop can delay it)
+                    g.tick(1)
+                    if g.peek("pl_state") == 3:
+                        break
+                g.tick(2)
                 if g.peek("pl_state") == 3 and not spin_shot:
                     g.shot(out / "09_combat_spin.png")
                     spin_shot = True
@@ -832,6 +838,11 @@ def run_dead_hint(rom: Path, seed: int, tier: int, out: Path, rep: dict) -> bool
     g.tick(75)
     g.hold(set())
     g.tick(60)
+    for _ in range(300):  # the room assembles again around the player
+        if not g.peek("look_busy_n"):
+            break
+        g.tick()
+    g.tick(10)
     after = g.room()[:EG_N]
     r["reset_restores_glass"] = after[glass] & T_MASK == T_GLASS
     r["hint_cleared"] = g.peek("dead_t") == 0
@@ -849,7 +860,7 @@ def main() -> int:
     ap.add_argument("out", type=Path)
     ap.add_argument("--egtool", type=Path, default=Path("build/host/egtool"))
     ap.add_argument("--audio", type=Path, help="record the title and floor music as WAV into this directory")
-    ap.add_argument("--only", choices=["boot", "solve", "combat", "death", "landing", "boss", "puzzle"])
+    ap.add_argument("--only", choices=["boot", "solve", "combat", "death", "landing", "boss", "puzzle", "heir"])
     a = ap.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
     report: dict = {"rom": str(a.rom), "size": a.rom.stat().st_size}
@@ -909,6 +920,11 @@ def main() -> int:
 
     if a.only in (None, "puzzle"):
         results["puzzle"] = run_puzzle(a.rom, a.egtool, a.out, report)
+
+    if a.only in (None, "heir"):  # B1: the heir's roll, moves, movement, idle, sprite budget and shots (heir.py)
+        import heir
+
+        results.update(heir.run_all(a.rom, a.out, report))
 
     report["results"] = results
     contact(a.out, sorted(p.name for p in a.out.glob("[0-2][0-9]_*.png")))

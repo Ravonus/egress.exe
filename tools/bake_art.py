@@ -598,15 +598,23 @@ def glyph(ch: str) -> np.ndarray:
 
 
 def heart(fill: int) -> np.ndarray:
-    """HUD heart: 2 full, 1 half, 0 empty (keycard palette: navy, magenta, blue, white)"""
+    """HUD heart: 2 full, 1 half, 0 empty (the floor's HUD palette: ink, pink, accent, white). An empty heart is a
+    dithered pink outline, so it reads as a socket on the ink bar"""
     m = ["01100110", "11111111", "11111111", "11111111", "01111110", "00111100", "00011000", "00000000"]
+    mask = np.array([[c == "1" for c in r] for r in m])
     t = np.zeros((8, 8), np.uint8)
-    for y, row in enumerate(m):
-        for x, b in enumerate(row):
-            if b == "1":
-                filled = fill == 2 or (fill == 1 and x < 4)
-                t[y, x] = 1 if filled else 2
-    t[1, 1] = 3 if fill else 2
+    edge = mask & ~(np.roll(mask, 1, 0) & np.roll(mask, -1, 0) & np.roll(mask, 1, 1) & np.roll(mask, -1, 1))
+    for y in range(8):
+        for x in range(8):
+            if not mask[y, x]:
+                continue
+            filled = fill == 2 or (fill == 1 and x < 4)
+            if filled:
+                t[y, x] = 1
+            elif edge[y, x] and (x + y) % 2 == 0:
+                t[y, x] = 1
+    if fill:
+        t[1, 1] = 3
     return t
 
 
@@ -618,6 +626,14 @@ def small_token() -> np.ndarray:
 def small_key() -> np.ndarray:
     m = ["00033000", "00300300", "00033000", "02222220", "02111120", "02233220", "02222220", "00000000"]
     return np.array([[int(c) for c in r] for r in m], np.uint8)
+
+
+def rim() -> np.ndarray:
+    """the HUD's rim line (the floor's HUD palette): a dotted white line over a pink one, level with the charge bar"""
+    t = np.zeros((8, 8), np.uint8)
+    t[3, ::2] = 3
+    t[4, :] = 1
+    return t
 
 
 def bar(n: int) -> np.ndarray:
@@ -911,6 +927,38 @@ def build_bg() -> tuple[TileSet, list[list[int]], list[int], dict[str, int]]:
     return ts, metas, pals, named
 
 
+# VRAM bank 1 during floors (src/look.h): 0 blank, 2.. the talkers' faces (screens only; the floor's cards from
+# tools/bake_look.py load over them), BG_FIXED_BASE.. the font and the HUD, which every screen keeps.
+BG_FIXED_BASE = 190
+
+
+def build_vram() -> tuple[list[bytes], list[bytes], dict[str, int]]:
+    low = [encode(np.zeros((8, 8), np.uint8))] * 2
+    named: dict[str, int] = {"FACE": len(low)}
+    for _, fn, _, _ in FACES:
+        f = fn()
+        for ty in range(4):
+            for tx in range(4):
+                low.append(encode(f[ty * 8 : ty * 8 + 8, tx * 8 : tx * 8 + 8]))
+    fixed: list[bytes] = []
+    named["FONT"] = BG_FIXED_BASE
+    fixed += [encode(glyph(ch)) for ch in FONT_ORDER]
+    for f in (0, 1, 2):
+        named[f"HEART{f}"] = BG_FIXED_BASE + len(fixed)
+        fixed.append(encode(heart(f)))
+    named["ICON_TOKEN"] = BG_FIXED_BASE + len(fixed)
+    fixed.append(encode(small_token()))
+    named["ICON_KEY"] = BG_FIXED_BASE + len(fixed)
+    fixed.append(encode(small_key()))
+    named["BAR"] = BG_FIXED_BASE + len(fixed)
+    fixed += [encode(bar(n)) for n in range(9)]
+    named["RIM"] = BG_FIXED_BASE + len(fixed)
+    fixed.append(encode(rim()))
+    if len(low) > BG_FIXED_BASE or BG_FIXED_BASE + len(fixed) > 256:
+        raise SystemExit(f"bank 1 layout: faces end {len(low)}, fixed block ends {BG_FIXED_BASE + len(fixed)}")
+    return low, fixed, named
+
+
 def build_sprites() -> tuple[TileSet, dict[str, int]]:
     ts = TileSet(dedupe=False)
     named: dict[str, int] = {}
@@ -1129,12 +1177,11 @@ def title_picture() -> Picture:
 
 
 def write(out: Path, sheet: Path | None) -> None:
-    bg, metas, mpals, bg_named = build_bg()
+    bg, metas, mpals, _ = build_bg()  # the old cards: the contact sheet only
+    bg_low, bg_fixed, bg_named = build_vram()
     sp, sp_named = build_sprites()
     boot = boot_picture()
     title = title_picture()
-    if len(bg.tiles) > 256:
-        raise SystemExit(f"background tiles: {len(bg.tiles)} > 256")
     if len(title.tiles.tiles) > 256:
         raise SystemExit("the title must fit VRAM bank 0 (the font stays in bank 1)")
     if len(sp.tiles) > 256:
@@ -1146,9 +1193,7 @@ def write(out: Path, sheet: Path | None) -> None:
         "#include <gb/gb.h>",
         "#include <stdint.h>",
     ]
-    for i, (name, _, _) in enumerate(METAS):
-        h.append(f"#define M_{name} {i}u")
-    h.append(f"#define M_COUNT {len(METAS)}u")
+    h.append('#include "look_art.h" /* the floor\'s cards (M_*, M_COUNT): tools/bake_look.py */')
     for k, v in bg_named.items():
         h.append(f"#define BT_{k} {v}u")
     h.append(f"#define BT_FONT_ORDER \"{FONT_ORDER}\"")
@@ -1162,8 +1207,6 @@ def write(out: Path, sheet: Path | None) -> None:
         f"#define ART_FACES {len(FACES)}u",
         "extern const uint16_t art_face_pal[][8]; /* palette A then B per talker */",
         "extern const uint8_t art_face_human[];",
-        "extern const uint8_t art_meta_tile[][4];",
-        "extern const uint8_t art_meta_pal[];",
         "extern const uint16_t art_bg_pal[32];",
         "extern const uint16_t art_spr_pal[32];",
         "extern const uint16_t art_skins[], art_hairs[], art_hoodies[], art_trousers[];",
@@ -1194,10 +1237,9 @@ def write(out: Path, sheet: Path | None) -> None:
         "#include <string.h>",
         '#include "art.h"',
         "BANKREF(art_bank)",
-        c_bytes("bg_tiles", b"".join(bg.tiles)),
+        c_bytes("bg_tiles", b"".join(bg_low)),
+        c_bytes("bg_fixed", b"".join(bg_fixed)),
         c_bytes("spr_tiles", b"".join(sp.tiles)),
-        "const uint8_t art_meta_tile[][4] = {" + ", ".join("{" + ", ".join(map(str, m)) + "}" for m in metas) + "};",
-        "const uint8_t art_meta_pal[] = {" + ", ".join(map(str, mpals)) + "};",
         c_words("art_bg_pal", [rgb555(col) for p in BG_PAL for col in p]),
         c_words("art_spr_pal", [rgb555(col) for p in SPR_PAL for col in p]),
         "const uint16_t art_face_pal[][8] = {" + ", ".join(
@@ -1207,12 +1249,15 @@ def write(out: Path, sheet: Path | None) -> None:
         c_words("art_hairs", [rgb555(hx(x)) for x in HAIRS]),
         c_words("art_hoodies", [rgb555(hx(x)) for x in HOODIES]),
         c_words("art_trousers", [rgb555(hx(x)) for x in TROUSERS]),
-        f"#define BG_NTILES {len(bg.tiles)}u",
+        f"#define BG_NTILES {len(bg_low)}u",
+        f"#define BG_FIXED_BASE {BG_FIXED_BASE}u",
+        f"#define BG_NFIXED {len(bg_fixed)}u",
         f"#define SPR_NTILES {len(sp.tiles)}u",
         """
 void art_load_game(void) BANKED {
   VBK_REG = 1;
   set_bkg_data(0, BG_NTILES, bg_tiles);
+  set_bkg_data(BG_FIXED_BASE, BG_NFIXED, bg_fixed);
   VBK_REG = 0;
   set_sprite_data(0, SPR_NTILES, spr_tiles);
 }
@@ -1224,8 +1269,8 @@ uint8_t art_face_palettes(uint8_t face, uint16_t *out16) BANKED {
 
 void art_copy_tables(uint8_t *meta_tile, uint8_t *meta_pal, uint16_t *bg_pal, uint16_t *spr_pal,
                      uint16_t *people) BANKED {
-  memcpy(meta_tile, art_meta_tile, sizeof art_meta_tile);
-  memcpy(meta_pal, art_meta_pal, sizeof art_meta_pal);
+  (void)meta_tile; /* the floor's cards come from src/look.c now (look_load) */
+  (void)meta_pal;
   memcpy(bg_pal, art_bg_pal, sizeof art_bg_pal);
   memcpy(spr_pal, art_spr_pal, sizeof art_spr_pal);
   memcpy(people, art_skins, sizeof art_skins);

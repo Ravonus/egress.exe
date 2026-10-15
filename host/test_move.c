@@ -27,7 +27,7 @@ static int pass, fail;
 #define PX(p) ((int16_t)((p) << EG_FIX))
 
 static uint8_t cells[W * H];
-static eg_grid_t grid = {cells, W, H};
+static eg_grid_t grid = {cells, W, H, 0, 0};
 
 static void room(void) { /* 10x8, wall border, open inside */
   int x, y;
@@ -264,7 +264,39 @@ static void t_determinism(void) {
   CHECK(h1 == h2 && r1 == r2, "random walk twice: identical trace");
 }
 
+/* a 16-wide grid read by shift (the cartridge's) and by multiply give the same cells, and the same walk */
+static void t_wshift(void) {
+  static uint8_t c16[16 * 14];
+  static uint8_t raw[16 * 14], map[256];
+  eg_grid_t a = {c16, 16, 14, 0, 0}, b = {c16, 16, 14, 4, 0}, r = {raw, 16, 14, 4, map};
+  eg_mover_t mr;
+  eg_mover_t ma, mb;
+  int i, x, y, same = 1;
+  for (i = 0; i < 16 * 14; i++) c16[i] = (uint8_t)((i * 7 + (i >> 4) * 3) % 5 == 0 ? EG_C_WALL : EG_C_FREE);
+  /* the mapped grid: raw bytes whose low bit says wall, the rest noise */
+  for (i = 0; i < 256; i++) map[i] = (uint8_t)((i & 1) ? EG_C_WALL : EG_C_FREE);
+  for (i = 0; i < 16 * 14; i++) raw[i] = (uint8_t)(((i * 37) & 0xfe) | (c16[i] == EG_C_WALL));
+  for (y = -1; y <= 14; y++)
+    for (x = -1; x <= 16; x++)
+      if (eg_grid_cell(&a, (int16_t)x, (int16_t)y) != eg_grid_cell(&b, (int16_t)x, (int16_t)y) ||
+          eg_grid_cell(&a, (int16_t)x, (int16_t)y) != eg_grid_cell(&r, (int16_t)x, (int16_t)y))
+        same = 0;
+  CHECK(same, "shift-indexed and mapped grids read the same cells");
+  eg_move_init(&ma, 16 << 4, 16 << 4, EG_MODE_8WAY);
+  eg_move_init(&mb, 16 << 4, 16 << 4, EG_MODE_8WAY);
+  eg_move_init(&mr, 16 << 4, 16 << 4, EG_MODE_8WAY);
+  for (i = 0; i < 600; i++) {
+    uint8_t dp = (uint8_t)((i / 23) % 9);
+    eg_move_step(&ma, dp, 20u, &a);
+    eg_move_step(&mb, dp, 20u, &b);
+    eg_move_step(&mr, dp, 20u, &r);
+    if (ma.x != mb.x || ma.y != mb.y || ma.facing != mb.facing || ma.x != mr.x || ma.y != mr.y) same = 0;
+  }
+  CHECK(same, "shift-indexed and mapped grids: the same 600-frame walk");
+}
+
 int main(void) {
+  t_wshift();
   t_diagonal();
   t_four_way();
   t_facing();

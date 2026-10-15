@@ -1,6 +1,134 @@
 {
   "rom": "build/egress.gbc",
-  "size": 98304,
+  "size": 475136,
+  "boot_mode_at_150": 0,
+  "solve_started": true,
+  "floor_seed": 38,
+  "floor_tier": 0,
+  "room_matches_host": true,
+  "plan": "ULLlLUDLLUUPaUUUUUUURRRRRRRRLLLLLLLLU",
+  "plan_stats": "solved 1 nodes 5 acts 5 steps 37 pushes 0 breaks 1 digs 0 drops 0 picks 1 combines 0 uses 1 branching 1.50 difficulty 41 trick burn states 4 dead 0 fatal-depth -1",
+  "autopilot_log": [],
+  "reached_floor2": true,
+  "keys_held_at_end": 0,
+  "combat_started": true,
+  "enemies_at_start": 2,
+  "combat_strikes": 3,
+  "enemies_killed": 1,
+  "enemy_hp_removed": 2,
+  "tokens_gained": 3,
+  "death_hp_start": 6,
+  "death_took_damage": true,
+  "death_reached_screen": true,
+  "death_back_to_title": true,
+  "save_after_death": {
+    "gen": 1,
+    "runs": 1,
+    "wins": 0,
+    "best_floor": 1,
+    "unlocked": 7,
+    "seen": 0,
+    "trace": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "slot": 1
+  },
+  "save_after_second_death": {
+    "gen": 2,
+    "runs": 2,
+    "wins": 0,
+    "best_floor": 1,
+    "unlocked": 7,
+    "seen": 0,
+    "trace": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "slot": 0
+  },
+  "landing_log": [],
+  "landing_mode": 3,
+  "landing_mods": 2,
+  "landing_tokens_left": 27,
+  "landing_standing": [
+    0,
+    0,
+    4,
+    -1,
+    0,
+    -1
+  ],
+  "landing_truth_before_after": [
+    [
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      4,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  ],
+  "landing_reached_floor4": true,
+  "boss_strikes": 25,
+  "boss_dead": true,
+  "boss_hp_left": 0,
+  "boss_frames": 1515,
+  "boss_shots": {
+    "tell": true,
+    "orbs": true,
+    "stun": true
+  },
+  "boss_log": [],
+  "ending_back_to_title": true,
+  "save_after_win": {
+    "gen": 1,
+    "runs": 1,
+    "wins": 1,
+    "best_floor": 10,
+    "unlocked": 63,
+    "seen": 7,
+    "trace": [
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1
+    ],
+    "slot": 1
+  },
   "puzzle": {
     "burn": {
       "seed": 1,
@@ -31,7 +159,7 @@
       "reached_floor2": true,
       "moment_shot": true,
       "hp_lost": 0,
-      "gif_frames": 565
+      "gif_frames": 626
     },
     "rhythm": {
       "seed": 35,
@@ -52,7 +180,7 @@
       "reached_floor2": true,
       "moment_shot": true,
       "hp_lost": 0,
-      "gif_frames": 643
+      "gif_frames": 695
     },
     "weight": {
       "seed": 32,
@@ -77,7 +205,174 @@
       "log": []
     }
   },
+  "heir_roll_seeds": 27,
+  "heir_roll_mismatches": [],
+  "heir_moves": {
+    "b_tap_dodge": true,
+    "b_hold_sprint_then_skid": true,
+    "b_then_a_lunge": true,
+    "a_taps_combo_1_2_3": true,
+    "a_hold_charge_release": true,
+    "charged_level2_is_spin": true,
+    "a_then_b_parry": true,
+    "same_frame_ab_parry": true,
+    "dodge_anim_is_heirs_style": true
+  },
+  "heir_movement": {
+    "straight_sub_per_frame": 17.27,
+    "diag_sub_per_frame": [
+      11.43,
+      12.38
+    ],
+    "diagonal_normalised": true,
+    "4way_left_wins": true,
+    "setup_move_toggles": true
+  },
+  "heir_idle": [
+    {
+      "seed": 6,
+      "traits": [
+        "DAMP"
+      ],
+      "cart": [
+        [
+          0,
+          "idle"
+        ],
+        [
+          173,
+          "fidget_yawn"
+        ],
+        [
+          218,
+          "idle"
+        ],
+        [
+          373,
+          "fidget_shift"
+        ],
+        [
+          423,
+          "idle"
+        ],
+        [
+          611,
+          "long_sit"
+        ],
+        [
+          851,
+          "long_doze"
+        ]
+      ],
+      "plan": [
+        [
+          0,
+          "idle"
+        ],
+        [
+          174,
+          "fidget_yawn"
+        ],
+        [
+          218,
+          "idle"
+        ],
+        [
+          373,
+          "fidget_shift"
+        ],
+        [
+          423,
+          "idle"
+        ],
+        [
+          611,
+          "long_sit"
+        ],
+        [
+          851,
+          "long_doze"
+        ]
+      ],
+      "match": true
+    },
+    {
+      "seed": 2,
+      "traits": [
+        "INSOMNIAC",
+        "DAMP"
+      ],
+      "cart": [
+        [
+          0,
+          "idle"
+        ],
+        [
+          279,
+          "fidget_look"
+        ],
+        [
+          361,
+          "idle"
+        ],
+        [
+          656,
+          "long_sit"
+        ]
+      ],
+      "plan": [
+        [
+          0,
+          "idle"
+        ],
+        [
+          279,
+          "fidget_look"
+        ],
+        [
+          361,
+          "idle"
+        ],
+        [
+          656,
+          "long_sit"
+        ]
+      ],
+      "match": true
+    }
+  ],
+  "heir_budget": {
+    "combat": {
+      "frames": 12797,
+      "max_oam": 9,
+      "max_per_line": 8,
+      "frames_over_10": 0
+    },
+    "boss": {
+      "frames": 1548,
+      "max_oam": 21,
+      "max_per_line": 15,
+      "frames_over_10": 129
+    }
+  },
+  "heir_states_shown": 59,
+  "heir_gif_frames": 666,
   "results": {
-    "puzzle": true
+    "boot": true,
+    "solve": true,
+    "combat": true,
+    "death": true,
+    "save": true,
+    "landing": true,
+    "boss": true,
+    "save_win": true,
+    "puzzle": true,
+    "heir_roll": true,
+    "heir_moves": true,
+    "heir_movement": true,
+    "heir_idle": true,
+    "heir_budget": true,
+    "heir_states_gif": true,
+    "heir_play_png": true
   }
 }
