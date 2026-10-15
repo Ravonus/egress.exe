@@ -9,7 +9,7 @@ autobanked chunk of at most 16 KiB; OUT_DIR/tb_index.s (the chunk and loop table
 the C side), OUT_DIR/chunks.mk (the chunk objects, for the Makefile), HOST_DIR/verify/loop<K>.bin + .cams (every
 frame's expected tile buffer and camera, for the harness), and OUT_DIR/ledger.txt (the ROM cost of every table).
 
-The renderer is proto/raycast/v2/src/core2.c built for 160x104 (bake_host.c). Every frame is checked here: the records
+The renderer is tools/title3d/core/core2.c (a frozen copy of the v2 core the walks were baked with) built for 160x104 (bake_host.c). Every frame is checked here: the records
 are played again from their bytes the way t3d_core.c plays them (the dictionary copies, the uploads, the map runs) into
 a model of VRAM, twice round the loop, and each frame's visible tiles must equal the renderer's, exactly.
 
