@@ -72,6 +72,9 @@ static const char *const weapon_tell[5] = {"BALANCED ARC","SLOW HEAVY BREAK","LO
 /* Picker-only scratch overlaps floor-only look_skin (DCF0..DDCF). */
 static uint8_t __at(0xDD00) pick_pixels[16u*24u];
 uint8_t family_page,family_ready;
+/* The floor-only skin prefix is idle here; nine palette masks fit before
+ * the DD00 portrait scratch without consuming the game's remaining BSS. */
+static uint8_t __at(0xDCF0) portrait_cloth[9];
 /* Preserve body/cloth colours when a BG tile crosses the layer boundary.
  * Each enlarged tile covers only 4x4 source pixels, reducing palette mixing. */
 static uint8_t pick_nearest(uint16_t colour,const uint16_t *pal) {
@@ -86,7 +89,7 @@ static uint8_t pick_nearest(uint16_t colour,const uint16_t *pal) {
   return best;
 }
 static void pick_portrait(uint8_t card) {
-  uint8_t n,k,x,y,v,c,raw[32],tile[16],map,attr,px,py,cloth,remap[2][6];
+  uint8_t n,k,x,y,v,c,raw[32],tile[16],map,px,py,cloth,remap[2][6];
   OAM_item_t *o;
   apply_gene(&family.child[card]);heir_idle_stop();heir_play(HA_IDLE,1u);heir_reset();ha_dir=0u;
   n=heir_draw(0u,8,16);frame_wait();memset(pick_pixels,0,16u*24u);
@@ -96,15 +99,16 @@ static void pick_portrait(uint8_t card) {
     remap[k][v]=v ? pick_nearest(pal_sp[v>=4u ? v+2u : v],&pal_bg[card*8u+k*4u]) : 0u;
   }
   while(n) {
-    o=&shadow_OAM[--n];get_sprite_data(o->tile,2u,raw);
+    o=&shadow_OAM[--n];memcpy(raw,heir_pixels+((uint8_t)(o->tile&7u)<<4),32u);
     px=(uint8_t)(o->x-8u);py=(uint8_t)(o->y-16u);
     for(y=0u;y!=16u;y++)for(x=0u;x!=8u;x++) {
       v=(uint8_t)(((raw[y*2u]>>(7u-x))&1u)|(((raw[y*2u+1u]>>(7u-x))&1u)<<1));
       if(v && px+x<16u && py+y<24u)pick_pixels[(uint16_t)(py+y)*16u+px+x]=(uint8_t)(v+(v>1u && (o->prop&7u)==1u ? 2u : 0u));
     }
   }
-  /* Cache pixels and attributes in the off-screen map. Selection never
-   * recomposes art, blacks palettes, turns the LCD off or clears the page. */
+  /* Cache pixels in BG VRAM and palette choices in nine WRAM bytes. Never
+   * read active VRAM: real hardware and binjgb enforce its access windows. */
+  memset(portrait_cloth+card*3u,0,3u);
   for(k=0u;k!=24u;k++) {
     cloth=0u;px=(uint8_t)((k&3u)*4u);py=(uint8_t)((k>>2)*4u);
     for(y=0u;y<4u;y++)for(x=0u;x<4u;x++)if(pick_pixels[(uint16_t)(py+y)*16u+px+x]>=4u)cloth++;
@@ -115,20 +119,20 @@ static void pick_portrait(uint8_t card) {
       if(v&2u)tile[y*2u+1u]|=(uint8_t)(128u>>x);
     }
     map=(uint8_t)(32u+card*24u+k);VBK_REG=0u;set_bkg_data(map,1u,tile);
-    attr=(uint8_t)(card*2u+cloth);VBK_REG=1u;set_bkg_tiles((uint8_t)(card*4u+(k&3u)),(uint8_t)(20u+(k>>2)),1u,1u,&attr);
-    VBK_REG=0u;set_bkg_tiles((uint8_t)(card*4u+(k&3u)),(uint8_t)(20u+(k>>2)),1u,1u,&map);
+    if(cloth)portrait_cloth[card*3u+(k>>3)]|=look_bits[k&7u];
   }
   for(c=0u;c!=40u;c++)move_sprite(c,0u,0u);
 }
 static void pick_show(uint8_t card,uint8_t x,uint8_t y) {
-  uint8_t k,attr,tile;
-  const volatile uint8_t *src=(const volatile uint8_t *)
-    ((LCDC_REG&LCDCF_BG9C00 ? 0x9C00u : 0x9800u)+20u*32u+card*4u);
-  for(k=0u;k<24u;k++) {
-    VBK_REG=1u;
-    CRITICAL {while(STAT_REG&STATF_BUSY){}attr=src[(uint16_t)(k>>2)*32u+(k&3u)];}
-    set_bkg_tiles(x+(k&3u),y+(k>>2),1u,1u,&attr);
-    VBK_REG=0u;tile=(uint8_t)(32u+card*24u+k);set_bkg_tiles(x+(k&3u),y+(k>>2),1u,1u,&tile);
+  uint8_t k,r,attr[4],tile[4];
+  for(r=0u;r<6u;r++) {
+    for(k=0u;k<4u;k++) {
+      uint8_t n=(uint8_t)(r*4u+k);
+      attr[k]=(uint8_t)(card*2u+((portrait_cloth[card*3u+(n>>3)]&look_bits[n&7u]) ? 1u : 0u));
+      tile[k]=(uint8_t)(32u+card*24u+n);
+    }
+    VBK_REG=1u;set_bkg_tiles(x,y+r,4u,1u,attr);
+    VBK_REG=0u;set_bkg_tiles(x,y+r,4u,1u,tile);
   }
 }
 static void pick_box(uint8_t k) {
