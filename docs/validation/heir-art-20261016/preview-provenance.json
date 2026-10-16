@@ -1,0 +1,14 @@
+[
+  {
+    "romSha256": "2a15a767791ecce42b5a4b6582258d6b5c38f2547702f5eda89b65bee7898a46",
+    "preview": "build/sprints/heir-release/egress-preview.png",
+    "previewSha256": "09333f4e88fee5bd93064626e9491d3a3ea752203b46f8f14c627eabd74ce0de",
+    "capture": "Native PyBoy game, ordinary first-run input, 40 display frames after start; enemies disabled for the image only."
+  },
+  {
+    "romSha256": "b5ab3b3cb6db5135c6585d910835bc10cdb7a973e56c8558226d32b479b63a45",
+    "preview": "build/sprints/heir-release/egress-rtc-preview.png",
+    "previewSha256": "09333f4e88fee5bd93064626e9491d3a3ea752203b46f8f14c627eabd74ce0de",
+    "capture": "Native PyBoy game, ordinary first-run input, 40 display frames after start; enemies disabled for the image only."
+  }
+]

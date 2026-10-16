@@ -1,0 +1,39 @@
+{
+  "base": "http://127.0.0.1:3237",
+  "checks": [
+    {
+      "width": 1280,
+      "downloads": true,
+      "github": true,
+      "noOverflow": true,
+      "explainerNoOverflow": true,
+      "pageErrors": []
+    },
+    {
+      "width": 768,
+      "downloads": true,
+      "github": true,
+      "noOverflow": true,
+      "explainerNoOverflow": true,
+      "pageErrors": []
+    },
+    {
+      "width": 390,
+      "downloads": true,
+      "github": true,
+      "noOverflow": true,
+      "explainerNoOverflow": true,
+      "pageErrors": []
+    },
+    {
+      "width": 320,
+      "downloads": true,
+      "github": true,
+      "noOverflow": true,
+      "explainerNoOverflow": true,
+      "pageErrors": []
+    }
+  ],
+  "actualDownloadsVerified": true,
+  "browserEmulatorUsesStandard": true
+}

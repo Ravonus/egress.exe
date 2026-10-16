@@ -1,0 +1,11 @@
+{
+  "base": "http://127.0.0.1:3237",
+  "oldSha256": "1fab0cb81ef3532d3c7fae52ccbcfa464171e1d3c078f4df4b4b7f2d74e7e5f2",
+  "sha256": "2a15a767791ecce42b5a4b6582258d6b5c38f2547702f5eda89b65bee7898a46",
+  "results": {
+    "realCheckpointSaveCarriedOver": true,
+    "sameInheritedGenome": true,
+    "nativeGameStarted": true,
+    "pageErrors": true
+  }
+}
