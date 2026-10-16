@@ -19,7 +19,11 @@
 #include "family.h"
 #include "narrator.h"
 #include "tutorial.h"
+#include "world.h"
+#include "world_dead.h"
 void items_tick(void) BANKED;
+extern volatile uint8_t video_epoch;
+extern uint8_t frame_epoch;
 
 /* Bank 1 floor state, after the mover map; title playback uses bank 2 here. */
 uint8_t __at(0xDBC0) pocket[POCKET_CAP];
@@ -32,8 +36,8 @@ static uint8_t pl_cell, pl_safe, beat_was, frag_pend, has_glitch;
 uint8_t dead_t; /* the dead-room hint: 0 none, counting down, 1 shown (the harness reads it) */
 uint8_t dead_run; /* the sliced dead-room check is under way (the harness reads it) */
 #define DEAD_SLICE 4u /* queue pops a frame (~3.5 lines each): a whole check is one or two floods, about a second */
-static uint8_t frag_t[4][2]; /* timed resets: cell, ticks of 8 frames left (0: free) */
-uint8_t bench_on, bench_cur, last_rx; /* 1 listening, 2 a use, 3 the combination scene */
+static uint8_t frag_t[4][3]; /* global x/y, ticks of 8 frames left (0: free) */
+uint8_t bench_on, bench_cur, last_rx; /* 1 listening, 2 use, 3 combination, 4 paused redraw */
 static uint8_t sock[2], told;
 static char buf[20];
 static uint8_t bench_cam_y;
@@ -56,6 +60,21 @@ void pocket_reset(void) BANKED {
   has_glitch = 0;
   for (i = 0; i != (uint8_t)EG_N; i++)
     if (cell_type(i) == T_GLITCH) has_glitch = 1;
+}
+void puzzle_shift_view(int8_t dx,int8_t dy) BANKED {
+  uint8_t c=cell_at(pl_x,pl_y),i,x,y,from;
+  pl_cell=eg_view_rebase(pl_cell,dx,dy);pl_safe=eg_view_rebase(pl_safe,dx,dy);frag_pend=eg_view_rebase(frag_pend,dx,dy);
+  if(pl_cell>=EG_N)pl_cell=c;if(pl_safe>=EG_N)pl_safe=c;
+  dead_run=0u;puzzle_dirty=1u;
+  if(world_on) {has_glitch|=world_glitch;return;}
+  if(has_glitch)return;
+  if(dx) {
+    from=dx>0 ? 12u : 0u;
+    for(y=0u;y<14u;y++)for(x=from;x<from+4u;x++)if(cell_type(EG_IDX(x,y))==T_GLITCH)has_glitch=1u;
+  } else {
+    from=dy>0 ? 10u : 0u;
+    for(y=from;y<from+4u;y++)for(x=0u;x<16u;x++) {i=EG_IDX(x,y);if(cell_type(i)==T_GLITCH)has_glitch=1u;}
+  }
 }
 
 static void pocket_take(uint8_t slot) {
@@ -123,6 +142,11 @@ static uint8_t beat_phase(void) {
 
 uint8_t puzzle_meta(uint8_t i) BANKED {
   uint8_t t = cell_type(i);
+  if((room.portal_need&EG_PORTAL_ON) && (i==room.portal[0] || i==room.portal[1]) && (t==T_EMPTY || t==T_PLATE)) {
+    static const uint8_t phase[4]={1u,2u,3u,2u};
+    uint8_t p=cell_at(pl_x,pl_y);
+    return (uint8_t)(M_PORTAL0+(eg_portal_target(&room,i,&p,(uint8_t)(pl_hp && !pl_air && pl_state!=PS_FALL))!=EG_LINK_NONE ? phase[(frame_count>>4)&3u] : 0u));
+  }
   if (t == T_GLITCH) return (uint8_t)(M_GLITCH0 + beat_phase());
   if(t==T_PLATE && pl_hp && !pl_air && pl_state!=PS_FALL &&
      absdiff((uint8_t)(EG_X(i)*16u+8u),pl_x)<14u && absdiff((uint8_t)(EG_Y(i)*16u+8u),pl_y)<14u)
@@ -332,23 +356,26 @@ static void bench_draw(void) {
 }
 
 static void bench_close(void) {
-  bench_on = 0;
-  cam_y=bench_cam_y;move_bkg(cam_x,cam_y);
+  bench_on = 4u;
+  cam_y=bench_cam_y;move_bkg(BG_SCROLL_X(cam_x),BG_SCROLL_Y(cam_y));
   clear_map(1, BP);
   hud_draw();
   hud_charge();
   move_win(7, 128);
   hud_line = 128u;
+  frame_wait(); /* finish the paused redraw before active play resumes */
+  bench_on = 0u;
 }
 
 void bench_run(void) BANKED {
   uint8_t a, b, r, drop_t=0u;
+  bench_on=4u; /* opening: gameplay is paused while the existing scene draws */
   sock[0] = sock[1] = 255u;
   if (bench_cur >= pocket_n) bench_cur = 0;
   bench_cam_y=cam_y;
   cam_y=pl_y>40u ? (uint8_t)(pl_y-40u) : 0u;
   if(cam_y>152u) cam_y=152u;
-  move_bkg(cam_x,cam_y);
+  move_bkg(BG_SCROLL_X(cam_x),BG_SCROLL_Y(cam_y));
   clear_map(1, BP);
   bench_draw();
   hud_line = BENCH_Y;
@@ -371,6 +398,7 @@ void bench_run(void) BANKED {
       if(drop_t==1u) line(8,"HOLD RIGHT: DROP ONE");
       if(drop_t==30u && pocket_n) {
         pocket_take(bench_cur);sock[0]=sock[1]=255u;
+        puzzle_dirty=1u;
         if(bench_cur>=pocket_n) bench_cur=0u;
         bench_draw();line(8,"ONE UNIT DISCARDED");sfx(SFX_STEP);
       }
@@ -399,6 +427,7 @@ void bench_run(void) BANKED {
         pocket_take(a > b ? a : b);
         pocket_take(a > b ? b : a);
         pocket[pocket_n++] = r;
+        puzzle_dirty=1u;
         narrator_event(NE_MIX,r);
         bench_cur = (uint8_t)(pocket_n - 1u);
         sock[0] = sock[1] = 255u;
@@ -420,6 +449,7 @@ void bench_run(void) BANKED {
       bench_close();
       bench_on = 2; /* the reaction playing out */
       use(bench_cur);
+      frame_wait();
       bench_on = 0;
       if (bench_cur >= pocket_n) bench_cur = 0;
       return;
@@ -467,9 +497,10 @@ uint8_t puzzle_frag_hit(uint8_t cell, uint8_t who) BANKED {
   if (!eg_frag_hit(&room, cell, who)) return 0u;
   if (ticks)
     for (j = 0; j != 4u; j++)
-      if (!frag_t[j][1]) {
-        frag_t[j][0] = cell;
-        frag_t[j][1] = ticks;
+      if (!frag_t[j][2]) {
+        frag_t[j][0]=(uint8_t)(EG_X(cell)+(world_on ? world_view.x : 0u));
+        frag_t[j][1]=(uint8_t)(EG_Y(cell)+(world_on ? world_view.y : 0u));
+        frag_t[j][2] = ticks;
         break;
       }
   puzzle_break_fx(cell, k);
@@ -497,6 +528,7 @@ void puzzle_tick(void) BANKED {
   uint8_t c = cell_at(pl_x, pl_y), t, on = (uint8_t)eg_beat_on(frame_count), j;
   if(pl_state==PS_FALL) return;
   on = beat_phase();
+  if(world_on && world_glitch)has_glitch=1u;
   if (on != beat_was && has_glitch) { /* the glitched glass changes phase (solid, flicker, gone) */
     beat_was = on;
     look_glitch_beat(on);
@@ -530,18 +562,21 @@ void puzzle_tick(void) BANKED {
   }
   if (!(frame_count & 7u))
     for (j = 0; j != 4u; j++)
-      if (frag_t[j][1] && !--frag_t[j][1] && cell_type(frag_t[j][0]) == T_PIT) {
-        room.c[frag_t[j][0]] = T_GLITCH; /* the timed kind (eg_frag) */
-        queue_cell(frag_t[j][0]);
+      if (frag_t[j][2] && !--frag_t[j][2] && (world_read(0,frag_t[j][0],frag_t[j][1])&T_MASK) == T_PIT) {
+        uint8_t restored=world_write(frag_t[j][0],frag_t[j][1],T_GLITCH);
+        if(restored<EG_N) {look_skin[restored]=0u;queue_cell(restored);}
       }
   if (puzzle_dirty) { /* (re)start the dead-room check; it runs a slice a frame so walking never drops a frame */
     puzzle_dirty = 0;
     if (!dead_t && !boss_floor) { /* B2 bosses: an arena is never a dead room */
-      eg_dead_begin(c);
+      if(world_on)world_dead_begin();else eg_dead_begin(c);
       dead_run = 1u;
     }
-  } else if (dead_run && grav_t != 1u) { /* not on the frame it starts (a push) nor on a gravity frame */
-    j = eg_dead_step(&room, pocket, pocket_n, DEAD_SLICE);
+  } else if (dead_run && grav_t != 1u && (!world_on ||
+             (video_epoch==frame_epoch && (LY_REG<80u || LY_REG>=144u)))) {
+    /* Named dependencies add portal and resource probes to each flood pop.
+     * Keep that work bounded beside an active camera/animation frame. */
+    j = world_on ? world_dead_step(c,1u) : eg_dead_step(&room, pocket, pocket_n,(room.nlink || (room.portal_need&EG_PORTAL_ON)) ? 2u : DEAD_SLICE);
     if (j != EG_DEAD_BUSY) {
       dead_run = 0u;
       if (j && !dead_t) {

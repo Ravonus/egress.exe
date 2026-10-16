@@ -20,7 +20,8 @@
 #pragma bank 255
 
 static uint8_t msg_t, top, shown_top = 0xffu, rows_dirty, vbl_on;
-static uint8_t narr_t,shown_stamina;
+static uint8_t narr_t,shown_stamina,shown_cap,shown_charge;
+static uint8_t counter_top,counter_hp,counter_max,counter_tokens,counter_keys,counter_total,counter_floor;
 static volatile uint8_t vbl_rows, vbl_move, vbl_top; /* for hud_vbl: rows to copy, the window's new place */
 static uint8_t sh[3][20];   /* the window's rows 0..2, tiles */
 static uint8_t glyph[64];   /* ' ' .. '_' -> font tile (BT_FONT_ORDER); lower case folds to upper, but 'x' */
@@ -84,12 +85,29 @@ static void hud_num(uint8_t x, uint8_t y, uint8_t n, uint8_t digits) {
 
 static void draw_n(void);   /* near: the public hud_draw/hud_charge are banked calls */
 static void charge_n(void);
+static void clear_rim(uint8_t start) {
+  uint8_t *d=&sh[top][start];
+  for(;start!=20u;start++)*d++=BT_RIM;
+}
 static void hud_layout(uint8_t toast) {
-  uint8_t i;
+  if(shown_stamina!=255u && top!=toast) {
+    /* A toast changes the row positions, not the values. Move the two
+     * existing rows instead of recalculating every heart, digit and ratio. */
+    if(toast) {hud_copy20(sh[2],sh[1]);hud_copy20(sh[1],sh[0]);memset(sh[0],BT_FONT,20u);}
+    else {hud_copy20(sh[0],sh[1]);hud_copy20(sh[1],sh[2]);memset(sh[2],BT_FONT,20u);}
+    top=toast;
+    counter_top=top; /* the counter row moved intact */
+    clear_rim(5u);
+    rows_dirty=7u;
+    if(hud_dirty)draw_n();
+    return;
+  }
   top = toast;
   memset(sh, BT_FONT, sizeof sh); /* BT_FONT is the space */
+  counter_top=255u;
+  shown_stamina=shown_cap=shown_charge=255u;
   rows_dirty = 7u;
-  for (i = 5u; i != 20u; i++) sh[top][i] = BT_RIM;
+  clear_rim(5u);
   charge_n();
   draw_n();
 }
@@ -190,8 +208,8 @@ static void hud_vbl(void) NONBANKED {
 }
 
 void hud_tick(void) BANKED {
-  if(shown_stamina!=stamina.value) {shown_stamina=stamina.value;charge_n();}
-  if(narr_t && !--narr_t) {uint8_t k;for(k=6u;k!=20u;k++) sh[top][k]=BT_RIM;rows_dirty|=(uint8_t)(1u<<top);}
+  if(shown_stamina!=stamina.value || shown_cap!=stamina.cap) charge_n();
+  if(narr_t && !--narr_t) {clear_rim(6u);rows_dirty|=(uint8_t)(1u<<top);}
   if (msg_t && !--msg_t) hud_layout(0);
   if (hud_dirty) draw_n();
   if (!rows_dirty && top == shown_top) return;
@@ -208,7 +226,9 @@ void hud_tick(void) BANKED {
 
 static void draw_n(void) {
   uint8_t i, n = (uint8_t)((pl_hp_max+1u) >> 1), hp = pl_hp, y = (uint8_t)(top + 1u);
+  uint8_t force=(uint8_t)(counter_top!=top);
   uint8_t *d = sh[y];
+  if(force || counter_hp!=pl_hp || counter_max!=pl_hp_max) {
   if(pl_hp_max>10u) {
     /* Upgraded health still owns five cells; never overwrite the token count. */
     hud_num(0u,y,pl_hp,2u);sh[y][2]=glyph['/'-32];hud_num(3u,y,pl_hp_max,2u);
@@ -217,34 +237,53 @@ static void draw_n(void) {
     for (i = 0; i != n; i++, hp = hp > 2u ? (uint8_t)(hp - 2u) : 0u) /* two halves a heart */
       *d++ = hp >= 2u ? BT_HEART2 : (hp ? BT_HEART1 : BT_HEART0);
   }
+  counter_hp=pl_hp;counter_max=pl_hp_max;
+  }
+  if(force || counter_tokens!=tokens) {
   sh[y][5] = BT_ICON_TOKEN;
   hud_num(6, y, tokens, 3);
+  counter_tokens=tokens;
+  }
   if (boss_floor) {
     sh[y][10] = sh[y][11] = sh[y][12] = sh[y][13] = BT_FONT;
   } else if (stage_hud[0]) { /* B2: the stage's counter */
-    hud_text(10, y, stage_hud);
-  } else {
+    /* stage.c supplies exactly six padded uppercase ASCII glyphs. */
+    const uint8_t *s=(const uint8_t *)stage_hud;
+    d=&sh[y][10];
+    for(i=6u;i;i--)*d++=glyph[(uint8_t)(*s++-32u)];
+  } else if(force || counter_keys!=keys_held || counter_total!=room.keys) {
     sh[y][10] = BT_ICON_KEY;
     hud_num(11, y, keys_held, 1);
     sh[y][12] = glyph['/' - 32];
     hud_num(13, y, room.keys, 1);
+    counter_keys=keys_held;counter_total=room.keys;
   }
+  if(force || counter_floor!=floor_no) {
   sh[y][16] = glyph['F' - 32];
   hud_num(17, y, floor_no, 2);
+  counter_floor=floor_no;
+  }
+  counter_top=top;
   rows_dirty |= (uint8_t)(1u << y);
   hud_dirty = 0;
 }
 
 static void charge_n(void) {
   uint8_t i, full = CHARGE_FULL;
-  uint8_t lit=eg_stamina_meter(stamina.value,stamina.cap,24u);
-  for (i = 0; i != 3u; i++) {
-    uint8_t n = lit > 8u ? 8u : lit;
-    hud_tile(i, top, (uint8_t)(BT_BAR + n));
-    lit=(uint8_t)(lit-n);
+  uint8_t lit;
+  if(shown_stamina!=stamina.value || shown_cap!=stamina.cap) {
+    shown_stamina=stamina.value;shown_cap=stamina.cap;
+    lit=eg_stamina_meter(stamina.value,stamina.cap,24u);
+    for (i = 0; i != 3u; i++) {
+      uint8_t n = lit > 8u ? 8u : lit;
+      hud_tile(i, top, (uint8_t)(BT_BAR + n));
+      lit=(uint8_t)(lit-n);
+    }
   }
-  lit=eg_stamina_meter(pl_charge,full,16u);
-  for(i=3u;i!=5u;i++) {uint8_t n=lit>8u ? 8u : lit;hud_tile(i,top,(uint8_t)(BT_BAR+n));lit-=n;}
+  if(shown_charge!=pl_charge) {
+    shown_charge=pl_charge;lit=eg_stamina_meter(pl_charge,full,16u);
+    for(i=3u;i!=5u;i++) {uint8_t n=lit>8u ? 8u : lit;hud_tile(i,top,(uint8_t)(BT_BAR+n));lit-=n;}
+  }
 }
 
 /* Called after the bench or controls page has replaced the window map. Restore

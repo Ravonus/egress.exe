@@ -82,12 +82,17 @@ int main(int argc, char **argv) {
   if (argc >= 5 && (!strcmp(argv[1],"phys-solve") || !strcmp(argv[1],"phys-dump"))) {
     eg_physics_gen(&r,(uint8_t)atoi(argv[3]),(uint16_t)strtoul(argv[2],NULL,0),(uint8_t)atoi(argv[4]));
     if (!strcmp(argv[1],"phys-dump")) {
+      if(argc>5 && !strcmp(argv[5],"full")) {fwrite(&r,1,sizeof r,stdout);return 0;}
       for (int i=0;i<(int)EG_N;i++) printf("%02x",r.c[i]);
       printf(" %u %u %u\n",r.start,r.door,r.keys); return 0;
     }
     if (argc>5 && !strcmp(argv[5],"mud"))
       for (int i=0;i<(int)EG_N;i++) if(r.c[i]==T_ROCK) r.c[i]=T_WALL;
-    if (!eg_solve_ban(&r,BUDGET,argc>5 && !strcmp(argv[5],"crt") ? 1ull<<RX_MUD : 0u,moves,sizeof moves,&st) || !eg_replay(&r,moves)) return 1;
+    if(argc>5 && !strcmp(argv[5],"tools"))
+      for(int i=0;i<(int)EG_N;i++)if(EG_CRATE(r.c[i]) && ((EG_X(i)<8u)==(EG_X(r.portal[1])<8u)))r.c[i]=T_WALL;
+    uint64_t ban=argc>5 && !strcmp(argv[5],"crt") ? 1ull<<RX_MUD :
+                 argc>5 && !strcmp(argv[5],"crates") ? 1ull<<RX_WEIGHT : 0u;
+    if (!eg_solve_ban(&r,argc>5 && !strcmp(argv[5],"tools") ? 250000 : BUDGET,ban,moves,sizeof moves,&st) || !eg_replay(&r,moves)) return 1;
     puts(moves); return 0;
   }
   if (argc >= 4 && (!strcmp(argv[1], "show") || !strcmp(argv[1], "solve") || !strcmp(argv[1], "dump") ||

@@ -1,0 +1,16 @@
+{
+  "roms": [
+    {
+      "file": "build/egress.gbc",
+      "sha256": "0cd2e269c0383d65f08169e1b7c8fdf9edaae7b26a7bb5c397ae8ba0f2978bb1",
+      "bytes": 1196032
+    },
+    {
+      "file": "build/egress-rtc.gbc",
+      "sha256": "98ed324d2b33a8566eac8788afee9ea2550984ec6a4e39bdb55df79a8df6a720",
+      "bytes": 1196032
+    }
+  ],
+  "full_gate_exit": 0,
+  "public_release_changed": false
+}

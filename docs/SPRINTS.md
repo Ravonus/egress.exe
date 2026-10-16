@@ -9,6 +9,7 @@ An integrated prototype, a passing host simulation, a native build and a played 
 |---|---|---|
 | Core, movement and rendering | Office checkpoint verified | Keep current two-action-button controls, full bodies and frame/OAM budgets through the full game |
 | Puzzles and finite tools | Partial | Composed dependency motifs, varied topology and states, resource-feasible alternatives, wrong-spend branches and native replay |
+| Authored stage codec and generated geography | Quiet native worlds verified on both mappers; campaign integration partial | Reduce measured corner preparation waits; actor streaming, campaign curriculum, environment/reaction coverage and continuation |
 | Shared action/object/mob matrix | Partial | Complete the authored interactions and readable activation, reaction, spent and destruction states; exercise both directions |
 | Mobs, stages, biomes and full run | Partial | Native full-run layout and seed bank, all biomes, stage/obstacle combinations and their kill/exit guarantees |
 | Heirs, lineage, saves, tree and stats | Partial | Non-overlapping migrated SRAM journals, floor/landing continue, shortcut/line progress, full tree and stats pages with event accounting |
@@ -92,6 +93,11 @@ Still required: connected larger stages with camera-driven assembly/backtracking
 graphs, the full native run/biomes/boss roster, complete tree/stats, adaptive music, first-person stages and cycles.
 The tested 8 KiB WRAM cache is a standalone prerequisite; it is not yet a larger playable stage.
 
+The full-run constructor can now stream into that cache with a 40-byte world header and one 12-byte scratch slot.
+It matches 2,048 legacy layouts on the host and 24 actual native constructions byte for byte, including the first
+52-floor run, shortcuts, cycles and descent, within the game's stack canary. See `validation/run-stream-20261016/`.
+The playable full-run integration and its content are still required.
+
 The feedback milestone was merged, pushed and published. Both public ROM downloads and the live browser's native
 save migration were read back and verified; see `validation/feedback-20261015/site-release.json`. The physical
 Chromatic has not been tested.
@@ -129,7 +135,56 @@ fails the independent pixel comparison; both replacement mapper images pass 2,66
 The complete native gate, 128 seated-state/direction samples and live site/save read-back are recorded in
 `validation/heir-art-20261016/`. This release preserves the ten-floor office scope.
 
-Camera-driven terrain assembly/collapse remains on `codex/camera-tiles`. Its quiet-room travel/backtracking test
-passes, but crowded combat and the combined boss regression gate are unresolved. That branch is preserved and
-pushed for continuation; its camera changes are not in this public cartridge. A larger connected simulation
+Camera-driven terrain assembly/collapse remains on `codex/camera-tiles`. Both mapper builds now pass quiet travel/backtracking, diagonal reversal, actual combat, complete bodies,
+120/120 frame timing, native BG/OAM reference comparisons and the full regression gate. Evidence is in
+`validation/camera-20261016/`. Its camera changes are not yet in the public cartridge. A larger connected simulation
 window, composed portal/circuit proof and the rest of the full-run ledger are still required.
+
+## Named circuits and composed portal motif (2026-10-16)
+
+The continuation branch adds independent AND/OR/latching circuits, socket and player/object sources, conditional
+bidirectional portals, crate/wind/CRT transport, and safety-held gates that do not falsely power a portal. The
+metadata fits the room's remaining twelve bytes. A 512-state standalone cartridge trace compares complete rooms,
+dirty cells and results to the portable rules. Constructor scratch uses a bitset, reclaiming 196 bytes without
+changing the fixed 4,864-case legacy room/RNG fingerprint.
+
+The office's seventh floor can now deal a composed two-island motif. One load powers transport; a separate gate
+accepts a crate or a crafted weight; a final paper cut still needs heat. The host checks 64 seed variants with
+independent physical/tool answers, required transport and wrong-spend branches. Both mapper builds play physical
+and crafted answers through normal input, cross back and forth without losing objects/inventory, recognize a
+real bad craft, and restore the floor through the existing reset. Item idle uploads now address their actual
+metatile rather than overwriting the cracked ice and preceding object. Native hooks check all four uploaded poses.
+
+This still fits one local simulation grid. Larger streamed stages and the remaining full-run milestones are
+required. The complete native/host regression run passed; exact artifact evidence is in
+`validation/linked-puzzles-20261016/`. The public cartridge remains on the previous tested release.
+
+## Generative world correction (2026-10-16)
+
+The owner additionally requests authored stage goals/conditions with procedurally generated map dimensions,
+shapes, items and realizations, XS through XXL scales, horizontal shapes, fuller foliage, biome-shared variants,
+and digital rivers/waterfalls. `STAGE-CODEC.md` defines the editable source and separates generated-world proof
+from playable integration. The shared host/native constructor now covers those size and environment records;
+the quiet streamed game and native environment renderer now pass ordinary-input acceptance. Do not count this
+subset as completion of the sprint ledger.
+
+
+## Persistent generated worlds (2026-10-16)
+
+The cartridge now recycles a 16 × 14 active window across XS–XXL seeded worlds, up to 128 × 54 cells. Materials,
+artwork, protection, cracks, finite pickups, moved crates, circuits and portals survive both-axis travel and
+backtracking. The native environment art shares twelve metatiles and a bounded animation-card pool.
+
+Both mapper images pass 42 ordinary-input scenarios, strict 120/120 frame timing, complete-body and independent
+pixel uploads, BG/attribute reference checks, OAM limits and stack canaries. A separate real-input loss/reset
+case passes on both. The complete `make -j1 test` regression passed on the exact frozen source and images.
+Evidence and hashes are in `validation/world-stream-20261016/`. The public cartridge has not changed.
+
+The input observer still measures up to 34 frames of terrain-preparation waiting at a few large-map corners.
+That delay is separate from frame rate and remains optimization work. These first integrated worlds are quiet;
+actor streaming, campaign-wide goals/biomes and continuation, the full run and remaining milestones stay open.
+
+The subsequent card-span timing pass retains the same pool and world buffers, reduces the largest observed
+window-margin wait from 34 to eight frames, and adds an independent native presentation-state oracle. Both
+mapper images pass all 42 world scenarios, both resets and the complete regression again; see
+`validation/world-reuse-tuning-20261016/`. The quiet-world scope and remaining full-game milestones are unchanged.

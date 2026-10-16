@@ -6,6 +6,8 @@
 #include "play.h"
 #include "look.h"
 #include "puzzle.h"
+#include "world.h"
+extern uint8_t floor_has_crt;
 
 #pragma bank 255
 
@@ -70,9 +72,29 @@ uint8_t enemy_in_cell(uint8_t c) NONBANKED {
 
 /* --- the changed-cell queue, drawn a few cells a frame --- */
 static uint8_t cq[64], cq_head, cq_tail; /* queue_cell (hot) stays in bank 0 */
-void cells_reset(void) BANKED { cq_head = cq_tail = 0; }
+static uint8_t carpet_ink[7]; /* one bit per deterministic 2x2 carpet patch */
+static const uint8_t carpet_patterns[8]={9u,33u,36u,132u,144u,18u,66u,72u};
+static void carpet_rebase(void) {
+  uint8_t y,phase=(uint8_t)(((room_origin_x>>1)*3u+(room_origin_y>>1)*5u+(uint8_t)floor_seed)&7u);
+  for(y=0u;y<7u;y++) {carpet_ink[y]=carpet_patterns[phase];phase=(uint8_t)((phase+5u)&7u);}
+}
+void cells_reset(void) BANKED {
+  room_origin_x=room_origin_y=bg_origin_x=bg_origin_y=0u;room_width=EG_W;room_height=EG_H;
+  cq_head = cq_tail = 0;
+  carpet_rebase();
+}
+void grid_shift_view(int8_t dx,int8_t dy) BANKED {
+  uint8_t n=(uint8_t)(cq_head-cq_tail),k,keep=0u,i;
+  for(k=0u;k<n;k++) {
+    i=eg_view_rebase(cq[(uint8_t)(cq_tail+k)&63u],dx,dy);
+    if(i<EG_N)cq[(uint8_t)(cq_tail+keep++)&63u]=i;
+  }
+  cq_head=(uint8_t)(cq_tail+keep);
+  carpet_rebase();
+  bg_origin_x=(uint8_t)((bg_origin_x+dx*2)&31u);bg_origin_y=(uint8_t)((bg_origin_y+dy*2)&31u);
+}
 static uint8_t carpet_patch(uint8_t i) NONBANKED {
-  return (uint8_t)(room.c[i]==T_EMPTY && (((EG_X(i)>>1)*3u+(EG_Y(i)>>1)*5u+(uint8_t)floor_seed)&7u)<2u);
+  return (uint8_t)(room.c[i]==T_EMPTY && (carpet_ink[EG_Y(i)>>1]&look_bits[EG_X(i)>>1]));
 }
 static void enqueue(uint8_t i) NONBANKED {
   cq[cq_head & 63u] = i;
@@ -80,6 +102,8 @@ static void enqueue(uint8_t i) NONBANKED {
   if ((uint8_t)(cq_head - cq_tail) > 64u) cq_tail = (uint8_t)(cq_head - 64u);
 }
 void queue_cell(uint8_t i) NONBANKED {
+  if(world_on) {world_clean_skin(i);world_touch(i);}
+  if(cell_type(i)==T_ROCK)floor_has_crt=1u;
   enqueue(i);
   /* A removed crate or a new gap also changes the adjoining carpet's edge. */
   if(EG_Y(i) && carpet_patch((uint8_t)(i-EG_W))) enqueue((uint8_t)(i-EG_W));
@@ -94,14 +118,34 @@ void queue_cell(uint8_t i) NONBANKED {
 static uint8_t void_ring(uint8_t i) {
   uint8_t x = EG_X(i), y = EG_Y(i);
   uint8_t t=cell_type(i);
+  if(room_width>EG_W || room_height>EG_H) return EG_ABYSS(room.c[i]);
   return (uint8_t)((t==T_WALL || t==T_PIT) && (x == 0u || x == EG_W - 1u || y == EG_H - 1u));
 }
 uint8_t look_void_cell(uint8_t i) BANKED { return void_ring(i); }
 static uint8_t solid_ground(uint8_t i) { return (uint8_t)(look_here(i) && !void_ring(i)); }
 
+static const uint8_t slab_variant[256]={
+  M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,
+  M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,
+  M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,
+  M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,
+  M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,
+  M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,
+  M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,
+  M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,
+  M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,
+  M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,
+  M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,
+  M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,
+  M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,
+  M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,
+  M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,
+  M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,
+};
 static uint8_t meta_for(uint8_t i) {
   uint8_t t = cell_type(i), x = EG_X(i), y = EG_Y(i), b;
-  uint8_t h = (uint8_t)(x * 7u + y * 13u + (x ^ y) + (uint8_t)floor_seed);
+  uint8_t gx=(uint8_t)(x+room_origin_x),gy=(uint8_t)(y+room_origin_y);
+  uint8_t h = (uint8_t)(gx * 7u + gy * 13u + (gx ^ gy) + (uint8_t)floor_seed);
   if (!solid_ground(i)) {
     /* the void: under ground the slab's dithered underside, beside it the slab's side face (B2: the left card, or
      * the same tiles X-flipped for ground on the right), the two together in an inside corner, and at an outside
@@ -117,6 +161,8 @@ static uint8_t meta_for(uint8_t i) {
     return (h & 2u) ? M_VOID_C : ((h & 1u) ? M_VOID_B : M_VOID_A);
   }
   if (look_skin[i]) return (uint8_t)(look_skin[i] - 1u); /* a fragile stage or a pit (src/look.h) */
+  if((room.portal_need&EG_PORTAL_ON) && (i==room.portal[0] || i==room.portal[1]) &&
+     (t==T_EMPTY || t==T_PLATE)) return puzzle_meta(i);
   if (t >= T_CRUMBLE) return puzzle_meta(i);         /* B1 puzzle cells: their cards (src/puzzle.c) */
   switch (t) {
     case T_EMPTY:
@@ -128,8 +174,7 @@ static uint8_t meta_for(uint8_t i) {
         if(x && carpet_patch((uint8_t)(i-1u))) b|=8u;
         return (uint8_t)(M_AUTOCARPET0+b);
       }
-      h = (uint8_t)(h % 20u); /* A 50%, B 20%, C 15%, D 15% */
-      return h < 10u ? M_SLAB_A : (h < 14u ? M_SLAB_B : (h < 17u ? M_SLAB_C : M_SLAB_D));
+      return slab_variant[h]; /* exact previous h % 20 distribution */
     case T_DIRT:
       return (h & 2u) ? M_FOAM_A : M_FOAM_B;
     case T_WALL:
@@ -155,16 +200,79 @@ static uint8_t meta_for(uint8_t i) {
 }
 uint8_t cell_meta(uint8_t i) BANKED { return meta_for(i); }
 
+static uint8_t *quad_dst;
+static const uint8_t *quad_src;
+static uint8_t quad_attr;
+/* The map always receives one 2x2 card. Two-byte row bursts fit even the
+ * shortest remaining HBlank plus mode 2; recheck STAT before each row. The
+ * caller masks interrupts only for this bounded transfer, preserving audio. */
+static void quad_write(void) NONBANKED NAKED {
+  __asm
+    ld a,#1
+    ldh (_VBK_REG),a
+    ld hl,#_quad_dst
+    ld a,(hl+)
+    ld h,(hl)
+    ld l,a
+  1$:
+    ldh a,(_STAT_REG)
+    and a,#2
+    jr nz,1$
+    ld a,(#_quad_attr)
+    ld (hl+),a
+    ld (hl),a
+    ld bc,#31
+    add hl,bc
+  2$:
+    ldh a,(_STAT_REG)
+    and a,#2
+    jr nz,2$
+    ld a,(#_quad_attr)
+    ld (hl+),a
+    ld (hl),a
+    xor a,a
+    ldh (_VBK_REG),a
+    ld hl,#_quad_src
+    ld a,(hl+)
+    ld d,(hl)
+    ld e,a
+    ld hl,#_quad_dst
+    ld a,(hl+)
+    ld h,(hl)
+    ld l,a
+  3$:
+    ldh a,(_STAT_REG)
+    and a,#2
+    jr nz,3$
+    ld a,(de)
+    inc de
+    ld (hl+),a
+    ld a,(de)
+    inc de
+    ld (hl),a
+    ld bc,#31
+    add hl,bc
+  4$:
+    ldh a,(_STAT_REG)
+    and a,#2
+    jr nz,4$
+    ld a,(de)
+    inc de
+    ld (hl+),a
+    ld a,(de)
+    ld (hl),a
+    ret
+  __endasm;
+}
 static void meta_draw(uint8_t i, uint8_t m) {
-  uint8_t a[4];
   uint8_t p = meta_pal[m];
   /* the attribute: the palette, and VRAM bank 1 unless the card lives in bank 0 (the fragile floors, the flying cards,
    * the items, the void's edges; these may be X-flipped: LOOK_META_FLIP is the attribute's own bit) */
-  a[0] = a[1] = a[2] = a[3] = (p & LOOK_META_BANK0) ? (uint8_t)(p & (7u | LOOK_META_FLIP)) : (uint8_t)(p | 0x08u);
-  VBK_REG = 1;
-  set_bkg_tiles((uint8_t)(EG_X(i) << 1), (uint8_t)(EG_Y(i) << 1), 2, 2, a);
-  VBK_REG = 0;
-  set_bkg_tiles((uint8_t)(EG_X(i) << 1), (uint8_t)(EG_Y(i) << 1), 2, 2, meta_tile[m]);
+  quad_attr=(p & LOOK_META_BANK0) ? (uint8_t)(p & (7u | LOOK_META_FLIP)) : (uint8_t)(p | 0x08u);
+  quad_dst=(uint8_t *)((LCDC_REG&LCDCF_BG9C00 ? 0x9C00u : 0x9800u)+((uint16_t)(((EG_Y(i)<<1)+bg_origin_y)&31u)<<5)+
+    (((EG_X(i)<<1)+bg_origin_x)&31u));
+  quad_src=meta_tile[m];
+  CRITICAL {quad_write();}
 }
 
 void draw_meta(uint8_t i, uint8_t m) BANKED { meta_draw(i, m); }

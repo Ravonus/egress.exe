@@ -1,0 +1,289 @@
+{
+  "scope": "quiet generated worlds; full-game sprints remain open",
+  "source_sha256": "3ac77c60a76cd99cf5f21b12874f5202c9137e3b9ec5b3dc8b0f024a34939fa2",
+  "roms": [
+    {
+      "file": "egress.gbc",
+      "sha256": "aee4e18e58c7b21a4aefdf867c94d0590d0f2b29a551f0e7a73bac8a929b7df5",
+      "bytes": 1228800
+    },
+    {
+      "file": "egress-rtc.gbc",
+      "sha256": "c17f2085467b4fdc7c9bf78afe9095a90c77d3130cdef6befa137534c786ab91",
+      "bytes": 1228800
+    }
+  ],
+  "native_scenarios": 42,
+  "input_matrix": [
+    {
+      "scenario": "egress-biome-0",
+      "sha256": "aee4e18e58c7b21a4aefdf867c94d0590d0f2b29a551f0e7a73bac8a929b7df5",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_visual_state_and_canary_checks": true
+    },
+    {
+      "scenario": "egress-biome-1",
+      "sha256": "aee4e18e58c7b21a4aefdf867c94d0590d0f2b29a551f0e7a73bac8a929b7df5",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_visual_state_and_canary_checks": true
+    },
+    {
+      "scenario": "egress-biome-2",
+      "sha256": "aee4e18e58c7b21a4aefdf867c94d0590d0f2b29a551f0e7a73bac8a929b7df5",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_visual_state_and_canary_checks": true
+    },
+    {
+      "scenario": "egress-biome-3",
+      "sha256": "aee4e18e58c7b21a4aefdf867c94d0590d0f2b29a551f0e7a73bac8a929b7df5",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_visual_state_and_canary_checks": true
+    },
+    {
+      "scenario": "egress-biome-4",
+      "sha256": "aee4e18e58c7b21a4aefdf867c94d0590d0f2b29a551f0e7a73bac8a929b7df5",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_visual_state_and_canary_checks": true
+    },
+    {
+      "scenario": "egress-biome-5",
+      "sha256": "aee4e18e58c7b21a4aefdf867c94d0590d0f2b29a551f0e7a73bac8a929b7df5",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_visual_state_and_canary_checks": true
+    },
+    {
+      "scenario": "egress-biome-6",
+      "sha256": "aee4e18e58c7b21a4aefdf867c94d0590d0f2b29a551f0e7a73bac8a929b7df5",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_visual_state_and_canary_checks": true
+    },
+    {
+      "scenario": "egress-biome-7",
+      "sha256": "aee4e18e58c7b21a4aefdf867c94d0590d0f2b29a551f0e7a73bac8a929b7df5",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_visual_state_and_canary_checks": true
+    },
+    {
+      "scenario": "egress-rtc-biome-0",
+      "sha256": "c17f2085467b4fdc7c9bf78afe9095a90c77d3130cdef6befa137534c786ab91",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_visual_state_and_canary_checks": true
+    },
+    {
+      "scenario": "egress-rtc-biome-1",
+      "sha256": "c17f2085467b4fdc7c9bf78afe9095a90c77d3130cdef6befa137534c786ab91",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_visual_state_and_canary_checks": true
+    },
+    {
+      "scenario": "egress-rtc-biome-2",
+      "sha256": "c17f2085467b4fdc7c9bf78afe9095a90c77d3130cdef6befa137534c786ab91",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_visual_state_and_canary_checks": true
+    },
+    {
+      "scenario": "egress-rtc-biome-3",
+      "sha256": "c17f2085467b4fdc7c9bf78afe9095a90c77d3130cdef6befa137534c786ab91",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_visual_state_and_canary_checks": true
+    },
+    {
+      "scenario": "egress-rtc-biome-4",
+      "sha256": "c17f2085467b4fdc7c9bf78afe9095a90c77d3130cdef6befa137534c786ab91",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_visual_state_and_canary_checks": true
+    },
+    {
+      "scenario": "egress-rtc-biome-5",
+      "sha256": "c17f2085467b4fdc7c9bf78afe9095a90c77d3130cdef6befa137534c786ab91",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_visual_state_and_canary_checks": true
+    },
+    {
+      "scenario": "egress-rtc-biome-6",
+      "sha256": "c17f2085467b4fdc7c9bf78afe9095a90c77d3130cdef6befa137534c786ab91",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_visual_state_and_canary_checks": true
+    },
+    {
+      "scenario": "egress-rtc-biome-7",
+      "sha256": "c17f2085467b4fdc7c9bf78afe9095a90c77d3130cdef6befa137534c786ab91",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_visual_state_and_canary_checks": true
+    },
+    {
+      "scenario": "egress-rtc-xs",
+      "sha256": "c17f2085467b4fdc7c9bf78afe9095a90c77d3130cdef6befa137534c786ab91",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_visual_state_and_canary_checks": true
+    },
+    {
+      "scenario": "egress-xs",
+      "sha256": "aee4e18e58c7b21a4aefdf867c94d0590d0f2b29a551f0e7a73bac8a929b7df5",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_visual_state_and_canary_checks": true
+    },
+    {
+      "scenario": "mbc3",
+      "sha256": "c17f2085467b4fdc7c9bf78afe9095a90c77d3130cdef6befa137534c786ab91",
+      "cases": 12,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 8,
+      "total_stream_wait_frames": 28,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_visual_state_and_canary_checks": true
+    },
+    {
+      "scenario": "mbc5",
+      "sha256": "aee4e18e58c7b21a4aefdf867c94d0590d0f2b29a551f0e7a73bac8a929b7df5",
+      "cases": 12,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 8,
+      "total_stream_wait_frames": 20,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_visual_state_and_canary_checks": true
+    }
+  ],
+  "presentation_transfers": 454,
+  "maximum_presentation_transfer_cycles": 27200,
+  "maximum_stream_wait_frames": 8,
+  "stream_wait_regression_limit_frames": 12,
+  "irreversible_loss_and_reset": [
+    {
+      "scenario": "failure-mbc3",
+      "sha256": "c17f2085467b4fdc7c9bf78afe9095a90c77d3130cdef6befa137534c786ab91",
+      "warning_wait_frames": 303,
+      "reset_restores_plan_crate_and_ingredients": true
+    },
+    {
+      "scenario": "failure-mbc5",
+      "sha256": "aee4e18e58c7b21a4aefdf867c94d0590d0f2b29a551f0e7a73bac8a929b7df5",
+      "warning_wait_frames": 303,
+      "reset_restores_plan_crate_and_ingredients": true
+    }
+  ],
+  "full_regression": {
+    "command": "make -j1 test",
+    "exit_code": 0,
+    "log_sha256": "19a9ce6573abf0f198528a80d5667cc67cfb4a14e8d4ef562aa4e90cc6a2aa04",
+    "log_lines": 10039
+  },
+  "local_rom_reproduction": {
+    "command": "make -j4 all",
+    "both_roms_match_offloaded_tested_bytes": true
+  },
+  "physical_chromatic_verified": false,
+  "public_release_changed": false
+}

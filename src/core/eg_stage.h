@@ -76,7 +76,12 @@ uint16_t eg_stage_gen(eg_room *r, eg_stage *s, uint8_t type, uint16_t seed, uint
 
 /* the reachability flood the generator checks itself with (and the host sim re-checks): from `from`, through cells
  * EG_PASSABLE (the door counts as open); fills eg_stage_reach. Returns the number of cells reached. */
-extern uint8_t eg_stage_reach[EG_N / 8u];
+/* Constructor flood and active-world dead-room continuation are disjoint
+ * phases. The native definition is first-module data in fixed WRAM, so its
+ * runtime view needs no per-frame bank transfers or stack copy. */
+typedef union {uint8_t reach[EG_N/8u];uint8_t world_dead[36];} eg_stage_scratch;
+extern eg_stage_scratch eg_stage_work;
+#define eg_stage_reach (eg_stage_work.reach)
 #define EG_REACHED(i) (eg_stage_reach[(uint8_t)(i) >> 3] & (uint8_t)(1u << ((i) & 7u)))
 uint8_t eg_stage_flood(const eg_room *r, uint8_t from) EG_BANKED;
 

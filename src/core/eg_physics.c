@@ -7,6 +7,7 @@
 
 void eg_physics_gen(eg_room *r, uint8_t motif, uint16_t seed, uint8_t level) EG_BANKED {
   uint8_t x, y, c, wall, px, doorx, row;
+  if(motif==PH_PORTAL) {eg_portal_gen(r,seed,level);return;}
   memset(r, 0, sizeof *r);
   eg_rs = seed ? seed : 1u;
   for (y = 0; y != EG_H; y++)
@@ -79,7 +80,7 @@ void eg_physics_gen(eg_room *r, uint8_t motif, uint16_t seed, uint8_t level) EG_
 }
 
 void eg_physics_goal(uint8_t motif, char *out) EG_BANKED {
-  const char *s = motif == PH_DROP ? "DIG. RETREAT. DROP." :
+  const char *s = motif == PH_PORTAL ? "POWER. CROSS. BURN." : motif == PH_DROP ? "DIG. RETREAT. DROP." :
                   motif == PH_BRIDGE ? "CRT OR MUD: CROSS" : "PUSH ONTO THE PLATE";
   while (*s) *out++ = *s++;
   *out = 0;

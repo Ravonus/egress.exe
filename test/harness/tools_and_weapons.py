@@ -94,20 +94,24 @@ def run(rom,out):
     g.press('start');g.tick(10) # pause AI, retaining the look's VBlank animation loop
     g.poke('room',1,241)
     frames=[Image.new('RGB',(16*32,32)) for _ in range(4)]
+    import sys
+    sys.path.insert(0,'tools')
+    import bake_look as art
+    cards={name:base for name,_,_,base in art.layout()[0]}
+    item0=int(re.search(r'#define M_ITEM0 (\d+)u',Path('src/gen/look_art.h').read_text())[1])
     for p in range(1,17):
         g.poke('room',p,248)
         # Fixture tilemap: the ROM still supplies and animates every 2bpp card byte.
-        import sys
-        sys.path.insert(0,'tools')
-        import bake_look as art
-        tile=16+(p-1)*4;at=0x9800+22*32+4
+        tile=cards['ITEM_'+art.ITEM_ART[p-1][0]];at=0x9800+22*32+4
+        assert g.peek('meta_tile',(item0+p-1)*4)==tile
+        untouched=bytes(g.pb.memory[0,0x9000+k] for k in range(110*16))
         for off,inc in [(0,0),(32,1),(1,2),(33,3)]:
             g.pb.memory[0,at+off]=tile+inc
             g.pb.memory[1,at+off]=art.ITEM_ART[p-1][1]
         seen=set()
         for _ in range(150):
             g.tick()
-            at=0x9000+(16+(p-1)*4)*16
+            at=0x9000+tile*16
             actual=bytes(g.pb.memory[0,at+k] for k in range(64))
             for phase in range(4):
                 expected=bytes(data[phase*1024+(p-1)*64:phase*1024+p*64])
@@ -115,6 +119,9 @@ def run(rom,out):
                     seen.add(phase)
                     frames[phase].paste(g.pb.screen.image.convert('RGB').crop((24,32,56,64)),((p-1)*32,0))
         res[f'item_{p}_four_native_phases']=len(seen)==4
+        after=bytes(g.pb.memory[0,0x9000+k] for k in range(110*16))
+        lo=tile*16;hi=lo+64
+        res[f'item_{p}_preserves_every_other_card']=after[:lo]==untouched[:lo] and after[hi:]==untouched[hi:]
     frames[0].save(out/'all-items-native.gif',save_all=True,append_images=frames[1:],duration=180,loop=0)
     g.stop()
     report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':res,'details':details,'log':log}

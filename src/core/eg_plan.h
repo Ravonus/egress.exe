@@ -132,17 +132,28 @@ typedef struct {
   uint8_t sky;                   /* a sky event is active today (19): one sky stage is dealt */
 } eg_run_in;
 
+/* The cartridge streams slots into banked WRAM. Keep its construction header
+ * separate from the host's complete layout; no full layout belongs on its stack. */
+#define EG_WORLD_FIELDS \
+  uint8_t n,floors; \
+  uint8_t order[BI_COUNT]; \
+  uint8_t stages[BI_COUNT]; \
+  uint8_t band[MK_ALL];
+typedef struct {EG_WORLD_FIELDS} eg_world;
 typedef struct {
-  uint8_t n, floors;           /* slots, and floors (a landing is not a floor) */
-  uint8_t order[BI_COUNT];     /* biome by position */
-  uint8_t stages[BI_COUNT];    /* stage slots per position */
-  uint8_t band[MK_ALL];        /* the biome position each mechanic arrives at (255: basic) */
+  EG_WORLD_FIELDS
   eg_slot s[EG_RUN_SLOTS];
 } eg_run;
+#undef EG_WORLD_FIELDS
+typedef void (*eg_run_sink)(uint8_t index,const eg_slot *slot,void *context);
 
 /* the cycle's world: biome order, stage counts and mechanic bands (fixed until a new cycle) */
 void eg_run_world(eg_run *r, uint16_t cycle_seed, uint8_t cycle) EG_BANKED;
 /* the whole layout of one run (story) or one descent stratum */
 void eg_run_build(eg_run *r, const eg_run_in *in) EG_BANKED;
+/* Same constructor and curriculum, with one scratch slot. The synchronous
+ * sink must copy the finished slot before returning. Native sinks live in ROM0. */
+uint8_t eg_run_stream(eg_world *world,eg_slot *scratch,const eg_run_in *in,
+                      eg_run_sink sink,void *context) EG_BANKED;
 
 #endif

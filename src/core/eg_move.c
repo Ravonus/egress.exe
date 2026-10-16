@@ -10,6 +10,11 @@ void eg_aim(int16_t dx, int16_t dy, uint8_t speed, int8_t *vx, int8_t *vy) EG_BA
   uint16_t ax=(uint16_t)(dx<0 ? -dx : dx), ay=(uint16_t)(dy<0 ? -dy : dy);
   uint8_t minor;
   if(!ax && !ay) {*vx=*vy=0;return;}
+  /* Cardinal and diagonal shots have an exact result without division. These
+   * are every player aim and many enemy shots; retain the ratio for other angles. */
+  if(!ax) {*vx=0;*vy=dy<0 ? -(int8_t)speed : (int8_t)speed;return;}
+  if(!ay) {*vy=0;*vx=dx<0 ? -(int8_t)speed : (int8_t)speed;return;}
+  if(ax==ay) {*vx=dx<0 ? -(int8_t)speed : (int8_t)speed;*vy=dy<0 ? -(int8_t)speed : (int8_t)speed;return;}
   /* The dominant component is exactly +/-speed: only the minor one needs a division. */
   if(ax>=ay) {
     *vx=dx<0 ? -(int8_t)speed : (int8_t)speed;
@@ -49,7 +54,7 @@ static uint8_t g_w, g_h, g_shift;
 #define HI(v) ((uint8_t)((uint16_t)(v) >> 8))
 #define FAR_EDGE ((int16_t)((EG_BOX_PX - 1) << EG_FIX)) /* the box's last pixel row/column, in sub-pixels */
 
-static uint8_t cell8(uint8_t cx, uint8_t cy) {
+static uint8_t slow_cell8(uint8_t cx, uint8_t cy) {
   uint8_t c;
   if (cx >= g_w || cy >= g_h) return EG_C_WALL;
   if (g_shift == 4u) c = g_cells[((uint16_t)cy << 4) | cx];
@@ -57,6 +62,69 @@ static uint8_t cell8(uint8_t cx, uint8_t cy) {
   else c = g_cells[(uint16_t)cy * g_w + cx];
   return g_map ? g_map[c] : c;
 }
+#if defined(__SDCC) && defined(__PORT_sm83)
+/* The live 16-column window has a byte cell index. Keep its mapped probes in
+ * registers; taller or differently-strided grids retain the portable path. */
+static uint8_t cell8(uint8_t cx,uint8_t cy) __naked {
+  cx;cy;
+  __asm
+    ld c,a
+    ld hl,#_g_w
+    cp a,(hl)
+    jr nc,8$
+    ld a,e
+    ld hl,#_g_h
+    cp a,(hl)
+    jr nc,8$
+    ld a,e
+    and a,#0xf0
+    jr nz,9$
+    ld a,(#_g_shift)
+    cp a,#4
+    jr nz,9$
+    ld a,e
+    swap a
+    and a,#0xf0
+    or a,c
+    ld c,a
+    ld hl,#_g_cells
+    ld a,(hl+)
+    ld h,(hl)
+    add a,c
+    ld l,a
+    jr nc,1$
+    inc h
+  1$:
+    ld a,(hl)
+    ld c,a
+    ld hl,#_g_map
+    ld a,(hl+)
+    ld h,(hl)
+    ld l,a
+    or a,h
+    jr z,2$
+    ld a,l
+    add a,c
+    ld l,a
+    jr nc,3$
+    inc h
+  3$:
+    ld a,(hl)
+    ret
+  2$:
+    ld a,c
+    ret
+  8$:
+    ld a,#1
+    ret
+  9$:
+    ld a,c
+    jp _slow_cell8
+  __endasm;
+}
+#else
+#define cell8 slow_cell8
+#endif
 
 /* axis 0: along = x, across = y; axis 1: along = y, across = x. */
 static uint8_t cell_ax(uint8_t axis, uint8_t along, uint8_t across) {

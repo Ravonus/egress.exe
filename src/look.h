@@ -16,8 +16,8 @@
  *
  * VRAM bank 0, BG-only (0x9000 .. 0x97FF, BG indices 0 .. 127 with the bank bit clear; no sprite sees it, nothing
  * else on a floor uses it, the screens' pictures load there and are gone before look_load):
- *   LOOK_LOW0_BASE .. (16 .. 83)  thin ice's crack (M_ICE1) and the 16 item cards (M_ITEM0 + piece - 1); 0 .. 15 and
- *                  84 .. 127 spare (60 tiles, 15 cards). bake_look.py fails the bake past 127.
+ *   LOOK_LOW0_BASE .. 109  thin ice's crack, the 16 item cards, shared carpet/edge quadrants and four transport-pad
+ *                  states. 110..111 spare; 112..127 inventory icons. The baker checks the icon boundary.
  *
  * VRAM bank 0 (sprites 0 .. 209 from tools/bake_art.py; the BG reads bank 0 too, attribute bit 3 clear):
  *   (indices 128 .. 255 are the sprites' tiles 128 .. 255: the BG addresses tiles signed on a floor, LCDC bit 4 clear)
@@ -46,7 +46,8 @@
 #include "play.h"
 
 extern uint8_t look_present[EG_N / 8u]; /* bit set: the cell is in the world (else it shows the void) */
-#define look_here(i) (look_present[(uint8_t)(i) >> 3] & (uint8_t)(1u << ((uint8_t)(i) & 7u)))
+extern const uint8_t look_bits[8]; /* ROM0: a variable SM83 shift otherwise loops up to seven times */
+#define look_here(i) (look_present[(uint8_t)(i) >> 3] & look_bits[(uint8_t)(i) & 7u])
 extern uint8_t look_busy_n; /* cells queued or in flight */
 #define look_busy() (look_busy_n != 0u)
 
@@ -63,12 +64,22 @@ void look_end(void) BANKED;           /* leaving the floor: the screens' palette
 /* The room assembles around `origin`: every cell on screen (but the origin) leaves the world and comes back in a
  * wave by distance, dropping, rising, sliding or glitching in. Call after look_load and camera(1), before drawing. */
 void look_assemble(uint8_t origin) BANKED;
+/* Camera presentation only: retain the material board and all object mutations. */
+void look_roam_begin(uint8_t enabled) BANKED;
+void look_roam_tick(void) BANKED;
+void look_anchor(uint8_t cell) BANKED; /* portal landing: reveal camera-owned ground immediately */
+void look_shift_view(int8_t dx,int8_t dy) BANKED;
+void look_stream_void(uint8_t cell) BANKED; /* prepare an off-screen hardware slot */
 /* The room falls apart: the edges first, toward `origin`; cells within `keep` (Chebyshev, 0 = none, 1 = the origin,
  * 2 = it and its 8 neighbours) stay. Each cell cracks, splits in two and falls, darkening, into the void. */
 void look_collapse(uint8_t origin, uint8_t keep) BANKED;
 void look_drop_cell(uint8_t i) BANKED;  /* one cell into the void (crumble, chase stages, a boss tearing tiles out) */
 void look_raise_cell(uint8_t i) BANKED; /* one cell arrives (a bridge built by a recipe) */
 void look_tick(void) BANKED;            /* once a frame, right after frame_wait: palettes, cards, commits */
+/* Roaming floors reserve VBlank for palettes, then spend remaining time on
+ * cosmetic terrain after simulation and complete actor composition. */
+void look_frame_begin(void) BANKED;
+void look_frame_end(void) BANKED;
 
 /* --- fragile floors (the puzzle workstream owns the rules; the look owns the cards, the break and its sound) ---
  *

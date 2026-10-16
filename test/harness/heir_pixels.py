@@ -3,7 +3,7 @@
 Read-only CPU hooks observe normal composition/upload. Empty deltas must not
 prevent later hair, clothing, marks or weapons from being applied.
 """
-import argparse,hashlib,json,sys
+import argparse,hashlib,json,re,sys
 from pathlib import Path
 from heir import boot_heir,ha_states
 
@@ -13,9 +13,14 @@ from bake_heir import SLOTS
 
 class Pixels:
     def __init__(self,g,rom):
-        self.g=g;self.rom=rom.read_bytes();self.pending=None;self.samples=0;self.errors=[];self.zero_then_nonzero=0
-        for name,hook in [('heir_compose',self.compose),('input_poll',self.upload)]:
-            a=g.sym['_'+name];g.pb.hook_register(a>>16,a&65535,hook,None)
+        self.g=g;self.rom=rom.read_bytes();self.pending=[];self.active=None;self.returns=set()
+        self.samples=0;self.errors=[];self.zero_then_nonzero=0
+        a=g.sym['_heir_compose'];g.pb.hook_register(a>>16,a&65535,self.compose,None)
+        mapper='mbc3' if self.rom[0x147]==0x10 else 'mbc5'
+        symbols=(ROOT/f'build/obj-{mapper}/heir_draw.sym').read_text()
+        offsets={m[1]:int(m[2],16) for m in re.finditer(r'^\s*5\s+(_\w+)\s+([0-9A-F]+)\s+\w+',symbols,re.M)}
+        a=g.sym['_heir_compose']-offsets['_heir_compose']+offsets['_copy128']
+        g.pb.hook_register(0,a,self.copy,None)
     def read(self,addr,n):
         bank=addr>>16;off=(bank*16384+(addr&16383)) if bank else addr
         return self.rom[off:off+n]
@@ -39,12 +44,21 @@ class Pixels:
                     row,mask,low,high=blob[p+k*4:p+k*4+4]
                     buf[2*row]=(buf[2*row]&~mask)|low;buf[2*row+1]=(buf[2*row+1]&~mask)|high
             p+=n*4
-        self.pending=(tile,bytes(buf),pose,dd,sh)
+        self.pending.append((tile,bytes(buf),pose,dd,sh))
+    def copy(self,_):
+        r=self.g.pb.register_file;m=self.g.pb.memory;dest=(r.D<<8)|r.E
+        if not 0x8000<=dest<0x9000:return
+        assert self.pending,'native upload without an observed composition'
+        self.active=self.pending.pop(0)
+        assert dest==0x8000+self.active[0]*16,(dest,self.active[0])
+        ret=m[r.SP]|(m[r.SP+1]<<8)
+        if ret not in self.returns:
+            self.g.pb.hook_register(0,ret,self.upload,None);self.returns.add(ret)
     def upload(self,_):
-        if self.pending is None:return
-        tile,want,pose,dd,sh=self.pending;got=bytes(self.g.pb.memory[0,0x8000+tile*16:0x8000+tile*16+128]);self.samples+=1
+        if self.active is None:return
+        tile,want,pose,dd,sh=self.active;got=bytes(self.g.pb.memory[0,0x8000+tile*16:0x8000+tile*16+128]);self.samples+=1
         if got!=want and len(self.errors)<12:self.errors.append({'pose':pose,'drawn_direction':dd,'shape':sh,'different_bytes':sum(a!=b for a,b in zip(got,want))})
-        self.pending=None
+        self.active=None
 
 def run(rom,out,measure=False):
     out.mkdir(parents=True,exist_ok=True);samples=empty_cases=0;errors=[]

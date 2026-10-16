@@ -77,6 +77,20 @@ enum {
 #endif
 enum { SPAWN_MITE = 0, SPAWN_EYE = 1 };
 
+/* Each circuit names its own sources and gate. 255 means no second source or
+ * gate; 254 is an off-window source supplied by a connected stage. External
+ * source values live in rule bits 4/5, and an external latched gate in bit 6. */
+#define EG_LINKS 2u
+#define EG_LINK_NONE 255u
+#define EG_LINK_EXTERNAL 254u
+#define EG_LINK_ANY 1u
+#define EG_LINK_LATCH 2u
+#define EG_LINK_EXT_A 16u
+#define EG_LINK_EXT_B 32u
+#define EG_LINK_EXT_LATCH 64u
+#define EG_PORTAL_ON 128u
+typedef struct { uint8_t a,b,gate,rule; } eg_link;
+
 typedef struct {
   uint8_t c[EG_N];
   uint8_t start;  /* the player's first cell */
@@ -101,8 +115,23 @@ typedef struct {
   uint8_t ob[EG_MAX_OB][4];
   uint8_t nrun;
   uint8_t run[EG_MAX_RUN];
+  /* Twelve bytes occupy the remainder of the fixed D800..D93F room slot.
+   * Gate cells retain latch state; portal endpoints carry ordinary material. */
+  uint8_t nlink;
+  eg_link link[EG_LINKS];
+  uint8_t portal[2], portal_need; /* ON | required circuit mask */
 } eg_room;
+typedef char eg_room_fits_fixed_slot[(sizeof(eg_room)==320u) ? 1 : -1];
 #define EG_PROT(r, i) ((r)->prot[(uint8_t)(i) >> 3] & (uint8_t)(1u << ((i) & 7u)))
+
+void eg_links_clear(eg_room *r) EG_BANKED;
+uint8_t eg_link_power(const eg_room *r,uint8_t link,const uint8_t *occ,uint8_t nocc) EG_BANKED;
+uint8_t eg_circuits(eg_room *r,const uint8_t *occ,uint8_t nocc) EG_BANKED;
+/* Entry-triggered bidirectional transport; arrival never immediately rebounds.
+ * An unpowered or occupied endpoint remains ordinary floor. Object callers
+ * invoke this once after a successful push/fall, with the grounded footprint. */
+uint8_t eg_portal_target(const eg_room *r,uint8_t from,const uint8_t *occ,uint8_t nocc) EG_BANKED;
+uint8_t eg_portal_object(eg_room *r,uint8_t from,const uint8_t *occ,uint8_t nocc) EG_BANKED;
 
 /* trick types (docs/redesign.md 3.1): the four the office deals in B1 */
 enum { TRICK_BURN = 0, TRICK_COLD = 1, TRICK_SHORT = 2, TRICK_WEIGHT = 3, /* the reaction tricks */
@@ -149,8 +178,15 @@ extern uint8_t eg_ndirty; /* > EG_DIRTY_MAX: overflowed, redraw everything */
 
 /* xorshift16, the game's own stream */
 extern uint16_t eg_rs;
-uint8_t eg_rnd(void) EG_BANKED;
-uint8_t eg_rndn(uint8_t n) EG_BANKED; /* 0..n-1 */
+/* This tiny state-only primitive reads no banked tables. ROM0 avoids a bank
+ * switch on every AI neighbour roll, physics placement and wave probe. */
+#ifdef __SDCC
+#define EG_RNG_ABI NONBANKED
+#else
+#define EG_RNG_ABI
+#endif
+uint8_t eg_rnd(void) EG_RNG_ABI;
+uint8_t eg_rndn(uint8_t n) EG_RNG_ABI; /* 0..n-1 */
 
 /* Cell kinds a body may stand in */
 #define EG_PASSABLE(t)                                                                                              \

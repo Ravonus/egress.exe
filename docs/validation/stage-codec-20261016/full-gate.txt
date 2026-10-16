@@ -1,0 +1,4677 @@
+input: 2100640 checks, 0 failures
+test_move: 52 passed, 0 failed
+physical rooms: 256 solver/replay checks; each bridge has independent CRT and crafted-mud routes
+island edges: 1083 physical, reaction, obstacle and combat rooms; north/interior preservation and idempotence pass
+family: 12288 inherited siblings, bounded stats, actual-parent history; weapon hit1 frames 16/25/19/10/22
+interaction matrix: 16384 status/element cases, shock, air load and blocked push, mud crossing, invalid tool
+aim: 233928 exact velocity comparisons, including the five-page boss fan and heir fire speeds
+journal: CCITT vector, six record sizes, every torn-write prefix, every single-byte corruption and serial wrap pass
+narrator: 3072 grammatical lines, captions <=14, 10000 deterministic event histories, cooldown/priority/expiry/last-item guards pass
+test_idle: 1344 of 1344 plans match heirs.py idle_plan
+generator fingerprint: 4864 cases (4792 constructed), 0c29c3fce3a2a2f2
+circuits: independent AND/OR/latch, sockets/weights, gate safety, conditional portals, push/fall/wind and occupancy pass
+window: 256 seams, 4352 mutations, exact active/inactive state, 7168 bounded strip transfers
+stage codec: 12 invalid contracts rejected
+land codec: 6144 plans, 12288 finite-resource global replays, 14932 pushes, 15199 recipes, 2560 powered crossings; 6 sizes, 4 shapes, 8 biomes, all conditions and environment families
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "rom_sha256": "0e25e88253b30acea28bf7e1471b64b635d1e88b681198403609d9c2c3886886",
+  "trace_sha256": "7c2d483c36acd2db6bc1aaa7cc366b8d2dc4e73027b6027bd5380dd09d2a1066",
+  "frames": 6498,
+  "rows": 604,
+  "cells": 36640,
+  "all_bytes_match": true,
+  "bank_one_and_stack_canary": true,
+  "cases": [
+    {
+      "case": 0,
+      "width": 16,
+      "height": 14,
+      "size": 0,
+      "biome": 0,
+      "rule": 0,
+      "shape": 2,
+      "vertical": 0
+    },
+    {
+      "case": 1,
+      "width": 28,
+      "height": 18,
+      "size": 1,
+      "biome": 3,
+      "rule": 1,
+      "shape": 3,
+      "vertical": 0
+    },
+    {
+      "case": 2,
+      "width": 48,
+      "height": 26,
+      "size": 2,
+      "biome": 6,
+      "rule": 2,
+      "shape": 3,
+      "vertical": 0
+    },
+    {
+      "case": 3,
+      "width": 52,
+      "height": 30,
+      "size": 3,
+      "biome": 1,
+      "rule": 3,
+      "shape": 0,
+      "vertical": 0
+    },
+    {
+      "case": 4,
+      "width": 72,
+      "height": 34,
+      "size": 4,
+      "biome": 4,
+      "rule": 4,
+      "shape": 2,
+      "vertical": 0
+    },
+    {
+      "case": 5,
+      "width": 116,
+      "height": 50,
+      "size": 5,
+      "biome": 7,
+      "rule": 5,
+      "shape": 0,
+      "vertical": 0
+    },
+    {
+      "case": 6,
+      "width": 28,
+      "height": 14,
+      "size": 1,
+      "biome": 2,
+      "rule": 0,
+      "shape": 0,
+      "vertical": 0
+    },
+    {
+      "case": 7,
+      "width": 40,
+      "height": 18,
+      "size": 2,
+      "biome": 5,
+      "rule": 1,
+      "shape": 1,
+      "vertical": 0
+    },
+    {
+      "case": 8,
+      "width": 56,
+      "height": 30,
+      "size": 3,
+      "biome": 0,
+      "rule": 2,
+      "shape": 1,
+      "vertical": 1
+    },
+    {
+      "case": 9,
+      "width": 76,
+      "height": 34,
+      "size": 4,
+      "biome": 3,
+      "rule": 3,
+      "shape": 1,
+      "vertical": 1
+    },
+    {
+      "case": 10,
+      "width": 120,
+      "height": 54,
+      "size": 5,
+      "biome": 6,
+      "rule": 4,
+      "shape": 1,
+      "vertical": 1
+    },
+    {
+      "case": 11,
+      "width": 24,
+      "height": 14,
+      "size": 1,
+      "biome": 1,
+      "rule": 5,
+      "shape": 2,
+      "vertical": 0
+    },
+    {
+      "case": 12,
+      "width": 16,
+      "height": 14,
+      "size": 0,
+      "biome": 4,
+      "rule": 0,
+      "shape": 1,
+      "vertical": 0
+    },
+    {
+      "case": 13,
+      "width": 16,
+      "height": 14,
+      "size": 0,
+      "biome": 7,
+      "rule": 1,
+      "shape": 2,
+      "vertical": 0
+    },
+    {
+      "case": 14,
+      "width": 16,
+      "height": 14,
+      "size": 0,
+      "biome": 2,
+      "rule": 2,
+      "shape": 0,
+      "vertical": 0
+    },
+    {
+      "case": 15,
+      "width": 28,
+      "height": 18,
+      "size": 1,
+      "biome": 5,
+      "rule": 3,
+      "shape": 3,
+      "vertical": 0
+    },
+    {
+      "case": 16,
+      "width": 32,
+      "height": 18,
+      "size": 1,
+      "biome": 0,
+      "rule": 4,
+      "shape": 3,
+      "vertical": 0
+    },
+    {
+      "case": 17,
+      "width": 48,
+      "height": 26,
+      "size": 2,
+      "biome": 3,
+      "rule": 5,
+      "shape": 3,
+      "vertical": 0
+    },
+    {
+      "case": 18,
+      "width": 32,
+      "height": 18,
+      "size": 1,
+      "biome": 6,
+      "rule": 0,
+      "shape": 1,
+      "vertical": 0
+    },
+    {
+      "case": 19,
+      "width": 52,
+      "height": 34,
+      "size": 3,
+      "biome": 1,
+      "rule": 1,
+      "shape": 0,
+      "vertical": 0
+    },
+    {
+      "case": 20,
+      "width": 64,
+      "height": 26,
+      "size": 3,
+      "biome": 4,
+      "rule": 2,
+      "shape": 3,
+      "vertical": 0
+    },
+    {
+      "case": 21,
+      "width": 40,
+      "height": 22,
+      "size": 2,
+      "biome": 7,
+      "rule": 3,
+      "shape": 1,
+      "vertical": 0
+    },
+    {
+      "case": 22,
+      "width": 64,
+      "height": 30,
+      "size": 3,
+      "biome": 2,
+      "rule": 4,
+      "shape": 3,
+      "vertical": 0
+    },
+    {
+      "case": 23,
+      "width": 84,
+      "height": 34,
+      "size": 4,
+      "biome": 5,
+      "rule": 5,
+      "shape": 0,
+      "vertical": 0
+    }
+  ]
+}
+curriculum: 64 families, all 13 mechanics reached within six generations; physical lessons and early waves present
+plates: player weight, release, occupied-gate safety, airborne exclusion and crate weight pass
+deadlock: stranded edge crate warns; live crate, alternate crafted weight and loaded plate remain valid
+stamina: all moves/weapons bounded; costs, exhaustion, recovery and 1566720 exact HUD ratios pass
+verified: 8 source WAVs, 96432 PCM bytes, 8192 Hz / 4 bit
+run stream: 2048 exact layouts, digest 36f811762b4adee7
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "rom": "build/move-check/move.gbc",
+  "sha256": "6776e6e9536bf14971e38677cb47149845325511f32eb6e9561ba0b32943b04f",
+  "native_steps": 4608,
+  "cases": 24,
+  "frames": 995,
+  "portable_trace_sha256": "671b8c2395334e6efaed6d15f882f2e8a70f6e71a0a6eba953a6d7b9bdf06885",
+  "all_state_bytes_match": true,
+  "stack_canary": true
+}
+build/egress.gbc: mbc5 0x1b, 1196032 bytes (73 banks), gate 1900000, headroom 703968, header 0x97, global 0x3b39
+5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0  build/egress.gbc
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "holdout": {
+    "goal": "HOLD THE RING",
+    "oam_max": 4,
+    "over": 0
+  },
+  "chase": {
+    "goal": "OUTRUN THE FALL",
+    "oam_max": 6,
+    "over": 0
+  },
+  "hunt": {
+    "goal": "HUNT THE MARKED",
+    "oam_max": 5,
+    "over": 0
+  },
+  "escort": {
+    "goal": "WALK THE TEMP OUT",
+    "oam_max": 4,
+    "over": 0
+  },
+  "mixp": {
+    "goal": "MAKE ELECTRIC FAST",
+    "oam_max": 4,
+    "over": 0
+  },
+  "dark": {
+    "goal": "FIND THE KEYCARD",
+    "oam_max": 4,
+    "over": 0
+  },
+  "heist": {
+    "goal": "BUY IT OR TAKE IT",
+    "oam_max": 4,
+    "over": 0
+  },
+  "wave_live": [
+    0
+  ],
+  "results": {
+    "stage_holdout": true,
+    "stage_holdout_oam": true,
+    "stage_chase": true,
+    "stage_chase_oam": true,
+    "stage_hunt": true,
+    "hunt_uses_matrix_mob": true,
+    "stage_hunt_oam": true,
+    "stage_escort": true,
+    "stage_escort_oam": true,
+    "stage_mixp": true,
+    "stage_mixp_oam": true,
+    "stage_dark": true,
+    "stage_dark_oam": true,
+    "stage_heist": true,
+    "stage_heist_oam": true,
+    "foreign_orb_blocked": true,
+    "own_orb_kills": true,
+    "crate_pushes_north": true,
+    "waves_use_matrix_mobs": true
+  }
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "b2_boss": {
+    "tenant": {
+      "won": true,
+      "hits_taken": 0,
+      "hp": [
+        6,
+        6
+      ],
+      "frames": 4034,
+      "phases": [
+        0,
+        1,
+        2
+      ],
+      "good_hits": 24,
+      "oam_frames": 4073,
+      "oam_max_per_line": 10,
+      "oam_frames_over_10": 0,
+      "oam_over_by_phase": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "game_frames_per_120_min": {
+        "0": 120,
+        "1": 120,
+        "2": 120
+      },
+      "lag_windows": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "sequence_frames_per_120_min": {
+        "0": 120,
+        "1": 120,
+        "2": 109
+      },
+      "bot_log": [
+        "1278 guard tti=7",
+        "1422 guard tti=7",
+        "1723 guard tti=7",
+        "2034 guard tti=7",
+        "2175 guard tti=7",
+        "2232 guard tti=7",
+        "2280 guard tti=7",
+        "2652 parry",
+        "3036 guard tti=7",
+        "3471 guard tti=7",
+        "3725 guard tti=7",
+        "3847 guard tti=7"
+      ],
+      "end_mode": 3,
+      "bo_refused_last": 0,
+      "damage_events": [],
+      "allocator": {
+        "calls": {
+          "groups": 14175,
+          "size_2": 7814,
+          "full": 10991,
+          "size_1": 2483,
+          "left_clip": 44,
+          "size_3": 3878,
+          "refused": 17,
+          "right_clip": 3140
+        },
+        "mismatches": [],
+        "all_allocations_match": true
+      }
+    },
+    "fax": {
+      "won": true,
+      "hits_taken": 0,
+      "hp": [
+        6,
+        6
+      ],
+      "frames": 4111,
+      "phases": [
+        0,
+        1
+      ],
+      "good_hits": 12,
+      "oam_frames": 4256,
+      "oam_max_per_line": 10,
+      "oam_frames_over_10": 0,
+      "oam_over_by_phase": {
+        "0": 0,
+        "1": 0
+      },
+      "game_frames_per_120_min": {
+        "0": 120,
+        "1": 120
+      },
+      "lag_windows": {
+        "0": 0,
+        "1": 0
+      },
+      "sequence_frames_per_120_min": {
+        "0": 120,
+        "1": 120
+      },
+      "bot_log": [
+        "2926 parry",
+        "3171 parry",
+        "3218 parry",
+        "3580 parry",
+        "3689 shoot opening",
+        "3753 shoot opening",
+        "3781 parry",
+        "3909 shoot opening",
+        "4205 parry",
+        "4314 shoot opening",
+        "4382 shoot opening",
+        "4408 parry"
+      ],
+      "end_mode": 2,
+      "bo_refused_last": 0,
+      "damage_events": [],
+      "allocator": {
+        "calls": {
+          "groups": 13294,
+          "size_4": 8056,
+          "full": 10194,
+          "size_1": 5168,
+          "left_clip": 2781,
+          "size_2": 70,
+          "refused": 1080,
+          "off_x": 40,
+          "right_clip": 319
+        },
+        "mismatches": [],
+        "all_allocations_match": true
+      }
+    },
+    "boss_death": {
+      "died": true,
+      "cause": [
+        224,
+        242,
+        13
+      ],
+      "hits_by_attack": {
+        "SLAM": [
+          2,
+          4
+        ],
+        "SWEEP": [
+          0,
+          0
+        ],
+        "VOLLEY": [
+          0,
+          0
+        ],
+        "BEAM": [
+          0,
+          0
+        ],
+        "QUAKE": [
+          0,
+          0
+        ],
+        "FLOOR": [
+          0,
+          0
+        ],
+        "RAM": [
+          0,
+          0
+        ],
+        "JAM": [
+          0,
+          0
+        ],
+        "FAN": [
+          0,
+          0
+        ],
+        "CONTACT": [
+          0,
+          0
+        ]
+      },
+      "back_to_title": true
+    },
+    "profile_tenant": {
+      "SLAM": {
+        "hits": 36,
+        "half_hearts": 70,
+        "per_hit": 1.94
+      },
+      "SWEEP": {
+        "hits": 23,
+        "half_hearts": 46,
+        "per_hit": 2.0
+      }
+    },
+    "profile_fax": {
+      "RAM": {
+        "hits": 59,
+        "half_hearts": 116,
+        "per_hit": 1.97
+      }
+    }
+  },
+  "results": {
+    "boss_tenant_nohit": true,
+    "boss_tenant_phases": true,
+    "boss_tenant_hits_target": true,
+    "boss_tenant_oam": true,
+    "boss_tenant_frames": true,
+    "boss_fax_nohit": true,
+    "boss_fax_phases": true,
+    "boss_fax_hits_target": true,
+    "boss_fax_oam": true,
+    "boss_fax_frames": true,
+    "boss_death": true,
+    "boss_profile_tenant": true,
+    "boss_profile_fax": true
+  }
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "rom": "build/link-check/links.gbc",
+  "sha256": "a58cef5bcb138a02fa6f8f5b5388ef67b7e3765b9cb45ff706adcb184ca19649",
+  "states": 512,
+  "bytes_per_state": 376,
+  "frames": 580,
+  "portable_trace_sha256": "96609624afbfb965530f9c276ffd974835988ce1839b7cc2150ab4e163ae53ad",
+  "all_state_bytes_match": true,
+  "bank_one_and_stack_canary": true
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "rom_sha256": "8ba7eb4c4350460bab8111d122265afa7bf316f360b6555f5b30e53b89e21eb9",
+  "trace_sha256": "429518fe28a7cd4c51ecc4520e1cb0f231210cbdba9e2af67ebac7b069ff8bec",
+  "seams": 64,
+  "bytes_per_state": 508,
+  "frames": 208,
+  "max_shift_cycles": 68884,
+  "mean_shift_cycles": 68438,
+  "all_bytes_match": true,
+  "bank_one_and_stack_canary": true
+}
+build/egress-rtc.gbc: mbc3 0x10, 1196032 bytes (73 banks), gate 1900000, headroom 703968, header 0xa2, global 0x2188
+8be9b1af311770a2ac1440072b8fb9b519822c345f5662942b56bf4000d84081  build/egress-rtc.gbc
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "rom": "build/run-check/run.gbc",
+  "sha256": "c4df7d0dfadcd7b39c3aa71e82341eb91373ece50b3e37d43fe0b6055eda04ab",
+  "frames": 449,
+  "bytes": 11136,
+  "native_host_exact": true,
+  "bank_one_canaries": true,
+  "cases": [
+    {
+      "case": 0,
+      "slots": 59,
+      "floors": 52
+    },
+    {
+      "case": 1,
+      "slots": 50,
+      "floors": 44
+    },
+    {
+      "case": 2,
+      "slots": 46,
+      "floors": 41
+    },
+    {
+      "case": 3,
+      "slots": 38,
+      "floors": 34
+    },
+    {
+      "case": 4,
+      "slots": 31,
+      "floors": 28
+    },
+    {
+      "case": 5,
+      "slots": 7,
+      "floors": 6
+    },
+    {
+      "case": 6,
+      "slots": 16,
+      "floors": 15
+    },
+    {
+      "case": 7,
+      "slots": 59,
+      "floors": 52
+    },
+    {
+      "case": 8,
+      "slots": 55,
+      "floors": 49
+    },
+    {
+      "case": 9,
+      "slots": 44,
+      "floors": 39
+    },
+    {
+      "case": 10,
+      "slots": 6,
+      "floors": 6
+    },
+    {
+      "case": 11,
+      "slots": 31,
+      "floors": 28
+    },
+    {
+      "case": 12,
+      "slots": 24,
+      "floors": 22
+    },
+    {
+      "case": 13,
+      "slots": 15,
+      "floors": 14
+    },
+    {
+      "case": 14,
+      "slots": 61,
+      "floors": 54
+    },
+    {
+      "case": 15,
+      "slots": 7,
+      "floors": 6
+    },
+    {
+      "case": 16,
+      "slots": 45,
+      "floors": 40
+    },
+    {
+      "case": 17,
+      "slots": 39,
+      "floors": 35
+    },
+    {
+      "case": 18,
+      "slots": 30,
+      "floors": 27
+    },
+    {
+      "case": 19,
+      "slots": 23,
+      "floors": 21
+    },
+    {
+      "case": 20,
+      "slots": 6,
+      "floors": 6
+    },
+    {
+      "case": 21,
+      "slots": 60,
+      "floors": 53
+    },
+    {
+      "case": 22,
+      "slots": 52,
+      "floors": 46
+    },
+    {
+      "case": 23,
+      "slots": 44,
+      "floors": 39
+    }
+  ]
+}
+test_clock: 51 checks, 0 failures
+self-test: asm ['0x3000', '0x6000'], far_ptr.o ['0x2000', '0x2000']: ok
+build/linked-mbc5.map: MBC5 build, 134 game modules, 24 runtime/library modules
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj-mbc5/heir_draw.asm:274  ok
+  0x2000 ROM bank               ld	(hl), d                                 build/obj-mbc5/heir_draw.asm:309  ok
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj-mbc5/heir_draw.asm:328  ok
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj-mbc5/heir_draw.asm:354  ok
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj-mbc5/heir_draw.asm:431  ok
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj-mbc5/heir_draw.asm:462  ok
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj-mbc5/heir_draw.asm:509  ok
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj-mbc5/heir_draw.asm:540  ok
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj-mbc5/heir_draw.asm:647  ok
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj/title3d/t3d_core.asm:237  ok
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj/title3d/t3d_core.asm:592  ok
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj/title3d/t3d_core.asm:813  ok
+  0x2000 ROM bank               ld	(#0x2000),a                             build/obj/voice.asm:87  ok
+  0x2000 ROM bank               ld	(#0x2000),a                             build/obj/voice.asm:111  ok
+  0x0000 RAM enable             ld	(hl), #0x0a                             build/obj-mbc5/run.asm:422  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB),a                             build/obj-mbc5/run.asm:424  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc5/run.asm:445  ok
+  0x0000 RAM enable             ld	(hl), #0x0a                             build/obj-mbc5/run.asm:583  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB),a                             build/obj-mbc5/run.asm:585  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc5/run.asm:606  ok
+  0x0000 RAM enable             ld	(hl), #0x0a                             build/obj-mbc5/family.asm:201  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB), a                            build/obj-mbc5/family.asm:204  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc5/family.asm:259  ok
+  0x0000 RAM enable             ld	(hl), #0x0a                             build/obj-mbc5/family.asm:281  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB),a                             build/obj-mbc5/family.asm:283  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc5/family.asm:407  ok
+  0x0000 RAM enable             ld	(_rRAMG), a                             build/obj-mbc5/clock.asm:148  ok
+  0x4000 RAM bank / RTC select  ld	(_rRAMB), a                             build/obj-mbc5/clock.asm:150  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc5/clock.asm:159  ok
+  0x0000 RAM enable             ld	(hl), #0x0a                             build/obj-mbc5/clock.asm:169  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB),a                             build/obj-mbc5/clock.asm:171  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc5/clock.asm:178  ok
+  0x0000 RAM enable             ld	(hl), #0x0a                             build/obj-mbc5/resume.asm:212  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB),a                             build/obj-mbc5/resume.asm:214  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc5/resume.asm:286  ok
+  0x0000 RAM enable             ld	(hl), #0x0a                             build/obj-mbc5/resume.asm:341  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB), a                            build/obj-mbc5/resume.asm:343  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc5/resume.asm:359  ok
+  0x0000 RAM enable             ld	(hl), #0x0a                             build/obj-mbc5/resume.asm:561  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB),a                             build/obj-mbc5/resume.asm:563  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc5/resume.asm:578  ok
+  0x0000 RAM enable             ld	(hl), #0x0a                             build/obj-mbc5/tutorial.asm:103  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB),a                             build/obj-mbc5/tutorial.asm:105  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc5/tutorial.asm:240  ok
+  0x0000 RAM enable             ld	(_rRAMG), a                             build/obj-mbc5/tutorial.asm:345  ok
+  0x4000 RAM bank / RTC select  ld	(_rRAMB), a                             build/obj-mbc5/tutorial.asm:347  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc5/tutorial.asm:365  ok
+  0x2000 ROM bank               ld (0x2000), a                             gb.lib:___sdcc_bcall_ehl.o _HOME+0x0006  ok
+  0x2000 ROM bank               ld (0x2000), a                             gb.lib:___sdcc_bcall_ehl.o _HOME+0x000f  ok
+  49 mapper writes, 0 forbidden
+build/linked-mbc3.map: MBC3 build, 134 game modules, 24 runtime/library modules
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj-mbc3/heir_draw.asm:274  ok
+  0x2000 ROM bank               ld	(hl), d                                 build/obj-mbc3/heir_draw.asm:309  ok
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj-mbc3/heir_draw.asm:328  ok
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj-mbc3/heir_draw.asm:354  ok
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj-mbc3/heir_draw.asm:431  ok
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj-mbc3/heir_draw.asm:462  ok
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj-mbc3/heir_draw.asm:509  ok
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj-mbc3/heir_draw.asm:540  ok
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj-mbc3/heir_draw.asm:647  ok
+  0x2000 ROM bank               ld	(#0x2000),a                             build/obj/voice.asm:87  ok
+  0x2000 ROM bank               ld	(#0x2000),a                             build/obj/voice.asm:111  ok
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj/title3d/t3d_core.asm:237  ok
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj/title3d/t3d_core.asm:592  ok
+  0x2000 ROM bank               ld	(#_rROMB0),a                            build/obj/title3d/t3d_core.asm:813  ok
+  0x0000 RAM enable             ld	(hl), #0x0a                             build/obj-mbc3/run.asm:422  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB),a                             build/obj-mbc3/run.asm:424  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc3/run.asm:445  ok
+  0x0000 RAM enable             ld	(hl), #0x0a                             build/obj-mbc3/run.asm:583  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB),a                             build/obj-mbc3/run.asm:585  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc3/run.asm:606  ok
+  0x0000 RAM enable             ld	(_rRAMG), a                             build/obj-mbc3/clock.asm:172  ok
+  0x4000 RAM bank / RTC select  ld	(_rRAMB), a                             build/obj-mbc3/clock.asm:174  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc3/clock.asm:183  ok
+  0x0000 RAM enable             ld	(hl), #0x0a                             build/obj-mbc3/clock.asm:193  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB),a                             build/obj-mbc3/clock.asm:195  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc3/clock.asm:202  ok
+  0x0000 RAM enable             ld	(hl), #0x0a                             build/obj-mbc3/clock.asm:358  ok
+  0x6000 RTC latch              ld	(hl), #0x00                             build/obj-mbc3/clock.asm:361  ok
+  0x6000 RTC latch              ld	(hl), #0x01                             build/obj-mbc3/clock.asm:362  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB),a                             build/obj-mbc3/clock.asm:374  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB), a                            build/obj-mbc3/clock.asm:392  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc3/clock.asm:393  ok
+  0x0000 RAM enable             ld	(hl), #0x0a                             build/obj-mbc3/clock.asm:419  ok
+  0x4000 RAM bank / RTC select  ld	(hl), #0x0c                             build/obj-mbc3/clock.asm:422  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB), a                            build/obj-mbc3/clock.asm:435  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc3/clock.asm:436  ok
+  0x0000 RAM enable             ld	(hl), #0x0a                             build/obj-mbc3/family.asm:201  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB), a                            build/obj-mbc3/family.asm:204  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc3/family.asm:259  ok
+  0x0000 RAM enable             ld	(hl), #0x0a                             build/obj-mbc3/family.asm:281  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB),a                             build/obj-mbc3/family.asm:283  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc3/family.asm:407  ok
+  0x0000 RAM enable             ld	(hl), #0x0a                             build/obj-mbc3/resume.asm:212  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB),a                             build/obj-mbc3/resume.asm:214  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc3/resume.asm:286  ok
+  0x0000 RAM enable             ld	(hl), #0x0a                             build/obj-mbc3/resume.asm:341  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB), a                            build/obj-mbc3/resume.asm:343  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc3/resume.asm:359  ok
+  0x0000 RAM enable             ld	(hl), #0x0a                             build/obj-mbc3/resume.asm:561  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB),a                             build/obj-mbc3/resume.asm:563  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc3/resume.asm:578  ok
+  0x0000 RAM enable             ld	(hl), #0x0a                             build/obj-mbc3/tutorial.asm:103  ok
+  0x4000 RAM bank / RTC select  ld	(#_rRAMB),a                             build/obj-mbc3/tutorial.asm:105  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc3/tutorial.asm:240  ok
+  0x0000 RAM enable             ld	(_rRAMG), a                             build/obj-mbc3/tutorial.asm:345  ok
+  0x4000 RAM bank / RTC select  ld	(_rRAMB), a                             build/obj-mbc3/tutorial.asm:347  ok
+  0x0000 RAM enable             ld	(#_rRAMG),a                             build/obj-mbc3/tutorial.asm:365  ok
+  0x2000 ROM bank               ld (0x2000), a                             gb.lib:___sdcc_bcall_ehl.o _HOME+0x0006  ok
+  0x2000 ROM bank               ld (0x2000), a                             gb.lib:___sdcc_bcall_ehl.o _HOME+0x000f  ok
+  59 mapper writes, 0 forbidden
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+connected motifs: 256 complete solver checks; crate/tool alternatives, finite wrong-spend branches and required portals
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "build/egress.gbc": {
+    "heir_sprite_mode": {
+      "samples": 2160,
+      "missing_8x16": []
+    }
+  },
+  "build/egress-rtc.gbc": {
+    "heir_sprite_mode": {
+      "samples": 2160,
+      "missing_8x16": []
+    }
+  }
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "native_uploads": 2936,
+  "empty_selected_slot_followed_by_visible_gene": 4082,
+  "mismatches": [],
+  "all_pixels_match": true
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "8be9b1af311770a2ac1440072b8fb9b519822c345f5662942b56bf4000d84081",
+  "native_uploads": 2936,
+  "empty_selected_slot_followed_by_visible_gene": 4082,
+  "mismatches": [],
+  "all_pixels_match": true
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+[
+  {
+    "rom": "build/egress.gbc",
+    "boards": 96,
+    "gravity_steps": 768,
+    "match": true
+  },
+  {
+    "rom": "build/egress-rtc.gbc",
+    "boards": 96,
+    "gravity_steps": 768,
+    "match": true
+  }
+]
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "results": {
+    "first_room_matches_shared_generator": true,
+    "first_room_is_push": true,
+    "pickup_units": true,
+    "reset_restores_entry_bag_and_pickups": true,
+    "invalid_target_keeps_units": true,
+    "finite_recipe_consumption": true,
+    "normal_floor2_wave_stage": true,
+    "inventory_carried_into_combat": true,
+    "waves_require_fighting": true,
+    "wave_victory_by_player_attacks": true,
+    "normal_floor3_falling_puzzle": true,
+    "drop_solved_by_input": true,
+    "family_choice_saved": true,
+    "heir_choice_survives_poweroff": true,
+    "death_creates_actual_parent_record": true,
+    "three_related_heirs_after_death": true,
+    "siblings_visibly_distinct": true,
+    "legacy_meta_preserved": true,
+    "torn_family_save_falls_back": true,
+    "bridge_crt_route_by_input": true,
+    "bridge_mud_route_by_input": true,
+    "bridge_consumes_crafted_unit": true
+  },
+  "log": [],
+  "wave_kills": 2,
+  "wave_count": 2,
+  "drop_plan": "URUUUURRRLUULLLUUUUU",
+  "bridge_crt_plan": "RRULUUUUUURRRRRRUUURRRUU",
+  "bridge_mud_plan": "RRULUUUUUUUUURRRRCbdPhRRRRRRUU",
+  "push_plan": "RULUURRRRUURULURRRRUUUUU"
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "8be9b1af311770a2ac1440072b8fb9b519822c345f5662942b56bf4000d84081",
+  "results": {
+    "first_room_matches_shared_generator": true,
+    "first_room_is_push": true,
+    "pickup_units": true,
+    "reset_restores_entry_bag_and_pickups": true,
+    "invalid_target_keeps_units": true,
+    "finite_recipe_consumption": true,
+    "normal_floor2_wave_stage": true,
+    "inventory_carried_into_combat": true,
+    "waves_require_fighting": true,
+    "wave_victory_by_player_attacks": true,
+    "normal_floor3_falling_puzzle": true,
+    "drop_solved_by_input": true,
+    "family_choice_saved": true,
+    "heir_choice_survives_poweroff": true,
+    "death_creates_actual_parent_record": true,
+    "three_related_heirs_after_death": true,
+    "siblings_visibly_distinct": true,
+    "legacy_meta_preserved": true,
+    "torn_family_save_falls_back": true,
+    "bridge_crt_route_by_input": true,
+    "bridge_mud_route_by_input": true,
+    "bridge_consumes_crafted_unit": true
+  },
+  "log": [],
+  "wave_kills": 2,
+  "wave_count": 2,
+  "drop_plan": "URUUUURRRLUULLLUUUUU",
+  "bridge_crt_plan": "RRULUUUUUURRRRRRUUURRRUU",
+  "bridge_mud_plan": "RRULUUUUUUUUURRRRCbdPhRRRRRRUU",
+  "push_plan": "RULUURRRRUURULURRRRUUUUU"
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "results": {
+    "a_primary_attack": true,
+    "b_tap_fires_without_evading": true,
+    "b_hold_charges_without_shooting": true,
+    "b_release_executes_charged_secondary": true,
+    "a_hold_charged_attack": true,
+    "ab_ordered_combo": true,
+    "ba_ordered_combo": true,
+    "forward_directional_evade": true,
+    "forward_moves_in_requested_direction": true,
+    "forward_held_direction_runs": true,
+    "side_directional_evade": true,
+    "side_keeps_aim": true,
+    "side_moves_in_requested_direction": true,
+    "side_held_direction_runs": true,
+    "back_directional_evade": true,
+    "back_keeps_aim": true,
+    "back_moves_in_requested_direction": true,
+    "back_held_direction_runs": true,
+    "direction_hold_alone_runs": true,
+    "movement_and_secondary_charge_together": true,
+    "steady_game_frame_pacing": true
+  },
+  "details": {
+    "forward": {
+      "from": [
+        120,
+        130
+      ],
+      "to": [
+        120,
+        116
+      ],
+      "animation": 26
+    },
+    "side": {
+      "from": [
+        117,
+        132
+      ],
+      "to": [
+        103,
+        132
+      ],
+      "animation": 26
+    },
+    "back": {
+      "from": [
+        120,
+        134
+      ],
+      "to": [
+        120,
+        146
+      ],
+      "animation": 22
+    },
+    "game_frames_per_600_vblanks": 600
+  }
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "8be9b1af311770a2ac1440072b8fb9b519822c345f5662942b56bf4000d84081",
+  "results": {
+    "a_primary_attack": true,
+    "b_tap_fires_without_evading": true,
+    "b_hold_charges_without_shooting": true,
+    "b_release_executes_charged_secondary": true,
+    "a_hold_charged_attack": true,
+    "ab_ordered_combo": true,
+    "ba_ordered_combo": true,
+    "forward_directional_evade": true,
+    "forward_moves_in_requested_direction": true,
+    "forward_held_direction_runs": true,
+    "side_directional_evade": true,
+    "side_keeps_aim": true,
+    "side_moves_in_requested_direction": true,
+    "side_held_direction_runs": true,
+    "back_directional_evade": true,
+    "back_keeps_aim": true,
+    "back_moves_in_requested_direction": true,
+    "back_held_direction_runs": true,
+    "direction_hold_alone_runs": true,
+    "movement_and_secondary_charge_together": true,
+    "steady_game_frame_pacing": true
+  },
+  "details": {
+    "forward": {
+      "from": [
+        120,
+        130
+      ],
+      "to": [
+        120,
+        116
+      ],
+      "animation": 26
+    },
+    "side": {
+      "from": [
+        117,
+        132
+      ],
+      "to": [
+        103,
+        132
+      ],
+      "animation": 26
+    },
+    "back": {
+      "from": [
+        120,
+        134
+      ],
+      "to": [
+        120,
+        146
+      ],
+      "animation": 22
+    },
+    "game_frames_per_600_vblanks": 600
+  }
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "results": {
+    "water_extinguishes": true,
+    "wet_cold_freezes": true,
+    "wet_shock_stuns": true,
+    "mud_slows": true,
+    "steam_blinds": true,
+    "dust_blinds": true,
+    "whip_and_launcher_reach_farther": true,
+    "hammer_has_force": true,
+    "long_weapons_have_narrower_arc": true,
+    "invalid_recipe_keeps_both_units": true,
+    "full_bag_can_discard_one_unit": true,
+    "discard_requires_a_new_deliberate_hold": true,
+    "mob_0_idle_walk_tell_hurt": true,
+    "mob_0_dead_body_removed": true,
+    "mob_1_idle_walk_tell_hurt": true,
+    "mob_1_dead_body_removed": true,
+    "mob_2_idle_walk_tell_hurt": true,
+    "mob_2_dead_body_removed": true,
+    "mob_3_idle_walk_tell_hurt": true,
+    "mob_3_dead_body_removed": true,
+    "mob_4_idle_walk_tell_hurt": true,
+    "mob_4_dead_body_removed": true,
+    "mob_5_idle_walk_tell_hurt": true,
+    "mob_5_dead_body_removed": true,
+    "mob_6_idle_walk_tell_hurt": true,
+    "mob_6_dead_body_removed": true,
+    "item_1_four_native_phases": true,
+    "item_1_preserves_every_other_card": true,
+    "item_2_four_native_phases": true,
+    "item_2_preserves_every_other_card": true,
+    "item_3_four_native_phases": true,
+    "item_3_preserves_every_other_card": true,
+    "item_4_four_native_phases": true,
+    "item_4_preserves_every_other_card": true,
+    "item_5_four_native_phases": true,
+    "item_5_preserves_every_other_card": true,
+    "item_6_four_native_phases": true,
+    "item_6_preserves_every_other_card": true,
+    "item_7_four_native_phases": true,
+    "item_7_preserves_every_other_card": true,
+    "item_8_four_native_phases": true,
+    "item_8_preserves_every_other_card": true,
+    "item_9_four_native_phases": true,
+    "item_9_preserves_every_other_card": true,
+    "item_10_four_native_phases": true,
+    "item_10_preserves_every_other_card": true,
+    "item_11_four_native_phases": true,
+    "item_11_preserves_every_other_card": true,
+    "item_12_four_native_phases": true,
+    "item_12_preserves_every_other_card": true,
+    "item_13_four_native_phases": true,
+    "item_13_preserves_every_other_card": true,
+    "item_14_four_native_phases": true,
+    "item_14_preserves_every_other_card": true,
+    "item_15_four_native_phases": true,
+    "item_15_preserves_every_other_card": true,
+    "item_16_four_native_phases": true,
+    "item_16_preserves_every_other_card": true
+  },
+  "details": {
+    "water_extinguishes": {
+      "status": 1,
+      "hp": 20,
+      "bag": []
+    },
+    "wet_cold_freezes": {
+      "status": 8,
+      "hp": 19,
+      "bag": []
+    },
+    "wet_shock_stuns": {
+      "status": 32,
+      "hp": 17,
+      "bag": []
+    },
+    "mud_slows": {
+      "status": 4,
+      "hp": 20,
+      "bag": []
+    },
+    "steam_blinds": {
+      "status": 128,
+      "hp": 20,
+      "bag": []
+    },
+    "dust_blinds": {
+      "status": 128,
+      "hp": 20,
+      "bag": []
+    },
+    "weapon_damage_far_wide_close": [
+      [
+        0,
+        1,
+        1
+      ],
+      [
+        0,
+        2,
+        2
+      ],
+      [
+        1,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        1
+      ],
+      [
+        1,
+        0,
+        1
+      ]
+    ]
+  },
+  "log": []
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "results": {
+    "real_enemy_damage_checkpointed": true,
+    "same_floor_after_poweroff": true,
+    "poweroff_does_not_heal": true,
+    "entry_inventory_and_heir_restored": true,
+    "wave_restarts_as_uncleared": true,
+    "death_recorded_once": true,
+    "death_clears_continue": true,
+    "end_transaction_before_meta": true,
+    "end_transaction_after_meta": true,
+    "end_transaction_after_family": true,
+    "checkpoint_family_migrated": true,
+    "new_family_regions_versioned": true,
+    "legacy_meta_untouched_by_migration": true,
+    "clock_regions_preserved": true,
+    "torn_continue_falls_back": true,
+    "landing_entry_checkpoint": true,
+    "landing_resumes_at_same_conversation": true,
+    "real_trade_spends_tokens": true,
+    "post_trade_rest_checkpoint": true,
+    "rest_does_not_repeat_trade_or_dialogue": true,
+    "landing_continue_reaches_next_floor": true
+  },
+  "log": []
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "8be9b1af311770a2ac1440072b8fb9b519822c345f5662942b56bf4000d84081",
+  "results": {
+    "real_enemy_damage_checkpointed": true,
+    "same_floor_after_poweroff": true,
+    "poweroff_does_not_heal": true,
+    "entry_inventory_and_heir_restored": true,
+    "wave_restarts_as_uncleared": true,
+    "death_recorded_once": true,
+    "death_clears_continue": true,
+    "end_transaction_before_meta": true,
+    "end_transaction_after_meta": true,
+    "end_transaction_after_family": true,
+    "checkpoint_family_migrated": true,
+    "new_family_regions_versioned": true,
+    "legacy_meta_untouched_by_migration": true,
+    "clock_regions_preserved": true,
+    "torn_continue_falls_back": true,
+    "landing_entry_checkpoint": true,
+    "landing_resumes_at_same_conversation": true,
+    "real_trade_spends_tokens": true,
+    "post_trade_rest_checkpoint": true,
+    "rest_does_not_repeat_trade_or_dialogue": true,
+    "landing_continue_reaches_next_floor": true
+  },
+  "log": []
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "results": {
+    "new_save_defaults_to_new_run": true,
+    "missing_continue_stays_in_menu": true,
+    "controls_return_to_menu": true,
+    "tutorials_toggle": true,
+    "voice_toggles": true,
+    "settings_do_not_write_legacy_family": true,
+    "settings_survive_poweroff": true,
+    "torn_settings_keep_previous_record": true,
+    "saved_run_defaults_to_continue": true,
+    "new_run_does_not_silently_discard_heir": true,
+    "new_run_can_be_cancelled": true,
+    "confirmed_new_run_records_lineage_once": true
+  }
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "8be9b1af311770a2ac1440072b8fb9b519822c345f5662942b56bf4000d84081",
+  "results": {
+    "new_save_defaults_to_new_run": true,
+    "missing_continue_stays_in_menu": true,
+    "controls_return_to_menu": true,
+    "tutorials_toggle": true,
+    "voice_toggles": true,
+    "settings_do_not_write_legacy_family": true,
+    "settings_survive_poweroff": true,
+    "torn_settings_keep_previous_record": true,
+    "saved_run_defaults_to_continue": true,
+    "new_run_does_not_silently_discard_heir": true,
+    "new_run_can_be_cancelled": true,
+    "confirmed_new_run_records_lineage_once": true
+  }
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "results": {
+    "a_cost": true,
+    "b_cost": true,
+    "a_charge_pays_on_release": true,
+    "a_charge_cost": true,
+    "b_charge_pays_on_release": true,
+    "b_charge_cost": true,
+    "roll_cost": true,
+    "sidestep_cost": true,
+    "backstep_cost": true,
+    "running_drains_over_time": true,
+    "resting_recovers_to_cap": true,
+    "exhaustion_denies_attack": true,
+    "exhaustion_has_recovery_pose": true,
+    "recovery_waits_before_refilling": true,
+    "exhaustion_is_recoverable": true,
+    "all_545_native_meter_thresholds_unchanged": true,
+    "meter_palette_tracks_toast_row": true,
+    "controls_page_restores_meter_palette": true
+  },
+  "costs": {
+    "a": 8,
+    "b": 10,
+    "a_charge": 40,
+    "b_charge": 30,
+    "roll": 24,
+    "sidestep": 12,
+    "backstep": 16
+  }
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "8be9b1af311770a2ac1440072b8fb9b519822c345f5662942b56bf4000d84081",
+  "results": {
+    "a_cost": true,
+    "b_cost": true,
+    "a_charge_pays_on_release": true,
+    "a_charge_cost": true,
+    "b_charge_pays_on_release": true,
+    "b_charge_cost": true,
+    "roll_cost": true,
+    "sidestep_cost": true,
+    "backstep_cost": true,
+    "running_drains_over_time": true,
+    "resting_recovers_to_cap": true,
+    "exhaustion_denies_attack": true,
+    "exhaustion_has_recovery_pose": true,
+    "recovery_waits_before_refilling": true,
+    "exhaustion_is_recoverable": true,
+    "all_545_native_meter_thresholds_unchanged": true,
+    "meter_palette_tracks_toast_row": true,
+    "controls_page_restores_meter_palette": true
+  },
+  "costs": {
+    "a": 8,
+    "b": 10,
+    "a_charge": 40,
+    "b_charge": 30,
+    "roll": 24,
+    "sidestep": 12,
+    "backstep": 16
+  }
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "results": {
+    "standing_on_plate_opens_gate": true,
+    "leaving_plate_releases_gate": true,
+    "crate_reaches_unpushable_rim": true,
+    "stranded_crate_shows_reset_cue": true,
+    "hold_select_restores_original_crate": true,
+    "floor_stack_does_not_reach_skin_scratch": true
+  },
+  "log": []
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "8be9b1af311770a2ac1440072b8fb9b519822c345f5662942b56bf4000d84081",
+  "results": {
+    "standing_on_plate_opens_gate": true,
+    "leaving_plate_releases_gate": true,
+    "crate_reaches_unpushable_rim": true,
+    "stranded_crate_shows_reset_cue": true,
+    "hold_select_restores_original_crate": true,
+    "floor_stack_does_not_reach_skin_scratch": true
+  },
+  "log": []
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "results": {
+    "direction_0_hits_forward_only": true,
+    "direction_0_shoots_along_aim": true,
+    "direction_1_hits_forward_only": true,
+    "direction_1_uses_diagonal_arc": true,
+    "direction_1_shoots_along_aim": true,
+    "direction_2_hits_forward_only": true,
+    "direction_2_shoots_along_aim": true,
+    "direction_3_hits_forward_only": true,
+    "direction_3_uses_diagonal_arc": true,
+    "direction_3_shoots_along_aim": true,
+    "direction_4_hits_forward_only": true,
+    "direction_4_shoots_along_aim": true,
+    "direction_5_hits_forward_only": true,
+    "direction_5_uses_diagonal_arc": true,
+    "direction_5_shoots_along_aim": true,
+    "direction_6_hits_forward_only": true,
+    "direction_6_shoots_along_aim": true,
+    "direction_7_hits_forward_only": true,
+    "direction_7_uses_diagonal_arc": true,
+    "direction_7_shoots_along_aim": true
+  },
+  "directions": [
+    {
+      "direction": 0,
+      "damage_front_back": [
+        1,
+        0
+      ],
+      "shot_velocity": [
+        0,
+        -36
+      ]
+    },
+    {
+      "direction": 1,
+      "damage_front_back": [
+        1,
+        0
+      ],
+      "shot_velocity": [
+        36,
+        -36
+      ]
+    },
+    {
+      "direction": 2,
+      "damage_front_back": [
+        1,
+        0
+      ],
+      "shot_velocity": [
+        36,
+        0
+      ]
+    },
+    {
+      "direction": 3,
+      "damage_front_back": [
+        1,
+        0
+      ],
+      "shot_velocity": [
+        36,
+        36
+      ]
+    },
+    {
+      "direction": 4,
+      "damage_front_back": [
+        1,
+        0
+      ],
+      "shot_velocity": [
+        0,
+        36
+      ]
+    },
+    {
+      "direction": 5,
+      "damage_front_back": [
+        1,
+        0
+      ],
+      "shot_velocity": [
+        -36,
+        36
+      ]
+    },
+    {
+      "direction": 6,
+      "damage_front_back": [
+        1,
+        0
+      ],
+      "shot_velocity": [
+        -36,
+        0
+      ]
+    },
+    {
+      "direction": 7,
+      "damage_front_back": [
+        1,
+        0
+      ],
+      "shot_velocity": [
+        -36,
+        -36
+      ]
+    }
+  ]
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "fixture": "isolated pit columns in a native room; actual directional input and resolver",
+  "results": {
+    "walking_off_platform_starts_a_visible_fall": true,
+    "fall_charges_exactly_one_half_heart": true,
+    "fall_returns_to_last_firm_floor": true,
+    "forward_evade_has_airborne_arc": true,
+    "roll_crosses_one_tile_hole": true,
+    "jump_too_short_falls_instead_of_floating": true,
+    "invulnerability_does_not_remove_void_cost": true
+  },
+  "details": {
+    "walk_fall": {
+      "states": [
+        0,
+        4,
+        6
+      ],
+      "hp": [
+        8,
+        7
+      ],
+      "end": [
+        104,
+        136
+      ]
+    },
+    "roll_jump": [
+      [
+        100,
+        136,
+        0,
+        0,
+        0,
+        8
+      ],
+      [
+        101,
+        136,
+        2,
+        1,
+        0,
+        8
+      ],
+      [
+        103,
+        136,
+        2,
+        1,
+        3,
+        8
+      ],
+      [
+        106,
+        136,
+        2,
+        1,
+        5,
+        8
+      ],
+      [
+        108,
+        136,
+        2,
+        1,
+        7,
+        8
+      ],
+      [
+        111,
+        136,
+        2,
+        1,
+        9,
+        8
+      ],
+      [
+        114,
+        136,
+        2,
+        1,
+        10,
+        8
+      ],
+      [
+        117,
+        136,
+        2,
+        1,
+        11,
+        8
+      ],
+      [
+        119,
+        136,
+        2,
+        1,
+        12,
+        8
+      ],
+      [
+        122,
+        136,
+        2,
+        1,
+        12,
+        8
+      ],
+      [
+        125,
+        136,
+        2,
+        1,
+        12,
+        8
+      ],
+      [
+        128,
+        136,
+        2,
+        1,
+        11,
+        8
+      ],
+      [
+        130,
+        136,
+        2,
+        1,
+        10,
+        8
+      ],
+      [
+        132,
+        136,
+        2,
+        0,
+        0,
+        8
+      ],
+      [
+        133,
+        136,
+        2,
+        0,
+        0,
+        8
+      ],
+      [
+        135,
+        136,
+        2,
+        0,
+        0,
+        8
+      ],
+      [
+        137,
+        136,
+        2,
+        0,
+        0,
+        8
+      ],
+      [
+        138,
+        136,
+        2,
+        0,
+        0,
+        8
+      ]
+    ]
+  }
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "8be9b1af311770a2ac1440072b8fb9b519822c345f5662942b56bf4000d84081",
+  "fixture": "isolated pit columns in a native room; actual directional input and resolver",
+  "results": {
+    "walking_off_platform_starts_a_visible_fall": true,
+    "fall_charges_exactly_one_half_heart": true,
+    "fall_returns_to_last_firm_floor": true,
+    "forward_evade_has_airborne_arc": true,
+    "roll_crosses_one_tile_hole": true,
+    "jump_too_short_falls_instead_of_floating": true,
+    "invulnerability_does_not_remove_void_cost": true
+  },
+  "details": {
+    "walk_fall": {
+      "states": [
+        0,
+        4,
+        6
+      ],
+      "hp": [
+        8,
+        7
+      ],
+      "end": [
+        104,
+        136
+      ]
+    },
+    "roll_jump": [
+      [
+        100,
+        136,
+        0,
+        0,
+        0,
+        8
+      ],
+      [
+        101,
+        136,
+        2,
+        1,
+        0,
+        8
+      ],
+      [
+        103,
+        136,
+        2,
+        1,
+        3,
+        8
+      ],
+      [
+        106,
+        136,
+        2,
+        1,
+        5,
+        8
+      ],
+      [
+        108,
+        136,
+        2,
+        1,
+        7,
+        8
+      ],
+      [
+        111,
+        136,
+        2,
+        1,
+        9,
+        8
+      ],
+      [
+        114,
+        136,
+        2,
+        1,
+        10,
+        8
+      ],
+      [
+        117,
+        136,
+        2,
+        1,
+        11,
+        8
+      ],
+      [
+        119,
+        136,
+        2,
+        1,
+        12,
+        8
+      ],
+      [
+        122,
+        136,
+        2,
+        1,
+        12,
+        8
+      ],
+      [
+        125,
+        136,
+        2,
+        1,
+        12,
+        8
+      ],
+      [
+        128,
+        136,
+        2,
+        1,
+        11,
+        8
+      ],
+      [
+        130,
+        136,
+        2,
+        1,
+        10,
+        8
+      ],
+      [
+        132,
+        136,
+        2,
+        0,
+        0,
+        8
+      ],
+      [
+        133,
+        136,
+        2,
+        0,
+        0,
+        8
+      ],
+      [
+        135,
+        136,
+        2,
+        0,
+        0,
+        8
+      ],
+      [
+        137,
+        136,
+        2,
+        0,
+        0,
+        8
+      ],
+      [
+        138,
+        136,
+        2,
+        0,
+        0,
+        8
+      ]
+    ]
+  }
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "results": {
+    "generated_boundary_is_real_abyss": true,
+    "walking_off_actual_edge_falls": true,
+    "real_edge_fall_costs_one_and_recovers": true,
+    "pushed_crate_is_lost_to_open_void": true,
+    "lost_required_crate_prompts_reset": true,
+    "reset_restores_crate_and_abyss": true
+  },
+  "log": []
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "8be9b1af311770a2ac1440072b8fb9b519822c345f5662942b56bf4000d84081",
+  "results": {
+    "generated_boundary_is_real_abyss": true,
+    "walking_off_actual_edge_falls": true,
+    "real_edge_fall_costs_one_and_recovers": true,
+    "pushed_crate_is_lost_to_open_void": true,
+    "lost_required_crate_prompts_reset": true,
+    "reset_restores_crate_and_abyss": true
+  },
+  "log": []
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "results": {
+    "west_hits_local_target": true,
+    "west_does_not_wrap": true,
+    "east_hits_local_target": true,
+    "east_does_not_wrap": true,
+    "north_hits_local_target": true,
+    "north_does_not_wrap": true,
+    "south_hits_local_target": true,
+    "south_does_not_wrap": true
+  },
+  "detail": [
+    {
+      "edge": "west",
+      "near_far_damage": [
+        1,
+        0
+      ]
+    },
+    {
+      "edge": "east",
+      "near_far_damage": [
+        1,
+        0
+      ]
+    },
+    {
+      "edge": "north",
+      "near_far_damage": [
+        1,
+        0
+      ]
+    },
+    {
+      "edge": "south",
+      "near_far_damage": [
+        1,
+        0
+      ]
+    }
+  ]
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "results": {
+    "west_shot_was_fired": true,
+    "west_never_wraps": true,
+    "west_shot_leaves_map": true,
+    "east_shot_was_fired": true,
+    "east_never_wraps": true,
+    "east_shot_leaves_map": true,
+    "north_shot_was_fired": true,
+    "north_never_wraps": true,
+    "north_shot_leaves_map": true,
+    "south_shot_was_fired": true,
+    "south_never_wraps": true,
+    "south_shot_leaves_map": true
+  },
+  "detail": [
+    {
+      "edge": "west",
+      "trace": [
+        [
+          108,
+          2176
+        ],
+        [
+          72,
+          2176
+        ],
+        [
+          36,
+          2176
+        ],
+        [
+          0,
+          2176
+        ]
+      ]
+    },
+    {
+      "edge": "east",
+      "trace": [
+        [
+          3972,
+          2176
+        ],
+        [
+          4008,
+          2176
+        ],
+        [
+          4044,
+          2176
+        ],
+        [
+          4080,
+          2176
+        ]
+      ]
+    },
+    {
+      "edge": "north",
+      "trace": [
+        [
+          1920,
+          108
+        ],
+        [
+          1920,
+          72
+        ],
+        [
+          1920,
+          36
+        ],
+        [
+          1920,
+          0
+        ]
+      ]
+    },
+    {
+      "edge": "south",
+      "trace": [
+        [
+          1920,
+          3460
+        ],
+        [
+          1920,
+          3496
+        ],
+        [
+          1920,
+          3532
+        ],
+        [
+          1920,
+          3568
+        ]
+      ]
+    }
+  ]
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "8be9b1af311770a2ac1440072b8fb9b519822c345f5662942b56bf4000d84081",
+  "results": {
+    "west_shot_was_fired": true,
+    "west_never_wraps": true,
+    "west_shot_leaves_map": true,
+    "east_shot_was_fired": true,
+    "east_never_wraps": true,
+    "east_shot_leaves_map": true,
+    "north_shot_was_fired": true,
+    "north_never_wraps": true,
+    "north_shot_leaves_map": true,
+    "south_shot_was_fired": true,
+    "south_never_wraps": true,
+    "south_shot_leaves_map": true
+  },
+  "detail": [
+    {
+      "edge": "west",
+      "trace": [
+        [
+          108,
+          2176
+        ],
+        [
+          72,
+          2176
+        ],
+        [
+          36,
+          2176
+        ],
+        [
+          0,
+          2176
+        ]
+      ]
+    },
+    {
+      "edge": "east",
+      "trace": [
+        [
+          3972,
+          2176
+        ],
+        [
+          4008,
+          2176
+        ],
+        [
+          4044,
+          2176
+        ],
+        [
+          4080,
+          2176
+        ]
+      ]
+    },
+    {
+      "edge": "north",
+      "trace": [
+        [
+          1920,
+          108
+        ],
+        [
+          1920,
+          72
+        ],
+        [
+          1920,
+          36
+        ],
+        [
+          1920,
+          0
+        ]
+      ]
+    },
+    {
+      "edge": "south",
+      "trace": [
+        [
+          1920,
+          3460
+        ],
+        [
+          1920,
+          3496
+        ],
+        [
+          1920,
+          3532
+        ],
+        [
+          1920,
+          3568
+        ]
+      ]
+    }
+  ]
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "results": {
+    "clip_hurt_matches_baked_fal_audio": true,
+    "clip_fall_matches_baked_fal_audio": true,
+    "clip_jump_matches_baked_fal_audio": true,
+    "clip_wall_matches_baked_fal_audio": true,
+    "clip_crush_matches_baked_fal_audio": true,
+    "clip_last_item_matches_baked_fal_audio": true,
+    "clip_return_matches_baked_fal_audio": true,
+    "clip_family_matches_baked_fal_audio": true,
+    "real_fall_triggers_fall_voice": true,
+    "native_voice_runs_at_expected_rate": true,
+    "speech_does_not_pause_gameplay": true,
+    "music_sequence_continues": true,
+    "speech_finishes_and_restores_music_channel": true
+  },
+  "speech_bytes": 96432,
+  "voice_active_frames": 148,
+  "game_frames": 199,
+  "display_frames": 200
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "8be9b1af311770a2ac1440072b8fb9b519822c345f5662942b56bf4000d84081",
+  "results": {
+    "clip_hurt_matches_baked_fal_audio": true,
+    "clip_fall_matches_baked_fal_audio": true,
+    "clip_jump_matches_baked_fal_audio": true,
+    "clip_wall_matches_baked_fal_audio": true,
+    "clip_crush_matches_baked_fal_audio": true,
+    "clip_last_item_matches_baked_fal_audio": true,
+    "clip_return_matches_baked_fal_audio": true,
+    "clip_family_matches_baked_fal_audio": true,
+    "real_fall_triggers_fall_voice": true,
+    "native_voice_runs_at_expected_rate": true,
+    "speech_does_not_pause_gameplay": true,
+    "music_sequence_continues": true,
+    "speech_finishes_and_restores_music_channel": true
+  },
+  "speech_bytes": 96432,
+  "voice_active_frames": 148,
+  "game_frames": 200,
+  "display_frames": 201
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "native_pose_samples": 128,
+  "results": {
+    "seated_layers_and_folded_legs_present": true,
+    "seated_breathing_preserved": true
+  },
+  "failures": []
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "results": {
+    "real_ingredients_picked": true,
+    "bag_has_native_item_icons": true,
+    "combination_scene_plays": true,
+    "craft_consumes_exactly_two_units": true,
+    "bench_closes_and_restores_hud": true,
+    "bench_restores_meter_tiles_and_palettes": true
+  },
+  "scene_frames": 50,
+  "icons": [
+    115,
+    113
+  ],
+  "log": []
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "results": {
+    "real_ingredient_collected": true,
+    "crate_moved_by_normal_push": true,
+    "starting_floor_present": true,
+    "camera_travel_exposes_east": true,
+    "floor_arrives_to_east": true,
+    "floor_behind_camera_collapses": true,
+    "travel_preserves_puzzle_board": true,
+    "camera_returns_west": true,
+    "old_floor_reassembles": true,
+    "east_floor_collapses_on_return": true,
+    "collected_item_does_not_respawn": true,
+    "board_mutations_survive_backtracking": true,
+    "moved_crate_stays_moved": true,
+    "real_diagonal_travel_and_reversal": true,
+    "real_directional_evade_used": true,
+    "fast_reversal_keeps_mutations": true,
+    "floor_under_feet_stays_present": true,
+    "complete_body_retained": true,
+    "sprite_line_budget": true,
+    "floor_stack_canary": true,
+    "movement_frames_120_per_120": true
+  },
+  "frames": 1163,
+  "minimum_game_frames_per_120": 120,
+  "oam_max": 8,
+  "missing_floor": [],
+  "missing_body": [],
+  "log": []
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "8be9b1af311770a2ac1440072b8fb9b519822c345f5662942b56bf4000d84081",
+  "results": {
+    "real_ingredient_collected": true,
+    "crate_moved_by_normal_push": true,
+    "starting_floor_present": true,
+    "camera_travel_exposes_east": true,
+    "floor_arrives_to_east": true,
+    "floor_behind_camera_collapses": true,
+    "travel_preserves_puzzle_board": true,
+    "camera_returns_west": true,
+    "old_floor_reassembles": true,
+    "east_floor_collapses_on_return": true,
+    "collected_item_does_not_respawn": true,
+    "board_mutations_survive_backtracking": true,
+    "moved_crate_stays_moved": true,
+    "real_diagonal_travel_and_reversal": true,
+    "real_directional_evade_used": true,
+    "fast_reversal_keeps_mutations": true,
+    "floor_under_feet_stays_present": true,
+    "complete_body_retained": true,
+    "sprite_line_budget": true,
+    "floor_stack_canary": true,
+    "movement_frames_120_per_120": true
+  },
+  "frames": 1163,
+  "minimum_game_frames_per_120": 120,
+  "oam_max": 8,
+  "missing_floor": [],
+  "missing_body": [],
+  "log": []
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+ok   rtc_host: the RTC build boots to the title
+ok   rtc_host: HOST CLOCK set 2026-10-15 17:00 UTC (UTC-5), RTC anchored and ticking: {'days': 9784, 'minute': 1020, 'sec': 2, 'secs': 845398802, 'off_q': -20, 'quality': 2, 'known': 1, 'drift': 0, 'rtc': 2}
+ok   rtc_host: the RTC block is written, the host block consumed: {'flags': 5, 'base': 845323864, 'folds': 0}
+ok   rtc_off: boots
+ok   rtc_off: 3 days 2 hours off reads 2026-10-18 19:00 UTC (+ boot time): {'days': 9787, 'minute': 1140, 'sec': 6, 'secs': 845665206, 'off_q': -20, 'quality': 2, 'known': 1, 'drift': 0, 'rtc': 2}
+ok   rtc_carry: boots
+ok   rtc_carry: 520 more days reads 2028-03-21 (day 10307): {'days': 10307, 'minute': 1140, 'sec': 10, 'secs': 890593210, 'off_q': -20, 'quality': 2, 'known': 1, 'drift': 0, 'rtc': 2}
+ok   rtc_carry: 512 days folded into the block, FOLDING clear, the chip's carry cleared: {'flags': 5, 'base': 889560664, 'folds': 1}, carry 0
+ok   rtc_no_chip: MBC3 without a timer boots
+ok   rtc_no_chip: the set-once fallback resumes the kept clock, stale, no prompt on the 1st power-on since the last good time: {'days': 9787, 'minute': 1140, 'sec': 8, 'secs': 845665208, 'off_q': -20, 'quality': 0, 'known': 1, 'drift': 0, 'rtc': 3}
+ok   rtc_open_bus: boots
+ok   rtc_open_bus: RTC reads of 0xFF fall back to the set-once clock: {'days': 9787, 'minute': 1140, 'sec': 8, 'secs': 845665208, 'off_q': -20, 'quality': 0, 'known': 1, 'drift': 0, 'rtc': 3}
+ok   rtc_reset: boots
+ok   rtc_reset: a chip reading earlier than the kept clock is not trusted: {'days': 9787, 'minute': 1140, 'sec': 8, 'secs': 845665208, 'off_q': -20, 'quality': 0, 'known': 1, 'drift': 0, 'rtc': 3}
+ok   set_once: the MBC5 build boots to the title
+ok   set_once: HOST CLOCK set: {'days': 9784, 'minute': 1020, 'sec': 2, 'secs': 845398802, 'off_q': -20, 'quality': 2, 'known': 1, 'drift': 0, 'rtc': 0}
+ok   set_once: boots again
+ok   set_once: after a power-off it resumes where it stopped (stale, no prompt on the 1st power-on): {'days': 9784, 'minute': 1020, 'sec': 2, 'secs': 845398802, 'off_q': -20, 'quality': 0, 'known': 1, 'drift': 0, 'rtc': 0}, kept {'flags': 7, 'boots': 0, 'seq': 1, 'days': 9784, 'minute': 1020, 'sec': 0}
+ok   set_once: boots a 3rd time
+ok   set_once: the 2nd power-on after the set shows the gentle prompt: {'days': 9784, 'minute': 1020, 'sec': 2, 'secs': 845398802, 'off_q': -20, 'quality': 0, 'known': 1, 'drift': 1, 'rtc': 0}
+ok   set_once: SELECT opens SETUP
+ok   set_once: back to the title
+ok   set_once: SETUP > CLOCK set it an hour on; no prompt: {'days': 9784, 'minute': 1080, 'sec': 1, 'secs': 845402401, 'off_q': -20, 'quality': 1, 'known': 1, 'drift': 0, 'rtc': 0}
+ok   first_ask: blank save boots
+ok   first_ask: PRESS START opens the lobby
+ok   first_ask: NEW RUN asks WHAT IS TODAY?
+ok   first_ask: A keeps the clock and opens heir selection
+ok   first_ask: selected heir enters the run
+ok   first_ask: the kept clock is known and asked: {'flags': 3, 'boots': 0, 'seq': 1, 'days': 9497, 'minute': 480, 'sec': 0}
+ok   move_5_to_3: the MBC5 save boots on the RTC build
+ok   move_5_to_3: the kept clock carries over, stale, until it is set: {'days': 9784, 'minute': 1020, 'sec': 2, 'secs': 845398802, 'off_q': -20, 'quality': 0, 'known': 1, 'drift': 0, 'rtc': 1}
+ok   move_5_to_3: once set, the RTC is anchored and read the next boot: {'days': 9789, 'minute': 870, 'sec': 7, 'secs': 845821807, 'off_q': -20, 'quality': 2, 'known': 1, 'drift': 0, 'rtc': 2}
+ok   move_3_to_5: the RTC save boots on the MBC5 build
+ok   move_3_to_5: the kept clock carries over, stale: {'days': 9787, 'minute': 1140, 'sec': 8, 'secs': 845665208, 'off_q': -20, 'quality': 0, 'known': 1, 'drift': 0, 'rtc': 0}
+ok   move_3_to_5: the RTC block and the meta records are left alone
+0 failures
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "results": {
+    "real_wave_mobs_present": true,
+    "both_action_buttons_used": true,
+    "actual_player_kills": true,
+    "sprite_line_budget": true,
+    "combat_and_travel_120_per_120": true,
+    "floor_under_feet_stays_present": true,
+    "complete_body_retained": true,
+    "floor_stack_canary": true,
+    "native_allocator_matches_reference": true,
+    "native_map_and_attributes_match": true
+  },
+  "frames": 3714,
+  "minimum_game_frames_per_120": 120,
+  "oam_max": 10,
+  "max_enemies": 2,
+  "allocator": {
+    "calls": {
+      "groups": 14936,
+      "size_1": 5540,
+      "off_y": 2316,
+      "size_2": 9396,
+      "full": 12361,
+      "left_clip": 252,
+      "refused": 324,
+      "right_clip": 7,
+      "off_x": 16
+    },
+    "mismatches": [],
+    "all_allocations_match": true
+  },
+  "grid": {
+    "native_quads": 1380,
+    "distinct_cells": 159,
+    "attributes": [
+      0,
+      3,
+      8,
+      9,
+      10,
+      11,
+      13,
+      35
+    ],
+    "max_masked_cycles": 964,
+    "all_map_and_attributes_match": true
+  },
+  "moves": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    8,
+    11,
+    12
+  ],
+  "missing_floor": [],
+  "missing_body": [],
+  "log": []
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "cases": [
+    {
+      "seed": 24300,
+      "approach": "crates",
+      "results": {
+        "native_generator_matches_all_320_bytes": true,
+        "solved_by_real_input": true,
+        "independent_portal_and_gate": true,
+        "portal_arrival_does_not_rebound": true,
+        "floor_under_feet_present": true,
+        "native_bg_reference": true,
+        "native_item_uploads": true,
+        "sprite_line_budget": true,
+        "active_frames_120_per_120": true,
+        "stack_canary": true,
+        "backtracking_keeps_objects_and_inventory": true
+      },
+      "plan": "RRRRRULLLDLUULUUUUURUURURULDLULUURUPaUUUU",
+      "warps": 3,
+      "missing_floor": [],
+      "minimum_game_frames_per_120": 120,
+      "hitches": [
+        [
+          2134,
+          0,
+          0,
+          4,
+          0
+        ],
+        [
+          2135,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2136,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2137,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2138,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2139,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2140,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2141,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2142,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2146,
+          0,
+          1,
+          4,
+          0
+        ],
+        [
+          2147,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2148,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2246,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2247,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2248,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2249,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2250,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2251,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2252,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2253,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2254,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2364,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2367,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2370,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2373,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2376,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2379,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2382,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2385,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2387,
+          0,
+          0,
+          0,
+          5
+        ]
+      ],
+      "oam_max": 10,
+      "items": {
+        "uploads": 66,
+        "pieces": [
+          1,
+          2,
+          3,
+          8
+        ],
+        "poses": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "mapped_destination_and_pixels_match": true
+      },
+      "grid": {
+        "native_quads": 1050,
+        "distinct_cells": 173,
+        "attributes": [
+          0,
+          2,
+          3,
+          4,
+          8,
+          10,
+          11,
+          13,
+          14,
+          35
+        ],
+        "max_masked_cycles": 964,
+        "all_map_and_attributes_match": true
+      }
+    },
+    {
+      "seed": 24268,
+      "approach": "tools",
+      "results": {
+        "native_generator_matches_all_320_bytes": true,
+        "solved_by_real_input": true,
+        "independent_portal_and_gate": true,
+        "portal_arrival_does_not_rebound": true,
+        "floor_under_feet_present": true,
+        "native_bg_reference": true,
+        "native_item_uploads": true,
+        "sprite_line_budget": true,
+        "active_frames_120_per_120": true,
+        "stack_canary": true,
+        "backtracking_keeps_objects_and_inventory": true
+      },
+      "plan": "ULLLDLRRRLLLLRUULURUUUURUUUUCahPkULUURUPaUUUU",
+      "warps": 3,
+      "missing_floor": [],
+      "minimum_game_frames_per_120": 120,
+      "hitches": [
+        [
+          1878,
+          0,
+          0,
+          4,
+          0
+        ],
+        [
+          1879,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          1880,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          1881,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          1882,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          1883,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          1884,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          1885,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          1886,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          1890,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1891,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1892,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1893,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1894,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1907,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1908,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1909,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1910,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1911,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1924,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1925,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1926,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1927,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1928,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1941,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1942,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1943,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1944,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1945,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1958,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1959,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1960,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1961,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1962,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1975,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1976,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1977,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1978,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1979,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1980,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1992,
+          0,
+          1,
+          3,
+          0
+        ],
+        [
+          2001,
+          0,
+          3,
+          3,
+          0
+        ],
+        [
+          2010,
+          0,
+          3,
+          3,
+          0
+        ],
+        [
+          2019,
+          0,
+          3,
+          3,
+          0
+        ],
+        [
+          2038,
+          0,
+          3,
+          3,
+          0
+        ],
+        [
+          2039,
+          0,
+          3,
+          3,
+          0
+        ],
+        [
+          2040,
+          0,
+          3,
+          3,
+          0
+        ],
+        [
+          2041,
+          0,
+          3,
+          3,
+          0
+        ],
+        [
+          2042,
+          0,
+          3,
+          3,
+          0
+        ],
+        [
+          2044,
+          0,
+          1,
+          4,
+          0
+        ],
+        [
+          2045,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2046,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2047,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2085,
+          0,
+          0,
+          4,
+          0
+        ],
+        [
+          2086,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2087,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2088,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2089,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2090,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2091,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2092,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2093,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2097,
+          0,
+          1,
+          4,
+          0
+        ],
+        [
+          2098,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2099,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2290,
+          0,
+          0,
+          4,
+          0
+        ],
+        [
+          2291,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2292,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2293,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2294,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2295,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2296,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2297,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2298,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2302,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          2303,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          2304,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          2305,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          2306,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          2319,
+          0,
+          1,
+          4,
+          0
+        ],
+        [
+          2320,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2321,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2322,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2421,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2422,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2423,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2424,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2425,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2426,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2427,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2428,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2429,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2539,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2542,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2545,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2548,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2551,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2554,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2557,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2560,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2562,
+          0,
+          0,
+          0,
+          5
+        ]
+      ],
+      "oam_max": 10,
+      "items": {
+        "uploads": 102,
+        "pieces": [
+          1,
+          2,
+          3,
+          8
+        ],
+        "poses": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "mapped_destination_and_pixels_match": true
+      },
+      "grid": {
+        "native_quads": 1288,
+        "distinct_cells": 192,
+        "attributes": [
+          0,
+          2,
+          3,
+          4,
+          8,
+          10,
+          11,
+          13,
+          14,
+          35
+        ],
+        "max_masked_cycles": 964,
+        "all_map_and_attributes_match": true
+      }
+    }
+  ],
+  "wrong_spend_shows_reset_and_restores_entry": true
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "8be9b1af311770a2ac1440072b8fb9b519822c345f5662942b56bf4000d84081",
+  "results": {
+    "real_wave_mobs_present": true,
+    "both_action_buttons_used": true,
+    "actual_player_kills": true,
+    "sprite_line_budget": true,
+    "combat_and_travel_120_per_120": true,
+    "floor_under_feet_stays_present": true,
+    "complete_body_retained": true,
+    "floor_stack_canary": true,
+    "native_allocator_matches_reference": true,
+    "native_map_and_attributes_match": true
+  },
+  "frames": 3729,
+  "minimum_game_frames_per_120": 120,
+  "oam_max": 10,
+  "max_enemies": 2,
+  "allocator": {
+    "calls": {
+      "groups": 14947,
+      "size_1": 5551,
+      "off_y": 2337,
+      "size_2": 9396,
+      "full": 12331,
+      "left_clip": 271,
+      "refused": 322,
+      "right_clip": 8,
+      "off_x": 34
+    },
+    "mismatches": [],
+    "all_allocations_match": true
+  },
+  "grid": {
+    "native_quads": 1405,
+    "distinct_cells": 160,
+    "attributes": [
+      0,
+      3,
+      8,
+      9,
+      10,
+      11,
+      13,
+      35
+    ],
+    "max_masked_cycles": 964,
+    "all_map_and_attributes_match": true
+  },
+  "moves": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    8,
+    11,
+    12
+  ],
+  "missing_floor": [],
+  "missing_body": [],
+  "log": []
+}
+{
+  "sha256": "8be9b1af311770a2ac1440072b8fb9b519822c345f5662942b56bf4000d84081",
+  "cases": [
+    {
+      "seed": 24300,
+      "approach": "crates",
+      "results": {
+        "native_generator_matches_all_320_bytes": true,
+        "solved_by_real_input": true,
+        "independent_portal_and_gate": true,
+        "portal_arrival_does_not_rebound": true,
+        "floor_under_feet_present": true,
+        "native_bg_reference": true,
+        "native_item_uploads": true,
+        "sprite_line_budget": true,
+        "active_frames_120_per_120": true,
+        "stack_canary": true,
+        "backtracking_keeps_objects_and_inventory": true
+      },
+      "plan": "RRRRRULLLDLUULUUUUURUURURULDLULUURUPaUUUU",
+      "warps": 3,
+      "missing_floor": [],
+      "minimum_game_frames_per_120": 120,
+      "hitches": [
+        [
+          2134,
+          0,
+          0,
+          4,
+          0
+        ],
+        [
+          2135,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2136,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2137,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2138,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2139,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2140,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2141,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2142,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2146,
+          0,
+          1,
+          4,
+          0
+        ],
+        [
+          2147,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2148,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2149,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2247,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2248,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2249,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2250,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2251,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2252,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2253,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2254,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2255,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2365,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2368,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2371,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2374,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2377,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2380,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2383,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2386,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2388,
+          0,
+          0,
+          0,
+          5
+        ]
+      ],
+      "oam_max": 8,
+      "items": {
+        "uploads": 66,
+        "pieces": [
+          1,
+          2,
+          3,
+          8
+        ],
+        "poses": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "mapped_destination_and_pixels_match": true
+      },
+      "grid": {
+        "native_quads": 1054,
+        "distinct_cells": 173,
+        "attributes": [
+          0,
+          2,
+          3,
+          4,
+          8,
+          10,
+          11,
+          13,
+          14,
+          35
+        ],
+        "max_masked_cycles": 964,
+        "all_map_and_attributes_match": true
+      }
+    },
+    {
+      "seed": 24268,
+      "approach": "tools",
+      "results": {
+        "native_generator_matches_all_320_bytes": true,
+        "solved_by_real_input": true,
+        "independent_portal_and_gate": true,
+        "portal_arrival_does_not_rebound": true,
+        "floor_under_feet_present": true,
+        "native_bg_reference": true,
+        "native_item_uploads": true,
+        "sprite_line_budget": true,
+        "active_frames_120_per_120": true,
+        "stack_canary": true,
+        "backtracking_keeps_objects_and_inventory": true
+      },
+      "plan": "ULLLDLRRRLLLLRUULURUUUURUUUUCahPkULUURUPaUUUU",
+      "warps": 3,
+      "missing_floor": [],
+      "minimum_game_frames_per_120": 120,
+      "hitches": [
+        [
+          1877,
+          0,
+          0,
+          4,
+          0
+        ],
+        [
+          1878,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          1879,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          1880,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          1881,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          1882,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          1883,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          1884,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          1885,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          1889,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1890,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1891,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1892,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1893,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1894,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1906,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1907,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1908,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1909,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1910,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1923,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1924,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1925,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1926,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1927,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1940,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1941,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1942,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1943,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1944,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1957,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1958,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1959,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1960,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1961,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1974,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1975,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1976,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1977,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1978,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1979,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1991,
+          0,
+          1,
+          3,
+          0
+        ],
+        [
+          2000,
+          0,
+          3,
+          3,
+          0
+        ],
+        [
+          2009,
+          0,
+          3,
+          3,
+          0
+        ],
+        [
+          2018,
+          0,
+          3,
+          3,
+          0
+        ],
+        [
+          2037,
+          0,
+          3,
+          3,
+          0
+        ],
+        [
+          2038,
+          0,
+          3,
+          3,
+          0
+        ],
+        [
+          2039,
+          0,
+          3,
+          3,
+          0
+        ],
+        [
+          2040,
+          0,
+          3,
+          3,
+          0
+        ],
+        [
+          2041,
+          0,
+          3,
+          3,
+          0
+        ],
+        [
+          2043,
+          0,
+          1,
+          4,
+          0
+        ],
+        [
+          2044,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2045,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2046,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2084,
+          0,
+          0,
+          4,
+          0
+        ],
+        [
+          2085,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2086,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2087,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2088,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2089,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2090,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2091,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2092,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2096,
+          0,
+          1,
+          4,
+          0
+        ],
+        [
+          2097,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2098,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2099,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2290,
+          0,
+          0,
+          4,
+          0
+        ],
+        [
+          2291,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2292,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2293,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2294,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2295,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2296,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2297,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2298,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2302,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          2303,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          2304,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          2305,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          2306,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          2319,
+          0,
+          1,
+          4,
+          0
+        ],
+        [
+          2320,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2321,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2322,
+          0,
+          4,
+          4,
+          0
+        ],
+        [
+          2421,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2422,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2423,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2424,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2425,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2426,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2427,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2428,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2429,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2539,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2542,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2545,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2548,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2551,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2554,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2557,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2560,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          2562,
+          0,
+          0,
+          0,
+          5
+        ]
+      ],
+      "oam_max": 9,
+      "items": {
+        "uploads": 102,
+        "pieces": [
+          1,
+          2,
+          3,
+          8
+        ],
+        "poses": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "mapped_destination_and_pixels_match": true
+      },
+      "grid": {
+        "native_quads": 1303,
+        "distinct_cells": 193,
+        "attributes": [
+          0,
+          2,
+          3,
+          4,
+          8,
+          10,
+          11,
+          13,
+          14,
+          35
+        ],
+        "max_masked_cycles": 964,
+        "all_map_and_attributes_match": true
+      }
+    }
+  ],
+  "wrong_spend_shows_reset_and_restores_entry": true
+}
+mock room: states 482274 live 329242 dead 153032 (31.7%) fatal tick 7 rescue 140 passive 324910 plan .UURULL.........RDRRRRUU (24 ticks, 0 hits)
+test_obst: all passed
+baked seeds: 768 checked, mean plan 70 moves
+  foam: mean 8.1% max 17.8% of the interior; objects (everything but carpet, foam, concrete): mean 20.2 per room
+  fragile floor in 673 rooms (glass 242, glitched glass 172); dead-end share mean 0.6%; a fatal mistake possible after 12.7 acts on average (115 rooms)
+  tier 0: burn 15 cold 18 short 20 weight 18 glass 14 rhythm 20, mean difficulty 44
+  tier 1: burn 18 cold 19 short 19 weight 21 glass 18 rhythm 14, mean difficulty 56
+  tier 2: burn 14 cold 21 short 22 weight 19 glass 14 rhythm 16, mean difficulty 83
+  tier 3: burn 12 cold 21 short 22 weight 19 glass 21 rhythm 12, mean difficulty 88
+  tier 4: burn 13 cold 27 short 21 weight 26 glass 10 rhythm 7, mean difficulty 111
+  tier 5: burn 17 cold 18 short 24 weight 24 glass 21 rhythm 11, mean difficulty 114
+10724 checks, 0 failures
+== B1 slice (the cartridge: nine office floors over the baked table) ==
+1000 runs, 8203 rooms (318 runs ended in a death)
+stages: introduce 1375 develop 2332 combine 1790 test 2706
+introduce -> combine ordering: 0 violations (100.0% clean)
+introductions alone: 1375 of 1375
+same trick at the same level back to back: 0
+floor:             1     2     3     4     5     6     7     8     9
+mixed share:     20%   22%   75%   32%   36%   86%   44%   47%   85%
+mean target:    3.66  3.25  7.50  4.70  5.50  9.51  6.14  7.48 12.47
+mean level:     3.35  3.24  7.31  4.43  5.08  9.25  5.75  6.08 10.56
+== full run (3.6): 1160 layouts (1000 story runs over lines of 25, plus descent strata), 37682 slots ==
+floors per front-door run: 50..55, mean 52.3
+structure breaks 0; band breaks 0; introduce -> develop -> combine ordering breaks 0
+introductions 4495, not alone/gentle 0; develop not right after its introduction 0
+back to back: same mechanics at the same level 0, same stage type 0, two rare stages 0
+nudge under its floor or past its cap 0; descent slots that don't mix 0
+introductions by biome position (slots reached):     80    91   108   110   109   105   113    84
+fresh line, whole layout: every position introduces (of 40): 80 80 82 83 83 83 85 80
+  mechanics a fresh line would not meet even going all the way: 3.60 of 20
+progressive lines: introduced in its own biome 66.5%, one later 29.0%, two later 4.5%, later 0.0%
+mixed share by biome position:    54%   55%   52%   48%   43%   40%   78%   86%  (late biomes 78%)
+stage types: puzzle 54.4% holdout 9.1% chase 7.3% hunt 6.4% escort 4.0% mixp 6.8% dark 4.1% heist 2.2% 3d 3.0% rift 1.7% sky 1.1%
+full run: ok
+full runs 1000: stage slots 34400, back to back same type 0, same type two apart 1.7%
+  shares: puzzle 66.6% holdout 7.1% chase 6.2% hunt 4.4% escort 3.4% mixp 5.7% dark 2.3% heist 1.1% 3d 2.2% rift 1.0% sky 0.0%
+cart runs 1000: stage slots 8000, back to back same type 0, same type two apart 0.3%
+  types: puzzle 59.6% holdout 19.2% chase 6.8% hunt 6.6% escort 6.8% mixp 0.5% dark 0.5% heist 0.0%
+stages generated 19684: made 19684 (failed 0), in the band 98.8%
+  holdout  failed    0 n   3804  band  99.7%  mean |score-level| 0.60  budget 15.2  conds 1.00
+  chase    failed    0 n   2802  band  96.6%  mean |score-level| 0.76  budget 2.8  conds 1.00
+  hunt     failed    0 n   3680  band  99.2%  mean |score-level| 0.57  budget 10.5  conds 1.63
+  escort   failed    0 n   2752  band 100.0%  mean |score-level| 0.62  budget 14.8  conds 1.00
+  mixp     failed    0 n   2300  band  96.0%  mean |score-level| 0.70  budget 14.4  conds 2.22
+  dark     failed    0 n   2218  band  99.8%  mean |score-level| 0.67  budget 2.6  conds 1.70
+  heist    failed    0 n   2128  band 100.0%  mean |score-level| 0.62  budget 13.7  conds 1.00
+chase played out on the grid at 16 frames a cell: 2802 stages, 0 lost, least spare start delay 80 frames
+climb: mean level by segment 5.11 6.91 7.08, mean stage score 5.09 6.68 6.96
+  by generation: 4.89 4.89 5.73 5.73 6.54 6.56 7.39 7.39 8.21
+stage sim: ok
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "chunks_banked": true,
+  "title_loops": [
+    {
+      "loop": 0,
+      "frames": 600,
+      "checked": 25,
+      "tiles_differ": 0,
+      "fps": 30.0,
+      "variant": 0,
+      "flips_missed": 0,
+      "flip_line_max": 145
+    },
+    {
+      "loop": 1,
+      "frames": 600,
+      "checked": 25,
+      "tiles_differ": 0,
+      "fps": 30.0,
+      "variant": 1,
+      "flips_missed": 0,
+      "flip_line_max": 145
+    },
+    {
+      "loop": 2,
+      "frames": 600,
+      "checked": 25,
+      "tiles_differ": 0,
+      "fps": 30.0,
+      "variant": 2,
+      "flips_missed": 0,
+      "flip_line_max": 145
+    }
+  ],
+  "ok": true
+}
+ROM GATE: bank 115 ends at 1900544 bytes, past the 1900000-byte gate
+ROM GATE: data at 0x0f0005 (bank 60) lies past the cut
+ROM GATE: the link declares cartridge type 0x1b, expected 0x10 (mbc3)
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+/var/folders/zk/40xbztxx7tb90tl4nnryd2780000gn/T/tmpapvrin6d/a.out: mbc5 0x1b, 65536 bytes (4 banks), gate 1900000, headroom 1834464, header 0x2b, global 0x7697
+ok   a 4-bank link is trimmed to 65,536 bytes
+ok   the header keeps the 2 MiB size code
+ok   header and global checksums verify on the trimmed file
+ok   the title is written
+ok   a link into bank 115 fails the gate
+/var/folders/zk/40xbztxx7tb90tl4nnryd2780000gn/T/tmpapvrin6d/c.out: mbc5 0x1b, 1884160 bytes (115 banks), gate 1900000, headroom 15840, header 0x2b, global 0x087f
+ok   115 banks (1,884,160 bytes) pass
+ok   a stray byte past the cut fails
+ok   an MBC5 link finished as MBC3 fails
+/var/folders/zk/40xbztxx7tb90tl4nnryd2780000gn/T/tmpapvrin6d/f.out: mbc3 0x10, 65536 bytes (4 banks), gate 1900000, headroom 1834464, header 0x36, global 0x7697
+ok   an MBC3 link finishes as 0x10, checksums verify
+ok   build/egress.gbc is 1196032 bytes, whole banks, under the gate
+ok   build/egress.gbc header and global checksums verify
+ok   build/egress.gbc cartridge type 0x1b (want 0x1b), 2 MiB declared, 8 KiB SRAM
+ok   build/egress.gbc boots in PyBoy to the title
+0 failures
+ROM GATE: bank 115 ends at 1900544 bytes, past the 1900000-byte gate
+ROM GATE: data at 0x0f0005 (bank 60) lies past the cut
+ROM GATE: the link declares cartridge type 0x1b, expected 0x10 (mbc3)
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+/var/folders/zk/40xbztxx7tb90tl4nnryd2780000gn/T/tmptn8sn5oe/a.out: mbc5 0x1b, 65536 bytes (4 banks), gate 1900000, headroom 1834464, header 0x2b, global 0x7697
+ok   a 4-bank link is trimmed to 65,536 bytes
+ok   the header keeps the 2 MiB size code
+ok   header and global checksums verify on the trimmed file
+ok   the title is written
+ok   a link into bank 115 fails the gate
+/var/folders/zk/40xbztxx7tb90tl4nnryd2780000gn/T/tmptn8sn5oe/c.out: mbc5 0x1b, 1884160 bytes (115 banks), gate 1900000, headroom 15840, header 0x2b, global 0x087f
+ok   115 banks (1,884,160 bytes) pass
+ok   a stray byte past the cut fails
+ok   an MBC5 link finished as MBC3 fails
+/var/folders/zk/40xbztxx7tb90tl4nnryd2780000gn/T/tmptn8sn5oe/f.out: mbc3 0x10, 65536 bytes (4 banks), gate 1900000, headroom 1834464, header 0x36, global 0x7697
+ok   an MBC3 link finishes as 0x10, checksums verify
+ok   build/egress-rtc.gbc is 1196032 bytes, whole banks, under the gate
+ok   build/egress-rtc.gbc header and global checksums verify
+ok   build/egress-rtc.gbc cartridge type 0x10 (want 0x10), 2 MiB declared, 8 KiB SRAM
+ok   build/egress-rtc.gbc boots in PyBoy to the title
+0 failures

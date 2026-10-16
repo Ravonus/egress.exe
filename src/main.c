@@ -6,6 +6,15 @@
 #include "gen/art.h"
 #include "clock.h"
 #include "tutorial.h"
+#include "core/eg_window.h"
+#include "core/eg_stage.h"
+
+/* First module's data keeps the stream packet in fixed WRAM. The linker gate
+ * checks this: cache leaves must not read their packet from a switched bank. */
+uint8_t eg_window_packet[9];
+uint8_t world_mask_packet[9],world_pre_x[9],world_pre_y[9];
+eg_stage_scratch eg_stage_work;
+uint8_t room_origin_x,room_origin_y,bg_origin_x,bg_origin_y,room_width,room_height;
 
 uint8_t game_mode;
 uint16_t run_seed;
@@ -17,8 +26,12 @@ uint8_t floor_tier;
 eg_room __at(0xD800) room;
 typedef char eg_room_fits_floor_wram[(sizeof(eg_room) <= 0x140u) ? 1 : -1];
 uint16_t frame_count;
+volatile uint8_t video_epoch;
+uint8_t frame_epoch;
 uint8_t joy, joy_prev, joy_pressed;
 uint8_t dbg_god, dbg_no_enemies, dbg_floor;
+/* Pre-start native scenario selectors: zero follows the campaign. */
+uint8_t dbg_world_rule,dbg_world_size,dbg_world_biome;
 uint16_t dbg_seed;
 uint16_t dbg_fseed; /* B1 */
 uint8_t dbg_ftier;
@@ -26,6 +39,7 @@ uint8_t hud_line = 144u;
 uint16_t pal_bg[32], pal_sp[32];
 uint8_t pal_dirty;
 const int8_t fdx[4] = {0, 0, -1, 1}, fdy[4] = {-1, 1, 0, 0}; /* play.h: here, not in banked grid.c, so any bank reads them */
+const uint8_t look_bits[8]={1u,2u,4u,8u,16u,32u,64u,128u};
 
 void input_poll(void) {
   joy_prev = joy;
@@ -39,14 +53,19 @@ static void lcd_isr(void) NONBANKED {
   if (hud_line < 144u && LYC_REG == hud_line) LCDC_REG &= (uint8_t)~LCDCF_OBJON;
 }
 static void vbl_isr(void) NONBANKED {
+  video_epoch++;
   LCDC_REG |= LCDCF_OBJON;
   LYC_REG = hud_line;
 }
 
 void frame_wait(void) {
+  /* Publish only a complete actor/card list. A slow frame keeps the previous
+   * hardware OAM instead of DMA copying a half-written body or stale cards. */
+  ENABLE_OAM_DMA;
   vsync();
+  frame_epoch=video_epoch;
   frame_count++;
-  if (!((uint8_t)frame_count & 63u)) clock_poll(); /* the clock counts VBlanks; any gap up to 18 minutes is exact */
+  if (((uint8_t)frame_count & 63u)==32u) clock_poll(); /* stagger with narration; elapsed VBlanks remain exact */
 }
 
 static uint16_t scale(uint16_t c, uint8_t level) {

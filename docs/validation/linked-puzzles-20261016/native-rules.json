@@ -1,0 +1,10 @@
+{
+  "rom": "build/link-check/links.gbc",
+  "sha256": "a58cef5bcb138a02fa6f8f5b5388ef67b7e3765b9cb45ff706adcb184ca19649",
+  "states": 512,
+  "bytes_per_state": 376,
+  "frames": 580,
+  "portable_trace_sha256": "96609624afbfb965530f9c276ffd974835988ce1839b7cc2150ab4e163ae53ad",
+  "all_state_bytes_match": true,
+  "bank_one_and_stack_canary": true
+}

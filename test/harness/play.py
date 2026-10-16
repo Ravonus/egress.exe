@@ -213,11 +213,17 @@ def step(g: Game, mv: str, log: list[str]) -> bool:
     else:
         align(g, cx, cy, "y" if dx else "x")
     floor0 = g.peek("floor_no")
+    portal_exit=None
+    if g.peek('room',319)&128:
+        ports=[g.peek('room',317),g.peek('room',318)]
+        if target in ports:portal_exit=ports[1-ports.index(target)]
     for _ in range(240):
         x, y = g.player()
         if g.peek("floor_no") != floor0 or g.peek("game_mode") != MODE_PLAY:
             g.hold(set())
             return True
+        if portal_exit is not None and (y//16)*16+x//16==portal_exit:
+            g.hold(set());g.tick(1);return True
         if (dx and abs(x - tx) <= 1) or (dy and abs(y - ty) <= 1):
             g.hold(set())
             g.tick(1)
@@ -263,10 +269,12 @@ def bench_cursor(g: Game, slot: int) -> None:
         g.tick(12)
 
 
-def bench_act(g: Game, act: str, log: list[str], shot: Path | None = None) -> bool:
+def bench_act(g: Game, act: str, log: list[str], shot: Path | None = None, *, prepare_use=None) -> bool:
     """drives the cartridge's bench: 'C' a b makes a recipe, 'P' a D uses piece a on the cell in direction D"""
     a = ord(act[1]) - ord("a") + 1
-    if act[0] == "P":  # face the cell first (a one-frame tap turns without leaving the cell)
+    if act[0] == "P" and prepare_use is not None:
+        prepare_use(act[2])
+    elif act[0] == "P":  # face the cell first (a one-frame tap turns without leaving the cell)
         want = "UDLR".index(act[2])  # F_UP F_DOWN F_LEFT F_RIGHT
         x, y = g.player()
         cx, cy = cell_center((y // 16) * EG_W + x // 16)

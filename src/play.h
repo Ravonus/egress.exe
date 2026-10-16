@@ -39,8 +39,13 @@ extern int8_t __at(0xDB9A) pl_z; /* presentation height; the logical position st
 extern uint8_t __at(0xDB9B) pl_air;
 /* the floor */
 extern uint8_t tokens, keys_held, door_open, board_busy, cam_x, cam_y, enemies_alive;
+extern uint8_t room_origin_x,room_origin_y,room_width,room_height,bg_origin_x,bg_origin_y;
+#define BG_SCROLL_X(x) ((uint8_t)((x)+(bg_origin_x<<3)))
+#define BG_SCROLL_Y(y) ((uint8_t)((y)+(bg_origin_y<<3)))
 extern uint8_t freeze, shake, hud_dirty, grav_t, boss_floor;
 extern uint8_t cracked[EG_N / 8u];
+void grid_shift_view(int8_t dx,int8_t dy) BANKED;
+void player_shift_view(int8_t dx,int8_t dy) BANKED;
 extern enemy_t en[MAXE];
 extern uint8_t nen;
 extern orb_t orbs[MAXO];

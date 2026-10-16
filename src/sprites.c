@@ -13,6 +13,8 @@
 #include "oam.h"
 #include "mob.h"
 #include "obstacle.h"
+#include "stage.h"
+#include "world.h"
 #include "core/eg_move.h"
 #include "gen/diag_arc.inc"
 extern eg_mover_t pmv;
@@ -22,6 +24,34 @@ static uint8_t oam_last, was_busy;
 static uint8_t band[OAM_BANDS + 2u];
 static OAM_item_t *emit_dst;
 static uint8_t emit_x, emit_y, emit_tile, emit_step, emit_prop, emit_n;
+
+/* The allocator owns a contiguous range. Clear its stale tail once, with a
+ * four-byte stride, rather than recomputing an OAM pointer for every entry. */
+static void hide_range(uint8_t from,uint8_t end) NONBANKED NAKED {
+  from;end;
+  __asm
+    ld c,a
+    ld a,e
+    sub a,c
+    ret z
+    ret c
+    ld b,a
+    ld a,c
+    add a,a
+    add a,a
+    add a,#<_shadow_OAM
+    ld l,a
+    ld h,#>_shadow_OAM
+  1$:
+    ld (hl),#0
+    ld a,l
+    add a,#4
+    ld l,a
+    dec b
+    jr nz,1$
+    ret
+  __endasm;
+}
 
 /* A visible group is already clipped and budgeted. Keep its four-byte writes
  * in registers: SDCC otherwise spills every member and pointer to the stack. */
@@ -62,7 +92,7 @@ static void emit_group(void) NONBANKED NAKED {
 void sprites_reset(void) BANKED {
   uint8_t i;
   for (i = 0; i != 40u; i++) move_sprite(i, 0, 0);
-  oam_last = 0;
+  oam_last = was_busy = 0;
   VBK_REG=1u;set_sprite_data(0u,4u,diagonal_arc);VBK_REG=0u;
   heir_reset(); /* the floor's art was reloaded over the heir's tiles */
   if (!boss_floor) mobs_reload(); /* B2: and over the mobs' looks */
@@ -86,12 +116,74 @@ static void take(uint8_t oy, uint8_t n) NONBANKED {
   } while (--count);
 }
 
+/* Validate then reserve the same four/five bands in one register-only pass.
+ * Never partially reserve a group that the last band would refuse. */
+static uint8_t reserve(uint8_t oy,uint8_t n) NONBANKED NAKED {
+  oy;n;
+  __asm
+    ld d,a
+    rrca
+    rrca
+    and a,#0x3f
+    add a,#<_band
+    ld l,a
+    ld a,#>_band
+    adc a,#0
+    ld h,a
+    ld a,#11
+    sub a,e
+    ld c,a
+    ld a,(hl+)
+    cp a,c
+    jr nc,9$
+    ld a,(hl+)
+    cp a,c
+    jr nc,9$
+    ld a,(hl+)
+    cp a,c
+    jr nc,9$
+    ld a,(hl+)
+    cp a,c
+    jr nc,9$
+    ld a,d
+    and a,#3
+    jr z,1$
+    ld a,(hl)
+    cp a,c
+    jr nc,9$
+    add a,e
+    ld (hl),a
+  1$:
+    dec hl
+    ld a,(hl)
+    add a,e
+    ld (hl),a
+    dec hl
+    ld a,(hl)
+    add a,e
+    ld (hl),a
+    dec hl
+    ld a,(hl)
+    add a,e
+    ld (hl),a
+    dec hl
+    ld a,(hl)
+    add a,e
+    ld (hl),a
+    ld a,#1
+    ret
+  9$:
+    xor a,a
+    ret
+  __endasm;
+}
+
 uint8_t oam_fits(int16_t sy, uint8_t n) NONBANKED {
   if ((uint16_t)(sy + 15) > 158u) return 1u;
   return fits((uint8_t)(sy + 16), n);
 }
 
-uint8_t oam_group(int16_t sx, int16_t sy, uint8_t n, uint8_t tile0, uint8_t tstep, uint8_t prop) NONBANKED {
+static uint8_t oam_clipped(int16_t sx, int16_t sy, uint8_t n, uint8_t tile0, uint8_t tstep, uint8_t prop) NONBANKED {
   uint8_t oy, vis = 0, k, ox, full;
   int16_t x;
   OAM_item_t *o;
@@ -132,11 +224,166 @@ uint8_t oam_group(int16_t sx, int16_t sy, uint8_t n, uint8_t tile0, uint8_t tste
   return 1u;
 }
 
-void oam_count(uint8_t from) NONBANKED {
-  OAM_item_t *o = &shadow_OAM[from];
-  for (; from != oam_n; from++, o++)
-    if (o->y && o->y < 160u) take(o->y, 1u);
+/* Register-only common path. Keep the portable clipping path for groups that
+ * cross a screen edge; most mob/overlay/particle groups fit entirely on screen.
+ * sdcccall(1): DE=x, BC=y; n/tile/step/prop are four callee-popped stack bytes. */
+uint8_t oam_group(int16_t sx, int16_t sy, uint8_t n, uint8_t tile0, uint8_t tstep, uint8_t prop) NONBANKED NAKED {
+  sx;sy;n;tile0;tstep;prop;
+  __asm
+    ld hl,#15
+    add hl,bc
+    ld a,h
+    or a,a
+    jr nz,8$
+    ld a,l
+    cp a,#159
+    jr nc,8$
+    ld a,d
+    or a,a
+    jp nz,_oam_clipped
+    ld a,c
+    add a,#16
+    ld (#_emit_y),a
+    ldhl sp,#2
+    ld a,(hl)
+    or a,a
+    jr z,8$
+    ld (#_emit_n),a
+    add a,a
+    add a,a
+    add a,a
+    ld l,a
+    ld a,#160
+    sub a,l
+    cp a,e
+    jp c,_oam_clipped
+    ld a,e
+    add a,#8
+    ld (#_emit_x),a
+    ld a,(#_emit_n)
+    ld b,a
+    ld a,(#_oam_n)
+    add a,b
+    ld c,a
+    ld a,(#_oam_cap)
+    cp a,c
+    jr c,7$
+    ld e,b
+    ld a,(#_emit_y)
+    call _reserve
+    or a,a
+    jr z,7$
+    ld a,(#_oam_n)
+    ld l,a
+    add a,b
+    ld (#_oam_n),a
+    ld a,l
+    add a,a
+    add a,a
+    add a,#<_shadow_OAM
+    ld l,a
+    ld h,#>_shadow_OAM
+    push hl
+    ldhl sp,#5
+    ld a,(hl+)
+    ld d,a
+    ld a,(hl+)
+    ld c,a
+    ld a,(hl)
+    ld e,a
+    pop hl
+  1$:
+    ld a,(#_emit_y)
+    ld (hl+),a
+    ld a,(#_emit_x)
+    ld (hl+),a
+    add a,#8
+    ld (#_emit_x),a
+    ld a,d
+    ld (hl+),a
+    add a,c
+    ld d,a
+    ld a,e
+    ld (hl+),a
+    dec b
+    jr nz,1$
+  8$:
+    ld a,#1
+    jr 9$
+  7$:
+    ld a,b
+    ld hl,#_oam_refused
+    add a,(hl)
+    ld (hl),a
+    xor a,a
+  9$:
+    pop hl
+    add sp,#4
+    jp (hl)
+  __endasm;
 }
+
+void oam_count(uint8_t from) NONBANKED NAKED {
+  from;
+  __asm
+    ld c,a
+    ld a,(#_oam_n)
+    sub a,c
+    ret z
+    ld b,a
+    ld a,c
+    add a,a
+    add a,a
+    add a,#<_shadow_OAM
+    ld e,a
+    ld d,#>_shadow_OAM
+  1$:
+    ld a,(de)
+    or a,a
+    jr z,3$
+    cp a,#160
+    jr nc,3$
+    ld c,a
+    rrca
+    rrca
+    and a,#0x3f
+    add a,#<_band
+    ld l,a
+    ld a,#>_band
+    adc a,#0
+    ld h,a
+    inc (hl)
+    inc hl
+    inc (hl)
+    inc hl
+    inc (hl)
+    inc hl
+    inc (hl)
+    ld a,c
+    and a,#3
+    jr z,3$
+    inc hl
+    inc (hl)
+  3$:
+    ld a,e
+    add a,#4
+    ld e,a
+    dec b
+    jr nz,1$
+    ret
+  __endasm;
+}
+static void clear_bands(void) NONBANKED NAKED {
+  __asm
+    ld hl,#_band
+    xor a,a
+    .rept 44
+      ld (hl+),a
+    .endm
+    ret
+  __endasm;
+}
+typedef char native_band_count[(OAM_BANDS+2u==44u) ? 1 : -1];
 
 uint8_t oam_band_max(void) NONBANKED {
   uint8_t i, m = 0;
@@ -148,24 +395,58 @@ uint8_t oam_band_max(void) NONBANKED {
 /* The look moves during hitstop and pause. Recount without advancing poses. */
 void sprites_budget(void) NONBANKED {
   uint8_t k, y;
-  for (k = 0; k != OAM_BANDS + 2u; k++) band[k] = 0;
+  clear_bands();
   for (k = 0; k != 40u; k++) {
     y = shadow_OAM[k].y;
     if (!y || y >= 160u || !shadow_OAM[k].x || shadow_OAM[k].x >= 168u) continue;
-    if (fits(y, 1u)) take(y, 1u);
-    else { shadow_OAM[k].y = 0; oam_refused++; }
+    if (!reserve(y, 1u)) { shadow_OAM[k].y = 0; oam_refused++; }
   }
 }
 
-static void untake_card(uint8_t k) NONBANKED {
-  uint8_t oy = shadow_OAM[k].y, *p, count;
-  if (!oy || oy >= 160u || !shadow_OAM[k].x || shadow_OAM[k].x >= 168u) return;
-  p = &band[oy >> 2];
-  count = (uint8_t)(4u + ((oy & 3u) != 0u));
-  do {
-    if (*p) (*p)--;
-    p++;
-  } while (--count);
+static void untake_card(uint8_t k) NONBANKED NAKED {
+  k;
+  __asm
+    add a,a
+    add a,a
+    add a,#<_shadow_OAM
+    ld l,a
+    ld h,#>_shadow_OAM
+    ld a,(hl+)
+    or a,a
+    ret z
+    cp a,#160
+    ret nc
+    ld d,a
+    ld a,(hl)
+    or a,a
+    ret z
+    cp a,#168
+    ret nc
+    ld a,d
+    rrca
+    rrca
+    and a,#0x3f
+    add a,#<_band
+    ld l,a
+    ld a,#>_band
+    adc a,#0
+    ld h,a
+    .rept 4
+      ld a,(hl)
+      or a,a
+      jr z,.+3
+      dec (hl)
+      inc hl
+    .endm
+    ld a,d
+    and a,#3
+    ret z
+    ld a,(hl)
+    or a,a
+    ret z
+    dec (hl)
+    ret
+  __endasm;
 }
 
 void oam_card_pair(uint8_t a, uint8_t b, uint8_t x0, uint8_t x1, uint8_t y,
@@ -175,8 +456,7 @@ void oam_card_pair(uint8_t a, uint8_t b, uint8_t x0, uint8_t x1, uint8_t y,
   if (b != a) untake_card(b);
   shadow_OAM[a].y = shadow_OAM[b].y = 0;
   if (!n || !y || y >= 160u) return;
-  if (!fits(y, n)) { oam_refused += n; return; }
-  take(y, n);
+  if (!reserve(y, n)) { oam_refused += n; return; }
   CRITICAL {
     if (b != a) {
       shadow_OAM[b].x = x1;
@@ -261,12 +541,9 @@ void draw_sprites(void) BANKED {
   oam_refused = 0;
   oam_cap = look_busy_n ? 24u : 40u;
   if (look_busy_n && !was_busy)
-    for (k = 24u; k != 40u; k++) shadow_OAM[k].y = 0;
+    hide_range(24u,40u);
   oam_spin++;
-  {
-    uint8_t *p = band;
-    for (k = OAM_BANDS + 2u; k; k--) *p++ = 0;
-  }
+  clear_bands();
   /* OP_HEIR: the heir (heir.c), BODY layer over WEAR layer, its box 16x22 with the feet at pl_y + 6 */
   heir_tick();
   if ((pl_state!=PS_FALL || pl_t<24u) && (!pl_hp || !(pl_inv && (pl_inv & 4u)) || pl_state == PS_HURT || ha_state == HA_SPAWN)) {
@@ -308,7 +585,7 @@ void draw_sprites(void) BANKED {
   else for (k = 0; k != nen; k++)
     if (en[k].kind == SPAWN_BOSS && en[k].st != ES_DEAD) draw_boss(&en[k]);
   /* OP_SHOT: orbs (pointers, not orbs[k]: SDCC multiplies the index on every access) */
-  {
+  if(orbs[0].live|orbs[1].live|orbs[2].live|orbs[3].live|orbs[4].live|orbs[5].live|orbs[6].live|orbs[7].live) {
     orb_t *o = orbs;
     for (k = MAXO; k; k--, o++)
       if (o->live) spr8((int16_t)(o->x >> 4), (int16_t)(o->y >> 4), ST_ORB, o->friendly ? 4u : 5u);
@@ -331,29 +608,36 @@ void draw_sprites(void) BANKED {
   }
   /* OP_FX: particles, then puffs (cosmetic: left out where a line is full) */
   if (!boss_floor) fx_draw(); /* boss art owns the mob/FX tile block in an arena */
-  {
+  if(puffs[0].t|puffs[1].t|puffs[2].t|puffs[3].t|puffs[4].t|puffs[5].t) {
     puff_t *p = puffs;
     int16_t py;
+    uint8_t quota=(uint8_t)(LY_REG>=88u && LY_REG<144u ? 1u : MAXP);
     for (k = MAXP; k; k--, p++)
       if (p->t) {
         p->t--;
         py = (int16_t)p->y - (int16_t)((14u - p->t) >> 2);
-        spr8((int16_t)p->x, py, p->tile, p->pal);
+        if(quota && !(LY_REG>=118u && LY_REG<144u)) {
+          spr8((int16_t)p->x, py, p->tile, p->pal);
+          quota--;
+        }
       }
   }
   if (look_busy_n && was_busy) {
     /* Flying cards occupy the high OAM slots outside the actor allocator. They
      * still share the hardware's ten-OBJ line limit with actors and shots. */
-    for (k = 24u; k != 40u; k++) {
-      uint8_t y = shadow_OAM[k].y;
-      if (!y) continue;
-      if (fits(y, 1u)) take(y, 1u);
-      else { shadow_OAM[k].y = 0; oam_refused++; }
-    }
+    if(!boss_floor && stage_type!=SG_DARK && stage_type!=SG_CHASE &&
+       (world_on || enemies_alive || stage_type!=SG_PUZZLE)) {
+      /* The late look pass rebuilds these after actors, against their fresh
+       * bands. Do not reserve yesterday's cards only to remove them again. */
+      hide_range(24u,40u);
+    } else for (k = 24u; k != 40u; k++) {
+        uint8_t y = shadow_OAM[k].y;
+        if (!y) continue;
+        if (!reserve(y, 1u)) { shadow_OAM[k].y = 0; oam_refused++; }
+      }
   }
-  for (k = oam_n; k < oam_last && k < oam_cap; k++) shadow_OAM[k].y = 0;
-  if (!look_busy_n)
-    for (k = oam_n; k != 40u; k++) shadow_OAM[k].y = 0;
+  if(!look_busy_n && was_busy) hide_range(oam_n,40u);
+  else hide_range(oam_n,oam_last<oam_cap ? oam_last : oam_cap);
   was_busy = look_busy_n != 0u;
   oam_last = oam_n;
   { extern uint8_t bo_refused; bo_refused = oam_refused; }

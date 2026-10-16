@@ -13,7 +13,7 @@ static uint8_t serial,slot,pending,cool;
 static uint16_t queued_at;
 uint8_t hud_narr_ready(void) BANKED;
 void hud_narrate(const char *s) BANKED;
-static const char *const cues[TE_COUNT]={"HOLD TO PUSH","WEIGHT HOLDS","A HOLD: CHARGE","B HOLD: CHARGE","SELECT: BENCH","DIR TWICE: ROLL","REST. RECOVER."};
+static const char *const cues[TE_COUNT]={"HOLD TO PUSH","WEIGHT HOLDS","A HOLD: CHARGE","B HOLD: CHARGE","SELECT: BENCH","DIR TWICE: ROLL","REST. RECOVER.","WEIGHT: PORTAL"};
 #define TSLOT(k) ((uint8_t *)((k) ? SAVE_PREF_B : SAVE_PREF_A))
 void tutorial_init(void) BANKED {
   uint8_t *p,*a=TSLOT(0u),*b=TSLOT(1u),va,vb;
@@ -43,6 +43,9 @@ void tutorial_tick(void) BANKED {
   if(pending==255u) return;
   if(!tutorial_on || (uint16_t)(frame_count-queued_at)>600u) {pending=255u;return;}
   if(cool || boss_floor || freeze || pl_state==PS_FALL || !hud_narr_ready()) return;
+  /* Showing a first-use cue also seals its settings journal. Leave that CRC
+   * work for a frame with room after terrain streaming and actor simulation. */
+  if(LY_REG>=80u && LY_REG<144u)return;
   for(k=0u;k<nen;k++) if(en[k].st!=ES_DEAD && absdiff((uint8_t)(en[k].x>>4),pl_x)<56u && absdiff((uint8_t)(en[k].y>>4),pl_y)<56u) return;
   hud_narrate(cues[pending]);tutorial_seen|=(uint16_t)1u<<pending;pending=255u;cool=10u;tutorial_save();
 }

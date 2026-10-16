@@ -1,0 +1,17 @@
+{
+  "source_branch": "codex/camera-tiles",
+  "roms": [
+    {
+      "file": "build/egress.gbc",
+      "sha256": "6d699dfb8a49c3cb481acbbcd8aae2a88fe97ade2fc5cc1ea80c10065a8779df",
+      "bytes": 1196032
+    },
+    {
+      "file": "build/egress-rtc.gbc",
+      "sha256": "99ab33437d0e08c56ea901b8222be77fa3d5ebb8b0fe7676bc5b749696c261f7",
+      "bytes": 1196032
+    }
+  ],
+  "full_gate_exit": 0,
+  "public_release_changed": false
+}

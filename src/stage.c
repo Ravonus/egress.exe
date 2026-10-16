@@ -32,8 +32,10 @@
 #include "gen/stage_art.h"
 #include "core/eg_physics.h"
 #include "narrator.h"
+#include "world.h"
 
 extern uint8_t dead_t; /* src/puzzle.c: 120 shows the lost room's hint, then HOLD SELECT */
+extern uint8_t dbg_world_rule,dbg_world_size,dbg_world_biome;
 
 uint8_t stage_type, stage_kind, dbg_stage;
 eg_stage stg;
@@ -122,6 +124,11 @@ void stage_resume_floor(void) BANKED {
 }
 
 uint8_t stage_build(void) BANKED {
+  if(dbg_world_rule && dbg_world_rule<=EL_RULES && dbg_world_size<=EL_SIZES && dbg_world_biome<EL_BIOMES) {
+    stage_type=SG_PUZZLE;
+    return world_begin(st_seed,dbg_world_rule-1u,dbg_world_size ? dbg_world_size-1u : 255u,dbg_world_biome);
+  }
+  if(slice.physical && floor_no==7u && (run_seed&0x0100u))return world_begin(st_seed,4u,255u,BIOME_OFFICE);
   if (slice.physical) {
     eg_physics_gen(&room, slice.physical, st_seed, slice.level);
     return 1u;
@@ -145,7 +152,7 @@ static void wave_begin(uint8_t n, uint8_t shooter) {
 static void wave_step(void) {
   uint8_t k, c;
   if (!wv_pend || ss_alive() >= 3u) return;
-  for (k = 0; k != 6u; k++) {
+  for (k = 0; k != 2u; k++) {
     c = EG_IDX(1u + eg_rndn(14u), 1u + eg_rndn(12u));
     if (!look_here(c) || (stage_type == SG_DARK && look_skin[c]) || !ss_spawn_ok(c)) continue;
     if (ss_spawn(wv_shoot ? SS_SHOOTER : SS_CHASER, c, 0u, frame_count) == 255u) return;
@@ -162,14 +169,25 @@ static void ring_spark(uint8_t fast) {
   uint8_t r = stg.ring_r, k, side, off;
   int8_t dx, dy;
   if (frame_count & (fast ? 3u : 15u)) return;
-  k = (uint8_t)((frame_count >> 2) % (uint8_t)(8u * r));
-  side = (uint8_t)(k / (uint8_t)(2u * r));
-  off = (uint8_t)(k % (uint8_t)(2u * r));
+  if(r==1u) {k=(uint8_t)((frame_count>>2)&7u);side=k>>1;off=k&1u;}
+  else if(r==2u) {k=(uint8_t)((frame_count>>2)&15u);side=k>>2;off=k&3u;}
+  else {
+    if(!r)return;
+    k = (uint8_t)((frame_count >> 2) % (uint8_t)(8u * r));
+    side = (uint8_t)(k / (uint8_t)(2u * r));
+    off = (uint8_t)(k % (uint8_t)(2u * r));
+  }
   dx = side == 0u ? (int8_t)(off - r) : (side == 1u ? (int8_t)r : (side == 2u ? (int8_t)(r - off) : -(int8_t)r));
   dy = side == 0u ? -(int8_t)r : (side == 1u ? (int8_t)(off - r) : (side == 2u ? (int8_t)r : (int8_t)(r - off)));
   puff((uint8_t)(px_of(stg.ring) + dx * 16), (uint8_t)(py_of(stg.ring) + dy * 16), 4u, ST_SPARK);
 }
 static uint8_t in_ring(void) { return (uint8_t)(cheb(pcell(), stg.ring) <= stg.ring_r); }
+static uint8_t wave_percent(void) {
+  if(stg.waves==2u)return (uint8_t)(stage_wave*50u);
+  if(stg.waves==3u)return stage_wave==0u ? 0u : stage_wave==1u ? 33u : stage_wave==2u ? 66u : 100u;
+  if(stg.waves==4u)return (uint8_t)(stage_wave*25u);
+  return (uint8_t)((uint16_t)stage_wave*100u/stg.waves);
+}
 
 static void win(const char *msg) {
   stage_won = 1u;
@@ -549,6 +567,7 @@ void stage_show(void) BANKED {
 }
 
 uint8_t stage_announce(void) BANKED {
+  if(world_on) {hud_msg("LOAD. CROSS. EXIT.");return 1u;}
   if (slice.physical) { eg_physics_goal(slice.physical, sbuf); hud_msg(sbuf); return 1u; }
   if (!stage_goal[0]) return 0u;
   hud_msg(stage_goal);
@@ -556,6 +575,7 @@ uint8_t stage_announce(void) BANKED {
 }
 
 void stage_tick(void) BANKED {
+  uint8_t tens,units;
   if (stage_type == SG_PUZZLE || pl_hp == 0u) return;
   if (st_t != 0xffffu) st_t++;
   wave_step();
@@ -563,7 +583,7 @@ void stage_tick(void) BANKED {
     case SG_HOLDOUT:
       if (stage_won) break;
       ring_spark(in_ring());
-      if (stage_wave < stg.waves && stage_pct >= (uint8_t)(stage_wave * 100u / stg.waves) &&
+      if (stage_wave < stg.waves && stage_pct >= wave_percent() &&
           (stage_wave || st_t >= 90u)) {
         wave_begin(stg.per_wave, (uint8_t)(stage_wave >= stg.shooters));
         hud_msg(stage_wave == stg.waves ? "LAST WAVE" : "THEY COME");
@@ -572,8 +592,10 @@ void stage_tick(void) BANKED {
         st_acc = 0;
         if (stage_pct < 100u) stage_pct++;
         sbuf[0] = stage_pct >= 100u ? '1' : ' ';
-        sbuf[1] = stage_pct >= 10u ? (char)('0' + (stage_pct / 10u) % 10u) : ' ';
-        sbuf[2] = (char)('0' + stage_pct % 10u);
+        units=stage_pct;tens=0u;if(units==100u)units=0u;
+        while(units>=10u) {units-=10u;tens++;}
+        sbuf[1] = stage_pct >= 10u ? (char)('0'+tens) : ' ';
+        sbuf[2] = (char)('0'+units);
         sbuf[3] = '%';
         sbuf[4] = ' ';
         sbuf[5] = (char)('0' + stage_wave);

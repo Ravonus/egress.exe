@@ -13,6 +13,7 @@ void pocket_enter(void) BANKED;
 void pocket_restore(void) BANKED;
 extern uint8_t bench_on, bench_cur, last_rx;
 void pocket_reset(void) BANKED;
+void puzzle_shift_view(int8_t dx,int8_t dy) BANKED;
 void puzzle_pick(uint8_t cell) BANKED; /* the player walked into a T_ITEM cell */
 uint8_t puzzle_meta(uint8_t i) BANKED;    /* the card a cell of type T_CRUMBLE and up shows */
 void bench_run(void) BANKED;           /* SELECT tapped: the bench, modal, until closed or a piece is used */

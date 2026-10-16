@@ -13,11 +13,16 @@
 #include "core/eg_move.h"
 #include "puzzle.h"
 #include "family.h"
+#include "core/eg_view.h"
+#include "world.h"
+#include "world_play.h"
+void play_camera_warp(void) BANKED;
 #include "resume.h"
 #include "run.h"
 #include "narrator.h"
 #include "stamina.h"
 #include "tutorial.h"
+#include "look.h"
 
 uint8_t pl_x, pl_y, pl_hp, pl_hp_max, pl_state, pl_face;
 uint8_t pl_t, pl_inv, pl_combo, pl_queue, pl_charge, roll_cd, push_t, hit_mask, walk_t, combo_gap;
@@ -36,6 +41,7 @@ static uint8_t __at(0xD940) pmap[256];
 static uint8_t map_door = 0xffu;
 static eg_grid_t pg; /* WRAM: eg_move (banked) reads it; set in player_floor_start */
 static uint8_t dodge_dp, ov_state, ov_t, fight_t, moved_last, last_face;
+static uint8_t portal_lock;
 int8_t __at(0xDB9A) pl_z;
 uint8_t __at(0xDB9B) pl_air;
 static uint8_t __at(0xDB9C) air_void;
@@ -149,7 +155,7 @@ static void fall_tick(void) {
 
 void open_door(void) BANKED {
   door_open = 1;
-  queue_cell(room.door);
+  if(room.door<EG_N)queue_cell(room.door);
   sfx(SFX_DOOR);
   hud_msg("THE DOOR HUMS");
 }
@@ -203,6 +209,18 @@ static void do_push(void) {
     return;
   }
   puzzle_dirty = 1u; /* B1: a push can seal a room */
+  if(room.portal_need&EG_PORTAL_ON) {
+    uint8_t to,occ[4];
+    occ[0]=cell_at((uint8_t)(pl_x-6u),(uint8_t)(pl_y-6u));
+    occ[1]=cell_at((uint8_t)(pl_x+5u),(uint8_t)(pl_y-6u));
+    occ[2]=cell_at((uint8_t)(pl_x-6u),(uint8_t)(pl_y+5u));
+    occ[3]=cell_at((uint8_t)(pl_x+5u),(uint8_t)(pl_y+5u));
+    eg_ndirty=0u;to=eg_portal_object(&room,beyond,occ,4u);
+    if(to!=EG_LINK_NONE) {
+      queue_cell(to);sfx(SFX_CHARGED);
+      puff((uint8_t)(EG_X(to)*16u+8u),(uint8_t)(EG_Y(to)*16u+8u),4u,ST_SPARK);
+    }
+  }
   queue_cell(c);
   queue_cell(beyond);
   if (crate && cell_type(beyond) == T_PIT) obstacle_noise(beyond);
@@ -217,12 +235,22 @@ static void do_push(void) {
 
 /* one mover step from the player's centre (psx, psy are the centre, the mover's box is 12x12 from its corner) */
 static void mstep(uint8_t dpad, uint8_t speed, uint8_t synth) {
-  uint8_t prev = pmv.prev, o0 = pmv.order[0], o1 = pmv.order[1], o2 = pmv.order[2], o3 = pmv.order[3];
+  uint8_t prev=0u,o0=0u,o1=0u,o2=0u,o3=0u;
+  if(synth) {prev=pmv.prev;o0=pmv.order[0];o1=pmv.order[1];o2=pmv.order[2];o3=pmv.order[3];}
   if (map_door != door_open) door_map();
   pmv.x = (int16_t)psx - 96;
   pmv.y = (int16_t)psy - 96;
   pmv.mode = (opt_move4 || EG_OPT_MOVE4) && !synth ? EG_MODE_4WAY : EG_MODE_8WAY;
   eg_move_step(&pmv, dpad, speed, &pg);
+  if(world_on) {
+    /* An unloaded continuation is not an island edge. Keep the complete
+     * body inside the active window until its prepared strip is published;
+     * true exterior edges retain their ordinary fall/jump behavior. */
+    if(world_view.x && pmv.x<288)pmv.x=288;
+    if(world_view.x<world_view.width-EG_W && pmv.x>3616)pmv.x=3616;
+    if(world_view.y && pmv.y<544)pmv.y=544;
+    if(world_view.y<world_view.height-EG_H && pmv.y>3104)pmv.y=3104;
+  }
   if (synth) { /* momentum, not a press: the d-pad's press order and the push contact are not touched */
     pmv.prev = prev;
     pmv.order[0] = o0;
@@ -506,6 +534,7 @@ static void walk(uint8_t speed, uint8_t anim) {
 }
 
 void player_floor_start(void) BANKED {
+  portal_lock=EG_LINK_NONE;
   pl_z=0;pl_air=air_void=0u;
   grid_map(); /* here, not on the first step: 256 entries cost most of a frame */
   pg.cells = room.c;
@@ -526,6 +555,47 @@ void player_floor_start(void) BANKED {
   heir_play(HA_SPAWN, 1);
   overlay(HA_SPAWN, 34u);
   heir_reset();
+}
+void player_shift_view(int8_t dx,int8_t dy) BANKED {
+  uint8_t c;
+  int16_t sx=(int16_t)dx*256,sy=(int16_t)dy*256;
+  psx=(uint16_t)(psx-sx);psy=(uint16_t)(psy-sy);pmv.x-=sx;pmv.y-=sy;
+  pl_x=(uint8_t)(pl_x-dx*16);pl_y=(uint8_t)(pl_y-dy*16);
+  portal_lock=eg_view_rebase(portal_lock,dx,dy);fall_safe=eg_view_rebase(fall_safe,dx,dy);
+  if(fall_safe>=EG_N)fall_safe=cell_at(pl_x,pl_y);
+  c=eg_view_rebase(EG_IDX(pmv.push_cx,pmv.push_cy),dx,dy);
+  if(c<EG_N) {pmv.push_cx=EG_X(c);pmv.push_cy=EG_Y(c);}else pmv.push_t=0u;
+  c=eg_view_rebase(EG_IDX(pmv.req_cx,pmv.req_cy),dx,dy);
+  if(c<EG_N) {pmv.req_cx=EG_X(c);pmv.req_cy=EG_Y(c);}else pmv.req=0u;
+  /* Contact may have reached its single request while the destination was
+   * outside the old window. Recheck it once against the newly loaded space. */
+  if(pmv.push_t>=EG_PUSH_HOLD)pmv.push_t=EG_PUSH_HOLD-1u;
+  push_t=pmv.push_t;
+}
+
+static void portal_tick(void) {
+  uint8_t c=cell_at(pl_x,pl_y),to,x,y;
+  /* First publish the complete incoming view; transport can activate on the
+   * following tick. Walking, attacks and physics keep their ordinary update. */
+  if(world_on && world_moved)return;
+  if(c!=portal_lock) portal_lock=EG_LINK_NONE;
+  if(c==portal_lock || pl_air || pl_state==PS_FALL) return;
+  if(c!=room.portal[0] && c!=room.portal[1]) return;
+  /* The complete feet box crosses before the transfer, avoiding activation
+   * from a corner brushed while walking alongside the device. */
+  if((pl_x&15u)<5u || (pl_x&15u)>11u || (pl_y&15u)<5u || (pl_y&15u)>11u) return;
+  to=eg_portal_target(&room,c,&c,1u);
+  if(to==EG_LINK_NONE) {tutorial_queue(TE_PORTAL);return;}
+  if(enemy_in_cell(to)) return;
+  x=(uint8_t)(EG_X(to)*16u+8u);y=(uint8_t)(EG_Y(to)*16u+8u);
+  if(!box_free(x,y)) return;
+  eg_leave(&room,c);queue_cell(c);
+  psx=cell_sub(EG_X(to));psy=cell_sub(EG_Y(to));pl_x=x;pl_y=y;
+  pmv.x=(int16_t)psx-96;pmv.y=(int16_t)psy-96;
+  portal_lock=to;fall_safe=to;puzzle_dirty=1u;grav_t=1u;
+  if(world_on)play_camera_warp();
+  look_anchor(to);sfx(SFX_CHARGED);overlay(HA_SPAWN,12u);
+  puff(x,y,4u,ST_SPARK);collect();
 }
 
 void player_update(void) BANKED {
@@ -700,6 +770,7 @@ void player_update(void) BANKED {
     hud_charge();
   }
   ha_dir = (uint8_t)((4u - pmv.facing) & 7u);
+  if(room.portal_need&EG_PORTAL_ON) portal_tick();
   st=cell_type(cell_at(pl_x,pl_y));
   if(pl_air && (st==T_PIT || (st==T_GLITCH && !eg_beat_on(frame_count)))) air_void=1u;
   if(was_air && !pl_air) {

@@ -37,7 +37,9 @@ static const uint8_t win_of[EG_DECK_TYPES] = {WIN_EXIT, WIN_CHARGE, WIN_OUTRUN, 
 uint8_t eg_stage_win(uint8_t type) EG_BANKED { return type < EG_DECK_TYPES ? win_of[type] : WIN_EXIT; }
 
 /* ---------------- helpers ---------------- */
-uint8_t eg_stage_reach[EG_N / 8u];
+#ifndef __SDCC
+eg_stage_scratch eg_stage_work;
+#endif
 static uint8_t *C;
 static eg_room *R;
 
@@ -97,6 +99,7 @@ static void base(eg_room *r, eg_stage *s, uint16_t seed, uint8_t type, uint8_t l
   uint8_t i, x, y;
   R = r;
   C = r->c;
+  eg_links_clear(r);
   eg_rs = (uint16_t)(seed ^ 0x3c5au ^ ((uint16_t)type << 12) ^ ((uint16_t)level << 7));
   if (!eg_rs) eg_rs = 0x2961u;
   eg_rnd();
@@ -735,7 +738,7 @@ uint8_t eg_slice_floor(eg_slice *sl, eg_plan_state *ps, uint8_t floor, uint8_t l
     sl->level = eg_plan_target(ps, floor);
     sl->cstage = ST_DEVELOP;
     if (floor == 1u || floor == 3u || floor == 7u) {
-      sl->physical = floor == 7u ? PH_BRIDGE :
+      sl->physical = floor == 7u ? ((ps->run_seed&1u) ? PH_BRIDGE : PH_PORTAL) :
         (uint8_t)(floor == 1u ? PH_PUSH : PH_DROP);
       sl->type = SG_PUZZLE;
       eg_deck_note(&sl->deck, sl->type, 255u);
