@@ -13,7 +13,7 @@ static uint8_t serial,slot,pending,cool;
 static uint16_t queued_at;
 uint8_t hud_narr_ready(void) BANKED;
 void hud_narrate(const char *s) BANKED;
-static const char *const cues[TE_COUNT]={"HOLD TO PUSH","WEIGHT HOLDS","A HOLD: CHARGE","B HOLD: CHARGE","SELECT: BENCH","DIR TWICE: ROLL","REST. RECOVER."};
+static const char *const cues[TE_COUNT]={"HOLD TO PUSH","WEIGHT HOLDS","A HOLD: CHARGE","B HOLD: CHARGE","SELECT: BENCH","DIR TWICE: ROLL","REST. RECOVER.","WEIGHT: PORTAL"};
 #define TSLOT(k) ((uint8_t *)((k) ? SAVE_PREF_B : SAVE_PREF_A))
 void tutorial_init(void) BANKED {
   uint8_t *p,*a=TSLOT(0u),*b=TSLOT(1u),va,vb;

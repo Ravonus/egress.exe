@@ -188,7 +188,9 @@ uint8_t eg_apply(eg_room *r, uint8_t piece, uint8_t cell, const uint8_t *occ, ui
     dx=(int8_t)EG_X(cell)-(int8_t)EG_X(near);dy=(int8_t)EG_Y(cell)-(int8_t)EG_Y(near);
     dir=dx ? (dx<0 ? -1 : 1) : (dy<0 ? -16 : 16);to=(uint8_t)(cell+dir);
     if(to>=(uint8_t)EG_N || in_occ(to,occ,nocc) || !eg_push_block(r,cell,to)) return RX_NONE;
-    mark(cell);mark(to);return RX_PUSH;
+    mark(cell);mark(to);
+    if(r->portal_need&EG_PORTAL_ON) eg_portal_object(r,to,occ,nocc);
+    return RX_PUSH;
   }
   if (piece == P_MUD && v == T_PIT) {
     r->c[cell] = T_EMPTY;

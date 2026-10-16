@@ -42,6 +42,7 @@ static int world_tick(eg_room *r, node *s, uint8_t p) {
 static const int step4[4] = {-16, 16, -1, 1};
 static const char step_ch[4] = {'U', 'D', 'L', 'R'};
 static const char hit_ch[4] = {'u', 'd', 'l', 'r'};
+static const eg_room *room0;
 
 static uint64_t hash_state(const node *s) {
   uint64_t h = 1469598103934665603ull;
@@ -86,7 +87,7 @@ static int settle_at(eg_room *r, uint8_t p) {
 
 /* does the player at p hold something up (would the board move if p were empty)? */
 static int holding(const uint8_t *c) {
-  eg_room t;
+  eg_room t = *room0;
   memcpy(t.c, c, EG_N);
   return (eg_gravity(&t, NULL, 0) & EG_G_CHANGED) != 0;
 }
@@ -107,7 +108,14 @@ static int inert(const uint8_t *c, int s) {
     }
   return 1;
 }
-#define WALKABLE(c, s) (EG_FLOOR((c)[s]) || inert(c, s))
+/* Stepping onto a named source or portal is a consequential act. A free-walk
+ * region must never silently cross one, even while its circuit is unpowered. */
+static int walkable(const uint8_t *c,int s) {
+  if(room0->nlink && c[s]==T_PLATE) return 0;
+  if((room0->portal_need&EG_PORTAL_ON) && (s==room0->portal[0] || s==room0->portal[1])) return 0;
+  return EG_FLOOR(c[s]) || inert(c,s);
+}
+#define WALKABLE(c, s) walkable(c,s)
 
 /* the open region around p: cells reached through open floor (and inert foam) */
 static int region(const uint8_t *c, uint8_t p, uint8_t *out, uint8_t *prev) {
@@ -131,7 +139,10 @@ static int region(const uint8_t *c, uint8_t p, uint8_t *out, uint8_t *prev) {
 }
 
 /* the player can't walk freely: holding a CRT up, or standing on fragile floor (every step off it counts) */
-static int pinned(const uint8_t *c, uint8_t p) { return EG_FRAGILE(c[p] & T_MASK) || holding(c); }
+static int pinned(const uint8_t *c, uint8_t p) {
+  return EG_FRAGILE(c[p] & T_MASK) || (room0->nlink && c[p]==T_PLATE) ||
+    ((room0->portal_need&EG_PORTAL_ON) && (p==room0->portal[0] || p==room0->portal[1])) || holding(c);
+}
 
 static uint8_t canon(const uint8_t *c, uint8_t p) {
   uint8_t reg[EG_N];
@@ -171,6 +182,14 @@ static int heuristic(const uint8_t *c, uint8_t p, uint8_t keys, uint8_t door) {
       if (near_goal < 0 && (keys ? t == T_KEY : q == door)) near_goal = b;
       if (near_trig < 0 && ((dead && t == T_WATER) || (gate && t == T_PLATE))) near_trig = b;
       if (near_goal >= 0 && (near_item >= 0 || !items) && (near_trig >= 0 || !(dead | gate))) goto done;
+      /* Optimistic portal distance guides the search across separate islands.
+       * The actual expansion still requires power, occupancy and finite tools;
+       * this edge only avoids a flat "unreachable" heuristic on every state. */
+      if((room0->portal_need&EG_PORTAL_ON) && (q==room0->portal[0] || q==room0->portal[1])) {
+        uint8_t to=room0->portal[q==room0->portal[0] ? 1u : 0u];
+        int nd=b+3;
+        if(to<EG_N && nd<HB && nd<dist[to]) {dist[to]=nd;bucket[nd][bn[nd]++]=to;}
+      }
       for (int d = 0; d < 4; d++) {
         int s = q + step4[d];
         if (s < 0 || s >= (int)EG_N || EG_ABYSS(c[s])) continue;
@@ -205,7 +224,23 @@ static int heuristic(const uint8_t *c, uint8_t p, uint8_t keys, uint8_t door) {
   }
 done:
   if (near_goal < 0) near_goal = 300;
-  return near_goal + keys * 24 + (items ? (near_item < 0 ? 100 : near_item) + 16 * items : 0) +
+  int loads=0;
+  for(int k=0;k<room0->nlink && k<(int)EG_LINKS;k++) {
+    const eg_link *l=&room0->link[k];
+    if(!(room0->portal_need&(1u<<k)) && (l->gate>=EG_N || (c[l->gate]&T_MASK)!=T_GATE))continue;
+    for(int in=0;in<2;in++) {
+      uint8_t at=in ? l->b : l->a;
+      if(at>=EG_N || c[at]!=T_PLATE)continue;
+      int nearest=6;
+      for(int j=0;j<(int)EG_N;j++)if(EG_CRATE(c[j]) || (c[j]&T_MASK)==T_ROCK) {
+        int dx=(int)EG_X(at)-(int)EG_X(j),dy=(int)EG_Y(at)-(int)EG_Y(j);
+        int d=abs(dx)+abs(dy);if(d<nearest)nearest=d;
+      }
+      loads+=20+nearest*6;
+      if(l->rule&EG_LINK_ANY)break;
+    }
+  }
+  return loads + near_goal + keys * 24 + (items ? (near_item < 0 ? 100 : near_item) + 16 * items : 0) +
          ((dead | gate) ? (near_trig < 0 ? 100 : near_trig) + 12 : 0);
 }
 
@@ -248,7 +283,6 @@ static int hpop(void) {
 }
 
 #define KIDS 4096
-static const eg_room *room0;
 static int push_crates; /* search moving crates when the room contains them initially */
 static int fill_pits; /* bridge an existing gap; don't spend a required ingredient repairing optional worn tiles */
 
@@ -259,7 +293,7 @@ static int act_enter(const node *s, uint8_t from, int d, node *out, int *goal) {
   *goal = 0;
   if (ni < 0 || ni >= (int)EG_N) return 0;
   uint8_t n = (uint8_t)ni;
-  eg_room r;
+  eg_room r = *room0;
   memcpy(r.c, s->c, EG_N);
   *out = *s;
   uint8_t t = r.c[n] & T_MASK, p = n, keys = s->keys;
@@ -313,7 +347,12 @@ static int act_enter(const node *s, uint8_t from, int d, node *out, int *goal) {
       return 0;
   }
   if (p != from) eg_leave(&r, from);
+  if(t==T_ROCK || EG_CRATE(t)) eg_portal_object(&r,(uint8_t)(n+step4[d]),&p,1u);
   if (!settle_at(&r, p)) return 0;
+  if(p!=from) {
+    uint8_t to=eg_portal_target(&r,p,&p,1u);
+    if(to!=EG_LINK_NONE) {eg_leave(&r,p);p=to;if(!settle_at(&r,p))return 0;}
+  }
   if (!world_tick(&r, out, p)) return 0;
   memcpy(out->c, r.c, EG_N);
   out->land = p;
@@ -378,7 +417,7 @@ static int act_use(const node *s, uint8_t from, int d, int k, uint64_t ban, node
   uint8_t piece = s->pk[k];
   /* the solver lays bricks on plates only (anywhere else they only wall things off) */
   if (PC_EFF(piece) == EFF_LAY && s->c[ni] != T_PLATE) return 0;
-  eg_room r;
+  eg_room r = *room0;
   memcpy(r.c, s->c, EG_N);
   uint8_t rx = eg_apply(&r, piece, (uint8_t)ni, &from, 1);
   if (!rx || (ban >> rx) & 1u) return 0;
@@ -867,10 +906,12 @@ int eg_replay(const eg_room *r0, const char *moves) {
       if (!eg_push_block(&r, n, (uint8_t)(n + step4[d]))) return 0;
       eg_leave(&r, p);
       p = n;
+      eg_portal_object(&r,(uint8_t)(n+step4[d]),&p,1u);
     } else if (t == T_ROCK) {
       if (d < 2 || (r.c[n] & F_FALL) || !eg_push(&r, n, (uint8_t)(n + step4[d]))) return 0;
       eg_leave(&r, p);
       p = n;
+      eg_portal_object(&r,(uint8_t)(n+step4[d]),&p,1u);
     } else if (EG_PASSABLE(t)) {
       if (t == T_KEY) keys--;
       if (t == T_ITEM) {
@@ -883,6 +924,10 @@ int eg_replay(const eg_room *r0, const char *moves) {
     } else
       return 0;
     if (!settle_at(&r, p)) return 0;
+    if(!hit) {
+      uint8_t to=eg_portal_target(&r,p,&p,1u);
+      if(to!=EG_LINK_NONE) {eg_leave(&r,p);p=to;if(!settle_at(&r,p))return 0;}
+    }
   }
   return 0;
 }

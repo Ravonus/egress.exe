@@ -18,6 +18,7 @@
 #include "narrator.h"
 #include "stamina.h"
 #include "tutorial.h"
+#include "look.h"
 
 uint8_t pl_x, pl_y, pl_hp, pl_hp_max, pl_state, pl_face;
 uint8_t pl_t, pl_inv, pl_combo, pl_queue, pl_charge, roll_cd, push_t, hit_mask, walk_t, combo_gap;
@@ -36,6 +37,7 @@ static uint8_t __at(0xD940) pmap[256];
 static uint8_t map_door = 0xffu;
 static eg_grid_t pg; /* WRAM: eg_move (banked) reads it; set in player_floor_start */
 static uint8_t dodge_dp, ov_state, ov_t, fight_t, moved_last, last_face;
+static uint8_t portal_lock;
 int8_t __at(0xDB9A) pl_z;
 uint8_t __at(0xDB9B) pl_air;
 static uint8_t __at(0xDB9C) air_void;
@@ -203,6 +205,18 @@ static void do_push(void) {
     return;
   }
   puzzle_dirty = 1u; /* B1: a push can seal a room */
+  if(room.portal_need&EG_PORTAL_ON) {
+    uint8_t to,occ[4];
+    occ[0]=cell_at((uint8_t)(pl_x-6u),(uint8_t)(pl_y-6u));
+    occ[1]=cell_at((uint8_t)(pl_x+5u),(uint8_t)(pl_y-6u));
+    occ[2]=cell_at((uint8_t)(pl_x-6u),(uint8_t)(pl_y+5u));
+    occ[3]=cell_at((uint8_t)(pl_x+5u),(uint8_t)(pl_y+5u));
+    eg_ndirty=0u;to=eg_portal_object(&room,beyond,occ,4u);
+    if(to!=EG_LINK_NONE) {
+      queue_cell(to);sfx(SFX_CHARGED);
+      puff((uint8_t)(EG_X(to)*16u+8u),(uint8_t)(EG_Y(to)*16u+8u),4u,ST_SPARK);
+    }
+  }
   queue_cell(c);
   queue_cell(beyond);
   if (crate && cell_type(beyond) == T_PIT) obstacle_noise(beyond);
@@ -507,6 +521,7 @@ static void walk(uint8_t speed, uint8_t anim) {
 }
 
 void player_floor_start(void) BANKED {
+  portal_lock=EG_LINK_NONE;
   pl_z=0;pl_air=air_void=0u;
   grid_map(); /* here, not on the first step: 256 entries cost most of a frame */
   pg.cells = room.c;
@@ -527,6 +542,27 @@ void player_floor_start(void) BANKED {
   heir_play(HA_SPAWN, 1);
   overlay(HA_SPAWN, 34u);
   heir_reset();
+}
+
+static void portal_tick(void) {
+  uint8_t c=cell_at(pl_x,pl_y),to,x,y;
+  if(c!=portal_lock) portal_lock=EG_LINK_NONE;
+  if(c==portal_lock || pl_air || pl_state==PS_FALL) return;
+  if(c!=room.portal[0] && c!=room.portal[1]) return;
+  /* The complete feet box crosses before the transfer, avoiding activation
+   * from a corner brushed while walking alongside the device. */
+  if((pl_x&15u)<5u || (pl_x&15u)>11u || (pl_y&15u)<5u || (pl_y&15u)>11u) return;
+  to=eg_portal_target(&room,c,&c,1u);
+  if(to==EG_LINK_NONE) {tutorial_queue(TE_PORTAL);return;}
+  if(enemy_in_cell(to)) return;
+  x=(uint8_t)(EG_X(to)*16u+8u);y=(uint8_t)(EG_Y(to)*16u+8u);
+  if(!box_free(x,y)) return;
+  eg_leave(&room,c);queue_cell(c);
+  psx=cell_sub(EG_X(to));psy=cell_sub(EG_Y(to));pl_x=x;pl_y=y;
+  pmv.x=(int16_t)psx-96;pmv.y=(int16_t)psy-96;
+  portal_lock=to;fall_safe=to;puzzle_dirty=1u;grav_t=1u;
+  look_anchor(to);sfx(SFX_CHARGED);overlay(HA_SPAWN,12u);
+  puff(x,y,4u,ST_SPARK);collect();
 }
 
 void player_update(void) BANKED {
@@ -701,6 +737,7 @@ void player_update(void) BANKED {
     hud_charge();
   }
   ha_dir = (uint8_t)((4u - pmv.facing) & 7u);
+  if(room.portal_need&EG_PORTAL_ON) portal_tick();
   st=cell_type(cell_at(pl_x,pl_y));
   if(pl_air && (st==T_PIT || (st==T_GLITCH && !eg_beat_on(frame_count)))) air_void=1u;
   if(was_air && !pl_air) {

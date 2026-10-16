@@ -138,3 +138,22 @@ Camera-driven terrain assembly/collapse remains on `codex/camera-tiles`. Both ma
 120/120 frame timing, native BG/OAM reference comparisons and the full regression gate. Evidence is in
 `validation/camera-20261016/`. Its camera changes are not yet in the public cartridge. A larger connected simulation
 window, composed portal/circuit proof and the rest of the full-run ledger are still required.
+
+## Named circuits and composed portal motif (2026-10-16)
+
+The continuation branch adds independent AND/OR/latching circuits, socket and player/object sources, conditional
+bidirectional portals, crate/wind/CRT transport, and safety-held gates that do not falsely power a portal. The
+metadata fits the room's remaining twelve bytes. A 512-state standalone cartridge trace compares complete rooms,
+dirty cells and results to the portable rules. Constructor scratch uses a bitset, reclaiming 196 bytes without
+changing the fixed 4,864-case legacy room/RNG fingerprint.
+
+The office's seventh floor can now deal a composed two-island motif. One load powers transport; a separate gate
+accepts a crate or a crafted weight; a final paper cut still needs heat. The host checks 64 seed variants with
+independent physical/tool answers, required transport and wrong-spend branches. Both mapper builds play physical
+and crafted answers through normal input, cross back and forth without losing objects/inventory, recognize a
+real bad craft, and restore the floor through the existing reset. Item idle uploads now address their actual
+metatile rather than overwriting the cracked ice and preceding object. Native hooks check all four uploaded poses.
+
+This still fits one local simulation grid. Larger streamed stages and the remaining full-run milestones are
+required. The complete native/host regression run passed; exact artifact evidence is in
+`validation/linked-puzzles-20261016/`. The public cartridge remains on the previous tested release.

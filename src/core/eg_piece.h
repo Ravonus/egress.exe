@@ -49,6 +49,10 @@ enum {
 #define PC_EFF(p) ((uint8_t)(eg_piece[p][1] >> 3))
 #define PC_SHAPE(p) ((uint8_t)(eg_piece[p][1] & 7u))
 #define PC_TAGS(p) (eg_piece[p][2])
+/* The current recipe subset never creates HOT without a HOT ingredient.
+ * Kept as IDs for the room bank's bounded resource-reachability check; the
+ * host circuit gate verifies this list against every piece and recipe. */
+#define EG_PIECE_HOT(p) ((p)==P_FIRE || (p)==P_STEAM || (p)==P_LAVA)
 #define PC_MAG(p) ((uint8_t)(eg_piece[p][3] >> 4))
 #define PC_CD(p) ((uint8_t)(eg_piece[p][3] & 15u))
 #define PC_FLAGS(p) (eg_piece[p][4])

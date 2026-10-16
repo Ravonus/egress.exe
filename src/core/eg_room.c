@@ -278,6 +278,7 @@ uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) EG_BANKED {
           c[i]=ROCK_LEFT(v);mark(i);res|=EG_G_CHANGED|EG_G_FALLING;goto next;
         }
         move_rock(c, i, b);
+        if(r->portal_need&EG_PORTAL_ON) eg_portal_object(r,b,occ,nocc);
         res |= EG_G_CHANGED | EG_G_FALLING;
         goto next;
       }
@@ -292,6 +293,7 @@ uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) EG_BANKED {
         }
         if (s != i) {
           move_rock(c, i, s);
+          if(r->portal_need&EG_PORTAL_ON) eg_portal_object(r,s,occ,nocc);
           res |= EG_G_CHANGED | EG_G_FALLING;
           goto next;
         }
@@ -331,6 +333,7 @@ uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) EG_BANKED {
 static uint8_t shutters(eg_room *r, const uint8_t *occ, uint8_t nocc) {
   uint8_t *c = r->c;
   uint8_t res = 0u, i, v, w, gates;
+  if(r->nlink) return eg_circuits(r,occ,nocc);
   /* shutters follow the plates: up while every plate carries a weight (a CRT, a laid brick or crate, an obstacle: B2;
    * B1 rooms hold one plate), down otherwise (a shutter doesn't drop on the player, nor on an obstacle: F_OB) */
 #ifdef EG_GRAV_ASM
@@ -468,6 +471,7 @@ uint8_t eg_frag_hit(eg_room *r, uint8_t cell, uint8_t who) EG_BANKED {
  * set (a variable shift is a loop on the SM83), the queue in WRAM, the key scan in chunks. */
 static uint8_t dd_seen[EG_N / 8u], dd_q[EG_N];
 static uint8_t dd_n, dd_h, dd_pass, dd_rock, dd_from, dd_k, dd_mode, dd_locked, dd_scan, dd_flags;
+static uint8_t dd_heat;
 static const uint8_t dd_bit[8] = {1u, 2u, 4u, 8u, 16u, 32u, 64u, 128u};
 #define DD_SEEN(c) (dd_seen[(uint8_t)(c) >> 3] & dd_bit[(uint8_t)(c) & 7u])
 #define DD_MARK(c) (dd_seen[(uint8_t)(c) >> 3] |= dd_bit[(uint8_t)(c) & 7u])
@@ -484,7 +488,7 @@ static void dd_visit(const eg_room *r, uint8_t s) {
   uint8_t t;
   if (DD_SEEN(s)) return;
   t = (uint8_t)(r->c[s] & T_MASK);
-  if (EG_ABYSS(r->c[s]) || t == T_WALL || t == T_SOCKET || t == T_SOCKET_ON || (t == T_PIT && !dd_rock) ||
+  if (EG_ABYSS(r->c[s]) || t == T_WALL || t == T_SOCKET || t == T_SOCKET_ON || (t==T_PAPER && !dd_heat) || (t == T_PIT && !dd_rock) ||
       (dd_locked && (t==T_GATE || t==T_GATE_OPEN))) return;
   DD_MARK(s);
   if (t == T_ROCK) dd_rock = 1u;
@@ -540,8 +544,13 @@ uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, u
   if(!budget) return EG_DEAD_BUSY;
   if(!dd_mode) {
     dd_mode=3u;dd_scan=dd_flags=dd_n=dd_h=0u;
+    dd_heat=0u;
+    for(i=0u;i<npocket;i++)if(EG_PIECE_HOT(pocket[i]))dd_heat=1u;
+    for(i=0u;i<r->nitem;i++)if(r->c[r->item_cell[i]]==T_ITEM && EG_PIECE_HOT(r->item_piece[i]))dd_heat=1u;
     for(i=0u;i!=EG_N/8u;i++) dd_seen[i]=0u;
-    if(r->nob) {dd_mode=2u;dd_flood_begin();} /* another obstacle may still carry a plate */
+    /* Separate circuits and portals need their dependency proof; the cheap
+     * geometric hint must not apply the legacy all-plates reverse-push rule. */
+    if(r->nob || r->nlink || (r->portal_need&EG_PORTAL_ON)) {dd_mode=2u;dd_flood_begin();}
   }
   if(dd_mode==3u) {
     /* Initialization is sliced too: at most four cell probes per budget unit,
@@ -581,6 +590,10 @@ uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, u
     if (!budget) return EG_DEAD_BUSY;
     budget--;
     i = dd_q[dd_h++];
+    if(r->portal_need&EG_PORTAL_ON) {
+      if(i==r->portal[0] && r->portal[1]<EG_N) dd_visit(r,r->portal[1]);
+      if(i==r->portal[1] && r->portal[0]<EG_N) dd_visit(r,r->portal[0]);
+    }
     if (i >= EG_W) dd_visit(r, (uint8_t)(i - EG_W));
     if (i < (uint8_t)(EG_N - EG_W)) dd_visit(r, (uint8_t)(i + EG_W));
     if (i & 15u) dd_visit(r, (uint8_t)(i - 1u));

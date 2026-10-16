@@ -1267,7 +1267,7 @@ FIXED0 = {"SLAB_A": SPR_BASE, "WALL_TOP": SPR_BASE + 4}
 # bit clear read 0x9000 .. 0x97FF, which no sprite can see and nothing on a floor uses (only the screens' pictures,
 # src/gen/art_pics.c, and they are gone before a floor's look_load). The item cards and the cracked thin ice live
 # there; they never fly (an item flies in as a slab).
-LOW0_BASE = 16
+LOW0_BASE = 0
 ICON_BASE = 112  # sixteen 8x8 inventory icons, signed BG bank 0 only
 
 def connected_carpet(mask: int) -> np.ndarray:
@@ -1293,6 +1293,28 @@ def plate_down() -> np.ndarray:
     im[7:10,7:10]=3
     return im
 
+def portal(state: int) -> np.ndarray:
+    """A recessed transport pad: broken outer chevrons, rotating lit aperture.
+
+    The slab retains its bevel. Inactive pads have a closed dark iris; active
+    pads open into a dithered well, with a bright sector moving around it.
+    """
+    im=slab(73)
+    y,x=np.mgrid[0:16,0:16];dx=x-7.5;dy=y-7.5
+    radius=np.maximum(np.abs(dx),np.abs(dy))
+    ring=(radius>=4)&(radius<=6)&((np.abs(dx)<3)|(np.abs(dy)<3))
+    im[ring]=2
+    im[(radius>=3)&(radius<4)]=0
+    im[radius<3]=0 if state else 1
+    if state:
+        im[(radius<3)&((x+y+state)%3==0)]=2
+        sector=[dy<-2,dx>2,dy>2][state-1]
+        im[ring&sector]=3
+        im[7:9,7:9]=3
+    else:
+        im[7:9,5:11]=0
+    return im
+
 def item_icon(rows: str) -> bytes:
     """Reduce the authored object, excluding the card's slab and shadow."""
     src=np.array([[int(c) if c in '0123' else 1 for c in r] for r in rows.strip().splitlines()],np.uint8)
@@ -1314,6 +1336,7 @@ EDGE_FLIP = 0x20
 EDGE_NAMES = {n for n, _, _ in EDGES}
 EXTRAS=[(f'AUTOCARPET{k}',PAL_FLOOR,lambda k=k:connected_carpet(k)) for k in range(16)]
 EXTRAS += [('PLATE_DOWN',PAL_FLOOR,plate_down)]
+EXTRAS += [(f'PORTAL{k}',PAL_REACT_A,lambda k=k:portal(k)) for k in range(4)]
 SHARED_NAMES=EDGE_NAMES | {n for n,_,_ in EXTRAS}
 LOW0 = {f"ITEM_{n}" for n, _, _ in ITEM_ART} | {"ICE1"} | SHARED_NAMES
 

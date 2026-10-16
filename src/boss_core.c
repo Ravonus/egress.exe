@@ -59,6 +59,7 @@ void boss_setup(uint8_t slot, uint8_t biome) BANKED {
   room.nitem = 0;
   room.nob = room.nrun = 0;
   memset(room.prot, 0, sizeof room.prot);
+  eg_links_clear(&room);
   nen = 1;
   enemies_alive = 1;
   memset(e, 0, sizeof *e);

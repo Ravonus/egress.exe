@@ -24,6 +24,7 @@ SRC := src/main.c src/screens.c src/play.c src/grid.c src/hud.c src/player.c src
 # B2 bosses (src/boss_api.h)
 SRC += src/boss_core.c src/boss_tenant.c src/boss_fax.c src/boss_art.c src/boss_oam.c
 SRC += src/core/eg_physics.c
+SRC += src/core/eg_link.c src/core/eg_link_gen.c
 SRC += src/core/eg_family.c
 SRC += src/items.c
 SRC += src/core/eg_combat.c src/core/eg_stamina.c src/stamina.c
@@ -162,7 +163,7 @@ src/gen/boss_art.h src/gen/boss_art_data.h: tools/bake_boss.py tools/mock/mobgen
 src/gen/music_data.h: tools/compose.py
 	$(PY) tools/compose.py $@
 
-ROOM_SRC := src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c src/core/eg_physics.c src/core/eg_obst.c src/core/eg_ogen.c host/eg_osolve.c
+ROOM_SRC := src/core/eg_room.c src/core/eg_link.c src/core/eg_link_gen.c src/core/eg_gen.c src/core/eg_piece.c src/core/eg_physics.c src/core/eg_obst.c src/core/eg_ogen.c host/eg_osolve.c
 ROOM_HDR := src/core/eg_room.h src/core/eg_piece.h host/eg_solve.h src/core/eg_obst.h host/eg_osolve.h
 build/host/egtool: host/egtool.c host/eg_solve.c host/eg_walls.c $(ROOM_SRC) $(ROOM_HDR)
 	@mkdir -p $(dir $@)
@@ -182,10 +183,10 @@ seeds: build/host/egtool-bake build/host/egtool tools/bake_seeds.sh tools/seed_c
 # the run planner over the baked table, headless (B1 curriculum) and the full ~52-floor layout (3.6): `egplan check 1000`
 # is part of `make test`
 build/host/egplan: host/egplan.c host/egrun.c host/egstage.c src/core/eg_plan.c src/core/eg_plan.h src/core/eg_stage.c \
-		src/core/eg_stage.h src/core/eg_room.c src/gen/eg_seeds.c src/gen/eg_seeds.h
+		src/core/eg_stage.h src/core/eg_room.c src/core/eg_link.c src/gen/eg_seeds.c src/gen/eg_seeds.h
 	@mkdir -p $(dir $@)
 	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/egplan.c host/egrun.c host/egstage.c src/core/eg_plan.c src/core/eg_stage.c \
-		src/core/eg_room.c src/gen/eg_seeds.c -lm
+		src/core/eg_room.c src/core/eg_link.c src/gen/eg_seeds.c -lm
 
 # B2 living obstacles: the core rules and the tick solver against the mock room (tools/mock/obstacle_room.py)
 build/host/test_obst: host/test_obst.c $(ROOM_SRC) $(ROOM_HDR)
@@ -217,20 +218,20 @@ build/host/test_interactions: host/test_interactions.c src/core/eg_combat.c $(RO
 test-interactions: build/host/test_interactions
 	build/host/test_interactions
 
-build/host/test_curriculum: host/test_curriculum.c src/core/eg_family.c src/core/eg_plan.c src/core/eg_stage.c src/core/eg_room.c src/gen/eg_seeds.c $(HDRS)
+build/host/test_curriculum: host/test_curriculum.c src/core/eg_family.c src/core/eg_plan.c src/core/eg_stage.c src/core/eg_room.c src/core/eg_link.c src/gen/eg_seeds.c $(HDRS)
 	@mkdir -p $(dir $@)
-	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_curriculum.c src/core/eg_family.c src/core/eg_plan.c src/core/eg_stage.c src/core/eg_room.c src/gen/eg_seeds.c
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_curriculum.c src/core/eg_family.c src/core/eg_plan.c src/core/eg_stage.c src/core/eg_room.c src/core/eg_link.c src/gen/eg_seeds.c
 
-build/host/test_run_stream: host/test_run_stream.c src/core/eg_plan.c src/core/eg_stage.c src/core/eg_room.c src/gen/eg_seeds.c $(HDRS)
+build/host/test_run_stream: host/test_run_stream.c src/core/eg_plan.c src/core/eg_stage.c src/core/eg_room.c src/core/eg_link.c src/gen/eg_seeds.c $(HDRS)
 	@mkdir -p $(dir $@)
-	$(HOSTCC) $(HOSTCFLAGS) -Isrc/core -o $@ host/test_run_stream.c src/core/eg_plan.c src/core/eg_stage.c src/core/eg_room.c src/gen/eg_seeds.c
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc/core -o $@ host/test_run_stream.c src/core/eg_plan.c src/core/eg_stage.c src/core/eg_room.c src/core/eg_link.c src/gen/eg_seeds.c
 
 test-run-stream: build/host/test_run_stream
 	$<
 
-build/host/run_stream_dump: host/run_stream_dump.c test/native/run_cases.h src/core/eg_plan.c src/core/eg_stage.c src/core/eg_room.c src/gen/eg_seeds.c $(HDRS)
+build/host/run_stream_dump: host/run_stream_dump.c test/native/run_cases.h src/core/eg_plan.c src/core/eg_stage.c src/core/eg_room.c src/core/eg_link.c src/gen/eg_seeds.c $(HDRS)
 	@mkdir -p $(dir $@)
-	$(HOSTCC) $(HOSTCFLAGS) -Isrc -o $@ host/run_stream_dump.c src/core/eg_plan.c src/core/eg_stage.c src/core/eg_room.c src/gen/eg_seeds.c
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc -o $@ host/run_stream_dump.c src/core/eg_plan.c src/core/eg_stage.c src/core/eg_room.c src/core/eg_link.c src/gen/eg_seeds.c
 
 build/run-check/test.o: test/native/run_stream.c test/native/run_cases.h $(HDRS)
 	@mkdir -p $(dir $@)
@@ -240,7 +241,7 @@ build/run-check/plan.o: src/core/eg_plan.c $(HDRS)
 	@mkdir -p $(dir $@)
 	$(LCC) $(CFLAGS) -DEG_FULL_RUN -o $@ $<
 
-build/run-check/run.gbc: build/run-check/test.o build/run-check/plan.o build/cache-check/cache.o build/obj/core/eg_stage.o build/obj/core/eg_room.o build/obj/core/eg_piece.o build/obj/gen/eg_seeds.o
+build/run-check/run.gbc: build/run-check/test.o build/run-check/plan.o build/cache-check/cache.o build/obj/core/eg_stage.o build/obj/core/eg_room.o build/obj/core/eg_link.o build/obj/core/eg_piece.o build/obj/gen/eg_seeds.o
 	$(LCC) $(LDFLAGS) -Wm-yt0x1B -o $@ $^
 
 test-native-run-stream: build/host/run_stream_dump build/run-check/run.gbc
@@ -272,6 +273,38 @@ build/host/test_gen_fingerprint: host/test_gen_fingerprint.c $(ROOM_SRC) $(ROOM_
 
 test-gen-fingerprint: build/host/test_gen_fingerprint
 	$<
+
+build/host/test_links: host/test_links.c src/core/eg_room.c src/core/eg_link.c src/core/eg_piece.c $(ROOM_HDR)
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_links.c src/core/eg_room.c src/core/eg_link.c src/core/eg_piece.c
+
+test-links: build/host/test_links
+	$<
+
+build/host/test_link_gen: host/test_link_gen.c host/eg_solve.c $(ROOM_SRC) $(ROOM_HDR) src/core/eg_physics.h
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_link_gen.c host/eg_solve.c $(ROOM_SRC)
+
+test-linked-puzzles: build/host/test_link_gen test-links
+	$<
+
+build/host/link_stream_dump: host/link_stream_dump.c test/native/link_cases.h src/core/eg_room.c src/core/eg_link.c $(ROOM_HDR)
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc -o $@ host/link_stream_dump.c src/core/eg_room.c src/core/eg_link.c
+
+build/link-check/test.o: test/native/link_stream.c test/native/link_cases.h $(HDRS)
+	@mkdir -p $(dir $@)
+	$(LCC) $(CFLAGS) -o $@ $<
+
+build/link-check/links.gbc: build/link-check/test.o build/obj/core/eg_room.o build/obj/core/eg_link.o
+	$(LCC) $(LDFLAGS) -Wm-yt0x1B -o $@ $^
+
+test-native-links: build/host/link_stream_dump build/link-check/links.gbc
+	$(PY) tools/test_link_stream.py $^
+
+test-native-linked-puzzles: all build/host/egtool
+	$(PY) test/harness/linked_puzzles.py build/egress.gbc build/link-check/game-mbc5
+	$(PY) test/harness/linked_puzzles.py build/egress-rtc.gbc build/link-check/game-mbc3
 
 test-curriculum: build/host/test_curriculum
 	build/host/test_curriculum
@@ -400,9 +433,9 @@ test-character-art: build/egress.gbc build/egress-rtc.gbc
 	$(PY) test/harness/heir_pixels.py build/egress.gbc build/sprints/heir-pixels-mbc5
 	$(PY) test/harness/heir_pixels.py build/egress-rtc.gbc build/sprints/heir-pixels-mbc3
 
-build/host/gravity_ref: host/gravity_ref.c src/core/eg_room.c src/core/eg_room.h
+build/host/gravity_ref: host/gravity_ref.c src/core/eg_room.c src/core/eg_link.c src/core/eg_room.h
 	@mkdir -p $(dir $@)
-	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/gravity_ref.c src/core/eg_room.c
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/gravity_ref.c src/core/eg_room.c src/core/eg_link.c
 
 test-cartridge-gravity: build/host/gravity_ref build/egress.gbc build/egress-rtc.gbc
 	$(PY) test/harness/gravity.py build/host/gravity_ref build/egress.gbc build/egress-rtc.gbc
@@ -428,7 +461,7 @@ test-rtc: build/host/test_clock build/egress.gbc build/egress-rtc.gbc
 	$(PY) tools/mapper_audit.py build/linked-mbc5.map build/linked-mbc3.map
 	$(PY) test/rtc_test.py build/egress.gbc build/egress-rtc.gbc
 
-test: build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-physics test-island-edges test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-runtime test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera
+test: build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-physics test-island-edges test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-runtime test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera test-linked-puzzles test-native-links test-native-linked-puzzles
 	build/host/test_obst
 	build/host/test_room src/gen/eg_seeds.c
 	build/host/egplan check 1000
@@ -444,4 +477,4 @@ clean:
 	rm -rf build
 
 .PHONY: rom all rtc test test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-fs-proto test-physics test-island-edges test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-narrator test-journal test-runtime-core test-runtime test-wram-cache shots clean seeds heir
-.PHONY: test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera
+.PHONY: test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera test-links test-linked-puzzles test-native-links test-native-linked-puzzles

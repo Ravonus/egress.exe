@@ -18,11 +18,13 @@ state is separate: a slab can collapse behind the camera and assemble again on a
 consumed item, repaired floor, broken wall, moved crate or killed enemy. Camera presentation must not silently
 replace a conditional bridge or a chase stage's real destruction.
 
-The current core has one all-plates/all-shutters circuit. Composing several solved rooms into a larger board
-without circuit identities would couple unrelated gates and invalidate their solutions. A connected-stage
-constructor therefore needs an explicit dependency graph and named circuits, plus a host replay of the complete
-stage. Individual chamber proofs alone are insufficient. Portals and falling-object routes must use the same
-persistent world and resource accounting as ordinary movement.
+The core now supports two independent named circuits with AND/OR/latching sources, player/object weights and
+powered sockets. Twelve appended room bytes also describe a conditional portal pair. Off-window source snapshots
+have explicit values, so an inactive source cannot be mistaken for an unweighted local plate. The complete
+16 by 14 portal motif has host crate/tool alternatives and native input replay; that is a dependency prerequisite,
+not a larger connected stage. The larger constructor still needs a replay of its complete global dependency
+graph. Individual chamber proofs alone are insufficient. Portals and falling-object routes must use the same
+persistent world and finite resource accounting as ordinary movement.
 
 ## Native constraints to preserve
 

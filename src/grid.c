@@ -145,6 +145,8 @@ static uint8_t meta_for(uint8_t i) {
     return (h & 2u) ? M_VOID_C : ((h & 1u) ? M_VOID_B : M_VOID_A);
   }
   if (look_skin[i]) return (uint8_t)(look_skin[i] - 1u); /* a fragile stage or a pit (src/look.h) */
+  if((room.portal_need&EG_PORTAL_ON) && (i==room.portal[0] || i==room.portal[1]) &&
+     (t==T_EMPTY || t==T_PLATE)) return puzzle_meta(i);
   if (t >= T_CRUMBLE) return puzzle_meta(i);         /* B1 puzzle cells: their cards (src/puzzle.c) */
   switch (t) {
     case T_EMPTY:

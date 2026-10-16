@@ -690,8 +690,19 @@ void look_break_tile(uint8_t i, uint8_t kind) BANKED {
 }
 
 static void look_update(uint8_t prepare);
+void look_anchor(uint8_t i) BANKED {
+  uint8_t k;
+  if(i>=EG_N || look_here(i) || !(roam_hidden[i>>3]&BIT(i))) return;
+  look_present[i>>3]|=BIT(i);roam_hidden[i>>3]&=(uint8_t)~BIT(i);
+  queued[i>>3]&=(uint8_t)~BIT(i);
+  for(k=0u;k!=LOOK_MAX_CARDS;k++) if(c_kind[k] && c_cell[k]==i && !c_brk[k]) {finish(k);break;}
+  draw_cell(i);
+  if(EG_Y(i)<EG_H-1u) mark((uint8_t)(i+EG_W));
+  if(EG_X(i)) mark((uint8_t)(i-1u));
+  if(EG_X(i)<EG_W-1u) mark((uint8_t)(i+1u));
+}
 static uint8_t ground_ahead(void) {
-  uint8_t i=cell_at(pl_x,pl_y),k;
+  uint8_t i=cell_at(pl_x,pl_y);
   int16_t x=(int16_t)(pl_x>>4)+roam_dx,y=(int16_t)(pl_y>>4)+roam_dy;
   if(look_here(i) || !(roam_hidden[i>>3]&BIT(i))) {
     if((uint16_t)x>=EG_W || (uint16_t)y>=EG_H) return 0u;
@@ -700,13 +711,7 @@ static uint8_t ground_ahead(void) {
   }
   /* A fast approach lands the slab before collision can carry the feet onto
    * it. Only camera-owned presentation is affected, never conditional floor. */
-  look_present[i>>3]|=BIT(i);roam_hidden[i>>3]&=(uint8_t)~BIT(i);
-  queued[i>>3]&=(uint8_t)~BIT(i);
-  for(k=0u;k!=LOOK_MAX_CARDS;k++) if(c_kind[k] && c_cell[k]==i && !c_brk[k]) {finish(k);break;}
-  draw_cell(i);
-  if(EG_Y(i)<EG_H-1u) mark((uint8_t)(i+EG_W));
-  if(EG_X(i)) mark((uint8_t)(i-1u));
-  if(EG_X(i)<EG_W-1u) mark((uint8_t)(i+1u));
+  look_anchor(i);
   return 1u;
 }
 void look_frame_begin(void) BANKED {
@@ -723,11 +728,12 @@ void look_frame_begin(void) BANKED {
   }
   ambient();
   if (game_mode == MODE_PLAY && !look_busy_n) items_tick();
-  if(roam_on && game_mode==MODE_PLAY && (enemies_alive || stage_type!=SG_PUZZLE)) {
+  if(roam_on && game_mode==MODE_PLAY) {
     /* Incoming terrain must not starve behind actor rendering. Commit a
      * bounded ready card / launch here; animation stays after the actors. */
     roam_late=0u;
-    if(!ground_ahead() && enemies_alive<3u && grav_t!=1u && !push_t) look_update(1u);
+    k=ground_ahead();
+    if((enemies_alive || stage_type!=SG_PUZZLE) && !k && enemies_alive<3u && grav_t!=1u && !push_t) look_update(1u);
   }
 }
 

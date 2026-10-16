@@ -16,8 +16,8 @@
  *
  * VRAM bank 0, BG-only (0x9000 .. 0x97FF, BG indices 0 .. 127 with the bank bit clear; no sprite sees it, nothing
  * else on a floor uses it, the screens' pictures load there and are gone before look_load):
- *   LOOK_LOW0_BASE .. (16 .. 83)  thin ice's crack (M_ICE1) and the 16 item cards (M_ITEM0 + piece - 1); 0 .. 15 and
- *                  84 .. 127 spare (60 tiles, 15 cards). bake_look.py fails the bake past 127.
+ *   LOOK_LOW0_BASE .. 109  thin ice's crack, the 16 item cards, shared carpet/edge quadrants and four transport-pad
+ *                  states. 110..111 spare; 112..127 inventory icons. The baker checks the icon boundary.
  *
  * VRAM bank 0 (sprites 0 .. 209 from tools/bake_art.py; the BG reads bank 0 too, attribute bit 3 clear):
  *   (indices 128 .. 255 are the sprites' tiles 128 .. 255: the BG addresses tiles signed on a floor, LCDC bit 4 clear)
@@ -67,6 +67,7 @@ void look_assemble(uint8_t origin) BANKED;
 /* Camera presentation only: retain the material board and all object mutations. */
 void look_roam_begin(uint8_t enabled) BANKED;
 void look_roam_tick(void) BANKED;
+void look_anchor(uint8_t cell) BANKED; /* portal landing: reveal camera-owned ground immediately */
 /* The room falls apart: the edges first, toward `origin`; cells within `keep` (Chebyshev, 0 = none, 1 = the origin,
  * 2 = it and its 8 neighbours) stay. Each cell cracks, splits in two and falls, darkening, into the void. */
 void look_collapse(uint8_t origin, uint8_t keep) BANKED;

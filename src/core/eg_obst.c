@@ -215,6 +215,9 @@ static uint8_t try_step(eg_room *r, eg_ob *o, uint8_t k, uint8_t ru, uint8_t d) 
   if (EG_CRATE(v) && (ru == OB_PUSHER || ru == OB_MIRROR)) {
     s = (uint8_t)(to + ostep[d]);
     if (s != tk->p && eg_push_block(r, to, s)) {
+      uint8_t arrival;
+      arrival=eg_portal_object(r,s,&tk->p,1u);
+      if(arrival!=EG_LINK_NONE) chg(arrival);
       chg(to);
       chg(s);
       tk->ev |= EV_PUSH;

@@ -168,25 +168,27 @@ static void shape(uint8_t kind) {
 
 /* every open cell of rows y0..y1 reaches every other inside them (only concrete blocks) */
 static uint8_t band_whole(const eg_room *r, uint8_t y0, uint8_t y1) {
-  static uint8_t q[EG_N], seen[EG_N];
+  static uint8_t q[EG_N], seen[EG_N / 8u];
+  static const uint8_t seen_bit[8] = {1u, 2u, 4u, 8u, 16u, 32u, 64u, 128u};
   uint8_t i, n = 0u, h = 0u, open = 0u, c, d, s;
-  for (i = 0u; i != (uint8_t)EG_N; i++) seen[i] = 0u;
+  for (i = 0u; i != (uint8_t)(EG_N / 8u); i++) seen[i] = 0u;
   for (i = EG_IDX(1u, y0); i <= EG_IDX(EG_W - 2u, y1); i++) {
     if (EG_X(i) == 0u || EG_X(i) == EG_W - 1u || (r->c[i] & T_MASK) == T_WALL) continue;
     open++;
     if (!n) {
       q[n++] = i;
-      seen[i] = 1u;
+      seen[i >> 3] |= seen_bit[i & 7u];
     }
   }
   while (h != n) {
     c = q[h++];
     for (d = 0u; d != 4u; d++) {
       s = (uint8_t)(c + step4[d]);
-      if (seen[s] || EG_Y(s) < y0 || EG_Y(s) > y1 || EG_X(s) == 0u || EG_X(s) == EG_W - 1u ||
+      if (EG_Y(s) < y0 || EG_Y(s) > y1 || EG_X(s) == 0u || EG_X(s) == EG_W - 1u ||
+          (seen[s >> 3] & seen_bit[s & 7u]) ||
           (r->c[s] & T_MASK) == T_WALL)
         continue;
-      seen[s] = 1u;
+      seen[s >> 3] |= seen_bit[s & 7u];
       q[n++] = s;
     }
   }
@@ -316,6 +318,7 @@ static uint8_t free_cell(eg_room *r, uint8_t minz, uint8_t maxz, uint8_t avoid) 
 uint8_t eg_generate(eg_room *r, uint16_t seed, uint8_t tier) EG_BANKED {
   uint8_t *c = r->c;
   uint8_t i, k, n, x, y, t, s, w, a, tries, d, nsup, herr, depth, xn;
+  eg_links_clear(r);
   eg_plates_dirty = 1u; /* a new room: the shutter pass syncs its gates */
   eg_rs = (uint16_t)(seed ^ 0x5a3cu ^ ((uint16_t)tier << 11));
   if (!eg_rs) eg_rs = 0x1234u;
