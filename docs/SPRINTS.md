@@ -1,7 +1,8 @@
 # Native game completion ledger
 
 This tracks the complete build order in `redesign.md` section 18 and the owner's later gameplay corrections.
-The public `7839518` cartridge is the verified native feedback and island-edge milestone. It does not complete this ledger.
+The public `f4df94b` cartridge includes the verified native feedback, island-edge and inherited-art corrections.
+It does not complete this ledger.
 An integrated prototype, a passing host simulation, a native build and a played feature are separate evidence.
 
 | Milestone | Current state | Required before completion |
@@ -119,3 +120,16 @@ evidence are specified in `CONNECTED-STAGES.md`; opening the rim is not a larger
 The island-edge milestone was merged, pushed and published after its complete native gate. Both public mapper
 images, the live browser and real older-save carryover were verified; see
 `validation/island-edges-20261016/site-release.json`. The remaining larger-stage/full-run milestones are unchanged.
+
+## Character art correction (2026-10-16)
+
+The sitting pose retains its folded legs and breathing. The runtime also now advances past selected art deltas
+that contain no changed rows, so later hair, cloth, markings and weapon layers still apply. The old public ROM
+fails the independent pixel comparison; both replacement mapper images pass 2,660 sampled native uploads each.
+The complete native gate, 128 seated-state/direction samples and live site/save read-back are recorded in
+`validation/heir-art-20261016/`. This release preserves the ten-floor office scope.
+
+Camera-driven terrain assembly/collapse remains on `codex/camera-tiles`. Its quiet-room travel/backtracking test
+passes, but crowded combat and the combined boss regression gate are unresolved. That branch is preserved and
+pushed for continuation; its camera changes are not in this public cartridge. A larger connected simulation
+window, composed portal/circuit proof and the rest of the full-run ledger are still required.
