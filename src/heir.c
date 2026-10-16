@@ -7,6 +7,8 @@
 #include "heir.h"
 #include "narrator.h"
 #include "core/eg_input.h"
+extern volatile uint8_t video_epoch;
+extern uint8_t frame_epoch;
 
 heir_t heir;
 uint16_t dbg_heir;
@@ -217,7 +219,8 @@ uint8_t heir_draw(uint8_t oam, int16_t sx, int16_t sy) BANKED {
   /* Reuse the current full body for one tick when gravity or a late boss effect
    * leaves too little rendering time for composition. Never hide the body. */
   if ((ha_fr.pose != shown_pose || dd != shown_dd) &&
-      (shown_pose==0xffu || (grav_t!=GRAVITY_FRAMES && (LY_REG<64u || LY_REG>=144u)))) {
+      (shown_pose==0xffu || (grav_t!=GRAVITY_FRAMES &&
+       (game_mode!=MODE_PLAY || video_epoch==frame_epoch) && (LY_REG<64u || LY_REG>=144u)))) {
     buf_sel ^= 1u;
     spr_mask = heir_compose(ha_fr.pose, dd, (uint8_t)(buf_sel << 3));
     shown_pose = ha_fr.pose;

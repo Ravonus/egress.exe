@@ -86,12 +86,74 @@ static void take(uint8_t oy, uint8_t n) NONBANKED {
   } while (--count);
 }
 
+/* Validate then reserve the same four/five bands in one register-only pass.
+ * Never partially reserve a group that the last band would refuse. */
+static uint8_t reserve(uint8_t oy,uint8_t n) NONBANKED NAKED {
+  oy;n;
+  __asm
+    ld d,a
+    rrca
+    rrca
+    and a,#0x3f
+    add a,#<_band
+    ld l,a
+    ld a,#>_band
+    adc a,#0
+    ld h,a
+    ld a,#11
+    sub a,e
+    ld c,a
+    ld a,(hl+)
+    cp a,c
+    jr nc,9$
+    ld a,(hl+)
+    cp a,c
+    jr nc,9$
+    ld a,(hl+)
+    cp a,c
+    jr nc,9$
+    ld a,(hl+)
+    cp a,c
+    jr nc,9$
+    ld a,d
+    and a,#3
+    jr z,1$
+    ld a,(hl)
+    cp a,c
+    jr nc,9$
+    add a,e
+    ld (hl),a
+  1$:
+    dec hl
+    ld a,(hl)
+    add a,e
+    ld (hl),a
+    dec hl
+    ld a,(hl)
+    add a,e
+    ld (hl),a
+    dec hl
+    ld a,(hl)
+    add a,e
+    ld (hl),a
+    dec hl
+    ld a,(hl)
+    add a,e
+    ld (hl),a
+    ld a,#1
+    ret
+  9$:
+    xor a,a
+    ret
+  __endasm;
+}
+
 uint8_t oam_fits(int16_t sy, uint8_t n) NONBANKED {
   if ((uint16_t)(sy + 15) > 158u) return 1u;
   return fits((uint8_t)(sy + 16), n);
 }
 
-uint8_t oam_group(int16_t sx, int16_t sy, uint8_t n, uint8_t tile0, uint8_t tstep, uint8_t prop) NONBANKED {
+static uint8_t oam_clipped(int16_t sx, int16_t sy, uint8_t n, uint8_t tile0, uint8_t tstep, uint8_t prop) NONBANKED {
   uint8_t oy, vis = 0, k, ox, full;
   int16_t x;
   OAM_item_t *o;
@@ -130,6 +192,105 @@ uint8_t oam_group(int16_t sx, int16_t sy, uint8_t n, uint8_t tile0, uint8_t tste
     o++;
   }
   return 1u;
+}
+
+/* Register-only common path. Keep the portable clipping path for groups that
+ * cross a screen edge; most mob/overlay/particle groups fit entirely on screen.
+ * sdcccall(1): DE=x, BC=y; n/tile/step/prop are four callee-popped stack bytes. */
+uint8_t oam_group(int16_t sx, int16_t sy, uint8_t n, uint8_t tile0, uint8_t tstep, uint8_t prop) NONBANKED NAKED {
+  sx;sy;n;tile0;tstep;prop;
+  __asm
+    ld hl,#15
+    add hl,bc
+    ld a,h
+    or a,a
+    jr nz,8$
+    ld a,l
+    cp a,#159
+    jr nc,8$
+    ld a,d
+    or a,a
+    jp nz,_oam_clipped
+    ld a,c
+    add a,#16
+    ld (#_emit_y),a
+    ldhl sp,#2
+    ld a,(hl)
+    or a,a
+    jr z,8$
+    ld (#_emit_n),a
+    add a,a
+    add a,a
+    add a,a
+    ld l,a
+    ld a,#160
+    sub a,l
+    cp a,e
+    jp c,_oam_clipped
+    ld a,e
+    add a,#8
+    ld (#_emit_x),a
+    ld a,(#_emit_n)
+    ld b,a
+    ld a,(#_oam_n)
+    add a,b
+    ld c,a
+    ld a,(#_oam_cap)
+    cp a,c
+    jr c,7$
+    ld e,b
+    ld a,(#_emit_y)
+    call _reserve
+    or a,a
+    jr z,7$
+    ld a,(#_oam_n)
+    ld l,a
+    add a,b
+    ld (#_oam_n),a
+    ld a,l
+    add a,a
+    add a,a
+    add a,#<_shadow_OAM
+    ld l,a
+    ld h,#>_shadow_OAM
+    push hl
+    ldhl sp,#5
+    ld a,(hl+)
+    ld d,a
+    ld a,(hl+)
+    ld c,a
+    ld a,(hl)
+    ld e,a
+    pop hl
+  1$:
+    ld a,(#_emit_y)
+    ld (hl+),a
+    ld a,(#_emit_x)
+    ld (hl+),a
+    add a,#8
+    ld (#_emit_x),a
+    ld a,d
+    ld (hl+),a
+    add a,c
+    ld d,a
+    ld a,e
+    ld (hl+),a
+    dec b
+    jr nz,1$
+  8$:
+    ld a,#1
+    jr 9$
+  7$:
+    ld a,b
+    ld hl,#_oam_refused
+    add a,(hl)
+    ld (hl),a
+    xor a,a
+  9$:
+    pop hl
+    add sp,#4
+    jp (hl)
+  __endasm;
 }
 
 void oam_count(uint8_t from) NONBANKED {

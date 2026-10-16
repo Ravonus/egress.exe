@@ -39,6 +39,7 @@ static void mark(uint8_t i) {
 /* The cartridge's two hot loops in SM83 (each ~25-30 scan lines as SDCC C, every GRAVITY_FRAMES): the scan for the
  * next CRT that may move, and the F_MOVED clear. The host builds the same C as before. */
 static const uint8_t *scan_p;
+static const uint8_t *scan_occ;
 static uint8_t scan_n;
 /* A bottom-up step never creates a CRT in a row still to be processed. Build
  * the row mask once, avoiding repeated C loop setup for twelve empty rows. */
@@ -128,6 +129,65 @@ static uint8_t scan_gates(void) __naked {
   __endasm;
 }
 typedef char native_gate_values[(T_GATE==11u && T_GATE_OPEN==12u) ? 1 : -1];
+/* Every plate must carry weight. A bare plate settles that result immediately;
+ * checking occupancy only for bare plates avoids a general C scan per cell. */
+static uint8_t scan_weights(void) __naked {
+  __asm
+    ld hl,#_scan_p
+    ld a,(hl+)
+    ld h,(hl)
+    ld l,a
+    ld b,#0
+    ld c,#224
+    ld d,#0
+  1$:
+    ld a,(hl+)
+    cp a,#22
+    jr z,2$
+    cp a,#138
+    jr z,2$
+    cp a,#10
+    jr z,4$
+    and a,#0x3f
+    cp a,#36
+    jr nz,3$
+  2$:
+    set 0,d
+  3$:
+    inc b
+    dec c
+    jr nz,1$
+    ld a,d
+    ret
+  4$:
+    push hl
+    push bc
+    ld a,(#_scan_n)
+    or a,a
+    jr z,6$
+    ld c,a
+    ld hl,#_scan_occ
+    ld a,(hl+)
+    ld h,(hl)
+    ld l,a
+  5$:
+    ld a,(hl+)
+    cp a,b
+    jr z,7$
+    dec c
+    jr nz,5$
+  6$:
+    pop bc
+    pop hl
+    ld a,#2
+    ret
+  7$:
+    pop bc
+    pop hl
+    jr 2$
+  __endasm;
+}
+typedef char native_weight_values[(T_BLOCK_PLATE==22u && T_PLATE==10u && F_OB==128u && T_ROCK==4u && F_PLATE==32u) ? 1 : -1];
 static void clear_moved(void) __naked { /* EG_N cells from scan_p: F_MOVED off */
   __asm
     ld hl, #_scan_p
@@ -281,7 +341,8 @@ static uint8_t shutters(eg_room *r, const uint8_t *occ, uint8_t nocc) {
   eg_plates_dirty = 0u;
   scan_p=c;
   if(!scan_gates()) return res;
-#endif
+  scan_occ=occ;scan_n=nocc;v=scan_weights();w=(v&2u) ? 0u : (uint8_t)(v&1u);gates=1u;
+#else
   w = 0u;
   gates = 0u;
   for (i = 0u; i != (uint8_t)EG_N; i++) {
@@ -293,6 +354,7 @@ static uint8_t shutters(eg_room *r, const uint8_t *occ, uint8_t nocc) {
     if (v == T_GATE || v == T_GATE_OPEN) gates = 1u;
   }
   if (w == 2u) w = 0u;
+#endif
   if (gates)
     for (i = 0u; i != (uint8_t)EG_N; i++) {
       v = c[i];
@@ -408,7 +470,7 @@ uint8_t eg_frag_hit(eg_room *r, uint8_t cell, uint8_t who) EG_BANKED {
 /* The flood runs in slices (eg_dead_step) so the cartridge can spread it over frames: a bit table for the seen
  * set (a variable shift is a loop on the SM83), the queue in WRAM, the key scan in chunks. */
 static uint8_t dd_seen[EG_N / 8u], dd_q[EG_N];
-static uint8_t dd_n, dd_h, dd_pass, dd_rock, dd_from, dd_k, dd_mode, dd_locked;
+static uint8_t dd_n, dd_h, dd_pass, dd_rock, dd_from, dd_k, dd_mode, dd_locked, dd_scan, dd_flags;
 static const uint8_t dd_bit[8] = {1u, 2u, 4u, 8u, 16u, 32u, 64u, 128u};
 #define DD_SEEN(c) (dd_seen[(uint8_t)(c) >> 3] & dd_bit[(uint8_t)(c) & 7u])
 #define DD_MARK(c) (dd_seen[(uint8_t)(c) >> 3] |= dd_bit[(uint8_t)(c) & 7u])
@@ -435,7 +497,7 @@ static void dd_visit(const eg_room *r, uint8_t s) {
 void eg_dead_begin(uint8_t from) EG_BANKED {
   dd_from = from;
   dd_pass = dd_rock = dd_k = dd_mode = dd_locked = 0u;
-  dd_flood_begin();
+  dd_scan=dd_flags=0u;
 }
 
 /* Reverse-push reachability is optimistic: other crates, breakable material and
@@ -446,23 +508,21 @@ static uint8_t dd_permanent(const eg_room *r,int16_t x,int16_t y) {
   return (uint8_t)((uint16_t)x>=EG_W || (uint16_t)y>=EG_H || EG_ABYSS(r->c[EG_IDX(x,y)]) ||
                    (r->c[EG_IDX(x,y)]&T_MASK)==T_WALL);
 }
-static uint8_t dd_weights(const eg_room *r,const uint8_t *pocket,uint8_t n) {
-  uint8_t i,t,plates=0u,gates=0u,p,tools=0u;
-  if(r->nob) return 1u; /* a living obstacle may still carry a plate */
-  for(i=0u;i!=EG_N;i++) {
-    t=(uint8_t)(r->c[i]&T_MASK);
-    if(t==T_ROCK || t==T_BLOCK_PLATE) return 1u;
+static void dd_weight_cell(const eg_room *r,uint8_t i) {
+    uint8_t t=(uint8_t)(r->c[i]&T_MASK);
+    if(t==T_ROCK || t==T_BLOCK_PLATE) dd_flags|=1u;
     if(t==T_PLATE) {
-      plates=1u;
+      dd_flags|=2u;DD_MARK(i);dd_q[dd_n++]=i;
       /* A neighbouring gate may be held by the player while leaving the plate. */
       if((i>=EG_W && (r->c[i-EG_W]&T_MASK)==T_GATE) ||
          (i<EG_N-EG_W && (r->c[i+EG_W]&T_MASK)==T_GATE) ||
          (EG_X(i) && (r->c[i-1u]&T_MASK)==T_GATE) ||
-         (EG_X(i)<15u && (r->c[i+1u]&T_MASK)==T_GATE)) return 1u;
+         (EG_X(i)<15u && (r->c[i+1u]&T_MASK)==T_GATE)) dd_flags|=1u;
     }
-    if(t==T_GATE || t==T_GATE_OPEN) gates=1u;
-  }
-  if(!plates || !gates) return 1u;
+    if(t==T_GATE || t==T_GATE_OPEN) dd_flags|=4u;
+}
+static uint8_t dd_weight_tools(const eg_room *r,const uint8_t *pocket,uint8_t n) {
+  uint8_t i,t,p,tools=0u;
   for(i=0u;i<(uint8_t)(n+r->nitem);i++) {
     if(i<n) p=pocket[i];
     else {t=(uint8_t)(i-n);if((r->c[r->item_cell[t]]&T_MASK)!=T_ITEM) continue;p=r->item_piece[t];}
@@ -480,17 +540,29 @@ static void dd_jump(const eg_room *r,uint8_t i,int8_t dx,int8_t dy) {
 }
 uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, uint8_t budget) EG_BANKED {
   uint8_t i, k, j, p, bridge = 0u;
+  if(!budget) return EG_DEAD_BUSY;
   if(!dd_mode) {
-    dd_mode=2u;
-    if(!dd_weights(r,pocket,npocket)) {
-      for(i=0u;i!=EG_N/8u;i++) dd_seen[i]=0u;
-      dd_n=dd_h=0u;
-      for(i=0u;i!=EG_N;i++) if((r->c[i]&T_MASK)==T_PLATE) {DD_MARK(i);dd_q[dd_n++]=i;}
-      dd_mode=1u;
+    dd_mode=3u;dd_scan=dd_flags=dd_n=dd_h=0u;
+    for(i=0u;i!=EG_N/8u;i++) dd_seen[i]=0u;
+    if(r->nob) {dd_mode=2u;dd_flood_begin();} /* another obstacle may still carry a plate */
+  }
+  if(dd_mode==3u) {
+    /* Initialization is sliced too: at most four cell probes per budget unit,
+     * reusing the reverse queue as the plate list instead of scanning twice. */
+    while(dd_scan!=EG_N && budget && !(dd_flags&1u)) {
+      budget--;
+      for(k=0u;k!=4u && dd_scan!=EG_N;k++) dd_weight_cell(r,dd_scan++);
     }
+    if(dd_scan==EG_N || (dd_flags&1u)) {
+      if((dd_flags&1u) || !(dd_flags&2u) || !(dd_flags&4u) || dd_weight_tools(r,pocket,npocket)) {
+        dd_mode=2u;dd_flood_begin();
+      } else dd_mode=1u;
+    }
+    return EG_DEAD_BUSY;
   }
   if(dd_mode==1u) {
     static const int8_t dx[4]={0,1,0,-1},dy[4]={-1,0,1,0};
+    if(budget>1u) budget>>=1; /* reverse pushes test two signed cells in each direction */
     while(dd_h!=dd_n && budget) {
       int16_t x,y,px,py;budget--;i=dd_q[dd_h++];
       if(EG_CRATE(r->c[i])) {dd_locked=0u;break;}
@@ -506,6 +578,7 @@ uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, u
     }
     return EG_DEAD_BUSY;
   }
+  if(dd_mode==4u) goto check_keys;
   /* pass 0 floods without crossing wide pits; short roll-jumps remain possible. */
   while (dd_h != dd_n) {
     if (!budget) return EG_DEAD_BUSY;
@@ -541,14 +614,16 @@ uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, u
     return EG_DEAD_BUSY;
   }
   if (!DD_SEEN(r->door)) return EG_DEAD_DOOR;
+  dd_mode=4u;
+  return EG_DEAD_BUSY;
+check_keys:
   /* the keycards, 56 cells a slice */
-  while (dd_k != (uint8_t)EG_N) {
-    if (!budget) return EG_DEAD_BUSY;
-    budget--;
+  if (dd_k != (uint8_t)EG_N) {
     j = (uint8_t)(dd_k + 56u);
     do {
       if ((r->c[dd_k] & T_MASK) == T_KEY && !DD_SEEN(dd_k)) return EG_DEAD_KEY;
     } while (++dd_k != j);
+    return EG_DEAD_BUSY;
   }
   /* a piece the room needs (not a herring) out of reach, with no twin in reach and none in the pocket */
   for (k = 0u; k != (uint8_t)(r->nitem - r->herrings); k++) {

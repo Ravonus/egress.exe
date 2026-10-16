@@ -17,6 +17,8 @@ uint8_t floor_tier;
 eg_room __at(0xD800) room;
 typedef char eg_room_fits_floor_wram[(sizeof(eg_room) <= 0x140u) ? 1 : -1];
 uint16_t frame_count;
+volatile uint8_t video_epoch;
+uint8_t frame_epoch;
 uint8_t joy, joy_prev, joy_pressed;
 uint8_t dbg_god, dbg_no_enemies, dbg_floor;
 uint16_t dbg_seed;
@@ -26,6 +28,7 @@ uint8_t hud_line = 144u;
 uint16_t pal_bg[32], pal_sp[32];
 uint8_t pal_dirty;
 const int8_t fdx[4] = {0, 0, -1, 1}, fdy[4] = {-1, 1, 0, 0}; /* play.h: here, not in banked grid.c, so any bank reads them */
+const uint8_t look_bits[8]={1u,2u,4u,8u,16u,32u,64u,128u};
 
 void input_poll(void) {
   joy_prev = joy;
@@ -39,12 +42,17 @@ static void lcd_isr(void) NONBANKED {
   if (hud_line < 144u && LYC_REG == hud_line) LCDC_REG &= (uint8_t)~LCDCF_OBJON;
 }
 static void vbl_isr(void) NONBANKED {
+  video_epoch++;
   LCDC_REG |= LCDCF_OBJON;
   LYC_REG = hud_line;
 }
 
 void frame_wait(void) {
+  /* Publish only a complete actor/card list. A slow frame keeps the previous
+   * hardware OAM instead of DMA copying a half-written body or stale cards. */
+  ENABLE_OAM_DMA;
   vsync();
+  frame_epoch=video_epoch;
   frame_count++;
   if (!((uint8_t)frame_count & 63u)) clock_poll(); /* the clock counts VBlanks; any gap up to 18 minutes is exact */
 }

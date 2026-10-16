@@ -403,6 +403,7 @@ def fight(rom: Path, kind: int, out: Path | None, report: dict, tag: str, mortal
           limit: int = 60 * 300, gif: Path | None = None, shots: dict | None = None) -> bool:
     """one boss from its floor's start to its end; returns whether the bot won without a hit"""
     from heir import OamMeter
+    from oam_observer import OamObserver
 
     g = Game(rom)
     assert g.wait_mode(MODE_TITLE,1500)
@@ -414,6 +415,7 @@ def fight(rom: Path, kind: int, out: Path | None, report: dict, tag: str, mortal
         report[tag] = {"started": False}
         return False
     bot = Bot(g, kind)
+    allocator = OamObserver(g)
     phases: list[int] = []
     lag: dict[int, list[int]] = {}
     win_fc: list[int] = []
@@ -487,13 +489,14 @@ def fight(rom: Path, kind: int, out: Path | None, report: dict, tag: str, mortal
         "sequence_frames_per_120_min": {p: min(v) for p, v in sequence_lag.items() if v},
         "bot_log": bot.log[-12:], "end_mode": g.peek("game_mode"), "bo_refused_last": g.peek("bo_refused"),
         "damage_events": damage_events,
+        "allocator": allocator.report(),
     }
     if gif is not None and gif_frames:
         big = [im.resize((320, 288), Image.NEAREST) for im in gif_frames]
         big[0].save(gif, save_all=True, append_images=big[1:], duration=50, loop=0, optimize=True)
     report[tag] = r
     g.stop()
-    return won and (hits == 0 or not mortal)
+    return won and (hits == 0 or not mortal) and r['allocator']['all_allocations_match']
 
 
 def walk_to_door(g: Game, bot: Bot) -> None:

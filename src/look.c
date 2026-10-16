@@ -7,6 +7,8 @@
 #include "look.h"
 #include "oam.h"
 void items_tick(void) BANKED;
+extern volatile uint8_t video_epoch;
+extern uint8_t frame_epoch;
 
 uint8_t look_present[EG_N / 8u];
 uint8_t look_busy_n;
@@ -17,8 +19,11 @@ uint8_t __at(0xDCF0) look_skin[EG_N];
 uint8_t look_glitch_phase, look_glitch_period = 48u;
 uint8_t look_dbg_cell, look_dbg_kind;
 
-static uint8_t queued[EG_N / 8u];
+static uint8_t queued[EG_N / 8u],in_flight[EG_N/8u];
 static uint8_t q[256], q_head, q_n; /* the wave: cells in order, a ring */
+static uint8_t roam_hidden[EG_N/8u],roam_on,roam_scan,roam_left,roam_x,roam_y;
+static uint8_t roam_late;
+static int8_t roam_dx,roam_dy;
 
 /* cards in flight (assembly) and pieces falling (collapse) */
 enum { K_FREE = 0, K_DROP, K_RISE, K_SLIDE_L, K_SLIDE_R, K_GLITCH, K_CRACK, K_FALL, K_WOBBLE, K_SHATTER };
@@ -83,6 +88,7 @@ void look_load(uint8_t biome) BANKED {
   hum[1] = mix(hum[0], RGB(31, 31, 31), 9u);
   memset(look_present, 0xff, sizeof look_present);
   memset(queued, 0, sizeof queued);
+  memset(in_flight,0,sizeof in_flight);
   memset(c_kind, 0, sizeof c_kind);
   memset(c_brk, 0, sizeof c_brk);
   memset(look_skin, 0, sizeof look_skin);
@@ -94,6 +100,7 @@ void look_load(uint8_t biome) BANKED {
   n_flying = 0;
   look_busy_n = 0;
   obj_mode = obj_want = 0;
+  roam_on=0u;
   lk_rs = (uint16_t)(floor_seed ^ 0x5a17u ^ ((uint16_t)floor_no << 4));
   flick_next = 120u;
   flick_t = 0;
@@ -115,6 +122,8 @@ void look_freeze(void) BANKED {
   q_n = 0;
   n_flying = 0;
   look_busy_n = 0;
+  roam_on=0u;
+  memset(in_flight,0,sizeof in_flight);
 }
 
 void look_end(void) BANKED {
@@ -127,7 +136,7 @@ void look_end(void) BANKED {
 }
 
 /* --- the wave queue --- */
-#define BIT(i) ((uint8_t)(1u << ((uint8_t)(i) & 7u)))
+#define BIT(i) look_bits[(uint8_t)(i)&7u]
 static void push(uint8_t i) {
   q[(uint8_t)(q_head + q_n)] = i;
   q_n++;
@@ -207,6 +216,7 @@ static void wave(uint8_t mode, uint8_t origin, uint8_t keep) {
 
 void look_assemble(uint8_t origin) BANKED { wave(0, origin, 0); }
 void look_collapse(uint8_t origin, uint8_t keep) BANKED {
+  roam_on=0u;
   pass_vis = 1u;
   wave(1u, origin, keep);
   pass_vis = 0;
@@ -224,6 +234,74 @@ void look_raise_cell(uint8_t i) BANKED {
   push(i);
   look_busy_n = (uint8_t)(q_n + n_flying);
   obj_want = 1u;
+}
+
+void look_roam_begin(uint8_t enabled) BANKED {
+  uint8_t i;
+  roam_on=enabled;roam_scan=0u;roam_left=EG_N;roam_x=pl_x;roam_y=pl_y;roam_dx=roam_dy=0;
+  memset(roam_hidden,0,sizeof roam_hidden);
+  if(!enabled) return;
+  for(i=0u;i!=EG_N;i++) if(!on_screen(i) && !look_void_cell(i) && cell_type(i)!=T_PIT) {
+    roam_hidden[i>>3]|=BIT(i);look_present[i>>3]&=(uint8_t)~BIT(i);
+  }
+}
+
+static uint8_t roam_pending(uint8_t i) {
+  return (uint8_t)((queued[i>>3]|in_flight[i>>3])&BIT(i));
+}
+static uint8_t roam_wants(uint8_t i) {
+  uint8_t x=(uint8_t)(EG_X(i)<<4),y=(uint8_t)(EG_Y(i)<<4);
+  if(!on_screen(i)) return 0u;
+  if(absdiff(EG_X(i),pl_x>>4)<=3u && absdiff(EG_Y(i),pl_y>>4)<=3u) return 1u;
+  if(roam_dx>0 && (uint16_t)x+16u<=(uint16_t)cam_x+16u) return 0u;
+  if(roam_dx<0 && (uint16_t)x>=(uint16_t)cam_x+144u) return 0u;
+  if(roam_dy>0 && (uint16_t)y+16u<=(uint16_t)cam_y+16u) return 0u;
+  if(roam_dy<0 && (uint16_t)y>=(uint16_t)cam_y+112u) return 0u;
+  return 1u;
+}
+static void roam_raise(uint8_t i) {
+  if(!(roam_hidden[i>>3]&BIT(i)) || look_here(i) || roam_pending(i)) return;
+  /* Approaching floor precedes the cosmetic trailing queue. */
+  q_head--;q[q_head]=i;q_n++;queued[i>>3]|=BIT(i);
+  look_busy_n=(uint8_t)(q_n+n_flying);obj_want=1u;
+}
+static void roam_ahead(int16_t x,int16_t y) {
+  if((uint16_t)x<EG_W && (uint16_t)y<EG_H) roam_raise(EG_IDX(x,y));
+}
+void look_roam_tick(void) BANKED {
+  uint8_t k,i,probes;int8_t dx,dy;
+  if(!roam_on || pl_state==PS_FALL || pl_state==PS_EXIT) return;
+  dx=pl_x>roam_x ? 1 : pl_x<roam_x ? -1 : 0;
+  dy=pl_y>roam_y ? 1 : pl_y<roam_y ? -1 : 0;
+  if(dx || dy) {roam_dx=dx;roam_dy=dy;roam_left=EG_N;}
+  roam_x=pl_x;roam_y=pl_y;
+  if(dx && dy) {
+    roam_ahead((int16_t)(pl_x>>4)+dx*3,(int16_t)(pl_y>>4)+dy*2);
+    roam_ahead((int16_t)(pl_x>>4)+dx*2,(int16_t)(pl_y>>4)+dy*3);
+    roam_ahead((int16_t)(pl_x>>4)+dx*3,(int16_t)(pl_y>>4)+dy*3);
+  } else if(dx) {
+    roam_ahead((int16_t)(pl_x>>4)+dx*3,(int16_t)(pl_y>>4)-1);
+    roam_ahead((int16_t)(pl_x>>4)+dx*3,(int16_t)(pl_y>>4)+1);
+    roam_ahead((int16_t)(pl_x>>4)+dx*3,pl_y>>4);
+  } else if(dy) {
+    roam_ahead((int16_t)(pl_x>>4)-1,(int16_t)(pl_y>>4)+dy*3);
+    roam_ahead((int16_t)(pl_x>>4)+1,(int16_t)(pl_y>>4)+dy*3);
+    roam_ahead(pl_x>>4,(int16_t)(pl_y>>4)+dy*3);
+  }
+  if(LY_REG>=(enemies_alive ? 48u : 80u) && LY_REG<144u) return;
+  /* Bounded inspection, never a whole-room scan during a game frame. */
+  probes=n_flying ? 2u : 4u;
+  for(k=0u;k!=probes && roam_left;k++) {
+    roam_left--;
+    i=roam_scan;if(++roam_scan==EG_N) roam_scan=0u;
+    if(look_void_cell(i) || cell_type(i)==T_PIT || roam_pending(i)) continue;
+    if(roam_hidden[i>>3]&BIT(i)) {
+      if(look_here(i)) roam_hidden[i>>3]&=(uint8_t)~BIT(i);
+      else if(roam_wants(i)) roam_raise(i);
+    } else if(look_here(i) && !roam_wants(i) && (uint8_t)(q_n+n_flying)<12u) {
+      roam_hidden[i>>3]|=BIT(i);look_drop_cell(i);
+    }
+  }
 }
 
 /* --- drawing --- */
@@ -278,6 +356,9 @@ static uint8_t band_ok(int16_t top, int16_t bot) {
 static uint8_t launch(uint8_t i) {
   uint8_t k, h, kind;
   int16_t y = (int16_t)((uint16_t)EG_Y(i) << 4), top, bot;
+  /* Keep room for approaching floor when trailing cards are still falling. */
+  if(game_mode==MODE_PLAY && roam_on &&
+     n_flying>=(enemies_alive ? (look_here(i) ? 1u : 3u) : (look_here(i) ? 4u : 6u))) return 0u;
   for (k = 0; k != LOOK_MAX_CARDS; k++)
     if (!c_kind[k]) break;
   if (k == LOOK_MAX_CARDS) return 0;
@@ -308,6 +389,7 @@ static uint8_t launch(uint8_t i) {
   if (!band_ok(top, bot)) return 0;
   c_kind[k] = kind;
   c_cell[k] = i;
+  in_flight[i>>3]|=BIT(i);
   c_t[k] = 0;
   c_top[k] = top;
   c_bot[k] = bot;
@@ -334,6 +416,10 @@ static uint8_t launch(uint8_t i) {
 }
 
 static void finish(uint8_t k) {
+  uint8_t i=c_cell[k];
+  in_flight[i>>3]&=(uint8_t)~BIT(i);
+  if(c_kind[k]>=K_DROP && c_kind[k]<=K_GLITCH && !c_brk[k])
+    roam_hidden[i>>3]&=(uint8_t)~BIT(i);
   if (c_brk[k]) {
     c_brk[k] = 0;
     n_break--;
@@ -345,6 +431,12 @@ static void finish(uint8_t k) {
 
 /* --- fragile floors: the break (src/look.h) --- */
 static void step_card(uint8_t k);
+static uint8_t roam_bg_time(void) {
+  uint8_t ly=LY_REG;
+  if(!roam_on || game_mode!=MODE_PLAY) return 1u;
+  if(video_epoch!=frame_epoch) return 0u;
+  return (uint8_t)(roam_late ? ly<80u : (ly>=144u || ly<40u));
+}
 static const int8_t wobble[8] = {1, -1, 1, -1, 1, 0, -1, 0};
 #define WOBBLE_FRAMES 8u
 #define SHATTER_FRAMES 16u
@@ -408,7 +500,7 @@ static void step_card(uint8_t k) {
   }
   if (kind == K_CRACK) {
     if (t + 1u >= CRACK_FRAMES) {
-      if (budget < 2u) return; /* wait for room in this frame's writes */
+      if (budget < 2u || !roam_bg_time()) return; /* reserve time for movement and actors */
       look_present[i >> 3] &= (uint8_t)~BIT(i);
       settle(i);
       c_kind[k] = K_FALL;
@@ -433,7 +525,10 @@ static void step_card(uint8_t k) {
   }
   /* assembly */
   if ((kind == K_GLITCH && t >= 5u) || (kind != K_GLITCH && t >= EASE_FRAMES)) {
-    if (budget < 2u) return;
+    if (budget < 2u || !roam_bg_time()) {
+      sprite_pair(k,wx,wy,tile,(uint8_t)(is_wallish(c_meta[k]) ? 7u : 6u),0u);
+      return;
+    }
     look_present[i >> 3] |= BIT(i);
     settle(i);
     finish(k);
@@ -567,6 +662,7 @@ void look_break_tile(uint8_t i, uint8_t kind) BANKED {
   y = EG_Y(i);
   c_kind[k] = K_WOBBLE;
   c_cell[k] = i;
+  in_flight[i>>3]|=BIT(i);
   c_meta[k] = m;
   c_t[k] = 0;
   c_brk[k] = kind;
@@ -577,8 +673,8 @@ void look_break_tile(uint8_t i, uint8_t kind) BANKED {
   look_busy_n = (uint8_t)(q_n + n_flying);
 }
 
-void look_tick(void) BANKED {
-  uint8_t k, i, launches = 0, scan;
+void look_frame_begin(void) BANKED {
+  uint8_t k;
   if (!on) return;
   /* palettes first, while VBlank lasts (a break in the air takes OBJ 6/7 for its card's colours) */
   k = n_break ? 3u : obj_want;
@@ -591,10 +687,15 @@ void look_tick(void) BANKED {
   }
   ambient();
   if (game_mode == MODE_PLAY && !look_busy_n) items_tick();
+}
+
+static void look_update(void) {
+  uint8_t k, i, launches = 0, scan;
+  if(!on) return;
   /* Gravity, obstacles and actor composition share the frame. Defer BG commits
    * on that heavy tick; moving/falling cards still animate, and a settled card
    * waits for the next tick's bounded two-cell commit. */
-  budget = game_mode == MODE_PLAY ? (grav_t==1u ? 0u : 2u) : LOOK_COMMITS_PER_FRAME;
+  budget = game_mode == MODE_PLAY ? (grav_t==1u || (roam_on && push_t) ? 0u : 2u) : LOOK_COMMITS_PER_FRAME;
   if (look_dbg_kind) { /* the harness: 0x80 applies a poked skin, else a break of that kind */
     if (look_dbg_kind == 0x80u) look_skin_set(look_dbg_cell, (uint8_t)(look_skin[look_dbg_cell] - 1u));
     else look_break_tile(look_dbg_cell, look_dbg_kind);
@@ -605,7 +706,7 @@ void look_tick(void) BANKED {
     if (c_kind[k]) step_card(k);
   /* the wave: off-screen cells at once, cards on screen as there is room for them */
   scan = 12u;
-  while (q_n && budget >= 2u && scan--) {
+  while (q_n && budget >= 2u && scan-- && roam_bg_time()) {
     i = q[q_head];
     if (!on_screen(i)) {
       if (look_here(i)) look_present[i >> 3] &= (uint8_t)~BIT(i);
@@ -615,7 +716,7 @@ void look_tick(void) BANKED {
       /* the head, or one of the next few if the head's band is full (the wave keeps its order, roughly) */
       uint8_t j, ii = 0, found = 0;
       if (launches == 3u) break;
-      for (j = 0; j != 4u && j < q_n; j++) {
+      for (j = 0; j != 4u && j < q_n && roam_bg_time(); j++) {
         ii = q[(uint8_t)(q_head + j)];
         if (on_screen(ii) && look_here(ii) == look_here(i) && launch(ii)) {
           found = 1u;
@@ -632,11 +733,11 @@ void look_tick(void) BANKED {
     q_n--;
   }
   /* skins and stages changed: redraw with what is left of the budget */
-  if (rd_any && budget) {
+  if (rd_any && budget && roam_bg_time()) {
     rd_any = 0;
     for (k = 0; k != EG_N / 8u; k++) {
       while (redraw[k]) {
-        if (!budget) {
+        if (!budget || !roam_bg_time()) {
           rd_any = 1u;
           break;
         }
@@ -650,3 +751,6 @@ void look_tick(void) BANKED {
   }
   look_busy_n = (uint8_t)(q_n + n_flying);
 }
+
+void look_frame_end(void) BANKED {roam_late=1u;look_update();}
+void look_tick(void) BANKED {roam_late=0u;look_frame_begin();look_update();}

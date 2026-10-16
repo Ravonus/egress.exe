@@ -46,7 +46,8 @@
 #include "play.h"
 
 extern uint8_t look_present[EG_N / 8u]; /* bit set: the cell is in the world (else it shows the void) */
-#define look_here(i) (look_present[(uint8_t)(i) >> 3] & (uint8_t)(1u << ((uint8_t)(i) & 7u)))
+extern const uint8_t look_bits[8]; /* ROM0: a variable SM83 shift otherwise loops up to seven times */
+#define look_here(i) (look_present[(uint8_t)(i) >> 3] & look_bits[(uint8_t)(i) & 7u])
 extern uint8_t look_busy_n; /* cells queued or in flight */
 #define look_busy() (look_busy_n != 0u)
 
@@ -63,12 +64,19 @@ void look_end(void) BANKED;           /* leaving the floor: the screens' palette
 /* The room assembles around `origin`: every cell on screen (but the origin) leaves the world and comes back in a
  * wave by distance, dropping, rising, sliding or glitching in. Call after look_load and camera(1), before drawing. */
 void look_assemble(uint8_t origin) BANKED;
+/* Camera presentation only: retain the material board and all object mutations. */
+void look_roam_begin(uint8_t enabled) BANKED;
+void look_roam_tick(void) BANKED;
 /* The room falls apart: the edges first, toward `origin`; cells within `keep` (Chebyshev, 0 = none, 1 = the origin,
  * 2 = it and its 8 neighbours) stay. Each cell cracks, splits in two and falls, darkening, into the void. */
 void look_collapse(uint8_t origin, uint8_t keep) BANKED;
 void look_drop_cell(uint8_t i) BANKED;  /* one cell into the void (crumble, chase stages, a boss tearing tiles out) */
 void look_raise_cell(uint8_t i) BANKED; /* one cell arrives (a bridge built by a recipe) */
 void look_tick(void) BANKED;            /* once a frame, right after frame_wait: palettes, cards, commits */
+/* Roaming floors reserve VBlank for palettes, then spend remaining time on
+ * cosmetic terrain after simulation and complete actor composition. */
+void look_frame_begin(void) BANKED;
+void look_frame_end(void) BANKED;
 
 /* --- fragile floors (the puzzle workstream owns the rules; the look owns the cards, the break and its sound) ---
  *

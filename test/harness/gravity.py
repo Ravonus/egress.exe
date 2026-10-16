@@ -36,7 +36,7 @@ def check(rom, reference, cases=96):
     with subprocess.Popen([str(reference)], stdin=subprocess.PIPE, stdout=subprocess.PIPE) as proc:
         for case in range(cases):
             cells = [2] * 224
-            kinds = [0] * 12 + [4] * (1 + case % 5) + [3, 9, 28, 10, 11]
+            kinds = [0] * 12 + [4] * (1 + case % 5) + [3, 9, 28, 10, 11, 12, 22, 36, 138, 164]
             if case & 1:
                 kinds.append(41)
                 for y in range(14):cells[y*16]=cells[y*16+15]=41
@@ -46,6 +46,13 @@ def check(rom, reference, cases=96):
                     c = y * 16 + x
                     cells[c] = 0 if x < 5 and y < 5 else rng.choice(kinds)
             cells[17] = 7
+            if case<4:
+                cells=[2]*224
+                for y in range(1,13):
+                    for x in range(1,15):cells[y*16+x]=0
+                cells[17]=7;cells[35]=11 if case<3 else 12
+                cells[34]=[10,138,22,0][case]
+                if case==3:cells[68]=10
             for i, v in enumerate(cells):
                 g.poke("room", v, i)
             g.poke("eg_plates_dirty", 1)

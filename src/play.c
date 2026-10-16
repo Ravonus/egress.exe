@@ -149,6 +149,7 @@ static void floor_show(void) {
   look_load(BIOME_OFFICE);
   stage_show(); /* B2: the stage's cards and skins */
   camera(1);
+  look_roam_begin((uint8_t)(!boss_floor && stage_type!=SG_DARK && stage_type!=SG_CHASE));
   look_assemble(room.start);
   for (i = 0; i != (uint8_t)EG_N; i++) draw_cell(i);
   if (boss_floor) boss_show(); /* B2 bosses */
@@ -234,7 +235,7 @@ static void assemble_wait(void) {
 
 /* 1: through the door, 0: dead */
 static uint8_t floor_play(void) {
-  uint8_t end_t = 0;
+  uint8_t end_t = 0,roaming,late;
   floor_tokens0 = tokens;
   pocket_enter();
   if(restored_floor) {stage_resume_floor();restored_floor=0u;narrator_event(NE_RETURN,0u);}
@@ -250,6 +251,7 @@ static uint8_t floor_play(void) {
   fade_to(0, 8);
   assemble_wait();
   game_mode = MODE_PLAY;
+  roaming=(uint8_t)(!boss_floor && stage_type!=SG_DARK && stage_type!=SG_CHASE);
   if (boss_floor) hud_msg("IT SEES YOU.");
   else if (stage_announce()) {} /* B2: the stage's objective */
   else if (floor_no == 1u) hud_msg("FIND THE DOOR");
@@ -257,17 +259,23 @@ static uint8_t floor_play(void) {
   while (1) {
     frame_wait();
     input_poll(); /* sample before variable-cost VRAM/audio work can cross a display boundary */
+    DISABLE_OAM_DMA;
+    late=(uint8_t)(roaming && (enemies_alive || stage_type!=SG_PUZZLE));
     if (boss_floor) boss_vblank(); /* B2 bosses: in VBlank, before the look's writes */
     if (pal_dirty && !look_busy()) {
       set_sprite_palette(2u, 6u, &pal_sp[8]);
       pal_dirty = 0;
     }
-    look_tick();
-    flush_cells(8);
+    if(late) {
+      /* Combat renders actors before spending spare time on cosmetic terrain. */
+      look_frame_begin();flush_cells(2u);
+    } else if(roaming) {flush_cells(2u);look_tick();}
+    else {look_tick();flush_cells(8u);}
     scroll();
     sound_tick();
     hud_tick();
     if (pl_state == PS_EXIT) {
+      if(late) look_frame_end();
       sprites_budget();
       /* look: the floor falls apart behind you, from the edges in to the door */
       if (++end_t == 2u) look_collapse(cell_at(pl_x, pl_y), 1u);
@@ -293,6 +301,7 @@ static uint8_t floor_play(void) {
         return 0;
       }
       draw_sprites();
+      if(late) look_frame_end();
       continue;
     }
     if (joy_pressed & J_START) {
@@ -326,6 +335,7 @@ static uint8_t floor_play(void) {
     if (acts.frames != 0xffffu) acts.frames++;
     if (freeze) {
       freeze--;
+      if(late) look_frame_end();
       sprites_budget();
       continue;
     }
@@ -345,9 +355,11 @@ static uint8_t floor_play(void) {
       hud_msg("EGRESS");
     }
     camera(0);
+    if(!boss_floor) look_roam_tick();
     tutorial_tick();
     if(!(frame_count&63u)) narrator_tick();
     draw_sprites();
+    if(late) look_frame_end();
   }
 }
 

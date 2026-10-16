@@ -16,7 +16,7 @@ SRC := src/main.c src/screens.c src/play.c src/grid.c src/hud.c src/player.c src
 	src/sound.c src/boot/keel_boot.c src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c src/core/eg_plan.c \
 	src/core/eg_obst.c src/core/eg_ogen.c src/core/eg_clock.c src/gen/art.c src/gen/art_pics.c \
 	src/gen/look_art.c src/look.c src/gen/eg_seeds.c src/puzzle.c \
-	src/mob.c src/fx.c src/gen/mob_info.c src/gen/mob_art_0.c src/gen/mob_art_1.c \
+	src/mob.c src/mob_draw.c src/fx.c src/gen/mob_info.c src/gen/mob_art_0.c src/gen/mob_art_1.c \
 	src/obstacle.c src/gen/obstacle_art.c \
 	src/stage.c src/stage_spawn.c src/stage_rest.c src/core/eg_stage.c \
 	src/core/eg_input.c src/core/eg_move.c src/core/eg_idle.c src/heir.c src/gen/heir_tab.c src/gen/heir_banks.c \

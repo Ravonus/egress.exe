@@ -37,9 +37,11 @@ uint8_t hit_src, hit_orb_from, hit_tags, hit_result, cond_kills, wmods, orb_shoo
 uint8_t kill_by[HS_COUNT];
 uint8_t dbg_mob[6], dbg_mob_cell[6], dbg_mob_n, dbg_elite, dbg_affix = 0xffu;
 uint8_t mob_slot_look[MOB_SLOTS]; /* harness: the floor's looks */
-static uint8_t slot_bmask[MOB_SLOTS], slot_tag[MOB_SLOTS], slot_fam[MOB_SLOTS], grp_set;
+uint8_t mob_slot_bmask[MOB_SLOTS];
+static uint8_t slot_tag[MOB_SLOTS], slot_fam[MOB_SLOTS], grp_set;
 static uint16_t elite_pal[3];
-static uint8_t has_elite, seen_name, roll_recent;
+uint8_t mob_has_elite;
+static uint8_t seen_name, roll_recent;
 
 /* ---- the families (7.1 axes; proto/matrix/mx_mob.c accepts each one) ---- */
 typedef struct {
@@ -92,8 +94,14 @@ static const uint8_t cell_ok[T_TYPES] = {
 static uint8_t ok_at(uint8_t x, uint8_t y, uint8_t bit) { return (uint8_t)(cell_ok[cell_type(cell_at(x, y))] & bit); }
 /* a 10x10 box around (x, y) all on cells `bit` allows */
 static uint8_t box_ok(uint8_t x, uint8_t y, uint8_t bit) {
-  uint8_t l = (uint8_t)(x - 5u), r = (uint8_t)(x + 4u), t = (uint8_t)(y - 5u), b = (uint8_t)(y + 4u);
-  return (uint8_t)(ok_at(l, t, bit) && ok_at(r, t, bit) && ok_at(l, b, bit) && ok_at(r, b, bit));
+  uint8_t l,r,t,b;
+  if((uint8_t)(x-5u)>246u || (uint8_t)(y-5u)>214u) return 0u;
+  l=(uint8_t)((x-5u)>>4);r=(uint8_t)((x+4u)>>4);
+  t=(uint8_t)((y-5u)&0xf0u);b=(uint8_t)((y+4u)&0xf0u);
+  if(!(cell_ok[cell_type(l|t)]&bit)) return 0u;
+  if(l!=r && !(cell_ok[cell_type(r|t)]&bit)) return 0u;
+  if(t!=b && (!(cell_ok[cell_type(l|b)]&bit) || (l!=r && !(cell_ok[cell_type(r|b)]&bit)))) return 0u;
+  return 1u;
 }
 static uint8_t bit_of(uint8_t body) {
   return body == MB_FLYER ? CF : (body == MB_BURROWER ? CU : CW);
@@ -120,7 +128,7 @@ uint8_t mob_look_load(uint8_t slot, uint8_t look, uint8_t group) BANKED {
   if (look < MOB_ART_SPLIT) mob_art_upload0(look, (uint8_t)(MOB_TILE0 + slot * MOB_SLOT_TILES), group);
   else mob_art_upload1(look, (uint8_t)(MOB_TILE0 + slot * MOB_SLOT_TILES), group);
   mob_art_info(look, &L);
-  slot_bmask[slot] = L.bmask;
+  mob_slot_bmask[slot] = L.bmask;
   return 4u;
 }
 
@@ -132,7 +140,7 @@ void mobs_reload(void) BANKED {
     if (mob_slot_look[s] != 255u) mob_look_load(s, mob_slot_look[s], (uint8_t)(s & 1u));
   for (s = 0; s != 2u; s++)
     if (mob_slot_look[s] != 255u) mob_group_pal(s, mob_slot_look[s], 0);
-  if (has_elite) {
+  if (mob_has_elite) {
     pal_sp[29] = elite_pal[0];
     pal_sp[30] = elite_pal[1];
     pal_sp[31] = elite_pal[2];
@@ -165,7 +173,7 @@ static uint8_t slot_for(uint8_t fam) {
       slot_fam[s] = fam;
       mob_art_info(mob_slot_look[s], &L);
       slot_tag[s] = L.tag;
-      slot_bmask[s] = L.bmask;
+      mob_slot_bmask[s] = L.bmask;
       return s;
     }
   return 255u;
@@ -258,7 +266,7 @@ static uint8_t spawn_at(uint8_t k, uint8_t fam, uint8_t cell, uint8_t elite) {
       m->tell = (uint8_t)((m->tell * 3u) >> 2);
       m->speed = (uint8_t)(m->speed + (m->speed >> 1));
     }
-    has_elite = 1u;
+    mob_has_elite = 1u;
     elite_pal[0] = rgb(20, 14, 46);
     elite_pal[1] = mob_art_affix_col(m->ax.af0);
     elite_pal[2] = m->ax.af1 != MF_NONE ? mob_art_affix_col(m->ax.af1) : rgb(255, 246, 200);
@@ -274,7 +282,7 @@ uint8_t mob_spawn(uint8_t fam, uint8_t cell, uint8_t elite, uint16_t seed) BANKE
   if (k == 255u || fam >= FAM_COUNT || !(cell_ok[cell_type(cell)] & (CW | CF))) return 255u;
   if (spawn_at(k, fam, cell, elite) == 255u) return 255u;
   enemies_alive++;
-  if (has_elite) {
+  if (mob_has_elite) {
     pal_sp[29] = elite_pal[0];
     pal_sp[30] = elite_pal[1];
     pal_sp[31] = elite_pal[2];
@@ -318,7 +326,7 @@ void mobs_floor(void) BANKED {
   memset(mob, 0, sizeof mob);
   memset(mob_slot_look, 255u, sizeof mob_slot_look);
   grp_set = 0;
-  has_elite = 0;
+  mob_has_elite = 0;
   seen_name = 0;
   fx_reset();
   if (floor_no <= 1u) wmods = 0;
@@ -379,83 +387,6 @@ void mobs_floor(void) BANKED {
     }
     if (n >= MAXE - 1u) break;
   }
-}
-
-/* ---- drawing ---- */
-static const int8_t bob2[4] = {0, -1, 0, 0};
-
-void mob_draw(uint8_t k) BANKED {
-  enemy_t *e = &en[k];
-  mob_t *m = &mob[k];
-  uint8_t f, pal, tile, ex = (uint8_t)(e->x >> 4), ey = (uint8_t)(e->y >> 4), flip;
-  int16_t sx = (int16_t)ex - 16 - cam_x, sy = (int16_t)ey - 16 - cam_y;
-  m->drawn = 0;
-  if (m->status & MS_UNDER) { /* a bump in the carpet, moving */
-    if (e->anim & 8u) oam_group(sx + 4, sy + 6, 1u, (uint8_t)(MOB_FX_TILE + FXT_BUMP * 2u), 0, 5u);
-    return;
-  }
-  f = (uint8_t)((e->anim >> 4) & 1u);
-  if (e->st == ES_WALK || e->st == ES_FLOAT) f = (uint8_t)((e->anim >> 3) & 1u);
-  pal = (uint8_t)(2u + (m->slot & 1u));
-  if (e->st == ES_TELL) {
-    f = 2u;
-    sx += (e->t & 2u) ? 1 : -1;
-    if (e->t & 4u) pal = 7u;
-  } else if (e->st == ES_LUNGE) {
-    sx += fdx[e->face] * 2;
-    sy += fdy[e->face] * 2;
-  }
-  if (m->ax.body == MB_FLYER) sy += bob2[(e->anim >> 3) & 3u];
-  if ((m->flags & MOBF_ELITE) && (e->anim & 0x38u) == 0x38u) pal = 7u; /* the elite's pulse */
-  if (m->status & MS_FROZEN) pal = 5u;
-  if (e->flash) pal = (e->flash & 2u) ? 6u : pal;
-  tile = (uint8_t)(MOB_TILE0 + m->slot * MOB_SLOT_TILES + (f << 2));
-  flip = (uint8_t)(e->face == F_LEFT);
-  if (flip) m->drawn = oam_group(sx, sy, 2u, (uint8_t)(tile + 2u), 254u, (uint8_t)(pal | S_FLIPX));
-  else m->drawn = oam_group(sx, sy, 2u, tile, 2u, pal);
-  if (m->drawn) m->drawn = (uint8_t)(f + 1u);
-}
-
-/* OP_MARK: elite crowns (bobbing 1 px), shield rings; OP_OVER: overlays of bodies placed this frame */
-void mobs_draw(uint8_t pass) BANKED {
-  uint8_t k, f, b, tile;
-  int16_t sx, sy;
-  for (k = 0; k != nen; k++) {
-    enemy_t *e = &en[k];
-    mob_t *m = &mob[k];
-    if (e->kind != SPAWN_MOB || e->st == ES_DEAD || (m->status & MS_UNDER)) continue;
-    sx = (int16_t)(e->x >> 4) - 16 - cam_x;
-    sy = (int16_t)(e->y >> 4) - 16 - cam_y;
-    if (pass == OP_MARK) {
-      if (m->flags & MOBF_ELITE)
-        oam_group(sx + 4, sy - 9 + ((e->anim >> 4) & 1u), 1u, (uint8_t)(MOB_FX_TILE + FXT_CROWN * 2u), 0, 7u);
-      continue;
-    }
-    if (!m->drawn || m->drawn > 3u) continue;
-    f = (uint8_t)(m->drawn - 1u);
-    if (f == 2u) f = 1u;
-    b = (uint8_t)((slot_bmask[m->slot] >> (f << 1)) & 3u);
-    if (!b) continue;
-    if (e->st == ES_TELL) sx += (e->t & 2u) ? 1 : -1;
-    else if (e->st == ES_LUNGE) {
-      sx += fdx[e->face] * 2;
-      sy += fdy[e->face] * 2;
-    }
-    if (m->ax.body == MB_FLYER) sy += bob2[(e->anim >> 3) & 3u];
-    tile = (uint8_t)(MOB_TILE0 + m->slot * MOB_SLOT_TILES + 16u + (f << 2));
-    if (e->face == F_LEFT) { /* flipped: the right column draws on the left */
-      if (b & 2u) oam_group(sx, sy, 1u, (uint8_t)(tile + 2u), 0, 5u | S_FLIPX);
-      if (b & 1u) oam_group(sx + 8, sy, 1u, tile, 0, 5u | S_FLIPX);
-    } else {
-      if (b & 1u) oam_group(sx, sy, 1u, tile, 0, 5u);
-      if (b & 2u) oam_group(sx + 8, sy, 1u, (uint8_t)(tile + 2u), 0, 5u);
-    }
-  }
-}
-
-uint8_t mob_look_draw(uint8_t slot, uint8_t f, int16_t sx, int16_t sy, uint8_t prop_or) BANKED {
-  return oam_group(sx, sy, 2u, (uint8_t)(MOB_TILE0 + slot * MOB_SLOT_TILES + (f << 2)), 2u,
-                   (uint8_t)((2u + (slot & 1u)) | prop_or));
 }
 
 /* ---- the AI ---- */
