@@ -1,0 +1,94 @@
+{
+  "gameplaySourceCommit": "fcb65a05541f8e209c16769dee6cd1930fc09987",
+  "siteReleaseCommit": "0f3dc3e",
+  "siteVerificationCommit": "f1848912de72c8219071574ec9c109aebb6a6d91",
+  "site": "https://egress.onkeel.io",
+  "publishedAt": "2026-10-16T03:10:00Z",
+  "siteUnitTests": {
+    "pass": 33,
+    "fail": 0
+  },
+  "assetChecks": "pass",
+  "exportBuild": "pass",
+  "liveBrowser": {
+    "base": "https://egress.onkeel.io",
+    "checks": [
+      {
+        "width": 1280,
+        "downloads": true,
+        "github": true,
+        "noOverflow": true,
+        "explainerNoOverflow": true,
+        "pageErrors": []
+      },
+      {
+        "width": 768,
+        "downloads": true,
+        "github": true,
+        "noOverflow": true,
+        "explainerNoOverflow": true,
+        "pageErrors": []
+      },
+      {
+        "width": 390,
+        "downloads": true,
+        "github": true,
+        "noOverflow": true,
+        "explainerNoOverflow": true,
+        "pageErrors": []
+      },
+      {
+        "width": 320,
+        "downloads": true,
+        "github": true,
+        "noOverflow": true,
+        "explainerNoOverflow": true,
+        "pageErrors": []
+      }
+    ],
+    "standardSha256": "1fab0cb81ef3532d3c7fae52ccbcfa464171e1d3c078f4df4b4b7f2d74e7e5f2",
+    "rtcSha256": "a06151f43c7ab2994ee8f97e291ba559de9810f8946013a986e9989de49305c1",
+    "actualDownloadsVerified": true,
+    "browserEmulatorUsesStandard": true
+  },
+  "liveCatalog": {
+    "format": "keel-game-releases",
+    "version": 1,
+    "title": "EGRESS.EXE",
+    "creator": "Ravonus",
+    "variants": [
+      {
+        "title": "EGRESS.EXE",
+        "edition": "Standard",
+        "url": "/game/egress-1fab0cb81ef3532d.gbc",
+        "sha256": "1fab0cb81ef3532d3c7fae52ccbcfa464171e1d3c078f4df4b4b7f2d74e7e5f2",
+        "bytes": 1081344,
+        "previewImage": "https://egress.onkeel.io/game/previews/egress-1fab0cb81ef3532d.png",
+        "metadataUrl": "/game/egress-1fab0cb81ef3532d.chromatic.json",
+        "mapper": "MBC5",
+        "romCapacityBytes": 2097152,
+        "saveBytes": 8192,
+        "rtc": false,
+        "source": "https://github.com/Ravonus/egress.exe",
+        "sourceCommit": "fcb65a05541f8e209c16769dee6cd1930fc09987"
+      },
+      {
+        "title": "EGRESS.EXE \u00b7 RTC",
+        "edition": "Hardware clock",
+        "url": "/game/egress-rtc-a06151f43c7ab299.gbc",
+        "sha256": "a06151f43c7ab2994ee8f97e291ba559de9810f8946013a986e9989de49305c1",
+        "bytes": 1081344,
+        "previewImage": "https://egress.onkeel.io/game/previews/egress-rtc-a06151f43c7ab299.png",
+        "metadataUrl": "/game/egress-rtc-a06151f43c7ab299.chromatic.json",
+        "mapper": "MBC3",
+        "romCapacityBytes": 2097152,
+        "saveBytes": 8192,
+        "rtc": true,
+        "source": "https://github.com/Ravonus/egress.exe",
+        "sourceCommit": "fcb65a05541f8e209c16769dee6cd1930fc09987"
+      }
+    ]
+  },
+  "physicalChromaticTested": false,
+  "remaining": "Ten-floor office development slice; full run, arbitrary motif composition and physical-device acceptance remain."
+}
