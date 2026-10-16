@@ -1,0 +1,103 @@
+{
+  "sha256": "0ea040452decdce655e4cde968cccfeb30f82b6a8c617b00ec3f3c8163899417",
+  "results": {
+    "west_shot_was_fired": true,
+    "west_never_wraps": true,
+    "west_shot_leaves_map": true,
+    "east_shot_was_fired": true,
+    "east_never_wraps": true,
+    "east_shot_leaves_map": true,
+    "north_shot_was_fired": true,
+    "north_never_wraps": true,
+    "north_shot_leaves_map": true,
+    "south_shot_was_fired": true,
+    "south_never_wraps": true,
+    "south_shot_leaves_map": true
+  },
+  "detail": [
+    {
+      "edge": "west",
+      "trace": [
+        [
+          108,
+          2176
+        ],
+        [
+          72,
+          2176
+        ],
+        [
+          36,
+          2176
+        ],
+        [
+          0,
+          2176
+        ]
+      ]
+    },
+    {
+      "edge": "east",
+      "trace": [
+        [
+          3972,
+          2176
+        ],
+        [
+          4008,
+          2176
+        ],
+        [
+          4044,
+          2176
+        ],
+        [
+          4080,
+          2176
+        ]
+      ]
+    },
+    {
+      "edge": "north",
+      "trace": [
+        [
+          1920,
+          108
+        ],
+        [
+          1920,
+          72
+        ],
+        [
+          1920,
+          36
+        ],
+        [
+          1920,
+          0
+        ]
+      ]
+    },
+    {
+      "edge": "south",
+      "trace": [
+        [
+          1920,
+          3460
+        ],
+        [
+          1920,
+          3496
+        ],
+        [
+          1920,
+          3532
+        ],
+        [
+          1920,
+          3568
+        ]
+      ]
+    }
+  ]
+}

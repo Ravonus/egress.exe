@@ -1,0 +1,18 @@
+{
+  "sourceCommit": "78395188c33a4b1298ee9503476b81910fdd3256",
+  "verifiedAt": "2026-10-16T07:08:00.107791+00:00",
+  "completeRegression": "make -j2 -s test: exit 0",
+  "roms": {
+    "egress.gbc": {
+      "sha256": "5bf44e5ab2c2d70ac3d49bb75d73521eed4ea53ce07fa704e4468aa2181e76f9",
+      "bytes": 1196032
+    },
+    "egress-rtc.gbc": {
+      "sha256": "0ea040452decdce655e4cde968cccfeb30f82b6a8c617b00ec3f3c8163899417",
+      "bytes": 1196032
+    }
+  },
+  "scope": "Ten-floor office development build with actual island rims. Connected larger stages, composed portals and the full run remain incomplete.",
+  "physicalHardwareVerified": false,
+  "publicDeployment": "Pending HTTPS read-back of the authorized site update."
+}

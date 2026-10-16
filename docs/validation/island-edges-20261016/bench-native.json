@@ -1,0 +1,17 @@
+{
+  "sha256": "5bf44e5ab2c2d70ac3d49bb75d73521eed4ea53ce07fa704e4468aa2181e76f9",
+  "results": {
+    "real_ingredients_picked": true,
+    "bag_has_native_item_icons": true,
+    "combination_scene_plays": true,
+    "craft_consumes_exactly_two_units": true,
+    "bench_closes_and_restores_hud": true,
+    "bench_restores_meter_tiles_and_palettes": true
+  },
+  "scene_frames": 50,
+  "icons": [
+    115,
+    113
+  ],
+  "log": []
+}

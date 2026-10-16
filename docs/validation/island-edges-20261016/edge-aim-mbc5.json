@@ -1,0 +1,43 @@
+{
+  "sha256": "5bf44e5ab2c2d70ac3d49bb75d73521eed4ea53ce07fa704e4468aa2181e76f9",
+  "results": {
+    "west_hits_local_target": true,
+    "west_does_not_wrap": true,
+    "east_hits_local_target": true,
+    "east_does_not_wrap": true,
+    "north_hits_local_target": true,
+    "north_does_not_wrap": true,
+    "south_hits_local_target": true,
+    "south_does_not_wrap": true
+  },
+  "detail": [
+    {
+      "edge": "west",
+      "near_far_damage": [
+        1,
+        0
+      ]
+    },
+    {
+      "edge": "east",
+      "near_far_damage": [
+        1,
+        0
+      ]
+    },
+    {
+      "edge": "north",
+      "near_far_damage": [
+        1,
+        0
+      ]
+    },
+    {
+      "edge": "south",
+      "near_far_damage": [
+        1,
+        0
+      ]
+    }
+  ]
+}

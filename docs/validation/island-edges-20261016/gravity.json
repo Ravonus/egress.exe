@@ -1,0 +1,14 @@
+[
+  {
+    "rom": "build/egress.gbc",
+    "boards": 96,
+    "gravity_steps": 768,
+    "match": true
+  },
+  {
+    "rom": "build/egress-rtc.gbc",
+    "boards": 96,
+    "gravity_steps": 768,
+    "match": true
+  }
+]

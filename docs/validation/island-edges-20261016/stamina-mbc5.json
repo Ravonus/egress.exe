@@ -1,0 +1,32 @@
+{
+  "sha256": "5bf44e5ab2c2d70ac3d49bb75d73521eed4ea53ce07fa704e4468aa2181e76f9",
+  "results": {
+    "a_cost": true,
+    "b_cost": true,
+    "a_charge_pays_on_release": true,
+    "a_charge_cost": true,
+    "b_charge_pays_on_release": true,
+    "b_charge_cost": true,
+    "roll_cost": true,
+    "sidestep_cost": true,
+    "backstep_cost": true,
+    "running_drains_over_time": true,
+    "resting_recovers_to_cap": true,
+    "exhaustion_denies_attack": true,
+    "exhaustion_has_recovery_pose": true,
+    "recovery_waits_before_refilling": true,
+    "exhaustion_is_recoverable": true,
+    "all_545_native_meter_thresholds_unchanged": true,
+    "meter_palette_tracks_toast_row": true,
+    "controls_page_restores_meter_palette": true
+  },
+  "costs": {
+    "a": 8,
+    "b": 10,
+    "a_charge": 40,
+    "b_charge": 30,
+    "roll": 24,
+    "sidestep": 12,
+    "backstep": 16
+  }
+}
