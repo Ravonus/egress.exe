@@ -1,0 +1,9 @@
+{
+  "sha256": "2a15a767791ecce42b5a4b6582258d6b5c38f2547702f5eda89b65bee7898a46",
+  "native_pose_samples": 128,
+  "results": {
+    "seated_layers_and_folded_legs_present": true,
+    "seated_breathing_preserved": true
+  },
+  "failures": []
+}

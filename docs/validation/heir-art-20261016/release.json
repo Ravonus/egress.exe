@@ -1,0 +1,22 @@
+{
+  "sourceCommit": "f4df94b6f5dc3a0f28062d72540f28508ed4ebc1",
+  "nativeGate": {
+    "command": "make -j2 -s test",
+    "exitCode": 0,
+    "acceptedRoomReplays": 768,
+    "checks": 10724
+  },
+  "roms": {
+    "egress": {
+      "sha256": "2a15a767791ecce42b5a4b6582258d6b5c38f2547702f5eda89b65bee7898a46",
+      "bytes": 1196032,
+      "mapper": "MBC5"
+    },
+    "egress-rtc": {
+      "sha256": "b5ab3b3cb6db5135c6585d910835bc10cdb7a973e56c8558226d32b479b63a45",
+      "bytes": 1196032,
+      "mapper": "MBC3 + RTC"
+    }
+  },
+  "scope": "Character art stream correction plus the previously released seated pose, feedback and island-edge changes. Camera terrain development and the larger full-game milestones remain unfinished."
+}

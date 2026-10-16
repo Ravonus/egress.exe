@@ -1,0 +1,11 @@
+{
+  "romSha256": "2a15a767791ecce42b5a4b6582258d6b5c38f2547702f5eda89b65bee7898a46",
+  "romBytes": 1196032,
+  "headerRomBytes": 2097152,
+  "headerRamCode": 2,
+  "headerChecksum": "valid",
+  "files": 14,
+  "provenance": {},
+  "specificGalleryListing": false
+}
+Both ROMs, portable metadata and preview assets verified.

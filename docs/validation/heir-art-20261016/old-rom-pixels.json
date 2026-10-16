@@ -1,0 +1,164 @@
+{
+  "sha256": "5bf44e5ab2c2d70ac3d49bb75d73521eed4ea53ce07fa704e4468aa2181e76f9",
+  "native_uploads": 2660,
+  "empty_selected_slot_followed_by_visible_gene": 3699,
+  "mismatches": [
+    {
+      "pose": 112,
+      "drawn_direction": 1,
+      "shape": {
+        "look": 2,
+        "neck": 0,
+        "pat": 3,
+        "hair": 3,
+        "mark": 4,
+        "weapon": 2
+      },
+      "different_bytes": 23
+    },
+    {
+      "pose": 112,
+      "drawn_direction": 2,
+      "shape": {
+        "look": 2,
+        "neck": 0,
+        "pat": 3,
+        "hair": 3,
+        "mark": 4,
+        "weapon": 2
+      },
+      "different_bytes": 15
+    },
+    {
+      "pose": 112,
+      "drawn_direction": 3,
+      "shape": {
+        "look": 2,
+        "neck": 0,
+        "pat": 3,
+        "hair": 3,
+        "mark": 4,
+        "weapon": 2
+      },
+      "different_bytes": 11
+    },
+    {
+      "pose": 105,
+      "drawn_direction": 3,
+      "shape": {
+        "look": 2,
+        "neck": 0,
+        "pat": 3,
+        "hair": 3,
+        "mark": 4,
+        "weapon": 2
+      },
+      "different_bytes": 9
+    },
+    {
+      "pose": 105,
+      "drawn_direction": 4,
+      "shape": {
+        "look": 2,
+        "neck": 0,
+        "pat": 3,
+        "hair": 3,
+        "mark": 4,
+        "weapon": 2
+      },
+      "different_bytes": 9
+    },
+    {
+      "pose": 105,
+      "drawn_direction": 3,
+      "shape": {
+        "look": 2,
+        "neck": 0,
+        "pat": 3,
+        "hair": 3,
+        "mark": 4,
+        "weapon": 2
+      },
+      "different_bytes": 9
+    },
+    {
+      "pose": 105,
+      "drawn_direction": 2,
+      "shape": {
+        "look": 2,
+        "neck": 0,
+        "pat": 3,
+        "hair": 3,
+        "mark": 4,
+        "weapon": 2
+      },
+      "different_bytes": 11
+    },
+    {
+      "pose": 112,
+      "drawn_direction": 2,
+      "shape": {
+        "look": 2,
+        "neck": 0,
+        "pat": 3,
+        "hair": 3,
+        "mark": 4,
+        "weapon": 2
+      },
+      "different_bytes": 15
+    },
+    {
+      "pose": 112,
+      "drawn_direction": 1,
+      "shape": {
+        "look": 2,
+        "neck": 0,
+        "pat": 3,
+        "hair": 3,
+        "mark": 4,
+        "weapon": 2
+      },
+      "different_bytes": 23
+    },
+    {
+      "pose": 112,
+      "drawn_direction": 1,
+      "shape": {
+        "look": 2,
+        "neck": 0,
+        "pat": 3,
+        "hair": 3,
+        "mark": 4,
+        "weapon": 2
+      },
+      "different_bytes": 23
+    },
+    {
+      "pose": 112,
+      "drawn_direction": 2,
+      "shape": {
+        "look": 2,
+        "neck": 0,
+        "pat": 3,
+        "hair": 3,
+        "mark": 4,
+        "weapon": 2
+      },
+      "different_bytes": 15
+    },
+    {
+      "pose": 112,
+      "drawn_direction": 3,
+      "shape": {
+        "look": 2,
+        "neck": 0,
+        "pat": 3,
+        "hair": 3,
+        "mark": 4,
+        "weapon": 2
+      },
+      "different_bytes": 11
+    }
+  ],
+  "all_pixels_match": false
+}

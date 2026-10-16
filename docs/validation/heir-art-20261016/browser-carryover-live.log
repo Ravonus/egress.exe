@@ -1,0 +1,27 @@
+Native lobby {
+  game_mode: 1,
+  menu_active: 1,
+  menu_cursor: 1,
+  resume_ready: 0,
+  joy: 0
+}
+After select {
+  game_mode: 2,
+  menu_active: 0,
+  menu_cursor: 1,
+  resume_ready: 1,
+  joy: 0,
+  joy_pressed: 0,
+  family_ready: 0
+}
+{
+  "base": "https://egress.onkeel.io",
+  "oldSha256": "1fab0cb81ef3532d3c7fae52ccbcfa464171e1d3c078f4df4b4b7f2d74e7e5f2",
+  "sha256": "2a15a767791ecce42b5a4b6582258d6b5c38f2547702f5eda89b65bee7898a46",
+  "results": {
+    "realCheckpointSaveCarriedOver": true,
+    "sameInheritedGenome": true,
+    "nativeGameStarted": true,
+    "pageErrors": true
+  }
+}
