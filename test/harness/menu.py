@@ -22,7 +22,8 @@ def run(rom,out):
     out.mkdir(parents=True,exist_ok=True);r={};g=Game(rom);lobby(g)
     r['new_save_defaults_to_new_run']=g.peek('menu_cursor')==1 and not g.peek('resume_ready')
     order=" 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.,:!?-+/'>x"
-    r['lobby_title_and_footer_use_correct_rom_bank']=g.pb.memory[0,0x9822]==190+order.index('E') and g.pb.memory[0,0x9a20]==190+order.index('A')
+    base=0x9c00 if g.pb.memory[0xff40]&8 else 0x9800
+    r['lobby_title_and_footer_use_correct_rom_bank']=g.pb.memory[0,base+34]==190+order.index('E') and g.pb.memory[0,base+544]==190+order.index('A')
     g.shot(out/'01-lobby.png');cursor(g,0);g.press('a',3);g.tick(20)
     r['missing_continue_stays_in_menu']=bool(g.peek('menu_active')) and not g.peek('floor_no')
     cursor(g,2);g.press('a',3);g.tick(15);g.shot(out/'02-actions.png');g.press('right',3);g.tick(10);g.shot(out/'03-movement.png')

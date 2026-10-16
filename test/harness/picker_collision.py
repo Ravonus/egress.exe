@@ -19,17 +19,25 @@ def visible_press(g,button):
         g.tick();light.append(float(np.asarray(g.pb.screen.image)[:,:,:3].mean()))
     return min(light)>8
 
-def run(rom,out):
-    out.mkdir(parents=True,exist_ok=True);r={};g=Game(rom);assert g.wait_mode(MODE_TITLE,1500)
-    g.poke16('dbg_seed',0x5eed)
+def open_picker(g):
+    assert g.wait_mode(MODE_TITLE,1500);g.poke16('dbg_seed',0x5eed)
     for _ in range(30):
         g.press('start',3);g.tick(20)
         if g.peek('game_mode')==6:break
-    assert g.peek('game_mode')==6
-    wait_ready(g)
+    assert g.peek('game_mode')==6;wait_ready(g)
+
+def portrait_palettes(g):
+    base=0x9c00 if g.pb.memory[0xff40]&8 else 0x9800
+    return all(g.pb.memory[1,base+y*32+x] in (k*2,k*2+1)
+               for k in range(3) for y in range(5,11) for x in range(k*7+1,k*7+5))
+
+def run(rom,out):
+    out.mkdir(parents=True,exist_ok=True);r={};g=Game(rom);open_picker(g)
     r['three_heir_cards_first']=g.peek('family_page')==0
     order=" 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.,:!?-+/'>x"
-    r['overview_title_and_footer_use_correct_rom_bank']=g.pb.memory[0,0x9822]==190+order.index('C') and g.pb.memory[0,0x9a20]==190+order.index('L')
+    base=0x9c00 if g.pb.memory[0xff40]&8 else 0x9800
+    r['overview_title_and_footer_use_correct_rom_bank']=g.pb.memory[0,base+34]==190+order.index('C') and g.pb.memory[0,base+544]==190+order.index('L')
+    r['portrait_attributes_use_cached_art']=portrait_palettes(g)
     g.shot(out/'01-three-heirs.png')
     portraits=[np.asarray(g.pb.screen.image)[40:88,x:x+32,:3].tobytes() for x in (8,64,120)]
     r['three_visibly_distinct_portraits']=len(set(portraits))==3
@@ -46,6 +54,15 @@ def run(rom,out):
     g.press('a',3);wait_ready(g);g.press('a',3)
     r['confirm_starts_selected_heir']=g.wait_mode(2,1800)
     g.stop()
+    # Both are legal title exits. Set only the hardware map selection at the
+    # picker entry, then exercise its normal composition and controller loop.
+    for high in (False,True):
+        g=Game(rom);entry=g.sym['_family_begin']
+        def entry_map(_,high=high):g.pb.memory[0xff40]=(g.pb.memory[0xff40]&~8)|(8 if high else 0)
+        g.pb.hook_register(entry>>16,entry&65535,entry_map,None);open_picker(g)
+        r[f'portraits_match_background_map_{int(high)}']=portrait_palettes(g)
+        r[f'cached_selection_survives_background_map_{int(high)}']=visible_press(g,'right') and portrait_palettes(g)
+        g.shot(out/f'background-map-{int(high)}.png');g.stop()
     g=Game(rom);assert start_run(g,True,True,floor=2);g.poke('stage_type',0)
     for y in range(2,12):
         for x in range(3,13):g.poke('room',0 if x==7 else 2,y*16+x)

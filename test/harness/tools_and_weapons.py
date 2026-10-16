@@ -101,6 +101,10 @@ def run(rom,out):
     item0=int(re.search(r'#define M_ITEM0 (\d+)u',Path('src/gen/look_art.h').read_text())[1])
     for p in range(1,17):
         g.poke('room',p,248)
+        # A fixture write can land between the native read of the previous
+        # piece and its 64-byte VRAM transfer (observed DUST -> CLOUD). Finish
+        # that in-flight call before taking the unrelated-card baseline.
+        g.tick(2)
         # Fixture tilemap: the ROM still supplies and animates every 2bpp card byte.
         tile=cards['ITEM_'+art.ITEM_ART[p-1][0]];at=0x9800+22*32+4
         assert g.peek('meta_tile',(item0+p-1)*4)==tile
@@ -122,6 +126,8 @@ def run(rom,out):
         after=bytes(g.pb.memory[0,0x9000+k] for k in range(110*16))
         lo=tile*16;hi=lo+64
         res[f'item_{p}_preserves_every_other_card']=after[:lo]==untouched[:lo] and after[hi:]==untouched[hi:]
+        if not res[f'item_{p}_preserves_every_other_card']:
+            details[f'item_{p}_outside_changes']=[hex(0x9000+i) for i,(a,b) in enumerate(zip(untouched,after)) if a!=b and not lo<=i<hi]
     frames[0].save(out/'all-items-native.gif',save_all=True,append_images=frames[1:],duration=180,loop=0)
     g.stop()
     report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':res,'details':details,'log':log}

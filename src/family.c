@@ -122,7 +122,8 @@ static void pick_portrait(uint8_t card) {
 }
 static void pick_show(uint8_t card,uint8_t x,uint8_t y) {
   uint8_t k,attr,tile;
-  const volatile uint8_t *src=(const volatile uint8_t *)(0x9800u+20u*32u+card*4u);
+  const volatile uint8_t *src=(const volatile uint8_t *)
+    ((LCDC_REG&LCDCF_BG9C00 ? 0x9C00u : 0x9800u)+20u*32u+card*4u);
   for(k=0u;k<24u;k++) {
     VBK_REG=1u;
     CRITICAL {while(STAT_REG&STATF_BUSY){}attr=src[(uint16_t)(k>>2)*32u+(k&3u)];}
