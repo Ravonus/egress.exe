@@ -1,0 +1,15 @@
+npm warn Unknown user config "minimum-release-age". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+[WebServer] (node:58611) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 5 tests using 1 worker
+
+(node:58614) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 browser-tests/autoconnect.spec.ts:35:1 › permitted devices reconnect on page load and reload without choosers or cartridge operations (710ms)
+  ✓  2 browser-tests/autoconnect.spec.ts:44:1 › manual disconnect remains disconnected despite subsequent device notifications (460ms)
+  ✓  3 browser-tests/autoconnect.spec.ts:51:1 › an occupied device gives a clear ownership error and never pretends to connect (110ms)
+  ✓  4 browser-tests/autoconnect.spec.ts:56:1 › a plugged-in previously permitted device reconnects without a chooser (387ms)
+  ✓  5 browser-tests/autoconnect.spec.ts:61:1 › multiple permitted consoles require a choice instead of opening an arbitrary one (97ms)
+
+  5 passed (2.3s)

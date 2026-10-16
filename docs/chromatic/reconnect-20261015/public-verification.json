@@ -1,0 +1,317 @@
+[
+  {
+    "path": "egress/chromatic/index.html",
+    "matches": true,
+    "sha256": "7658c2fca843dd17135bc9f9c91efb2a8975e55fd2067c6f27e86fd450a633f8"
+  },
+  {
+    "path": "egress/chromatic/index.txt",
+    "matches": true,
+    "sha256": "392a0888f5c2c18390e630e6fdc8d315d967535cbca4be6c3877240a42bc1106"
+  },
+  {
+    "path": "egress/_next/static/css/982651f91742715f.css",
+    "matches": true,
+    "sha256": "1420f6905b14aea0b7fe32ba403180d0603f566de57a9d450e306600d00f640a"
+  },
+  {
+    "path": "egress/_next/static/css/05027173f7485c32.css",
+    "matches": true,
+    "sha256": "e24d1bbdf7c4790588eb776822703bdbde06d2d3a0b21158499f444faa36134e"
+  },
+  {
+    "path": "egress/_next/static/css/5e11cdff6662b569.css",
+    "matches": true,
+    "sha256": "934db0e686c1febc33445eb4c12736421777dbefea8a477e828b996af64e5d8f"
+  },
+  {
+    "path": "egress/_next/static/chunks/c716a14a-cd7e7838dbbb0f95.js",
+    "matches": true,
+    "sha256": "90250392222fc800a1f6f627d0f7c5a7a5203e3e99f0299e09b3b6bd24085827"
+  },
+  {
+    "path": "egress/_next/static/chunks/main-840f2d02c36513ef.js",
+    "matches": true,
+    "sha256": "4e29c3cebf5d2210a19d516648001380468e18f25099ae82e753d337b3f73d25"
+  },
+  {
+    "path": "egress/_next/static/chunks/341-8e6b1733c99811db.js",
+    "matches": true,
+    "sha256": "7db2ab243e9b5c0b2569b6efab09e37d760a1161e4046ea379959aba1b8b53fa"
+  },
+  {
+    "path": "egress/_next/static/chunks/main-app-029d3e4adc7b71e8.js",
+    "matches": true,
+    "sha256": "1614d83d76419b9cb0da7c8fee57e1e93c4cfef77c4187002a08c2d7247c1e75"
+  },
+  {
+    "path": "egress/_next/static/chunks/963-7a2d294d63782a5a.js",
+    "matches": true,
+    "sha256": "ec5cf6bee6ea2fa7d3e6cf245f40d6d026ea1d8414f6a877f3e81e5b45223477"
+  },
+  {
+    "path": "egress/_next/static/chunks/framework-9f962dfb3bbbfb65.js",
+    "matches": true,
+    "sha256": "dacae0808eb9dad1b9f404e8ebd0c447e32a580c28da2d26661e3fbd1d39d26f"
+  },
+  {
+    "path": "egress/_next/static/chunks/381-4fb62918b40fe167.js",
+    "matches": true,
+    "sha256": "cffd8ea1856e2d131d34c66a1be083891f48928abec1a0bfdc8939efbda79087"
+  },
+  {
+    "path": "egress/_next/static/chunks/webpack-7dbc549e571bb3db.js",
+    "matches": true,
+    "sha256": "ecf0f76a70ec648a0aa209bb903a250141cc95297ae340aaed5021042b9f6d0f"
+  },
+  {
+    "path": "egress/_next/static/chunks/944.42c9ae730babebff.js",
+    "matches": true,
+    "sha256": "35d801e95122d97ef544c59e2a51d076f21dbaebdb6d656ae1be734234952030"
+  },
+  {
+    "path": "egress/_next/static/chunks/polyfills-42372ed130431b0a.js",
+    "matches": true,
+    "sha256": "0973c1d64c88adc8e3c950410cb58b288f72118d5965b78049438deb8f2f9683"
+  },
+  {
+    "path": "egress/_next/static/chunks/361.953068e62bc73a06.js",
+    "matches": true,
+    "sha256": "886bbff3c44eae7481ffcf5801465643e2c06044ac199016782fa31a49bc0786"
+  },
+  {
+    "path": "egress/_next/static/HeEgF_Lqih0UUnDOT-6Yg/_ssgManifest.js",
+    "matches": true,
+    "sha256": "678f6ce2cb80b1fe72fc67e7412be6e2ab6ada083111b64f7c40d35e3cba5e00"
+  },
+  {
+    "path": "egress/_next/static/HeEgF_Lqih0UUnDOT-6Yg/_buildManifest.js",
+    "matches": true,
+    "sha256": "38ab048c462c3a8535aa3eafda56ef91c35b1dcab5b53c72ad3d99d869801c55"
+  },
+  {
+    "path": "egress/_next/static/chunks/app/page-a13d65978eadbf08.js",
+    "matches": true,
+    "sha256": "a20a5e991023619d722abf1343153711d6060aed1aa0e89646a12f6ddf2e6fa8"
+  },
+  {
+    "path": "egress/_next/static/chunks/app/layout-3c597d9f83fb867b.js",
+    "matches": true,
+    "sha256": "aba41c7d6eb506cac4aaf032f4bfb2649b2becccc55fc7d88272677fe86ebff7"
+  },
+  {
+    "path": "egress/_next/static/chunks/app/not-found-42222ae394ec1f70.js",
+    "matches": true,
+    "sha256": "94ee41b4b80b38aca6bf6b1abee8bb80b820f58f1fdc7a79533647cd18161c5a"
+  },
+  {
+    "path": "egress/_next/static/chunks/pages/_app-2bbcce7e15e6da59.js",
+    "matches": true,
+    "sha256": "effd1e4a8ca58f230aa206ae4dbb34454c3f146f83619e2fbd6e8bf51c0a8fa6"
+  },
+  {
+    "path": "egress/_next/static/chunks/pages/_error-bccd34dfdba57e29.js",
+    "matches": true,
+    "sha256": "fe0f8e3311dbcd8ba28cc1adad8e53b197ce375b645f5988eb7a692ace42da0f"
+  },
+  {
+    "path": "egress/_next/static/chunks/app/chromatic/page-943d0cb1737e74ef.js",
+    "matches": true,
+    "sha256": "ef5e7c96f808488b905cd900de14b932c30d457102c5fc809599ef610743a4b3"
+  },
+  {
+    "path": "egress/_next/static/chunks/app/how-it-works/page-7a49493842591e3f.js",
+    "matches": true,
+    "sha256": "0f14e9300d10b05d548a09d44a46b6c875485eb52209f95c01357b648447ee2c"
+  },
+  {
+    "path": "egress/_next/static/chunks/app/trailer/page-4d074383e1f2f8ea.js",
+    "matches": true,
+    "sha256": "48715e16f6d14d36e9a8d63b49cb758c697fd9041442268631e0e517def90df4"
+  },
+  {
+    "path": "egress/_next/static/chunks/app/sitemap.xml/route-c137cf29a566c632.js",
+    "matches": true,
+    "sha256": "ba9be9d35650c245a62372beaf3caebe262a9a6a00c48f82793f159a13e90456"
+  },
+  {
+    "path": "egress/_next/static/chunks/app/_not-found/page-c137cf29a566c632.js",
+    "matches": true,
+    "sha256": "ba9be9d35650c245a62372beaf3caebe262a9a6a00c48f82793f159a13e90456"
+  },
+  {
+    "path": "egress/_next/static/chunks/app/robots.txt/route-c137cf29a566c632.js",
+    "matches": true,
+    "sha256": "ba9be9d35650c245a62372beaf3caebe262a9a6a00c48f82793f159a13e90456"
+  },
+  {
+    "path": "egress/_next/static/chunks/app/manifest.webmanifest/route-c137cf29a566c632.js",
+    "matches": true,
+    "sha256": "ba9be9d35650c245a62372beaf3caebe262a9a6a00c48f82793f159a13e90456"
+  },
+  {
+    "path": "crucible/chromatic/index.html",
+    "matches": true,
+    "sha256": "18a18f78efa4b9a540ab01bb59070fbc7844ee5ab6067353118daabe21c10429"
+  },
+  {
+    "path": "crucible/chromatic/index.txt",
+    "matches": true,
+    "sha256": "397a22aff747117eecb528ae342782fea1c3b5dd4b02ce39d8d59e0c963909e8"
+  },
+  {
+    "path": "crucible/_next/static/CKw39fCQkKg9UNzkSP2a3/_ssgManifest.js",
+    "matches": true,
+    "sha256": "678f6ce2cb80b1fe72fc67e7412be6e2ab6ada083111b64f7c40d35e3cba5e00"
+  },
+  {
+    "path": "crucible/_next/static/CKw39fCQkKg9UNzkSP2a3/_buildManifest.js",
+    "matches": true,
+    "sha256": "603b56ac12f3cd923d2d1044e447e296d8af7d17e7c9febac65dbe6c5762b017"
+  },
+  {
+    "path": "crucible/_next/static/css/b9c80ff9e849f791.css",
+    "matches": true,
+    "sha256": "4da77d42ef5593aeb33a26ad6c5e6a1f978bc6a7c474de7684814f305ef3daaa"
+  },
+  {
+    "path": "crucible/_next/static/css/6721b231500defea.css",
+    "matches": true,
+    "sha256": "e62555b6edff11dae93accb1c94d3587b3d3a5e948b2f02704b38816fa9bbd06"
+  },
+  {
+    "path": "crucible/_next/static/css/f1fca8a167ff50d8.css",
+    "matches": true,
+    "sha256": "5472e9d2d79d333ec3d051a9dd4031cd4eabd1d74707c1fa8785db5f2f06edef"
+  },
+  {
+    "path": "crucible/_next/static/css/5e11cdff6662b569.css",
+    "matches": true,
+    "sha256": "934db0e686c1febc33445eb4c12736421777dbefea8a477e828b996af64e5d8f"
+  },
+  {
+    "path": "crucible/_next/static/chunks/172-702239c3a2fff9e1.js",
+    "matches": true,
+    "sha256": "38b4fb327637eeeb58a3135645ad5191fef441cc2c75ebc8f0d01718dc3c6a0c"
+  },
+  {
+    "path": "crucible/_next/static/chunks/webpack-73619a38217bffa6.js",
+    "matches": true,
+    "sha256": "e73295e50baa3708aaa151f1a6b7adbe8fd793e5606a91c72a3cabaf9f2216e8"
+  },
+  {
+    "path": "crucible/_next/static/chunks/773-636a756f882c681e.js",
+    "matches": true,
+    "sha256": "343d225bf7552d4bb8a861080c341795e8ccbdfc8361e5e47a2185d23441c9f4"
+  },
+  {
+    "path": "crucible/_next/static/chunks/716.d562abc5f1bdaf3e.js",
+    "matches": true,
+    "sha256": "af6dc06c8019e0004cd6bfdbf8c7f1831c0d613f924e3d6d9d84c00ea18e497b"
+  },
+  {
+    "path": "crucible/_next/static/chunks/framework-90bf918b660d4c43.js",
+    "matches": true,
+    "sha256": "de14bab9ecfb15c4c9061cb7fc3a38fb35533b9072567c56cb6c8c5b1898e363"
+  },
+  {
+    "path": "crucible/_next/static/chunks/571.719767b220833035.js",
+    "matches": true,
+    "sha256": "990250100f9f9eccb70219488ca77469a8dc4b2ea73017c0b091197d224975ff"
+  },
+  {
+    "path": "crucible/_next/static/chunks/981-cf812377c93fc318.js",
+    "matches": true,
+    "sha256": "d4e44c004ccb619af81c1f1f23de9f78975f4cd48a8fa15c0157c77ddc3164cc"
+  },
+  {
+    "path": "crucible/_next/static/chunks/main-c96a55a90dfb26a6.js",
+    "matches": true,
+    "sha256": "e1ed3f22ee35f8bab84bb56623a7f7fdaac1ff4134465a7d769be3510d0df6a9"
+  },
+  {
+    "path": "crucible/_next/static/chunks/491-5cc810fa0ce4412a.js",
+    "matches": true,
+    "sha256": "cb3213da28b0cd06ccbf091ecb7f1a9d0161022550cf0d4d25edf52bc14f379c"
+  },
+  {
+    "path": "crucible/_next/static/chunks/280d0483-0ae6f23f9ac570fe.js",
+    "matches": true,
+    "sha256": "9745b3e32ae85f6812897f5e0d1fb263d12b4e0e434afa573d686ead9f7a57ab"
+  },
+  {
+    "path": "crucible/_next/static/chunks/main-app-a2616b00767e2323.js",
+    "matches": true,
+    "sha256": "226bb329db40d9fb10c5fb3cce865b854ac89f6b195b7bea268357582a273232"
+  },
+  {
+    "path": "crucible/_next/static/chunks/polyfills-42372ed130431b0a.js",
+    "matches": true,
+    "sha256": "0973c1d64c88adc8e3c950410cb58b288f72118d5965b78049438deb8f2f9683"
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/page-d087950fe47596e5.js",
+    "matches": true,
+    "sha256": "71d5629e2f381482dbceddba187451b839aec05a549b2850a5ee89f5c9ed62d9"
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/not-found-4c4d0692f7f74c60.js",
+    "matches": true,
+    "sha256": "6149cdc9dbe2d76f32be81c8ed2fa44a00fa139befecd0f80128292576d068ae"
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/layout-d6b8411c2d62a9c1.js",
+    "matches": true,
+    "sha256": "ac61df03193b9707fff33e99e6e89b4e285bfd3af0a3a019039b52f36b1224ca"
+  },
+  {
+    "path": "crucible/_next/static/chunks/pages/_error-cbb449beb7d427ec.js",
+    "matches": true,
+    "sha256": "55047391c7c1b012fdb81576eb0904a75f5bf16618791c9a99800046a80a1cca"
+  },
+  {
+    "path": "crucible/_next/static/chunks/pages/_app-d67a4e37ddbc5e04.js",
+    "matches": true,
+    "sha256": "eb44a423d29ce9d1f16835c5b047de7b745ac4540312f80a77e3e948f05dfd04"
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/join/page-7efd9634fa3b1766.js",
+    "matches": true,
+    "sha256": "6e100830303cf74ee9fddec5b287fe9094563afa469fa7d251f6b761c6282f36"
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/chromatic/page-e7559205a9307da6.js",
+    "matches": true,
+    "sha256": "4116565f059fc8fc2612b15dca2e78f34ceeaa8a188999d60527bf11a6551444"
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/how-it-works/page-b9e96f5a425c4087.js",
+    "matches": true,
+    "sha256": "1f648463c90cc90c7dd7498d2588d25849a34eeb3411d923242cc6a2ce28276d"
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/trailer/page-33bfac1c79a356d4.js",
+    "matches": true,
+    "sha256": "d11dca439f411597200e8bf6169f459564d04594021771598eb3556f6333369a"
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/sitemap.xml/route-b59faaf5c206f64c.js",
+    "matches": true,
+    "sha256": "086d031bf0d3d1791700cd6ab0ca6892d2ea2290f69a0bb2d2bda31c94963d12"
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/_not-found/page-b59faaf5c206f64c.js",
+    "matches": true,
+    "sha256": "086d031bf0d3d1791700cd6ab0ca6892d2ea2290f69a0bb2d2bda31c94963d12"
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/robots.txt/route-b59faaf5c206f64c.js",
+    "matches": true,
+    "sha256": "086d031bf0d3d1791700cd6ab0ca6892d2ea2290f69a0bb2d2bda31c94963d12"
+  },
+  {
+    "path": "crucible/_next/static/chunks/app/manifest.webmanifest/route-b59faaf5c206f64c.js",
+    "matches": true,
+    "sha256": "086d031bf0d3d1791700cd6ab0ca6892d2ea2290f69a0bb2d2bda31c94963d12"
+  }
+]
