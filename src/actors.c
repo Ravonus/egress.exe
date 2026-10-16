@@ -291,6 +291,9 @@ void enemies_update(void) BANKED {
 }
 
 void orbs_update(void) BANKED {
+  /* Constant addresses avoid the indexed eight-slot walk on quiet frames. */
+  if(!(orbs[0].live|orbs[1].live|orbs[2].live|orbs[3].live|
+       orbs[4].live|orbs[5].live|orbs[6].live|orbs[7].live))return;
   uint8_t k, j, ox, oy, t;
   uint16_t x,y;
   orb_t *o=orbs;

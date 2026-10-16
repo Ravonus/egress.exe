@@ -68,6 +68,8 @@ void look_assemble(uint8_t origin) BANKED;
 void look_roam_begin(uint8_t enabled) BANKED;
 void look_roam_tick(void) BANKED;
 void look_anchor(uint8_t cell) BANKED; /* portal landing: reveal camera-owned ground immediately */
+void look_shift_view(int8_t dx,int8_t dy) BANKED;
+void look_stream_void(uint8_t cell) BANKED; /* prepare an off-screen hardware slot */
 /* The room falls apart: the edges first, toward `origin`; cells within `keep` (Chebyshev, 0 = none, 1 = the origin,
  * 2 = it and its 8 neighbours) stay. Each cell cracks, splits in two and falls, darkening, into the void. */
 void look_collapse(uint8_t origin, uint8_t keep) BANKED;

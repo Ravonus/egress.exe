@@ -65,6 +65,17 @@ int main(void) {
   base();r.portal_need=EG_PORTAL_ON;r.portal[0]=148u;r.c[147u]=T_BLOCK;occ[0]=146u;
   assert(eg_apply(&r,P_AIR,147u,occ,1u)==RX_PUSH && r.c[q]==T_BLOCK && r.c[148u]==T_EMPTY);
   eg_links_clear(&r);assert(r.nlink==0u && r.portal_need==0u);
+  /* A living obstacle standing on an ingredient must not erase that finite
+   * resource from the optimistic dead-room certificate. */
+  memset(&r,0,sizeof r);
+  for(unsigned y=0;y<14;y++)for(unsigned x=0;x<16;x++)r.c[EG_IDX(x,y)]=!x || x==15 || !y || y==13 ? T_WALL : T_EMPTY;
+  r.start=EG_IDX(8,11);r.door=EG_IDX(8,0);r.c[r.door]=T_DOOR;
+  for(unsigned x=1;x<15;x++)r.c[EG_IDX(x,4)]=T_WALL;
+  r.c[EG_IDX(8,4)]=T_PAPER;r.nitem=1;r.item_cell[0]=EG_IDX(8,10);r.item_piece[0]=P_FIRE;r.c[r.item_cell[0]]=T_ITEM|F_OB;
+  assert(!eg_dead(&r,r.start,0,0));r.c[r.item_cell[0]]=T_EMPTY;assert(eg_dead(&r,r.start,0,0));
+  r.item_piece[0]=P_MUD;r.c[r.item_cell[0]]=T_ITEM|F_OB;
+  for(unsigned y=4;y<7;y++)for(unsigned x=1;x<15;x++)r.c[EG_IDX(x,y)]=T_PIT;
+  assert(!eg_dead(&r,r.start,0,0));
   puts("circuits: independent AND/OR/latch, sockets/weights, gate safety, conditional portals, push/fall/wind and occupancy pass");
   return 0;
 }

@@ -7,6 +7,9 @@
 #include "look.h"
 #include "oam.h"
 #include "stage.h"
+#include "core/eg_view.h"
+#include "world.h"
+#include "world_play.h"
 void items_tick(void) BANKED;
 extern volatile uint8_t video_epoch;
 extern uint8_t frame_epoch;
@@ -262,6 +265,9 @@ static uint8_t roam_wants(uint8_t i) {
 }
 static void roam_raise(uint8_t i) {
   if(!(roam_hidden[i>>3]&BIT(i)) || look_here(i) || roam_pending(i)) return;
+  /* Keep active travel bounded by the card pool. Hidden cells remain marked
+   * and are revisited; urgent floor under the feet uses look_anchor directly. */
+  if((uint8_t)(q_n+n_flying)>=12u)return;
   /* Approaching floor precedes the cosmetic trailing queue. */
   q_head--;q[q_head]=i;q_n++;queued[i>>3]|=BIT(i);
   look_busy_n=(uint8_t)(q_n+n_flying);obj_want=1u;
@@ -276,6 +282,7 @@ void look_roam_tick(void) BANKED {
   dy=pl_y>roam_y ? 1 : pl_y<roam_y ? -1 : 0;
   if(dx || dy) {roam_dx=dx;roam_dy=dy;roam_left=EG_N;}
   roam_x=pl_x;roam_y=pl_y;
+  if(world_on && (video_epoch!=frame_epoch || (LY_REG>=80u && LY_REG<144u)))return;
   if(dx && dy) {
     roam_ahead((int16_t)(pl_x>>4)+dx*3,(int16_t)(pl_y>>4)+dy*2);
     roam_ahead((int16_t)(pl_x>>4)+dx*2,(int16_t)(pl_y>>4)+dy*3);
@@ -432,6 +439,123 @@ static void finish(uint8_t k) {
   c_kind[k] = K_FREE;
   n_flying--;
   hide_card(k);
+}
+void look_stream_void(uint8_t i) BANKED {
+  uint8_t k,j,keep=0u;
+  if(i<EG_N) {
+    for(k=0u;k<LOOK_MAX_CARDS;k++)if(c_kind[k] && c_cell[k]==i)finish(k);
+    for(k=0u;k<q_n;k++) {j=q[(uint8_t)(q_head+k)];if(j!=i)q[(uint8_t)(q_head+keep++)]=j;}
+    q_n=keep;queued[i>>3]&=(uint8_t)~BIT(i);
+    if(cell_type(i)==T_PIT)look_present[i>>3]|=BIT(i);
+    else {look_present[i>>3]&=(uint8_t)~BIT(i);roam_hidden[i>>3]|=BIT(i);}
+    look_busy_n=(uint8_t)(q_n+n_flying);
+  }
+  draw_meta(i,M_VOID_A);
+}
+static void incoming_pits(uint8_t i) NONBANKED NAKED {
+  i;
+  __asm
+    push bc
+    push de
+    ld c,a
+    ld e,a
+    ld d,#0
+    ld hl,#_room
+    add hl,de
+    ld b,#0
+    ld a,(hl+)
+    and a,#31
+    cp a,#9
+    jr nz,1$
+    set 0,b
+  1$:
+    ld a,(hl+)
+    and a,#31
+    cp a,#9
+    jr nz,2$
+    set 1,b
+  2$:
+    ld a,(hl+)
+    and a,#31
+    cp a,#9
+    jr nz,3$
+    set 2,b
+  3$:
+    ld a,(hl)
+    and a,#31
+    cp a,#9
+    jr nz,4$
+    set 3,b
+  4$:
+    bit 2,c
+    jr z,5$
+    swap b
+  5$:
+    ld a,c
+    rrca
+    rrca
+    rrca
+    and a,#31
+    ld e,a
+    ld hl,#_look_present
+    add hl,de
+    ld a,(hl)
+    or a,b
+    ld (hl),a
+    ld hl,#_roam_hidden
+    add hl,de
+    ld a,b
+    cpl
+    and a,(hl)
+    ld (hl),a
+    pop de
+    pop bc
+    ret
+  __endasm;
+}
+/* Portable statement of the native leaf above, checked by the input harness
+ * against incoming world materials after every completed camera transfer. */
+#if 0
+static void incoming_pits_reference(uint8_t i) {
+  const uint8_t *p=room.c+i;uint8_t mask=0u,j=i>>3;
+  if((p[0]&T_MASK)==T_PIT)mask|=1u;
+  if((p[1]&T_MASK)==T_PIT)mask|=2u;
+  if((p[2]&T_MASK)==T_PIT)mask|=4u;
+  if((p[3]&T_MASK)==T_PIT)mask|=8u;
+  if(i&4u)mask<<=4;
+  look_present[j]|=mask;roam_hidden[j]&=(uint8_t)~mask;
+}
+#endif
+void look_shift_view(int8_t dx,int8_t dy) BANKED {
+  uint8_t k,i,keep=0u;
+  /* Finish leaving cards in their old coordinate system before rebasing any
+   * retained card. No material or object state belongs to this presentation. */
+  for(k=0u;k<LOOK_MAX_CARDS;k++)if(c_kind[k]) {
+    i=eg_view_rebase(c_cell[k],dx,dy);
+    if(i>=EG_N)finish(k);
+    else {
+      c_cell[k]=i;
+      if(dy) {c_top[k]-=(int16_t)dy*16;c_bot[k]-=(int16_t)dy*16;}
+    }
+  }
+  for(k=0u;k<q_n;k++) {
+    i=eg_view_rebase(q[(uint8_t)(q_head+k)],dx,dy);
+    if(i<EG_N)q[(uint8_t)(q_head+keep++)]=i;
+  }
+  q_n=keep;
+  eg_view_bits(look_present,dx,dy,0u);eg_view_bits(roam_hidden,dx,dy,1u);eg_view_bits(redraw,dx,dy,1u);
+  /* Membership is a spatial bit field too. Shift the existing pools instead
+   * of clearing and rebuilding every queued/card membership individually. */
+  eg_view_bits(queued,dx,dy,0u);eg_view_bits(in_flight,dx,dy,0u);
+  if(dx) {
+    i=dx>0 ? 12u : 0u;k=14u;
+    do {incoming_pits(i);i=(uint8_t)(i+16u);}while(--k);
+  } else {
+    i=dy>0 ? 160u : 0u;k=16u;
+    do {incoming_pits(i);i=(uint8_t)(i+4u);}while(--k);
+  }
+  rd_any=1u;rd_cursor=0u;rd_left=28u;roam_scan=0u;roam_left=EG_N;roam_x=pl_x;roam_y=pl_y;
+  look_busy_n=(uint8_t)(q_n+n_flying);
 }
 
 /* --- fragile floors: the break (src/look.h) --- */
@@ -613,6 +737,7 @@ void look_redraw(uint8_t i) BANKED { mark(i); }
 static uint8_t is_glitch(uint8_t m) { return (uint8_t)(m >= M_GLITCH0 && m <= M_GLITCH2); }
 
 void look_skin_set(uint8_t i, uint8_t m) BANKED {
+  world_touch(i);
   look_skin[i] = m == LOOK_SKIN_NONE ? 0u : (uint8_t)(m + 1u);
   if (m != LOOK_SKIN_NONE && is_glitch(m)) {
     gl_any = 1u;
@@ -629,6 +754,7 @@ static void glitch_show(uint8_t ph) {
     sk = look_skin[i];
     if (sk > M_GLITCH0 && sk <= M_GLITCH2 + 1u) {
       look_skin[i] = (uint8_t)(M_GLITCH0 + 1u + ph);
+      world_touch(i);
       mark(i);
     }
   } while (++i != (uint8_t)EG_N);
@@ -664,6 +790,7 @@ void look_break_tile(uint8_t i, uint8_t kind) BANKED {
   if (!(meta_pal[m] & LOOK_META_BANK0) || is_glitch(m))
     m = kind == LOOK_FRAG_CARPET ? M_CARPET2 : (kind == LOOK_FRAG_CEIL ? M_CEIL1 : (kind == LOOK_FRAG_GLASS ? M_GLASS : M_GLITCH0));
   look_skin[i] = (uint8_t)(M_PIT + 1u);
+  world_touch(i);
   redraw[i >> 3] &= (uint8_t)~BIT(i);
   draw_meta(i, M_PIT);
   for (k = 0; k != LOOK_MAX_CARDS; k++)
@@ -733,7 +860,9 @@ void look_frame_begin(void) BANKED {
      * bounded ready card / launch here; animation stays after the actors. */
     roam_late=0u;
     k=ground_ahead();
-    if((enemies_alive || stage_type!=SG_PUZZLE) && !k && enemies_alive<3u && grav_t!=1u && !push_t) look_update(1u);
+    if((world_on || enemies_alive || stage_type!=SG_PUZZLE) && !k && enemies_alive<3u && grav_t!=1u && !push_t &&
+       (!world_on || LY_REG<16u || LY_REG>=144u) &&
+       !(world_on && (frame_count&3u) && world_work_pending())) look_update(1u);
   }
 }
 

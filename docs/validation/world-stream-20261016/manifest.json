@@ -1,0 +1,302 @@
+{
+  "scope": "quiet generated worlds; full-game sprints remain open",
+  "source_sha256": "9f3184cfa13682aff0d4c65cd5441c6f85bb21f71cb997c6334631228f5f9885",
+  "roms": [
+    {
+      "file": "egress-rtc.gbc",
+      "sha256": "97a86c4f77daea3664110d81dcfaff97d10bb53676e726d769fecaa8dc909d72",
+      "bytes": 1228800
+    },
+    {
+      "file": "egress.gbc",
+      "sha256": "435607f80f4e3be49802096ffabd36a5c9db27431b66ff277b5b8ef54c7f41a6",
+      "bytes": 1228800
+    }
+  ],
+  "native_scenarios": 42,
+  "input_matrix": [
+    {
+      "scenario": "egress-biome-0",
+      "sha256": "435607f80f4e3be49802096ffabd36a5c9db27431b66ff277b5b8ef54c7f41a6",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_bodies_and_pixels_match": true,
+      "all_maps_and_attributes_match": true,
+      "all_stack_canaries": true
+    },
+    {
+      "scenario": "egress-biome-1",
+      "sha256": "435607f80f4e3be49802096ffabd36a5c9db27431b66ff277b5b8ef54c7f41a6",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_bodies_and_pixels_match": true,
+      "all_maps_and_attributes_match": true,
+      "all_stack_canaries": true
+    },
+    {
+      "scenario": "egress-biome-2",
+      "sha256": "435607f80f4e3be49802096ffabd36a5c9db27431b66ff277b5b8ef54c7f41a6",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_bodies_and_pixels_match": true,
+      "all_maps_and_attributes_match": true,
+      "all_stack_canaries": true
+    },
+    {
+      "scenario": "egress-biome-3",
+      "sha256": "435607f80f4e3be49802096ffabd36a5c9db27431b66ff277b5b8ef54c7f41a6",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_bodies_and_pixels_match": true,
+      "all_maps_and_attributes_match": true,
+      "all_stack_canaries": true
+    },
+    {
+      "scenario": "egress-biome-4",
+      "sha256": "435607f80f4e3be49802096ffabd36a5c9db27431b66ff277b5b8ef54c7f41a6",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_bodies_and_pixels_match": true,
+      "all_maps_and_attributes_match": true,
+      "all_stack_canaries": true
+    },
+    {
+      "scenario": "egress-biome-5",
+      "sha256": "435607f80f4e3be49802096ffabd36a5c9db27431b66ff277b5b8ef54c7f41a6",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_bodies_and_pixels_match": true,
+      "all_maps_and_attributes_match": true,
+      "all_stack_canaries": true
+    },
+    {
+      "scenario": "egress-biome-6",
+      "sha256": "435607f80f4e3be49802096ffabd36a5c9db27431b66ff277b5b8ef54c7f41a6",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_bodies_and_pixels_match": true,
+      "all_maps_and_attributes_match": true,
+      "all_stack_canaries": true
+    },
+    {
+      "scenario": "egress-biome-7",
+      "sha256": "435607f80f4e3be49802096ffabd36a5c9db27431b66ff277b5b8ef54c7f41a6",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_bodies_and_pixels_match": true,
+      "all_maps_and_attributes_match": true,
+      "all_stack_canaries": true
+    },
+    {
+      "scenario": "egress-rtc-biome-0",
+      "sha256": "97a86c4f77daea3664110d81dcfaff97d10bb53676e726d769fecaa8dc909d72",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_bodies_and_pixels_match": true,
+      "all_maps_and_attributes_match": true,
+      "all_stack_canaries": true
+    },
+    {
+      "scenario": "egress-rtc-biome-1",
+      "sha256": "97a86c4f77daea3664110d81dcfaff97d10bb53676e726d769fecaa8dc909d72",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_bodies_and_pixels_match": true,
+      "all_maps_and_attributes_match": true,
+      "all_stack_canaries": true
+    },
+    {
+      "scenario": "egress-rtc-biome-2",
+      "sha256": "97a86c4f77daea3664110d81dcfaff97d10bb53676e726d769fecaa8dc909d72",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_bodies_and_pixels_match": true,
+      "all_maps_and_attributes_match": true,
+      "all_stack_canaries": true
+    },
+    {
+      "scenario": "egress-rtc-biome-3",
+      "sha256": "97a86c4f77daea3664110d81dcfaff97d10bb53676e726d769fecaa8dc909d72",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_bodies_and_pixels_match": true,
+      "all_maps_and_attributes_match": true,
+      "all_stack_canaries": true
+    },
+    {
+      "scenario": "egress-rtc-biome-4",
+      "sha256": "97a86c4f77daea3664110d81dcfaff97d10bb53676e726d769fecaa8dc909d72",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_bodies_and_pixels_match": true,
+      "all_maps_and_attributes_match": true,
+      "all_stack_canaries": true
+    },
+    {
+      "scenario": "egress-rtc-biome-5",
+      "sha256": "97a86c4f77daea3664110d81dcfaff97d10bb53676e726d769fecaa8dc909d72",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_bodies_and_pixels_match": true,
+      "all_maps_and_attributes_match": true,
+      "all_stack_canaries": true
+    },
+    {
+      "scenario": "egress-rtc-biome-6",
+      "sha256": "97a86c4f77daea3664110d81dcfaff97d10bb53676e726d769fecaa8dc909d72",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_bodies_and_pixels_match": true,
+      "all_maps_and_attributes_match": true,
+      "all_stack_canaries": true
+    },
+    {
+      "scenario": "egress-rtc-biome-7",
+      "sha256": "97a86c4f77daea3664110d81dcfaff97d10bb53676e726d769fecaa8dc909d72",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_bodies_and_pixels_match": true,
+      "all_maps_and_attributes_match": true,
+      "all_stack_canaries": true
+    },
+    {
+      "scenario": "egress-rtc-xs",
+      "sha256": "97a86c4f77daea3664110d81dcfaff97d10bb53676e726d769fecaa8dc909d72",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_bodies_and_pixels_match": true,
+      "all_maps_and_attributes_match": true,
+      "all_stack_canaries": true
+    },
+    {
+      "scenario": "egress-xs",
+      "sha256": "435607f80f4e3be49802096ffabd36a5c9db27431b66ff277b5b8ef54c7f41a6",
+      "cases": 1,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 0,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_bodies_and_pixels_match": true,
+      "all_maps_and_attributes_match": true,
+      "all_stack_canaries": true
+    },
+    {
+      "scenario": "mbc3",
+      "sha256": "97a86c4f77daea3664110d81dcfaff97d10bb53676e726d769fecaa8dc909d72",
+      "cases": 12,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 34,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_bodies_and_pixels_match": true,
+      "all_maps_and_attributes_match": true,
+      "all_stack_canaries": true
+    },
+    {
+      "scenario": "mbc5",
+      "sha256": "435607f80f4e3be49802096ffabd36a5c9db27431b66ff277b5b8ef54c7f41a6",
+      "cases": 12,
+      "minimum_frames_per_120": 120,
+      "maximum_stream_wait_frames": 34,
+      "maximum_oam_line": 10,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "all_bodies_and_pixels_match": true,
+      "all_maps_and_attributes_match": true,
+      "all_stack_canaries": true
+    }
+  ],
+  "irreversible_loss_and_reset": [
+    {
+      "scenario": "failure-mbc3",
+      "sha256": "97a86c4f77daea3664110d81dcfaff97d10bb53676e726d769fecaa8dc909d72",
+      "warning_wait_frames": 303,
+      "reset_restores_plan_crate_and_ingredients": true
+    },
+    {
+      "scenario": "failure-mbc5",
+      "sha256": "435607f80f4e3be49802096ffabd36a5c9db27431b66ff277b5b8ef54c7f41a6",
+      "warning_wait_frames": 303,
+      "reset_restores_plan_crate_and_ingredients": true
+    }
+  ],
+  "full_regression": {
+    "command": "make -j1 test",
+    "outcome": "passed",
+    "log_sha256": "3da844fdd131334b4e132cd0c9e242a33d3791adf65bab3cbe769ef3ce1d1ace",
+    "log_lines": 10537,
+    "final_check": "both mapper ROM gates and native title boots passed"
+  },
+  "physical_chromatic_verified": false,
+  "public_release_changed": false
+}

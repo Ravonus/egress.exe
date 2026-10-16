@@ -13,6 +13,10 @@
 #include "core/eg_move.h"
 #include "puzzle.h"
 #include "family.h"
+#include "core/eg_view.h"
+#include "world.h"
+#include "world_play.h"
+void play_camera_warp(void) BANKED;
 #include "resume.h"
 #include "run.h"
 #include "narrator.h"
@@ -151,7 +155,7 @@ static void fall_tick(void) {
 
 void open_door(void) BANKED {
   door_open = 1;
-  queue_cell(room.door);
+  if(room.door<EG_N)queue_cell(room.door);
   sfx(SFX_DOOR);
   hud_msg("THE DOOR HUMS");
 }
@@ -238,6 +242,15 @@ static void mstep(uint8_t dpad, uint8_t speed, uint8_t synth) {
   pmv.y = (int16_t)psy - 96;
   pmv.mode = (opt_move4 || EG_OPT_MOVE4) && !synth ? EG_MODE_4WAY : EG_MODE_8WAY;
   eg_move_step(&pmv, dpad, speed, &pg);
+  if(world_on) {
+    /* An unloaded continuation is not an island edge. Keep the complete
+     * body inside the active window until its prepared strip is published;
+     * true exterior edges retain their ordinary fall/jump behavior. */
+    if(world_view.x && pmv.x<288)pmv.x=288;
+    if(world_view.x<world_view.width-EG_W && pmv.x>3616)pmv.x=3616;
+    if(world_view.y && pmv.y<544)pmv.y=544;
+    if(world_view.y<world_view.height-EG_H && pmv.y>3104)pmv.y=3104;
+  }
   if (synth) { /* momentum, not a press: the d-pad's press order and the push contact are not touched */
     pmv.prev = prev;
     pmv.order[0] = o0;
@@ -543,9 +556,28 @@ void player_floor_start(void) BANKED {
   overlay(HA_SPAWN, 34u);
   heir_reset();
 }
+void player_shift_view(int8_t dx,int8_t dy) BANKED {
+  uint8_t c;
+  int16_t sx=(int16_t)dx*256,sy=(int16_t)dy*256;
+  psx=(uint16_t)(psx-sx);psy=(uint16_t)(psy-sy);pmv.x-=sx;pmv.y-=sy;
+  pl_x=(uint8_t)(pl_x-dx*16);pl_y=(uint8_t)(pl_y-dy*16);
+  portal_lock=eg_view_rebase(portal_lock,dx,dy);fall_safe=eg_view_rebase(fall_safe,dx,dy);
+  if(fall_safe>=EG_N)fall_safe=cell_at(pl_x,pl_y);
+  c=eg_view_rebase(EG_IDX(pmv.push_cx,pmv.push_cy),dx,dy);
+  if(c<EG_N) {pmv.push_cx=EG_X(c);pmv.push_cy=EG_Y(c);}else pmv.push_t=0u;
+  c=eg_view_rebase(EG_IDX(pmv.req_cx,pmv.req_cy),dx,dy);
+  if(c<EG_N) {pmv.req_cx=EG_X(c);pmv.req_cy=EG_Y(c);}else pmv.req=0u;
+  /* Contact may have reached its single request while the destination was
+   * outside the old window. Recheck it once against the newly loaded space. */
+  if(pmv.push_t>=EG_PUSH_HOLD)pmv.push_t=EG_PUSH_HOLD-1u;
+  push_t=pmv.push_t;
+}
 
 static void portal_tick(void) {
   uint8_t c=cell_at(pl_x,pl_y),to,x,y;
+  /* First publish the complete incoming view; transport can activate on the
+   * following tick. Walking, attacks and physics keep their ordinary update. */
+  if(world_on && world_moved)return;
   if(c!=portal_lock) portal_lock=EG_LINK_NONE;
   if(c==portal_lock || pl_air || pl_state==PS_FALL) return;
   if(c!=room.portal[0] && c!=room.portal[1]) return;
@@ -561,6 +593,7 @@ static void portal_tick(void) {
   psx=cell_sub(EG_X(to));psy=cell_sub(EG_Y(to));pl_x=x;pl_y=y;
   pmv.x=(int16_t)psx-96;pmv.y=(int16_t)psy-96;
   portal_lock=to;fall_safe=to;puzzle_dirty=1u;grav_t=1u;
+  if(world_on)play_camera_warp();
   look_anchor(to);sfx(SFX_CHARGED);overlay(HA_SPAWN,12u);
   puff(x,y,4u,ST_SPARK);collect();
 }

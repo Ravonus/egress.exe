@@ -21,7 +21,7 @@ class GridObserver:
         assert self.pending is None
         dst=m[self.dst]|m[self.dst+1]<<8;src=m[self.src]|m[self.src+1]<<8;attr=m[self.attr]
         base=0x9C00 if m[0xFF40]&8 else 0x9800
-        assert base<=dst<base+0x380 and dst&1==0
+        assert base<=dst<base+0x400 and dst&1==0
         assert (dst&31)<31
         want=bytes(m[src:src+4]);ret=m[sp]|m[sp+1]<<8
         bank=m[g.sym['__current_bank']] if 0x4000<=ret<0x8000 else 0

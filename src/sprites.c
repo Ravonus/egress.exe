@@ -14,6 +14,7 @@
 #include "mob.h"
 #include "obstacle.h"
 #include "stage.h"
+#include "world.h"
 #include "core/eg_move.h"
 #include "gen/diag_arc.inc"
 extern eg_mover_t pmv;
@@ -584,7 +585,7 @@ void draw_sprites(void) BANKED {
   else for (k = 0; k != nen; k++)
     if (en[k].kind == SPAWN_BOSS && en[k].st != ES_DEAD) draw_boss(&en[k]);
   /* OP_SHOT: orbs (pointers, not orbs[k]: SDCC multiplies the index on every access) */
-  {
+  if(orbs[0].live|orbs[1].live|orbs[2].live|orbs[3].live|orbs[4].live|orbs[5].live|orbs[6].live|orbs[7].live) {
     orb_t *o = orbs;
     for (k = MAXO; k; k--, o++)
       if (o->live) spr8((int16_t)(o->x >> 4), (int16_t)(o->y >> 4), ST_ORB, o->friendly ? 4u : 5u);
@@ -607,7 +608,7 @@ void draw_sprites(void) BANKED {
   }
   /* OP_FX: particles, then puffs (cosmetic: left out where a line is full) */
   if (!boss_floor) fx_draw(); /* boss art owns the mob/FX tile block in an arena */
-  {
+  if(puffs[0].t|puffs[1].t|puffs[2].t|puffs[3].t|puffs[4].t|puffs[5].t) {
     puff_t *p = puffs;
     int16_t py;
     uint8_t quota=(uint8_t)(LY_REG>=88u && LY_REG<144u ? 1u : MAXP);
@@ -625,7 +626,7 @@ void draw_sprites(void) BANKED {
     /* Flying cards occupy the high OAM slots outside the actor allocator. They
      * still share the hardware's ten-OBJ line limit with actors and shots. */
     if(!boss_floor && stage_type!=SG_DARK && stage_type!=SG_CHASE &&
-       (enemies_alive || stage_type!=SG_PUZZLE)) {
+       (world_on || enemies_alive || stage_type!=SG_PUZZLE)) {
       /* The late look pass rebuilds these after actors, against their fresh
        * bands. Do not reserve yesterday's cards only to remove them again. */
       hide_range(24u,40u);

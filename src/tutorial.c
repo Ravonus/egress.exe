@@ -43,6 +43,9 @@ void tutorial_tick(void) BANKED {
   if(pending==255u) return;
   if(!tutorial_on || (uint16_t)(frame_count-queued_at)>600u) {pending=255u;return;}
   if(cool || boss_floor || freeze || pl_state==PS_FALL || !hud_narr_ready()) return;
+  /* Showing a first-use cue also seals its settings journal. Leave that CRC
+   * work for a frame with room after terrain streaming and actor simulation. */
+  if(LY_REG>=80u && LY_REG<144u)return;
   for(k=0u;k<nen;k++) if(en[k].st!=ES_DEAD && absdiff((uint8_t)(en[k].x>>4),pl_x)<56u && absdiff((uint8_t)(en[k].y>>4),pl_y)<56u) return;
   hud_narrate(cues[pending]);tutorial_seen|=(uint16_t)1u<<pending;pending=255u;cool=10u;tutorial_save();
 }

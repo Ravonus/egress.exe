@@ -37,7 +37,9 @@ static const uint8_t win_of[EG_DECK_TYPES] = {WIN_EXIT, WIN_CHARGE, WIN_OUTRUN, 
 uint8_t eg_stage_win(uint8_t type) EG_BANKED { return type < EG_DECK_TYPES ? win_of[type] : WIN_EXIT; }
 
 /* ---------------- helpers ---------------- */
-uint8_t eg_stage_reach[EG_N / 8u];
+#ifndef __SDCC
+eg_stage_scratch eg_stage_work;
+#endif
 static uint8_t *C;
 static eg_room *R;
 

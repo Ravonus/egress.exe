@@ -9,7 +9,7 @@ An integrated prototype, a passing host simulation, a native build and a played 
 |---|---|---|
 | Core, movement and rendering | Office checkpoint verified | Keep current two-action-button controls, full bodies and frame/OAM budgets through the full game |
 | Puzzles and finite tools | Partial | Composed dependency motifs, varied topology and states, resource-feasible alternatives, wrong-spend branches and native replay |
-| Authored stage codec and generated geography | Generator proven; playable integration pending | Editable goal/condition pools, XS–XXL dimensions and shapes, persistent streamed maps, biome environment variants and full native input replay |
+| Authored stage codec and generated geography | Quiet native worlds verified on both mappers; campaign integration partial | Reduce measured corner preparation waits; actor streaming, campaign curriculum, environment/reaction coverage and continuation |
 | Shared action/object/mob matrix | Partial | Complete the authored interactions and readable activation, reaction, spent and destruction states; exercise both directions |
 | Mobs, stages, biomes and full run | Partial | Native full-run layout and seed bank, all biomes, stage/obstacle combinations and their kill/exit guarantees |
 | Heirs, lineage, saves, tree and stats | Partial | Non-overlapping migrated SRAM journals, floor/landing continue, shortcut/line progress, full tree and stats pages with event accounting |
@@ -165,5 +165,21 @@ The owner additionally requests authored stage goals/conditions with procedurall
 shapes, items and realizations, XS through XXL scales, horizontal shapes, fuller foliage, biome-shared variants,
 and digital rivers/waterfalls. `STAGE-CODEC.md` defines the editable source and separates generated-world proof
 from playable integration. The shared host/native constructor now covers those size and environment records;
-the active streamed game and native environment renderer remain required. Do not count a generated plan as a
-finished playable world or as completion of the sprint ledger.
+the quiet streamed game and native environment renderer now pass ordinary-input acceptance. Do not count this
+subset as completion of the sprint ledger.
+
+
+## Persistent generated worlds (2026-10-16)
+
+The cartridge now recycles a 16 × 14 active window across XS–XXL seeded worlds, up to 128 × 54 cells. Materials,
+artwork, protection, cracks, finite pickups, moved crates, circuits and portals survive both-axis travel and
+backtracking. The native environment art shares twelve metatiles and a bounded animation-card pool.
+
+Both mapper images pass 42 ordinary-input scenarios, strict 120/120 frame timing, complete-body and independent
+pixel uploads, BG/attribute reference checks, OAM limits and stack canaries. A separate real-input loss/reset
+case passes on both. The complete `make -j1 test` regression passed on the exact frozen source and images.
+Evidence and hashes are in `validation/world-stream-20261016/`. The public cartridge has not changed.
+
+The input observer still measures up to 34 frames of terrain-preparation waiting at a few large-map corners.
+That delay is separate from frame rate and remains optimization work. These first integrated worlds are quiet;
+actor streaming, campaign-wide goals/biomes and continuation, the full run and remaining milestones stay open.

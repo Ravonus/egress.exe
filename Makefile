@@ -26,6 +26,11 @@ SRC += src/boss_core.c src/boss_tenant.c src/boss_fax.c src/boss_art.c src/boss_
 SRC += src/core/eg_physics.c
 SRC += src/core/eg_link.c src/core/eg_link_gen.c
 SRC += src/core/eg_window.c src/window_fast.c src/window_cache.c
+SRC += src/core/eg_view.c src/view_cache.c
+SRC += src/gen/world_art.c
+SRC += src/world.c src/core/eg_land.c src/core/eg_land_bind.c
+SRC += src/world_dead.c src/core/eg_land_dead.c
+SRC += src/world_play.c
 SRC += src/core/eg_family.c
 SRC += src/items.c
 SRC += src/core/eg_combat.c src/core/eg_stamina.c src/stamina.c
@@ -121,7 +126,7 @@ build/linked-%.gbc: $$(OBJ_$$*)
 	@end=$$(grep -oE '[0-9A-F]{8}  s__HEAP ' build/linked-$*.map | head -1 | cut -c5-8); \
 	[ $$((0x$$end)) -le $$((0xD800)) ] || { echo "WRAM: game data ends at 0x$$end, past 0xD800 (the title mirrors \
 	0xD000-0xD7FF and keeps its buffers above it, src/title3d/t3d.h)" >&2; rm -f $@; exit 1; }
-	@$(PY) -c 'import re; from pathlib import Path; s=Path("build/linked-$*.noi").read_text(); a=int(re.search(r"DEF _eg_window_packet 0x([0-9A-Fa-f]+)",s)[1],16); assert 0xC000<=a<=0xCFF7,hex(a)'
+	@$(PY) -c 'import re; from pathlib import Path; s=Path("build/linked-$*.noi").read_text(); sizes={"eg_window_packet":9,"world_mask_packet":9,"world_pre_x":9,"world_pre_y":9,"eg_stage_work":36}; addresses={n:int(re.search(r"DEF _"+n+r" 0x([0-9A-Fa-f]+)",s)[1],16) for n in sizes}; assert all(0xC000<=a and a+sizes[n]<=0xD000 for n,a in addresses.items()),{n:hex(a) for n,a in addresses.items()}'
 
 # GBDK's autobanker rewrites shared .rel inputs. Two mapper links must never run
 # concurrently, even under make -j; compilation can still run in parallel.
@@ -323,7 +328,7 @@ build/window-check/test.o: test/native/window_stream.c test/native/window_cases.
 	@mkdir -p $(dir $@)
 	$(LCC) $(CFLAGS) -o $@ $<
 
-build/window-check/window.gbc: build/window-check/test.o build/obj/core/eg_window.o build/obj/window_fast.o build/obj/window_cache.o
+build/window-check/window.gbc: build/window-check/test.o build/obj/core/eg_window.o build/obj/window_fast.o build/obj/window_cache.o build/obj/core/eg_view.o build/obj/view_cache.o
 	$(LCC) $(LDFLAGS) -Wm-yt0x1B -o $@ $^
 
 test-native-window: build/host/window_stream_dump build/window-check/window.gbc
@@ -332,9 +337,16 @@ test-native-window: build/host/window_stream_dump build/window-check/window.gbc
 src/gen/stage_codec.inc: assets/stages/codec.json tools/bake_stage_codec.py
 	$(PY) tools/bake_stage_codec.py
 
+src/gen/world_art.c src/gen/world_art.h: tools/bake_world_art.py tools/bake_look.py tools/bake_art.py
+	$(PY) tools/bake_world_art.py
+
 build/obj/core/eg_land.o: src/gen/stage_codec.inc
 
-LAND_SRC := src/core/eg_land.c src/core/eg_room.c src/core/eg_link.c src/core/eg_piece.c
+LAND_SRC := src/core/eg_land.c src/core/eg_land_bind.c src/core/eg_land_dead.c src/core/eg_room.c src/core/eg_link.c src/core/eg_piece.c
+build/host/land_one: host/land_one.c src/core/eg_land.c src/core/eg_land.h src/gen/stage_codec.inc
+	@mkdir -p $(@D)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc -o $@ host/land_one.c src/core/eg_land.c
+
 build/host/test_land: host/test_land.c $(LAND_SRC) src/core/eg_land.h src/gen/stage_codec.inc
 	@mkdir -p $(dir $@)
 	$(HOSTCC) $(HOSTCFLAGS) -Isrc -o $@ host/test_land.c $(LAND_SRC)
@@ -357,6 +369,83 @@ build/land-check/land.gbc: build/land-check/test.o build/obj/core/eg_land.o
 
 test-native-land: build/host/land_dump build/land-check/land.gbc
 	$(PY) tools/test_land_native.py $^
+
+build/host/view_dump: host/view_dump.c test/native/view_cases.h src/core/eg_view.c src/core/eg_view.h
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc -o $@ host/view_dump.c src/core/eg_view.c
+
+build/view-check/test.o: test/native/view_stream.c test/native/view_cases.h src/core/eg_view.h src/view_cache.h
+	@mkdir -p $(dir $@)
+	$(LCC) $(CFLAGS) -o $@ $<
+
+build/view-check/view.gbc: build/view-check/test.o build/obj/core/eg_view.o build/obj/view_cache.o build/obj/window_cache.o build/obj/window_fast.o
+	$(LCC) $(LDFLAGS) -Wm-yt0x1B -o $@ $^
+
+test-native-view: build/host/view_dump build/view-check/view.gbc
+	$(PY) tools/test_view_native.py $^
+
+build/host/test_view: host/test_view.c src/core/eg_view.c src/core/eg_view.h
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc -o $@ host/test_view.c src/core/eg_view.c
+
+test-view: build/host/test_view
+	$<
+
+build/world-art-check/test.o: test/native/world_art.c src/gen/look_art.h src/gen/world_art.h
+	@mkdir -p $(dir $@)
+	$(LCC) $(CFLAGS) -o $@ $<
+
+build/world-art-check/art.gbc: build/world-art-check/test.o build/obj/gen/world_art.o build/obj/gen/look_art.o
+	$(LCC) $(LDFLAGS) -Wm-yt0x1B -o $@ $^
+
+test-native-world-art: build/world-art-check/art.gbc
+	$(PY) tools/test_world_art.py $<
+
+build/host/land_bind_dump: host/land_bind_dump.c test/native/land_bind_cases.h test/native/land_cases.h src/core/eg_land.c src/core/eg_land_bind.c src/core/eg_land_bind.h src/gen/stage_codec.inc
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc -o $@ host/land_bind_dump.c src/core/eg_land.c src/core/eg_land_bind.c
+
+build/land-bind-check/test.o: test/native/land_bind.c test/native/land_bind_cases.h test/native/land_cases.h src/core/eg_land_bind.h
+	@mkdir -p $(dir $@)
+	$(LCC) $(CFLAGS) -o $@ $<
+
+build/land-bind-check/bind.gbc: build/land-bind-check/test.o build/obj/core/eg_land.o build/obj/core/eg_land_bind.o
+	$(LCC) $(LDFLAGS) -Wm-yt0x1B -o $@ $^
+
+test-native-land-bind: build/host/land_bind_dump build/land-bind-check/bind.gbc
+	$(PY) tools/test_land_bind_native.py $^
+
+build/host/world_dump: host/world_dump.c test/native/world_cases.h test/native/land_cases.h src/core/eg_land.c src/core/eg_land_bind.c src/core/eg_view.c src/core/eg_land_bind.h src/gen/stage_codec.inc
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc -o $@ host/world_dump.c src/core/eg_land.c src/core/eg_land_bind.c src/core/eg_view.c
+
+build/world-check/test.o: test/native/world_backend.c test/native/world_cases.h test/native/land_cases.h $(HDRS)
+	@mkdir -p $(dir $@)
+	$(LCC) $(CFLAGS) -o $@ $<
+
+build/world-check/world.gbc: build/world-check/test.o build/obj/world.o build/obj/core/eg_land.o build/obj/core/eg_land_bind.o build/obj/core/eg_view.o build/obj/window_cache.o build/obj/window_fast.o build/obj/view_cache.o build/obj/gen/world_art.o build/obj/core/eg_link.o build/obj/world_dead.o build/obj/core/eg_land_dead.o
+	$(LCC) $(LDFLAGS) -Wm-yt0x1B -o $@ $^
+	@$(PY) -c 'import re; from pathlib import Path; s=Path("build/world-check/world.map").read_text(); end=int(re.search(r"([0-9A-F]{8})  s__HEAP ",s)[1],16); assert end<=0xC500,hex(end)'
+
+test-native-world: build/host/world_dump build/world-check/world.gbc
+	$(PY) tools/test_world_backend.py $^
+
+WORLD_PLAY_SEEDS := 0x5fed 0x5100 0x5109 0x5103 0x5104 0x511c 0x5107 0x5102 0x5128 0x5101 0x5105 0x5106
+test-world-play: all build/host/land_one
+	$(PY) test/harness/world_play.py build/egress.gbc build/world-play/mbc5 --seeds $(WORLD_PLAY_SEEDS)
+	$(PY) test/harness/world_play.py build/egress-rtc.gbc build/world-play/mbc3 --seeds $(WORLD_PLAY_SEEDS)
+
+test-world-environments: all build/host/land_one
+	@set -e; for rom in egress egress-rtc; do \
+	  $(PY) test/harness/world_play.py build/$$rom.gbc build/world-play/$$rom-xs --rule 0 --size 0 --biome 5; \
+	  for biome in 0 1 2 3 4 5 6 7; do \
+	    $(PY) test/harness/world_play.py build/$$rom.gbc build/world-play/$$rom-biome-$$biome --rule 0 --size 1 --biome $$biome; \
+	  done; \
+	done
+
+test-world-failure: all build/host/land_one
+	$(PY) test/harness/world_failure.py build/egress.gbc build/world-play/failure-mbc5
+	$(PY) test/harness/world_failure.py build/egress-rtc.gbc build/world-play/failure-mbc3
 
 test-curriculum: build/host/test_curriculum
 	build/host/test_curriculum
@@ -513,7 +602,7 @@ test-rtc: build/host/test_clock build/egress.gbc build/egress-rtc.gbc
 	$(PY) tools/mapper_audit.py build/linked-mbc5.map build/linked-mbc3.map
 	$(PY) test/rtc_test.py build/egress.gbc build/egress-rtc.gbc
 
-test: build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-physics test-island-edges test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-runtime test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera test-linked-puzzles test-native-links test-native-linked-puzzles test-window test-native-window test-land test-native-land
+test: build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-physics test-island-edges test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-runtime test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera test-linked-puzzles test-native-links test-native-linked-puzzles test-window test-native-window test-land test-native-land test-view test-native-view test-native-land-bind test-native-world test-native-world-art test-world-play test-world-environments test-world-failure
 	build/host/test_obst
 	build/host/test_room src/gen/eg_seeds.c
 	build/host/egplan check 1000
@@ -531,3 +620,4 @@ clean:
 .PHONY: rom all rtc test test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-fs-proto test-physics test-island-edges test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-narrator test-journal test-runtime-core test-runtime test-wram-cache shots clean seeds heir
 .PHONY: test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera test-links test-linked-puzzles test-native-links test-native-linked-puzzles
 .PHONY: test-window test-native-window test-land test-native-land
+.PHONY: test-view test-native-view test-native-land-bind test-native-world test-native-world-art test-world-play test-world-environments test-world-failure

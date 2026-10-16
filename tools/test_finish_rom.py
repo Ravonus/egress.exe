@@ -66,6 +66,15 @@ def main() -> int:
         check(rc == 0 and out[0x148] == 0x06, "the header keeps the 2 MiB size code")
         check(rc == 0 and verify_header(out), "header and global checksums verify on the trimmed file")
         check(rc == 0 and out[0x134:0x13E] == b"EGRESS.EXE", "the title is written")
+        check(not finish_rom.area_errors("_HOME 00003F00 00000100 = 256. bytes (REL,CON)"),
+              "ROM0 may end exactly at its bank boundary")
+        for area in ("_HOME 00003F00 00000101", "_INITIALIZER 00004000 00000001",
+                     "_CODE_1 00014000 00004001"):
+            check(bool(finish_rom.area_errors(area + " = 1. bytes (REL,CON)")),
+                  f"an overflowing linked area is rejected: {area.split()[0]}")
+        (t / "overflow.map").write_text(fake_map(3) + "_HOME 00003F00 00000101 = 257. bytes (REL,CON)\n")
+        check(finish_rom.finish(t / "a.gbc", t / "overflow.map", t / "overflow.out") == 1 and
+              not (t / "overflow.out").exists(), "ROM0 overflow cannot produce a finished cartridge")
 
         (t / "b.gbc").write_bytes(fake_link(116))
         (t / "b.map").write_text(fake_map(115))

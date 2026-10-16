@@ -546,7 +546,7 @@ uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, u
     dd_mode=3u;dd_scan=dd_flags=dd_n=dd_h=0u;
     dd_heat=0u;
     for(i=0u;i<npocket;i++)if(EG_PIECE_HOT(pocket[i]))dd_heat=1u;
-    for(i=0u;i<r->nitem;i++)if(r->c[r->item_cell[i]]==T_ITEM && EG_PIECE_HOT(r->item_piece[i]))dd_heat=1u;
+    for(i=0u;i<r->nitem;i++)if((r->c[r->item_cell[i]]&T_MASK)==T_ITEM && EG_PIECE_HOT(r->item_piece[i]))dd_heat=1u;
     for(i=0u;i!=EG_N/8u;i++) dd_seen[i]=0u;
     /* Separate circuits and portals need their dependency proof; the cheap
      * geometric hint must not apply the legacy all-plates reverse-push rule. */
@@ -610,7 +610,7 @@ uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, u
       if (p == P_WATER) bridge |= 2u;
     }
     for (i = 0u; i != r->nitem; i++) {
-      if (!DD_SEEN(r->item_cell[i]) || r->c[r->item_cell[i]] != T_ITEM) continue;
+      if (!DD_SEEN(r->item_cell[i]) || (r->c[r->item_cell[i]]&T_MASK) != T_ITEM) continue;
       p = r->item_piece[i];
       if (p == P_MUD) bridge |= 4u;
       if (p == P_EARTH) bridge |= 1u;

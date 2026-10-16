@@ -47,6 +47,22 @@ def last_bank(map_text: str) -> int:
     return top
 
 
+def area_errors(map_text: str) -> list[str]:
+    errors = []
+    for line in map_text.splitlines():
+        m = AREA.match(line)
+        if not m:
+            continue
+        addr, size = int(m[2], 16), int(m[3], 16)
+        offset, bank = addr & 0xFFFF, addr >> 16
+        if not size or offset >= 0x8000:
+            continue
+        limit = 0x8000 if bank else 0x4000
+        if offset + size > limit:
+            errors.append(f"{m[1]} ends at 0x{offset + size:04x}, outside ROM bank {bank}")
+    return errors
+
+
 def header_checksum(rom: bytearray) -> int:
     s = 0
     for i in range(0x134, 0x14D):
@@ -60,9 +76,10 @@ def global_checksum(rom: bytearray) -> int:
 
 def finish(linked: Path, map_path: Path, out: Path, mapper: str = "mbc5") -> int:
     rom = bytearray(linked.read_bytes())
-    top = last_bank(map_path.read_text(encoding="latin-1"))
+    map_text = map_path.read_text(encoding="latin-1")
+    top = last_bank(map_text)
     cut = (top + 1) * BANK
-    errors = []
+    errors = area_errors(map_text)
     if cut > GATE:
         errors.append(f"bank {top} ends at {cut} bytes, past the {GATE}-byte gate")
     past = next((i for i in range(min(cut, GATE), len(rom)) if rom[i] != 0xFF), None)

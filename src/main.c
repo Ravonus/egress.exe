@@ -7,11 +7,14 @@
 #include "clock.h"
 #include "tutorial.h"
 #include "core/eg_window.h"
+#include "core/eg_stage.h"
 
 /* First module's data keeps the stream packet in fixed WRAM. The linker gate
  * checks this: cache leaves must not read their packet from a switched bank. */
 uint8_t eg_window_packet[9];
-uint8_t room_origin_x,bg_origin_x,room_width;
+uint8_t world_mask_packet[9],world_pre_x[9],world_pre_y[9];
+eg_stage_scratch eg_stage_work;
+uint8_t room_origin_x,room_origin_y,bg_origin_x,bg_origin_y,room_width,room_height;
 
 uint8_t game_mode;
 uint16_t run_seed;
@@ -27,6 +30,8 @@ volatile uint8_t video_epoch;
 uint8_t frame_epoch;
 uint8_t joy, joy_prev, joy_pressed;
 uint8_t dbg_god, dbg_no_enemies, dbg_floor;
+/* Pre-start native scenario selectors: zero follows the campaign. */
+uint8_t dbg_world_rule,dbg_world_size,dbg_world_biome;
 uint16_t dbg_seed;
 uint16_t dbg_fseed; /* B1 */
 uint8_t dbg_ftier;

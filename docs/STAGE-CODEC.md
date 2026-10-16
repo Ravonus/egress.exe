@@ -39,8 +39,10 @@ real abyss edges instead of filling a bounding rectangle with floor.
 Biome records control foliage/water/prop frequency and the water rendition: ordinary, industrial, digital and
 glitched. Streams are connected reactive water beside the route; some spill at an exposed edge. Ferns, flowers,
 reeds and props have seeded variants. These are design records in the generated world, not new material IDs.
-Water still freezes and conducts; foliage uses diggable material. Rendering these records needs the native
-terrain-art integration, with animations and reactions retaining their material identity.
+Water still freezes and conducts; foliage uses diggable material. The native environment renderer now uses
+twelve shared metatiles, four biome renditions and two idle poses. It updates one 64-byte card at a time,
+without adding scenery sprites. Its standalone gate compares 1,028 complete VRAM snapshots; full-game
+environment and reaction acceptance remains separate.
 
 ## Proof and integration boundary
 
@@ -55,18 +57,22 @@ cut. This is a constructive witness for these generated goals; it does not prove
 and every material/design/variant/protection byte. It checks bank restoration and the DDD0 stack canary through
 normal handshakes. This establishes cartridge generation parity, not player-input replay of a larger stage.
 
-The playable office cartridge still uses a 16×14 active board. The separately tested horizontal strip primitive
-preserves materials, skins, protection and crack bits, with 256 host seams and 64 native seams. Its maximum native
-cost is 68,884 T-cycles. The active game still needs the larger backing world, both-axis window travel, rebased
-actors/queues, persistent source/goal/item state, native environment art and full input replay. Keep the public ROM
-on its verified release until those boundaries are completed and the complete native regression gate passes.
+The continuation cartridge now integrates a persistent larger world behind the 16×14 active board, with both-axis
+travel, prepared strips, rebased presentation queues, global source/gate/item state and native environment art.
+The seventh campaign floor can select the transport-chain contract; debug selectors exercise the remaining
+rules, sizes and biomes before a run begins. Quiet-world input replay and frame acceptance pass 42 scenarios on both mappers, and the complete native
+regression passes. The maximum observed corner preparation wait is 34 frames, separately measured from FPS.
+Latency tuning, actor streaming, campaign-wide curriculum and continuation remain required. See
+`CONNECTED-STAGES.md` for the current reuse architecture and its component evidence. Keep the public ROM on
+its verified release until those acceptance boundaries pass.
 
 ## Remaining grammar work
 
 - Add moving/falling CRT dependencies, actor-wave conditions and route-sensitive alternatives to these larger
   worlds, using the same physical and combat matrix rather than a separate abstract solver.
-- Make remaining-goal resource/deadlock checking cover the global world, including wrong spending and permanently
-  lost objects. A local room flood cannot certify an off-window objective.
+- Broaden the global remaining-goal resource/deadlock certificates with native wrong-spend/lost-object input
+  replays. The current bounded checker reads actual initialized state without generating unseen terrain;
+  its host checks and 22 native negative certificates do not prove every possible puzzle configuration.
 - Connect the run curriculum to the authored pools, with the first appearance of each verb taught independently.
 - Preserve mutation, item and actor identities through window travel, backtracking, reset and continuation.
 - Finish the native renderer's connected terrain grammar, subtle dither/palette variation, foliage movement,

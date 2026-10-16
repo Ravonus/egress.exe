@@ -2,8 +2,10 @@
 #include <gb/cgb.h>
 #include <string.h>
 #include "core/eg_plan.h"
+#include "core/eg_stage.h"
 #include "wram_cache.h"
 #include "run_cases.h"
+eg_stage_scratch eg_stage_work;
 static eg_world __at(0xC410) world;
 static eg_run_in __at(0xC450) input;
 static eg_slot __at(0xC480) scratch;

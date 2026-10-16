@@ -32,8 +32,10 @@
 #include "gen/stage_art.h"
 #include "core/eg_physics.h"
 #include "narrator.h"
+#include "world.h"
 
 extern uint8_t dead_t; /* src/puzzle.c: 120 shows the lost room's hint, then HOLD SELECT */
+extern uint8_t dbg_world_rule,dbg_world_size,dbg_world_biome;
 
 uint8_t stage_type, stage_kind, dbg_stage;
 eg_stage stg;
@@ -122,6 +124,11 @@ void stage_resume_floor(void) BANKED {
 }
 
 uint8_t stage_build(void) BANKED {
+  if(dbg_world_rule && dbg_world_rule<=EL_RULES && dbg_world_size<=EL_SIZES && dbg_world_biome<EL_BIOMES) {
+    stage_type=SG_PUZZLE;
+    return world_begin(st_seed,dbg_world_rule-1u,dbg_world_size ? dbg_world_size-1u : 255u,dbg_world_biome);
+  }
+  if(slice.physical && floor_no==7u && (run_seed&0x0100u))return world_begin(st_seed,4u,255u,BIOME_OFFICE);
   if (slice.physical) {
     eg_physics_gen(&room, slice.physical, st_seed, slice.level);
     return 1u;
@@ -560,6 +567,7 @@ void stage_show(void) BANKED {
 }
 
 uint8_t stage_announce(void) BANKED {
+  if(world_on) {hud_msg("LOAD. CROSS. EXIT.");return 1u;}
   if (slice.physical) { eg_physics_goal(slice.physical, sbuf); hud_msg(sbuf); return 1u; }
   if (!stage_goal[0]) return 0u;
   hud_msg(stage_goal);

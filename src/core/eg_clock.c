@@ -59,7 +59,11 @@ void egc_add_secs(egc_time *t, uint32_t s) EGC_BANKED {
 }
 
 void egc_add_frames(egc_time *t, uint16_t frames) EGC_BANKED {
-  uint32_t f = t->frac + (uint32_t)frames * EGC_FRAME;
+  uint32_t f = t->frac;
+  /* The game polls every 64 frames. Keep that exact common increment out of
+   * the general 32-bit multiplier; arbitrary gaps retain the same arithmetic. */
+  if(frames==64u)f+=64ul*EGC_FRAME;
+  else f+=(uint32_t)frames*EGC_FRAME;
   uint16_t s = (uint16_t)(f >> EGC_FRAC_BITS);
   t->frac = f & ((1ul << EGC_FRAC_BITS) - 1u);
   if (!s) return;

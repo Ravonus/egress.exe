@@ -269,10 +269,12 @@ def bench_cursor(g: Game, slot: int) -> None:
         g.tick(12)
 
 
-def bench_act(g: Game, act: str, log: list[str], shot: Path | None = None) -> bool:
+def bench_act(g: Game, act: str, log: list[str], shot: Path | None = None, *, prepare_use=None) -> bool:
     """drives the cartridge's bench: 'C' a b makes a recipe, 'P' a D uses piece a on the cell in direction D"""
     a = ord(act[1]) - ord("a") + 1
-    if act[0] == "P":  # face the cell first (a one-frame tap turns without leaving the cell)
+    if act[0] == "P" and prepare_use is not None:
+        prepare_use(act[2])
+    elif act[0] == "P":  # face the cell first (a one-frame tap turns without leaving the cell)
         want = "UDLR".index(act[2])  # F_UP F_DOWN F_LEFT F_RIGHT
         x, y = g.player()
         cx, cy = cell_center((y // 16) * EG_W + x // 16)

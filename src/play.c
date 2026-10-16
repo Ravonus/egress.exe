@@ -22,6 +22,8 @@
 #include "narrator.h"
 #include "stamina.h"
 #include "tutorial.h"
+#include "world.h"
+#include "world_play.h"
 void sprites_budget(void) NONBANKED;
 
 uint8_t tokens, keys_held, door_open, board_busy, cam_x, cam_y;
@@ -36,7 +38,7 @@ static void controls_pause(void) {
   uint8_t old_y=cam_y;
   cam_y=pl_y>40u ? (uint8_t)(pl_y-40u) : 0u;
   if(cam_y>144u) cam_y=144u;
-  move_bkg(BG_SCROLL_X(cam_x),cam_y);
+  move_bkg(BG_SCROLL_X(cam_x),BG_SCROLL_Y(cam_y));
   clear_map(1,LOOK_PAL_HUD);
   text_at(1,0,0,"A HIT / HOLD CHARGE",LOOK_PAL_HUD);
   text_at(1,0,1,"B SHOT / HOLD CHARGE",LOOK_PAL_HUD);
@@ -50,7 +52,7 @@ static void controls_pause(void) {
     frame_wait();look_tick();flush_cells(8u);sound_tick();draw_sprites();input_poll();
     if(joy_pressed&(J_START|J_B)) break;
   }
-  cam_y=old_y;move_bkg(BG_SCROLL_X(cam_x),cam_y);
+  cam_y=old_y;move_bkg(BG_SCROLL_X(cam_x),BG_SCROLL_Y(cam_y));
   clear_map(1,LOOK_PAL_HUD);hud_draw();hud_charge();move_win(7,128);hud_line=128u;
 }
 
@@ -61,6 +63,7 @@ static void people_colours(void) { /* B1: the heir's palettes (heir.c), rolled f
 
 static void floor_build(void) {
   uint8_t i;
+  world_on=0u;
   /* B2 bosses: the slot (boss_api.h); b2-stages chooses which floors hold one */
   boss_floor = dbg_boss ? dbg_boss : (floor_no >= RUN_FLOORS ? BOSS_BIOME : (stage_kind == SK_MIDBOSS ? BOSS_MID : 0u));
   memset(&acts, 0, sizeof acts);
@@ -107,6 +110,7 @@ static void floor_build(void) {
   grav_t = GRAVITY_FRAMES;
   if (!boss_floor) { bs_kind = 0; actors_spawn(); }
   cells_reset();
+  world_play_reset();
   pocket_reset(); /* B1 */
   obstacle_reset();
   stage_start();  /* B2 */
@@ -143,8 +147,9 @@ static void scroll(void) {
     sx = (uint8_t)(sx + ((frame_count & 2u) ? 1u : 255u));
     sy = (uint8_t)(sy + ((frame_count & 4u) ? 1u : 255u));
   }
-  move_bkg(BG_SCROLL_X(sx), sy);
+  move_bkg(BG_SCROLL_X(sx), BG_SCROLL_Y(sy));
 }
+void play_camera_warp(void) BANKED {camera(1u);}
 
 static void floor_show(void) {
   uint8_t i;
@@ -153,8 +158,9 @@ static void floor_show(void) {
   SPRITES_8x16; /* floors own 8x16 OBJs; the title uses 8x8 for its prompt */
   art_load_game();
   /* look: the office's cards and palettes; the room on screen will assemble around the player */
-  look_load(BIOME_OFFICE);
+  look_load(world_on ? world_plan.biome : BIOME_OFFICE);
   stage_show(); /* B2: the stage's cards and skins */
+  if(world_on)world_show();
   camera(1);
   look_roam_begin((uint8_t)(!boss_floor && stage_type!=SG_DARK && stage_type!=SG_CHASE));
   look_assemble(room.start);
@@ -173,19 +179,16 @@ static void floor_show(void) {
 }
 
 static void gravity_tick(void) {
-  uint8_t occ[4], n = 0, c, k, g, a, b, weights=0u;
-  uint8_t xs[2], ys[2];
-  xs[0] = (uint8_t)(pl_x - 6u); /* the mover's 12x12 box (eg_move) */
-  xs[1] = (uint8_t)(pl_x + 5u);
-  ys[0] = (uint8_t)(pl_y - 6u);
-  ys[1] = (uint8_t)(pl_y + 5u);
-  for (a = 0; a != 2u; a++)
-    for (b = 0; b != 2u; b++) {
-      c = cell_at(xs[b], ys[a]);
-      for (k = 0; k != n; k++)
-        if (occ[k] == c) break;
-      if (k == n) occ[n++] = c;
-    }
+  uint8_t occ[4], n = 1u, c, k, g, weights=0u;
+  uint8_t x0=(uint8_t)(pl_x-6u),x1=(uint8_t)(pl_x+5u);
+  uint8_t y0=(uint8_t)(pl_y-6u),y1=(uint8_t)(pl_y+5u);
+  /* The same ordered unique corners of the 12x12 feet box, without a nested
+   * four-point duplicate search on every physics update. */
+  occ[0]=cell_at(x0,y0);c=cell_at(x1,y0);if(c!=occ[0])occ[n++]=c;
+  if((y0^y1)&240u) {
+    occ[n++]=cell_at(x0,y1);
+    if((x0^x1)&240u)occ[n++]=cell_at(x1,y1);
+  }
   /* Compare only grounded plate contacts, rather than invalidating the full
    * shutter scan on every subpixel movement. Keep the complete body footprint
    * for falling CRTs and the occupied-gate safety check. */
@@ -201,6 +204,7 @@ static void gravity_tick(void) {
   weight_n=weights;
   g = floor_has_crt || boss_floor ? eg_gravity(&room, occ, pl_hp && !pl_air && pl_state!=PS_FALL ? n : 0u)
                                 : eg_shutters(&room, occ, pl_hp && !pl_air && pl_state!=PS_FALL ? n : 0u);
+  if(world_on)world_sources(occ,(uint8_t)(pl_hp && !pl_air && pl_state!=PS_FALL ? n : 0u));
   if (eg_ndirty > EG_DIRTY_MAX) {
     for (c = 0; c != (uint8_t)EG_N; c++)
       if (cell_type(c) == T_ROCK || cell_type(c) == T_EMPTY) queue_cell(c);
@@ -243,7 +247,7 @@ static void assemble_wait(void) {
 
 /* 1: through the door, 0: dead */
 static uint8_t floor_play(void) {
-  uint8_t end_t = 0,roaming,late;
+  uint8_t end_t = 0,roaming,late,streamed;
   floor_tokens0 = tokens;
   pocket_enter();
   if(restored_floor) {stage_resume_floor();restored_floor=0u;narrator_event(NE_RETURN,0u);}
@@ -268,13 +272,16 @@ static uint8_t floor_play(void) {
     frame_wait();
     input_poll(); /* sample before variable-cost VRAM/audio work can cross a display boundary */
     DISABLE_OAM_DMA;
-    late=(uint8_t)(roaming && (enemies_alive || stage_type!=SG_PUZZLE));
+    streamed=world_on ? world_frame_begin() : 0u;
+    if(world_on && !streamed)world_prefetch();
+    late=(uint8_t)(roaming && (world_on || enemies_alive || stage_type!=SG_PUZZLE));
     if (boss_floor) boss_vblank(); /* B2 bosses: in VBlank, before the look's writes */
     if (pal_dirty && !look_busy()) {
       set_sprite_palette(2u, 6u, &pal_sp[8]);
       pal_dirty = 0;
     }
-    if(late) {
+    if(streamed) {}
+    else if(late) {
       /* Combat renders actors before spending spare time on cosmetic terrain. */
       look_frame_begin();flush_cells(2u);
     } else if(roaming) {flush_cells(2u);look_tick();}
@@ -363,11 +370,12 @@ static uint8_t floor_play(void) {
       hud_msg("EGRESS");
     }
     camera(0);
-    if(!boss_floor) look_roam_tick();
+    if(!boss_floor && !streamed) look_roam_tick();
     tutorial_tick();
     if(!(frame_count&63u)) narrator_tick();
     draw_sprites();
-    if(late) look_frame_end();
+    if(world_on && !streamed)world_frame_end();
+    if(late && !streamed) look_frame_end();
   }
 }
 
