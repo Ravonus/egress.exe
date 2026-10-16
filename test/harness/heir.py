@@ -1,8 +1,7 @@
 """B1 heir checks in the real ROM (called from play.py; `--only heir`):
 
   roll      the cartridge's heir (src/heir.c) equals genes.founder() expressed, for many seeds
-  moves     the six inputs on A/B start the moves eg_input specifies (dodge, sprint, lunge, hits 1-3, charge and the
-            charged attack, parry), and the heir's animation follows them
+  moves     the current A/B tap, hold and ordered combos, plus directional double-tap evades and held running
   movement  8-way: a diagonal moves both axes at ~181/256 of the straight speed; 4-way (opt_move4): the newest press
             wins and only one axis moves
   idle      standing still, the animation follows heirs.py idle_plan() for the heir's seed and traits
@@ -112,70 +111,12 @@ def pin_move(g: Game) -> int:
 
 
 def check_moves(rom: Path, report: dict) -> bool:
-    """each input from idle on an empty floor: the move eg_input starts, and the animation state"""
-    HA = ha_states()
-    res = {}
-
-    def fresh():
-        g = boot_heir(rom, 6)
-        g.tick(60)
-        return g
-
-    def seq(g, steps):
-        """steps: (buttons, frames); returns the moves seen, in order"""
-        seen = []
-        for btns, n in steps:
-            g.hold(set(btns))
-            for _ in range(n):
-                g.tick()
-                m = pin_move(g)
-                if not seen or seen[-1] != m:
-                    seen.append(m)
-        g.hold(set())
-        return seen
-
-    g = fresh()
-    s = seq(g, [(["b"], 2), ([], 30)])
-    res["b_tap_dodge"] = MV["DODGE"] in s and MV["SPRINT"] not in s
-    g.stop()
-    g = fresh()
-    s = seq(g, [(["b", "right"], 40), ([], 20)])
-    res["b_hold_sprint_then_skid"] = MV["SPRINT"] in s and MV["SKID"] in s
-    g.stop()
-    g = fresh()
-    s = seq(g, [(["b"], 2), ([], 4), (["a"], 2), ([], 30)])
-    res["b_then_a_lunge"] = MV["LUNGE"] in s
-    g.stop()
-    g = fresh()
-    s = seq(g, [(["a"], 2), ([], 8), (["a"], 2), ([], 8), (["a"], 2), ([], 40)])
-    res["a_taps_combo_1_2_3"] = [m for m in s if m in (5, 6, 7)] == [5, 6, 7]
-    g.stop()
-    g = fresh()
-    s = seq(g, [(["a"], 45), ([], 6)])
-    lvl = g.peek("pin", 5)
-    st = g.peek("pl_state")
-    g.tick(30)
-    res["a_hold_charge_release"] = MV["CHARGE"] in s and MV["CHARGED"] in s and lvl == 2
-    res["charged_level2_is_spin"] = st == 3
-    g.stop()
-    g = fresh()
-    s = seq(g, [(["a"], 2), (["a", "b"], 2), ([], 30)])
-    res["a_then_b_parry"] = MV["PARRY"] in s
-    g.stop()
-    g = fresh()
-    s = seq(g, [(["a", "b"], 2), ([], 30)])
-    res["same_frame_ab_parry"] = s[:2] == [MV["PARRY"]] or MV["PARRY"] in s[:2]
-    g.stop()
-    # the animation follows: a dodge plays the heir's own dodge state
-    g = fresh()
-    g.hold({"b"})
-    g.tick(3)
-    g.hold(set())
-    res["dodge_anim_is_heirs_style"] = g.peek("ha_state") == HA["DODGE_" + ["ROLL", "BLINK", "SLIDE"][
-        g.peek("heir", 8)]]
-    g.stop()
-    report["heir_moves"] = res
-    return all(res.values())
+    from controls import run
+    out=ROOT / "build/gameplay-rebuild/heir-controls" / rom.stem
+    ok=run(rom,out)
+    import json
+    report["heir_moves"]=json.loads((out/"report.json").read_text())
+    return ok
 
 
 def walk_rate(g: Game, keys: set, ticks: int = 48) -> tuple:
@@ -198,19 +139,17 @@ def check_movement(rom: Path, report: dict) -> bool:
     res = {}
     g = boot_heir(rom, 6)
     g.tick(60)
-    # straight and diagonal speeds over unblocked frames: a diagonal moves 181/256 of the speed on each axis
-    st, best = None, None
-    for keys in ({"right"}, {"left"}, {"down"}, {"up"}):
-        r = walk_rate(g, keys, 24)
-        if r[2] >= 6 and (best is None or r[2] > best[2]):
-            st, best = keys, r
-    straight = max(best[0], best[1]) if best else 0
-    diag = None
-    for keys in ({"left", "down"}, {"right", "up"}, {"right", "down"}, {"left", "up"}):
-        r = walk_rate(g, keys, 24)
-        if r[2] >= 6:
-            diag = r
-            break
+    # An explicit clear-lane fixture isolates direction normalisation. Keep each
+    # measurement below the new 18-frame run threshold; testing a walk/run mix
+    # at different collision points would not compare equal speeds.
+    from stage2 import teleport
+    for y in range(5,12):
+        for x in range(4,13):g.pb.memory[g.addr('room')+y*16+x]=0
+    teleport(g,120,136)
+    best=walk_rate(g,{'right'},12)
+    straight=max(best[:2])
+    g.hold(set());g.tick(60);teleport(g,120,136)
+    diag=walk_rate(g,{'right','down'},12)
     res["straight_sub_per_frame"] = round(straight, 2)
     res["diag_sub_per_frame"] = [round(diag[0], 2), round(diag[1], 2)] if diag else None
     res["diagonal_normalised"] = bool(straight and diag and
@@ -439,8 +378,8 @@ def play_png(rom: Path, out: Path, report: dict) -> bool:
     moves = []
     g = boot_heir(rom, 2, enemies_off=True)
     g.tick(60)
-    for label, steps, at in (("WALK SE", [({"right", "down"}, 14)], 0), ("DODGE", [({"b", "left"}, 2)], 4),
-                             ("SPRINT", [({"b", "up"}, 26)], 0), ("LUNGE", [({"b"}, 2), (set(), 4), ({"a"}, 2)], 2),
+    for label, steps, at in (("WALK SE", [({"right", "down"}, 14)], 0), ("DODGE", [({"left"}, 3), (set(), 3), ({"left"}, 3)], 4),
+                             ("SPRINT", [({"up"}, 26)], 0), ("LUNGE", [({"b"}, 3), (set(), 2), ({"a"}, 3)], 2),
                              ("HIT 3", [({"a"}, 2), (set(), 8), ({"a"}, 2), (set(), 8), ({"a"}, 2)], 6),
                              ("CHARGE", [({"a"}, 40)], 0), ("SPIN", [(set(), 1)], 4), ("PARRY", [({"a"}, 1),
                                                                                            ({"a", "b"}, 2)], 3)):

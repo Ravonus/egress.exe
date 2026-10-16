@@ -30,6 +30,7 @@
 #include "mob.h"
 #include "core/eg_piece.h"
 #include "gen/stage_art.h"
+#include "core/eg_physics.h"
 
 extern uint8_t dead_t; /* src/puzzle.c: 120 shows the lost room's hint, then HOLD SELECT */
 
@@ -97,6 +98,7 @@ void stage_plan_floor(void) BANKED {
     floor_tier = dbg_ftier;
     dbg_fseed = 0;
     slice.planned = 0;
+    slice.physical = PH_NONE;
     slice.kind = SK_STAGE;
     slice.level = (uint8_t)(dbg_ftier * 3u > 15u ? 15u : dbg_ftier * 3u);
     slice.m = 255u;
@@ -113,6 +115,10 @@ void stage_plan_floor(void) BANKED {
 }
 
 uint8_t stage_build(void) BANKED {
+  if (slice.physical) {
+    eg_physics_gen(&room, slice.physical, st_seed, slice.level);
+    return 1u;
+  }
   if (stage_type == SG_PUZZLE || stage_type >= EG_DECK_TYPES) return 0u;
   if (!eg_stage_gen(&room, &stg, stage_type, st_seed, slice.level, slice.m)) {
     stage_type = SG_PUZZLE; /* never seen in the host sim; the puzzle room stands in */
@@ -535,6 +541,7 @@ void stage_show(void) BANKED {
 }
 
 uint8_t stage_announce(void) BANKED {
+  if (slice.physical) { eg_physics_goal(slice.physical, sbuf); hud_msg(sbuf); return 1u; }
   if (!stage_goal[0]) return 0u;
   hud_msg(stage_goal);
   return 1u;
@@ -565,7 +572,7 @@ void stage_tick(void) BANKED {
         sbuf[6] = 0;
         hud_set(sbuf);
       }
-      if (stage_pct >= 100u && stage_wave >= stg.waves) win("THE EGRESS IS LIT");
+      if (stage_pct >= 100u && stage_wave >= stg.waves && !wv_pend && !ss_alive()) win("WAVES CLEARED");
       break;
     case SG_CHASE: chase_tick(); break;
     case SG_HUNT:

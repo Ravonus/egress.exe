@@ -3,6 +3,7 @@
 #pragma bank 255
 #endif
 #include "eg_room.h"
+#include "eg_piece.h"
 
 uint16_t eg_rs = 1u;
 uint8_t eg_dirty[EG_DIRTY_MAX];
@@ -390,7 +391,7 @@ void eg_dead_begin(uint8_t from) EG_BANKED {
 }
 
 uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, uint8_t budget) EG_BANKED {
-  uint8_t i, k, j, p;
+  uint8_t i, k, j, p, bridge = 0u;
   /* pass 0 floods without crossing pits; if it reached a CRT, pass 1 floods again letting pits through */
   while (dd_h != dd_n) {
     if (!budget) return EG_DEAD_BUSY;
@@ -400,6 +401,24 @@ uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, u
     if (i < (uint8_t)(EG_N - EG_W)) dd_visit(r, (uint8_t)(i + EG_W));
     if (i & 15u) dd_visit(r, (uint8_t)(i - 1u));
     if ((i & 15u) != 15u) dd_visit(r, (uint8_t)(i + 1u));
+  }
+  if (!dd_pass && !dd_rock) {
+    /* An optimistic reachability hint, not the solver: reachable mud (or its ingredients)
+     * can cross a gap too. Never announce a lost room while that route remains. */
+    for (i = 0u; i != npocket; i++) {
+      p = pocket[i];
+      if (p == P_MUD) bridge |= 4u;
+      if (p == P_EARTH) bridge |= 1u;
+      if (p == P_WATER) bridge |= 2u;
+    }
+    for (i = 0u; i != r->nitem; i++) {
+      if (!DD_SEEN(r->item_cell[i]) || r->c[r->item_cell[i]] != T_ITEM) continue;
+      p = r->item_piece[i];
+      if (p == P_MUD) bridge |= 4u;
+      if (p == P_EARTH) bridge |= 1u;
+      if (p == P_WATER) bridge |= 2u;
+    }
+    if ((bridge & 4u) || (bridge & 3u) == 3u) dd_rock = 1u;
   }
   if (dd_rock && !dd_pass) {
     dd_pass = 1u;

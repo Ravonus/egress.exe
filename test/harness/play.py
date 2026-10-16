@@ -255,7 +255,7 @@ def bench_open(g: Game, log: list[str]) -> bool:
 
 
 def bench_cursor(g: Game, slot: int) -> None:
-    for _ in range(12):
+    for _ in range(24):
         if g.peek("bench_cur") == slot:
             return
         g.press("down", 4)
@@ -361,11 +361,18 @@ def drive_plan(g: Game, moves: str, log: list[str], shots_at: dict[int, Path] | 
 
 
 def solve_here(g: Game, egtool: Path, log: list[str]) -> str:
-    seed, tier = g.peek16("floor_seed"), g.peek("floor_tier")
-    plan = subprocess.run([str(egtool), "solve", str(seed), str(tier)], capture_output=True, text=True)
+    plan = subprocess.run(room_command(g,egtool,"solve"), capture_output=True, text=True)
     moves = plan.stdout.strip()
     drive_plan(g, moves, log)
     return moves
+
+
+def room_command(g: Game, egtool: Path, verb: str) -> list[str]:
+    motif = g.peek("slice",22)  # eg_deck 16 bytes, six slice fields, physical
+    if motif:
+        seed = g.peek16("run_seed") ^ ((g.peek("floor_no") * 0x9e37) & 65535) ^ 0x51a7
+        return [str(egtool),"phys-"+verb,str(seed or 1),str(motif),str(g.peek("slice",19))]
+    return [str(egtool),verb,str(g.peek16("floor_seed")),str(g.peek("floor_tier"))]
 
 
 def run_solve(g: Game, egtool: Path, out: Path, report: dict) -> bool:
@@ -374,13 +381,13 @@ def run_solve(g: Game, egtool: Path, out: Path, report: dict) -> bool:
     if not ok:
         return False
     seed, tier = g.peek16("floor_seed"), g.peek("floor_tier")
-    dump = subprocess.run([str(egtool), "dump", str(seed), str(tier)], capture_output=True, text=True, check=True)
+    dump = subprocess.run(room_command(g,egtool,"dump"), capture_output=True, text=True, check=True)
     host_cells = bytes.fromhex(dump.stdout.split()[0])
     cart = bytes(g.room()[:EG_N])
     report["floor_seed"], report["floor_tier"] = seed, tier
     report["room_matches_host"] = cart == host_cells
     g.shot(out / "03_floor1_start.png")
-    plan = subprocess.run([str(egtool), "solve", str(seed), str(tier)], capture_output=True, text=True)
+    plan = subprocess.run(room_command(g,egtool,"solve"), capture_output=True, text=True)
     moves = plan.stdout.strip()
     report["plan"] = moves
     report["plan_stats"] = plan.stderr.strip()
@@ -464,7 +471,7 @@ def path_near(cells: list[int], start: int, tx: int, ty: int) -> str | None:
 
 def run_combat(g: Game, out: Path, report: dict) -> bool:
     """hunt the floor's enemies with the lead: walk a shortest path to the nearest one, line up, lash or spin"""
-    ok = start_run(g, god=True, no_enemies=False, seed=0xCAFE)
+    ok = start_run(g, god=True, no_enemies=False, seed=0xCAFE, floor=2)
     report["combat_started"] = ok
     if not ok:
         return False
@@ -519,7 +526,7 @@ def run_combat(g: Game, out: Path, report: dict) -> bool:
             g.tick(6)  # as close as the floor allows: wait for it to drift into reach
             continue
         if mv is None or (strikes == 0 and k % 7 == 6):
-            g.press("b", 2)  # nothing to walk to (or now and then): roll toward it and keep moving
+            g.press("b", 2)  # secondary shot/pulse when the route is blocked
             g.tick(10)
             mv = mv or ("left" if dx < 0 else "right")[0].upper()
         step(g, mv, log)
@@ -534,7 +541,7 @@ def run_combat(g: Game, out: Path, report: dict) -> bool:
 
 
 def run_death(g: Game, out: Path, report: dict) -> bool:
-    ok = start_run(g, god=False, no_enemies=False, seed=0xD1E)
+    ok = start_run(g, god=False, no_enemies=False, seed=0xD1E, floor=2)
     if not ok:
         return False
     hp0 = g.peek("pl_hp")

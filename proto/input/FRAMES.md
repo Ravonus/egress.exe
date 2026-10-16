@@ -1,54 +1,31 @@
-# EGRESS input frame data
+# EGRESS controls, 2026-10-15
 
-Implemented in `src/core/eg_input.c` (buttons) and `src/core/eg_move.c` (d-pad). Tests: `host/test_input.c`,
-`host/test_move.c`. Frames count from 0 on the frame a move starts. Windows are inclusive.
+This replaces the former B-to-dodge proposal following the owner's explicit correction.
 
-## Buttons
+| Input | Action |
+|---|---|
+| A tap | Primary attack; repeated taps continue the three-hit chain |
+| A hold, release | Charge, then the heir's charged attack |
+| B tap | Secondary attack: shot for blade/whip/launcher, impact/pulse for hammer/gauntlet |
+| B hold | Repeat secondary attacks at the inherited weapon's cadence |
+| A then B | Counter/parry combo, including a perfect return window |
+| B then A | Rushing strike combo |
+| Same-frame A+B | Counter/parry |
+| Direction twice | Evade in that direction; relative forward uses the heir's roll/blink/slide |
+| Left/right twice relative to aim | Sidestep, keeping the pre-tap aim |
+| Back twice relative to aim | Backstep, keeping the pre-tap aim |
+| Continue holding after evade | Run |
+| Hold direction without a double-tap | Run after 18 frames of walking |
 
-| Move | Input | Startup | Active | Recovery | Total | Window |
-|---|---|---|---|---|---|---|
-| Dodge, roll | B press | 0-1 | 2-11 (i-frames) | 12-17 | 18 | B->A cancel 4-14 |
-| Dodge, blink | B press | 0-2 | 3-6 (i-frames) | 7-13 | 14 | B->A cancel 6-11 |
-| Dodge, slide | B press | 0 | 1-12 (i-frames) | 13-19 | 20 | B->A cancel 3-16 |
-| Sprint | B held >= 11 frames | loop while B held | | | | starts at the dodge's first recovery frame, or at the threshold if that is later: roll 12, blink 10, slide 13 |
-| Skid | B released in sprint | | | 0-3 | 4 | A or B cancels it at once |
-| Lunge | A in the dodge cancel window, or A in sprint | 0-1 | 2-5 | 6-17 | 18 | combo link to Hit 2 from 10; keeps dodge momentum |
-| Hit 1 | A press | 0-3 | 4-5 | 6-15 | 16 | combo link to Hit 2 from 8 |
-| Hit 2 | A, buffered or in the link | 0-3 | 4-5 | 6-17 | 18 | combo link to Hit 3 from 9 |
-| Hit 3 | A, buffered or in the link | 0-5 | 6-8 | 9-26 | 27 | finisher, no link |
-| Charge | A held >= 11 frames | loop while A held | | | | branches off the hit at frame 10 (outside its active frames) |
-| Charged | A released in charge | 0-2 | 3-6 | 7-20 | 21 | level 1: held 11-29, level 2: 30-49, level 3: 50+ |
-| Parry | B within 0-4 frames of A's press, or while A is held | 0-1 | 2-9 (guard) | 10-21 | 22 | perfect 2-4 |
+A directional double-tap needs a release between presses and at most 14 frames between press edges.
+The aim before the first tap defines forward/side/back, even though the first walk tap turns the character.
+Side/back evades last 12 frames; forward roll/blink/slide last 18/14/20. A 20-frame evade cooldown prevents
+repeated taps cancelling every recovery. Action press buffers last six frames; ordered A/B combos use a
+four-frame order window or the other held button. B alone never requests movement.
 
-Rules:
-- **Tap or hold:** the press frame counts as frame 1 of the hold. Released after 10 or fewer frames is a tap.
-  Held for 11 or more is a hold (`EG_HOLD_T = 11`). Taps never wait: B starts the dodge and A starts Hit 1 on the
-  press frame. The hold branches off that move afterwards.
-- **Buffer:** one slot, `EG_BUF_FRAMES = 6`. A press can fire on its own frame or on any of the 5 frames after it.
-  The newest press replaces the old one. A press the state can't take yet waits in the slot, for example A during
-  attack startup or active frames, or B during an attack's active frames, a dodge, or a parry.
-- **A before the cancel window:** buffered into the window. It fires on the window's first frame, which is always
-  within 6 frames of a press made after the dodge started. A after the window but before the dodge ends is a normal
-  A: Hit 1 starts on the first idle frame if the buffer hasn't expired. A after the dodge ends is a normal A.
-- **A then B:** B counts as the secondary (parry) when A is held, or when A went down 0 to 4 frames earlier
-  (`EG_AB_WIN`). Otherwise B is a dodge. The parry can cancel any phase of Hits 1-3 and the charge, but only the
-  recovery of the lunge and the charged attack.
-- **Same-frame A+B:** parry. This is the 0-frame end of the A->B window. B->A can't mean the lunge on that frame,
-  since every cancel window opens at dodge frame 3 or later. Plain B already gives the dodge, so the chord gets a
-  meaning of its own.
-- **B during attacks:** a dodge cancels a hit's startup and recovery at once. During active frames it is buffered.
-  For the lunge and the charged attack, a dodge only cancels recovery.
-- **No infinite cancels:** a dodge started out of a lunge is marked as chained and can't lunge again. A in its
-  window is held as a normal A. Hit 3, the charged attack, the parry and dodges can't be cancelled by A.
-  Counters saturate at 255.
-
-## B hold options
-
-1. **Sprint (implemented):** if B is still held at the threshold, the dodge's recovery is replaced by a sprint that
-   lasts while B is held. A during the sprint is the lunge. Releasing B gives a 4-frame skid that A or B can cancel.
-   This keeps the dodge-first feel and suits a grid crawler built around getting through rooms.
-2. **Held guard:** the dodge ends early into a block stance while B stays held. It was rejected because it overlaps
-   A->B parry and makes B mean two opposite things, evading and standing still.
+The shared primary attack timings remain blade 16, hammer 25, whip 19, gauntlet 10, launcher 22 frames
+for the first hit. Held B repeats every 11/16/12/10/7 frames respectively. Walking/running can accompany
+secondary fire. The bench continues to use A to select/commit, B to undo/close, START to use the selected tool.
 
 ## D-pad (eg_move)
 

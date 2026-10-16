@@ -1,5 +1,5 @@
-/* A run: ten floors down to the egress. Nine generated puzzle floors (seeds the host solver accepted, harder as you
- * go), landings between them where someone talks and trades, and THE WATCHMAN on the tenth.
+/* The ten-floor office slice: physical and elemental puzzles, fights, three landings,
+ * LAST FAX on five and THE TENANT on ten. See core/eg_stage.c for the playable pacing.
  *
  * A floor is a 16x14 grid of 16 px cells drawn whole into the background map; the camera only scrolls. CRTs fall on
  * the shared eg_gravity step every 8 frames: a falling set crushes enemies and hurts the player. */
@@ -17,16 +17,38 @@
 #include "stage_spawn.h" /* B2 */
 #include "boss_api.h" /* B2 bosses */
 #include "obstacle.h"
+#include "family.h"
 void sprites_budget(void) NONBANKED;
 
 uint8_t tokens, keys_held, door_open, board_busy, cam_x, cam_y;
 uint8_t freeze, shake, hud_dirty, grav_t, boss_floor;
-static uint8_t was_falling, paused, sel_t, floor_tokens0;
+static uint8_t was_falling, sel_t, floor_tokens0;
+
+static void controls_pause(void) {
+  uint8_t old_y=cam_y;
+  cam_y=pl_y>40u ? (uint8_t)(pl_y-40u) : 0u;
+  if(cam_y>144u) cam_y=144u;
+  move_bkg(cam_x,cam_y);
+  clear_map(1,LOOK_PAL_HUD);
+  text_at(1,0,0,"A HIT / HOLD CHARGE",LOOK_PAL_HUD);
+  text_at(1,0,1,"B FIRE / HOLD REPEAT",LOOK_PAL_HUD);
+  text_at(1,0,2,"A>B COUNTER B>A RUSH",LOOK_PAL_HUD);
+  text_at(1,0,3,"DIR x2 DODGE/STEP",LOOK_PAL_HUD);
+  text_at(1,0,4,"HOLD DIR TO RUN",LOOK_PAL_HUD);
+  text_at(1,0,5,"SELECT BENCH/TOOLS",LOOK_PAL_HUD);
+  text_at(1,0,7,"START/B RESUME",LOOK_PAL_HUD);
+  hud_line=80u;move_win(7,80);
+  while(1) {
+    frame_wait();look_tick();flush_cells(8u);sound_tick();draw_sprites();input_poll();
+    if(joy_pressed&(J_START|J_B)) break;
+  }
+  cam_y=old_y;move_bkg(cam_x,cam_y);
+  clear_map(1,LOOK_PAL_HUD);hud_draw();hud_charge();move_win(7,128);hud_line=128u;
+}
 
 
 static void people_colours(void) { /* B1: the heir's palettes (heir.c), rolled from the run's seed */
-  heir_roll(dbg_heir ? dbg_heir : run_seed);
-  heir_colours();
+  family_apply();
 }
 
 static void floor_build(void) {
@@ -186,6 +208,7 @@ static void assemble_wait(void) {
 static uint8_t floor_play(void) {
   uint8_t end_t = 0;
   floor_tokens0 = tokens;
+  pocket_enter();
   if (floor_no < RUN_FLOORS) stage_plan_floor(); /* B1, B2: the slot, the stage type, the room */
   floor_build();
   floor_show();
@@ -239,11 +262,9 @@ static uint8_t floor_play(void) {
       continue;
     }
     if (joy_pressed & J_START) {
-      paused ^= 1u;
-      if (paused) hud_msg("PAUSED");
-      else hud_msg("");
+      controls_pause();
+      continue;
     }
-    if (paused) { sprites_budget(); continue; }
     /* hold SELECT to put the floor back the way it was (B1: it costs a token, never a heart) */
     if ((joy & J_SELECT) && !boss_floor) {
       if (sel_t != 61u && ++sel_t == 60u) { /* 61: still held from closing the bench */
@@ -252,6 +273,7 @@ static uint8_t floor_play(void) {
         puzzle_reset_cost(); /* B1: a token and a lean of the matrix, never a heart */
         look_freeze();
         fade_to(8, 0);
+        pocket_restore();
         floor_build();
         floor_show();
         fade_to(0, 8);
@@ -295,18 +317,19 @@ static uint8_t floor_play(void) {
 
 void play_run(void) BANKED {
   art_copy_tables(&meta_tile[0][0], meta_pal, pal_bg, pal_sp, people);
-  people_colours();
   run_begin();
+  family_begin();
+  pocket_begin();
   puzzle_plan_begin(); /* B1 */
   stage_run_begin();   /* B2 */
   floor_no = (dbg_floor && dbg_floor <= RUN_FLOORS) ? dbg_floor : 1u;
   tokens = 0;
-  paused = 0;
   while (1) {
     if (!floor_play()) {
       HIDE_WIN;
       hud_line = 144u;
       run_end(0);
+      family_end(0);
       dead_screen();
       return;
     }
@@ -316,6 +339,7 @@ void play_run(void) BANKED {
       HIDE_WIN;
       hud_line = 144u;
       run_end(1);
+      family_end(1);
       ending_screen();
       return;
     }

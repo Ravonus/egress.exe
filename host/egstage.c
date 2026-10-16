@@ -144,7 +144,10 @@ int stage_sim(int runs, const char *json) {
       if (kind == SK_STAGE) {
         a.slots++;
         a.types[sl.type]++;
-        if (sl.type != SG_PUZZLE && sl.type == prev) a.rep_b2b++;
+        if (sl.type != SG_PUZZLE && sl.type == prev) {
+          a.rep_b2b++;
+          if (a.rep_b2b <= 3) fprintf(stderr,"repeat: run seed %u floor %d type %u\n",seed,f,sl.type);
+        }
         if (sl.type != SG_PUZZLE && sl.type == prev2) a.rep_2++;
         prev2 = prev;
         prev = sl.type;
@@ -168,8 +171,8 @@ int stage_sim(int runs, const char *json) {
         else if (seg < 3)
           a.sc_sum[seg] += sl.level; /* (a puzzle's level is its baked room's) */
       } else if (seg < 3)
-        a.sc_sum[seg] += rec.diff >> 4;
-      eg_plan_result(&ps, (uint8_t)(rnd32() % 3), (uint16_t)(60u * (40u + rnd32() % 200u)));
+        a.sc_sum[seg] += sl.physical ? sl.level : rec.diff >> 4;
+      if (sl.planned) eg_plan_result(&ps, (uint8_t)(rnd32() % 3), (uint16_t)(60u * (40u + rnd32() % 200u)));
     }
   }
   /* every type at every level, many seeds: the generator alone */

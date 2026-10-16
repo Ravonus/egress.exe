@@ -62,5 +62,7 @@ typedef struct {
 void eg_move_init(eg_mover_t *m, int16_t x, int16_t y, uint8_t mode) EG_BANKED;
 void eg_move_step(eg_mover_t *m, uint8_t dpad, uint8_t speed, const eg_grid_t *g) EG_BANKED;
 uint8_t eg_grid_cell(const eg_grid_t *g, int16_t cx, int16_t cy) EG_BANKED; /* EG_C_WALL outside the grid */
+/* Integer aim: max(|vx|,|vy|)=speed, minor component truncated toward zero. */
+void eg_aim(int16_t dx, int16_t dy, uint8_t speed, int8_t *vx, int8_t *vy) EG_BANKED;
 
 #endif

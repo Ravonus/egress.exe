@@ -156,11 +156,45 @@ static uint8_t power(eg_room *r, uint8_t n) {
   return 1u;
 }
 
+uint8_t eg_use_rx(uint8_t piece, uint8_t type) EG_BANKED {
+  uint8_t k, rx, tt;
+  if (!piece || piece >= P_COUNT) return RX_NONE;
+  if (piece == P_AIR && EG_CRATE(type)) return RX_PUSH;
+  if (piece == P_MUD && type == T_PIT) return RX_MUD;
+  if (PC_EFF(piece) == EFF_LAY) return type == T_EMPTY || type == T_PLATE ? RX_WEIGHT : RX_NONE;
+  if (PC_EFF(piece) == EFF_SHOCK) return type == T_WATER || type == T_SOCKET ? RX_SHORT : RX_NONE;
+  tt = eg_tile_tag(type);
+  if (tt == EG_TAGS) return RX_NONE;
+  for (k = 0u; k != EG_TAGS; k++) {
+    if (!(PC_TAGS(piece) & TG(k))) continue;
+    rx = eg_rx_table[k][tt];
+    if ((rx == RX_BURN || rx == RX_FREEZE || rx == RX_THAW) && spread_class(rx, type)) return rx;
+  }
+  return RX_NONE;
+}
+
 uint8_t eg_apply(eg_room *r, uint8_t piece, uint8_t cell, const uint8_t *occ, uint8_t nocc) EG_BANKED {
-  uint8_t v = r->c[cell], eff, tags, tt, k, rx, n;
+  uint8_t v = r->c[cell], eff, tags, tt, k, rx, n, to, near=0u, best=255u, dist;
+  int8_t dx,dy,dir;
   eg_ndirty = 0u;
   eg_plates_dirty = 1u; /* a brick may land on a plate, or burn off one */
   if (!piece || piece >= P_COUNT || in_occ(cell, occ, nocc)) return RX_NONE;
+  if (piece == P_AIR && EG_CRATE(v) && nocc) {
+    for(k=0u;k!=nocc;k++) {
+      dx=(int8_t)EG_X(cell)-(int8_t)EG_X(occ[k]);dy=(int8_t)EG_Y(cell)-(int8_t)EG_Y(occ[k]);
+      dist=(uint8_t)((dx<0 ? -dx : dx)+(dy<0 ? -dy : dy));
+      if(dist<best) {best=dist;near=occ[k];}
+    }
+    dx=(int8_t)EG_X(cell)-(int8_t)EG_X(near);dy=(int8_t)EG_Y(cell)-(int8_t)EG_Y(near);
+    dir=dx ? (dx<0 ? -1 : 1) : (dy<0 ? -16 : 16);to=(uint8_t)(cell+dir);
+    if(to>=(uint8_t)EG_N || in_occ(to,occ,nocc) || !eg_push_block(r,cell,to)) return RX_NONE;
+    mark(cell);mark(to);return RX_PUSH;
+  }
+  if (piece == P_MUD && v == T_PIT) {
+    r->c[cell] = T_EMPTY;
+    mark(cell);
+    return RX_MUD;
+  }
   eff = PC_EFF(piece);
   tags = PC_TAGS(piece);
   if (eff == EFF_LAY) {
@@ -211,7 +245,7 @@ static const char rx_names[RX_COUNT][14] = {
     "GLOW HEAT", "DEEP FREEZE", "FREEZE",  "PRISM",     "FROSTBITE", "CRYSTAL",   "STUTTER",   "BRITTLE",
     "SOAK",     "SLICK",     "OVERGROW",   "BLOOM",     "SHORT",     "MUD",       "REFLECT",   "SUN FEED",
     "LENS",     "GHOST",     "POLISH",     "SWARM",     "WILD GROWTH", "ROT",     "MOSS",      "RESONANCE",
-    "GLITCH",   "RUNE",      "DUPLICATE",  "NOCLIP",    "CRUSH",     "SHORT CIRCUIT", "WEIGHT"};
+    "GLITCH",   "RUNE",      "DUPLICATE",  "NOCLIP",    "CRUSH",     "SHORT CIRCUIT", "WEIGHT", "PUSH"};
 static const char tag_names[EG_TAGS][7] = {"HOT", "COLD", "WET", "SHINY", "ALIVE", "MAGIC", "GLITCH", "STONE"};
 
 static void copy(char *out, const char *s, uint8_t max) {

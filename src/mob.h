@@ -38,13 +38,7 @@ enum {
 };
 
 /* statuses (5.2 reactions on mobs) */
-#define MS_WET 0x01u
-#define MS_SHOCK 0x02u
-#define MS_COLD 0x04u   /* slowed; a second COLD freezes */
-#define MS_FROZEN 0x08u /* solid: shatters on the next heavy hit */
-#define MS_BURN 0x10u   /* damage over time */
-#define MS_STUN 0x20u
-#define MS_UNDER 0x40u  /* burrowed (no hurt box, not drawn but its trail) */
+#include "core/eg_combat.h"
 /* flags */
 #define MOBF_ELITE 0x01u
 #define MOBF_BACK 0x02u   /* the last hit came from behind (armoured fronts) */
@@ -97,7 +91,7 @@ enum {
   HS_CHARGED, HS_SPIN, /* A held: the charged strike (level 1), the spin (2, 3) */
   HS_LUNGE,  /* B then A */
   HS_PARRY,  /* A then B: the perfect parry's riposte */
-  HS_DODGE, HS_SPRINT, /* B tap, B held: rolling or running through a small (swarm) mob tramples it */
+  HS_DODGE, HS_SPRINT, /* directional evade/run: moving through a small (swarm) mob tramples it */
   HS_ORB,    /* a returned (friendly) orb; hit_orb_from = the en[] index that fired it */
   HS_CRUSH,  /* a falling CRT */
   HS_VOID,   /* knocked into a pit */
@@ -123,6 +117,7 @@ extern uint8_t cond_kills; /* bit per MD_* defence killed by its condition */
 /* ---- 5.2 / 5.5 reactions, particles, sound ---- */
 /* the reaction a hit with `tags` makes on a mob of element `el` with statuses `status` (RX_* of eg_piece.h) */
 uint8_t combat_react(uint8_t tags, uint8_t el, uint8_t status) BANKED;
+uint8_t mob_tool(uint8_t k, uint8_t piece) BANKED;
 /* the particle pool: 8, oldest recycled first; drawn as OP_FX (dropped first on a full line) */
 void fx_burst(uint8_t x, uint8_t y, uint8_t kind, uint8_t n) BANKED; /* FX_* below, n particles */
 enum { FX_HIT = 0, FX_KILL, FX_HOT, FX_COLD, FX_WET, FX_SHOCK, FX_SHINY, FX_ALIVE, FX_MAGIC, FX_GLITCH, FX_STONE,

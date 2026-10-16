@@ -72,6 +72,7 @@ class Fight:
         s["orbs"] = orbs
         pin = g.addr("pin")
         s["mv"], s["mv_frame"], s["mv_flags"] = m[pin + 2], m[pin + 4], m[pin + 6]
+        s["dp_prev"],s["tap_dir"],s["tap_age"],s["dash_cd"]=m[pin+15],m[pin+17],m[pin+18],m[pin+22]
         s["cells"] = g.room()
         s["clock"] = g.peek16("bs_clock")
         s["fc"] = g.peek16("frame_count")
@@ -166,6 +167,9 @@ class Bot:
                 if s["bs_atk"] == ATK["JAM"] and s["bs_hs"][0] in (HS["RISE"], HS["DROP"]):
                     tti = s["bs_t"] if s["bs_hs"][0] == HS["RISE"] else 0
                     out.append((tti, lambda x, y, fx=fx, fy=fy: abs(x - fx) < 30 + M and abs(y - fy) < 28 + M))
+                if s["bs_atk"] == ATK["FAN"] and s["bs_hs"][0] == HS["RISE"]:
+                    # Pages born inside the hurt box cannot be parried reactively. Read the visible wind-up.
+                    out.append((s["bs_t"],lambda x,y,fx=fx,fy=fy:abs(x-fx)<30+M and abs(y-fy)<28+M))
             if s["bs_st"] == BS["IDLE"] and not s["fx_jam_cd"]:
                 # it jams when its next attack starts with the heir in reach: be out of reach by then
                 out.append((s["bs_t"] + 26, lambda x, y, fx=fx, fy=fy: abs(x - fx) < 34 + M and abs(y - fy) < 32 + M))
@@ -263,15 +267,26 @@ class Bot:
             return s
         self.last_fc = s["fc"]
         if self.queue:
-            g.hold(self.queue.pop(0))
+            btn=self.queue[0]
+            if not self.accidental_evade(s,btn): self.queue.pop(0)
+            else: btn=set()
+            g.hold(btn)
             g.tick()
             return s
         if self.cool:
             self.cool -= 1
         btn = self.decide(s)
+        if self.accidental_evade(s,btn) and self.danger(self.threats(s),s["pl_x"],s["pl_y"]) is None:
+            btn=set()
         g.hold(btn)
         g.tick()
         return s
+
+    def accidental_evade(self,s,btn):
+        """A walking/aiming tap waits out the evade window; the bot never disables the cartridge resolver."""
+        bits=sum(v for k,v in [("right",1),("left",2),("up",4),("down",8)] if k in btn)
+        direction=[255,2,6,255,0,1,7,0,4,3,5,4,255,2,6,255][bits]
+        return direction!=255 and s["dp_prev"]==255 and s["tap_dir"]==direction and s["tap_age"]<14 and not s["dash_cd"]
 
     def strike_from(self, s, ex, ey):
         """places to stand to strike (ex, ey), and the facing for each"""
@@ -301,10 +316,10 @@ class Bot:
                 dx, dy = px - o["x"], py - o["y"]
                 closing = dx * o["vx"] + dy * o["vy"] > 0
                 d = max(abs(dx), abs(dy))
-                if closing and d <= 11:
+                if closing and d <= (11 if self.kind==BOSS_BIOME else 18):
                     near.append(o)
-            if near and s["mv"] in (MV_IDLE, MV_HIT1, MV_HIT2, MV_HIT3):
-                self.queue = [set()]
+            if near and s["mv"] in (MV_IDLE, 2, 3, MV_HIT1, MV_HIT2, MV_HIT3):
+                self.queue = [set()] if self.kind==BOSS_BIOME else [{"a","b"},set()]
                 self.cool = 2
                 self.log.append(f"{s['fc']} parry")
                 return {"a", "b"}
@@ -318,9 +333,9 @@ class Bot:
             safe = lambda x, y: self.danger(thr, x, y) is None  # noqa: E731
             p = self.path_to(s, nodes, safe)
             far = len(p) * 4 if p else 999
-            if here <= (7 if self.kind == BOSS_BIOME else 4) and far > 6 and s["mv"] == MV_IDLE and not self.cool:
+            if here <= (7 if self.kind == BOSS_BIOME else 4) and far > 6 and s["mv"] in (MV_IDLE,2,3) and not self.cool:
                 # it will land before the heir is out: the guard takes it
-                self.queue = [set()]
+                self.queue = [{"a","b"},set()]
                 self.cool = 2
                 self.log.append(f"{s['fc']} guard tti={here}")
                 return {"a", "b"}
@@ -333,7 +348,7 @@ class Bot:
             if spots:
                 x, y, face = min(spots, key=lambda sp: abs(sp[0] - px) + abs(sp[1] - py))
                 if abs(x - px) <= 3 and abs(y - py) <= 3:
-                    if s["mv"] == MV_IDLE or (s["mv"] in (MV_HIT1, MV_HIT2) and s["mv_frame"] >= 8):
+                    if s["mv"] in (MV_IDLE,2,3) or (s["mv"] in (MV_HIT1, MV_HIT2) and s["mv_frame"] >= 8):
                         self.queue = [{face}, {"a"}, {"a"}, set()]
                         return set()
                     return set()
@@ -365,6 +380,7 @@ def fight(rom: Path, kind: int, out: Path | None, report: dict, tag: str, mortal
     g = Game(rom)
     meter = OamMeter(g)
     g.poke("dbg_boss", kind)
+    g.poke16("dbg_heir",7) # fixed blade/roll baseline; all five inherited weapons have separate native hit-box checks
     ok = start_run(g, god=not mortal, no_enemies=False, seed=0xB055, floor=10 if kind == BOSS_BIOME else 5)
     if not ok:
         report[tag] = {"started": False}

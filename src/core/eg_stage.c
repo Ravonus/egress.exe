@@ -5,6 +5,7 @@
 #endif
 #include "eg_stage.h"
 #include "eg_piece.h"
+#include "eg_physics.h"
 
 /* ---------------- the rules ---------------- */
 /* the HUD objectives: <= 18 characters (section 12), and the hunt target's tells */
@@ -704,11 +705,13 @@ void eg_slice_begin(eg_slice *sl) EG_BANKED {
   sl->level = 0u;
   sl->m = 255u;
   sl->planned = 0u;
+  sl->physical = PH_NONE;
 }
 
 uint8_t eg_slice_floor(eg_slice *sl, eg_plan_state *ps, uint8_t floor, uint8_t last, eg_seed_rec *rec, uint8_t force)
     EG_BANKED {
   sl->planned = 0u;
+  sl->physical = PH_NONE;
   sl->m = 255u;
   if (floor >= last) {
     sl->kind = SK_BOSS;
@@ -725,7 +728,29 @@ uint8_t eg_slice_floor(eg_slice *sl, eg_plan_state *ps, uint8_t floor, uint8_t l
     return SK_MIDBOSS;
   }
   sl->kind = SK_STAGE;
-  sl->cstage = eg_plan_floor(ps, floor, rec);
+  /* The native slice alternates physical reasoning and fights. A combat floor must not silently
+   * mark a planner lesson as seen when its puzzle was never played. Forced harness rooms stay exact. */
+  if (force == 255u) {
+    sl->level = eg_plan_target(ps, floor);
+    sl->cstage = ST_DEVELOP;
+    if (floor == 1u || floor == 3u || floor == 7u) {
+      sl->physical = floor == 7u ? PH_BRIDGE :
+        (uint8_t)(floor == 1u ? PH_PUSH : PH_DROP);
+      sl->type = SG_PUZZLE;
+      eg_deck_note(&sl->deck, sl->type, 255u);
+      return SK_STAGE;
+    }
+    if (floor == 2u || floor == 6u || floor == 8u) {
+      uint8_t roll = eg_stage_roll(ps->run_seed, floor, 2u);
+      sl->type = floor == 2u ? SG_HOLDOUT : floor == 6u ?
+        (roll & 1u ? SG_CHASE : SG_ESCORT) : (roll & 1u ? SG_HUNT : SG_HOLDOUT);
+      if (sl->type == sl->deck.hist[0]) sl->type = floor == 6u ?
+        (sl->type == SG_CHASE ? SG_ESCORT : SG_CHASE) : (sl->type == SG_HUNT ? SG_HOLDOUT : SG_HUNT);
+      eg_deck_note(&sl->deck, sl->type, 255u);
+      return SK_STAGE;
+    }
+  }
+  sl->cstage = force == 255u && floor == 9u ? eg_plan_intro(ps,floor,rec) : eg_plan_floor(ps, floor, rec);
   sl->planned = 1u;
   sl->level = ps->target;
   /* The deck uses the full-run taxonomy; the slice planner has compact local bits. */

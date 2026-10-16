@@ -1,9 +1,12 @@
 # EGRESS.EXE
 
-A Game Boy Color game in the CRUCIBLE world: procedural Boulder Dash puzzle floors (Exodus style), one-weapon action
-combat (Bastion style), a small roguelike run. The spec is [DESIGN.md](DESIGN.md).
+A Game Boy Color game in the CRUCIBLE world: procedural physical and elemental puzzles, two-button action combat,
+and inherited heirs. The current cartridge is a ten-floor office development slice. The longer run in
+[DESIGN.md](DESIGN.md) is not yet the native game.
 
 The recovered B2 work and current verification are recorded in [the continuation notes](docs/recovery-20261015.md).
+The subsequent [gameplay rebuild](docs/gameplay-rebuild-20261015.md) records the implementation contract,
+completed native systems, controls, evidence and remaining work.
 
 ## Build
 
@@ -12,7 +15,7 @@ not contain ".exe"), a host C compiler, and a Python venv for the art, the music
 
     python3 -m venv .venv && .venv/bin/pip install pyboy==2.7.0 pillow==12.3.0 numpy==2.5.3
     make            # build/egress.gbc: linked as MBC5 2 MiB, trimmed after its last bank, gated at 1,900,000 bytes
-    make test       # host tests: gravity, the solver, determinism, every baked seed re-solved; the ROM gate's tests
+    make test       # host + both ROMs: rules, solver, family/save, inputs, native play, art and ROM gates
     make test-b2    # cartridge stages, both no-hit bosses, sprite and combat frame budgets
     make shots      # PyBoy harness: boot, a solved floor, combat, death + the save, a landing, the boss, the ending
     make seeds      # re-bake the accepted-seed table (slow: minutes of solving)
@@ -49,16 +52,26 @@ runs played (`host/egplan sim`, `tools/plot_curve.py`).
 
 ## A run
 
-Ten floors in the office slice. The deck chooses puzzle, holdout, chase, hunt, escort, mixing, dark and heist stages.
-Puzzle stages draw from the 768 verified seeds, including the living-obstacle lessons. LAST FAX is the mid-boss
-on floor 5; THE TENANT is the biome boss on floor 10. After
+Ten floors in the office slice. Floor 1 teaches pushing crates onto plates, floor 2 requires defeating waves,
+floor 3 drops a CRT onto a plate, and floor 7 offers a physical CRT crossing or a finite crafted mud crossing.
+Floors 6 and 8 deal chase/escort and hunt/holdout fights. Elemental lessons on floors 4 and 9 draw from the 768
+verified seeds, including living obstacles across later generations; the first family starts with circuits and
+cold paths, with fire introduced later. LAST FAX is the mid-boss on floor 5; THE TENANT is the biome boss on floor 10. After
 floors 3, 6 and 9 there is a landing: one of the six factions talks (the reply leans the truth matrix and their
 standing), then trades mods, a battery or coffee for tokens, priced by standing. The ending is a question built from
-what the matrix leans toward. The battery save (two CRC-16 records in SRAM) keeps runs, wins, the best floor, the
-unlocked mods, the things seen and a bounded trace of the matrix.
+what the matrix leans toward. The legacy battery record keeps runs, wins, the best floor, unlocked mods and the
+truth matrix. A separate CRC-checked two-slot family journal preserves the selected heir, full lesson history,
+three related successors and the last eight actual ancestors, without moving the legacy save or either clock.
+Heirs inherit appearance, stats, weapon and dodge alleles; blade, hammer, whip, gauntlet and launcher have different
+timing, reach, force and secondary attacks. THE TREE on a landing shows the real family history.
+
+The satchel carries 24 finite units between floors. SELECT opens the two-slot, eleven-recipe bench with quantities,
+a result preview, the material faced and START-to-use. Invalid recipes and targets keep the items. A valid use
+consumes one unit; a valid recipe consumes two and creates one. Hold RIGHT in the bench to discard one unit, then
+release before discarding another. A room reset restores its entry inventory, preventing pickup duplication.
 
 Controls: d-pad move (lean into a CRT or crate to push it), A lash (three-hit combo; hold to charge and release),
-B tap for the heir's dodge, B hold to sprint, B then A to lunge, A+B to parry. START pauses. Tap SELECT for the bench
+B tap for the secondary attack, B hold for repeat fire/pulses, B then A to rush, A then B to counter. Double-tap a direction to evade (sideways sidesteps, backward backsteps); hold the direction to run. START shows controls and pauses. Tap SELECT for the bench
 (combine two pieces with A, START uses the chosen piece on the cell you face); hold SELECT to reset for a token.
 
 ## Layout

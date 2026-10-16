@@ -271,7 +271,8 @@ void draw_sprites(void) BANKED {
   }
   /* OP_WEAPON: an arc toward the cardinal facing while a strike is out, four around during the spin */
   if (pl_arc == 1u) {
-    uint8_t reach = (mods & MOD_LONG) ? 16u : 13u;
+    uint8_t reach = heir.weapon==1u ? 12u : heir.weapon==2u ? 24u : heir.weapon==3u ? 10u : heir.weapon==4u ? 20u : 14u;
+    if(mods & MOD_LONG) reach+=4u;
     fr = (uint8_t)(pl_t >= 5u ? 4u : 0u);
     x = (int16_t)pl_x - 8 + fdx[pl_face] * (int8_t)reach;
     y = (int16_t)pl_y - 8 + fdy[pl_face] * (int8_t)reach;

@@ -15,6 +15,7 @@
 #include "eg_solve.h"
 #include "eg_walls.h"
 #include "../src/core/eg_obst.h"
+#include "../src/core/eg_physics.h"
 
 #define TIERS 6
 #ifndef BUDGET
@@ -78,6 +79,17 @@ int main(int argc, char **argv) {
   static char moves[8192];
   eg_room r;
   eg_stats st;
+  if (argc >= 5 && (!strcmp(argv[1],"phys-solve") || !strcmp(argv[1],"phys-dump"))) {
+    eg_physics_gen(&r,(uint8_t)atoi(argv[3]),(uint16_t)strtoul(argv[2],NULL,0),(uint8_t)atoi(argv[4]));
+    if (!strcmp(argv[1],"phys-dump")) {
+      for (int i=0;i<(int)EG_N;i++) printf("%02x",r.c[i]);
+      printf(" %u %u %u\n",r.start,r.door,r.keys); return 0;
+    }
+    if (argc>5 && !strcmp(argv[5],"mud"))
+      for (int i=0;i<(int)EG_N;i++) if(r.c[i]==T_ROCK) r.c[i]=T_WALL;
+    if (!eg_solve_ban(&r,BUDGET,argc>5 && !strcmp(argv[5],"crt") ? 1ull<<RX_MUD : 0u,moves,sizeof moves,&st) || !eg_replay(&r,moves)) return 1;
+    puts(moves); return 0;
+  }
   if (argc >= 4 && (!strcmp(argv[1], "show") || !strcmp(argv[1], "solve") || !strcmp(argv[1], "dump") ||
                     !strcmp(argv[1], "accept"))) {
     unsigned seed = (unsigned)strtoul(argv[2], NULL, 0);

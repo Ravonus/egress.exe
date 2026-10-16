@@ -74,12 +74,15 @@ enum {
   RX_CRUSH,                                                                          /* STONE x STONE */
   RX_SHORT,  /* the SHOCK status meets WET: a short circuit through everything wet and connected */
   RX_WEIGHT, /* a laid weight (EFF_LAY) */
+  RX_PUSH,   /* AIR shifts a light crate away from the user */
   RX_COUNT
 };
 extern const uint8_t eg_rx_table[EG_TAGS][EG_TAGS];
 uint8_t eg_rx(uint8_t a, uint8_t b) EG_BANKED; /* B2: eg_rx_table[a][b] from any bank (RX_NONE off the table) */
 /* a cell type's own tag (EG_TAGS: none), so tiles react like mobs */
 uint8_t eg_tile_tag(uint8_t type) EG_BANKED;
+/* Candidate verb for a visible target. Application checks occupancy and the connected circuit too. */
+uint8_t eg_use_rx(uint8_t piece, uint8_t type) EG_BANKED;
 
 /* Use `piece` on `cell`. Returns the reaction that changed the room (RX_NONE: nothing happens and the piece is kept).
  * occ[0..nocc) are the cells the player's body covers: a spread doesn't burn, thaw or lay under them. The changed

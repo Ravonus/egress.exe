@@ -180,10 +180,10 @@ static int heuristic(const uint8_t *c, uint8_t p, uint8_t keys, uint8_t door) {
           case T_WALL:
           case T_SOCKET:
           case T_SOCKET_ON:
-          case T_BLOCK:
-          case T_BLOCK_PLATE:
             w = 0;
             break;
+          case T_BLOCK:
+          case T_BLOCK_PLATE:
           case T_ROCK: w = 4; break;
           case T_BRICK: w = 2; break;
           case T_PIT: w = 5; break;
@@ -249,6 +249,8 @@ static int hpop(void) {
 
 #define KIDS 4096
 static const eg_room *room0;
+static int push_crates; /* search moving crates when the room contains them initially */
+static int fill_pits; /* bridge an existing gap; don't spend a required ingredient repairing optional worn tiles */
 
 
 /* enter the neighbour of `from` in direction d (dig, collect, pick up, push, break, walk when pinned, the door) */
@@ -293,6 +295,11 @@ static int act_enter(const node *s, uint8_t from, int d, node *out, int *goal) {
     case T_ROCK:
       if (d < 2) return 0;
       if (!eg_push(&r, n, (uint8_t)(n + step4[d]))) return 0;
+      break;
+    case T_BLOCK:
+    case T_BLOCK_PLATE:
+      if (!push_crates) return 0; /* a newly crafted plate weight is already at its useful destination */
+      if (!eg_push_block(&r, n, (uint8_t)(n + step4[d]))) return 0;
       break;
     case T_BRICK:
       r.c[n] = T_EMPTY;
@@ -350,6 +357,8 @@ static int closure(const uint8_t *pk, uint8_t np, pocket_q *out, int cap) {
 
 /* could `piece` change a cell of this type at all (the matrix, before trying it)? */
 static int can_react(uint8_t piece, uint8_t type) {
+  if (piece == P_MUD && type == T_PIT) return fill_pits;
+  if (piece == P_AIR && EG_CRATE(type)) return push_crates;
   uint8_t eff = PC_EFF(piece), tags = PC_TAGS(piece), tt = eg_tile_tag(type);
   if (eff == EFF_SHOCK) return type == T_WATER || type == T_SOCKET;
   if (eff == EFF_LAY) return type == T_PLATE;
@@ -420,7 +429,7 @@ static void stats_for(const node *nodes, int id, eg_stats *st) {
     } else {
       uint8_t n = (uint8_t)(a->from + step4[a->dir]);
       uint8_t t = pa->c[n] & T_MASK;
-      if (t == T_ROCK) st->pushes++;
+      if (t == T_ROCK || EG_CRATE(t)) st->pushes++;
       if (t == T_BRICK) st->breaks++;
       if (t == T_DIRT) st->digs++;
       if (t == T_ITEM) st->picks++;
@@ -428,7 +437,8 @@ static void stats_for(const node *nodes, int id, eg_stats *st) {
     /* did the act set CRTs moving? */
     for (int i = 0; i < (int)EG_N; i++)
       if ((pa->c[i] & T_MASK) == T_ROCK && (a->c[i] & T_MASK) != T_ROCK &&
-          i != (uint8_t)(a->from + step4[a->dir])) {
+          (i != (uint8_t)(a->from + step4[a->dir]) ||
+           (a->c[(uint8_t)(i + step4[a->dir])] & T_MASK) != T_ROCK)) {
         st->drops++;
         break;
       }
@@ -531,6 +541,12 @@ int eg_solve_ban(const eg_room *r, int budget, uint64_t ban, char *moves, size_t
   hs.mask -= 1;
   hn = 0;
   room0 = r;
+  push_crates=0;
+  fill_pits=0;
+  for (int k=0;k<(int)EG_N;k++) {
+    if(EG_CRATE(r->c[k])) push_crates=1;
+    if((r->c[k]&T_MASK)==T_PIT) fill_pits=1;
+  }
   memset(st, 0, sizeof *st);
   st->fatal_depth = -1;
   int count = 0, solved = 0;
@@ -577,7 +593,7 @@ int eg_solve_ban(const eg_room *r, int budget, uint64_t ban, char *moves, size_t
         uint8_t tv = s.c[ni] & T_MASK;
         /* uses: a piece (made on the bench just before, if need be) on a cell the matrix acts on */
         if (npq && (tv == T_WATER || tv == T_ICE || tv == T_ICE_1 || tv == T_PAPER || tv == T_PLANK || tv == T_SOCKET ||
-                    tv == T_PLATE)) {
+                    tv == T_PLATE || tv == T_PIT || EG_CRATE(tv))) {
           for (int qi = 0; qi < npq; qi++) {
             node tmp = s;
             memcpy(tmp.pk, pq[qi].pk, EG_MAX_ITEM);
@@ -610,7 +626,7 @@ int eg_solve_ban(const eg_room *r, int budget, uint64_t ban, char *moves, size_t
           solved = 1;
           break;
         }
-        if (tv == T_ROCK || tv == T_BRICK) meaningful++;
+        if (tv == T_ROCK || EG_CRATE(tv) || tv == T_BRICK) meaningful++;
         kids[nk].from = reg[i];
         kids[nk].dir = (uint8_t)d;
         nk++;
@@ -847,6 +863,10 @@ int eg_replay(const eg_room *r0, const char *moves) {
       r.c[n] = T_EMPTY;
     } else if (t == T_DOOR) {
       return keys == 0 && m[1] == 0;
+    } else if (EG_CRATE(t)) {
+      if (!eg_push_block(&r, n, (uint8_t)(n + step4[d]))) return 0;
+      eg_leave(&r, p);
+      p = n;
     } else if (t == T_ROCK) {
       if (d < 2 || (r.c[n] & F_FALL) || !eg_push(&r, n, (uint8_t)(n + step4[d]))) return 0;
       eg_leave(&r, p);

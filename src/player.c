@@ -1,8 +1,6 @@
-/* The player: the heir on the floor. Movement is src/core/eg_move (8-way on 12.4 fixed point, or 4-way with the most
- * recent press winning; axis-separated collision, wall slide, corner nudge, a CRT pushed sideways after 10 frames of
- * deliberate contact), the buttons are src/core/eg_input (docs/redesign.md section 6: A tap the 3-hit combo, A hold a
- * charge released into the charged attack, B tap the heir's own dodge, B hold the sprint, B then A the lunge, A then
- * B the parry). Digging and collecting by entering cells. The heir's sprite and its animation states are heir.c. */
+/* Player movement and attacks. A tap/hold = primary/charge, B tap/hold = secondary/repeat.
+ * Directional double taps evade relative to the pre-tap aim; holding a direction runs.
+ * A>B counters, B>A rushes. The shared resolver in core/eg_input owns those decisions. */
 #pragma bank 255
 #include <gb/gb.h>
 #include <gb/cgb.h>
@@ -14,6 +12,7 @@
 #include "core/eg_input.h"
 #include "core/eg_move.h"
 #include "puzzle.h"
+#include "family.h"
 
 uint8_t pl_x, pl_y, pl_hp, pl_hp_max, pl_state, pl_face;
 uint8_t pl_t, pl_inv, pl_combo, pl_queue, pl_charge, roll_cd, push_t, hit_mask, walk_t, combo_gap;
@@ -232,13 +231,19 @@ static void deflect(orb_t *o, uint8_t perfect) {
 /* B2: what the next enemy_hit came from (src/mob.h hit_src) */
 static void hit_from_move(uint8_t spin) {
   static const uint8_t src[EG_MV_COUNT] = {HS_FUSE, HS_FUSE, HS_FUSE, HS_FUSE, HS_LUNGE, HS_HIT1,
-                                           HS_HIT2, HS_HIT3, HS_CHARGED, HS_CHARGED, HS_PARRY};
+                                           HS_HIT2, HS_HIT3, HS_CHARGED, HS_CHARGED, HS_PARRY, HS_ORB, HS_HIT1};
   hit_src = spin && pin.move == EG_MV_CHARGED ? HS_SPIN : src[pin.move];
   hit_tags = 0;
 }
 
 static void strike(uint8_t spin, uint8_t dmg) {
-  uint8_t cx, cy, rx, ry, k, reach = (mods & MOD_LONG) ? 18u : 14u;
+  uint8_t cx, cy, rx, ry, k, width=14u, reach=14u;
+  if(heir.weapon==1u) { reach=12u; dmg++; }
+  else if(heir.weapon==2u) { reach=24u; width=6u; }
+  else if(heir.weapon==3u) { reach=10u; width=9u; }
+  else if(heir.weapon==4u) { reach=20u; width=6u; }
+  if(mods & MOD_LONG) reach+=4u;
+  if(pin.move==EG_MV_CHARGED && family_stat[G_POWER]>=3u) dmg++;
   int8_t ix = f8x[pmv.facing], iy = f8y[pmv.facing];
   hit_from_move(spin); /* B2 */
   if (spin) {
@@ -249,12 +254,12 @@ static void strike(uint8_t spin, uint8_t dmg) {
     reach = (uint8_t)(reach - (reach >> 2));
     cx = (uint8_t)(pl_x + ix * (int8_t)reach);
     cy = (uint8_t)(pl_y + iy * (int8_t)reach);
-    rx = ry = 13u;
+    rx = ry = (uint8_t)(width-1u);
   } else {
     cx = (uint8_t)(pl_x + ix * (int8_t)reach);
     cy = (uint8_t)(pl_y + iy * (int8_t)reach);
-    rx = ix ? (uint8_t)(reach - 1u) : 14u;
-    ry = ix ? 14u : (uint8_t)(reach - 1u);
+    rx = ix ? (uint8_t)(reach - 1u) : width;
+    ry = ix ? width : (uint8_t)(reach - 1u);
   }
   obstacle_hit(cx, cy, rx, ry);
   for (k = 0; k != nen; k++) {
@@ -319,7 +324,7 @@ static uint8_t dpad_now(void) {
   return d;
 }
 
-static uint8_t walk_speed(void) { return (heir.traits & HT_HEAVY) ? 18u : 20u; }
+static uint8_t walk_speed(void) { return (uint8_t)(((heir.traits & HT_HEAVY) ? 18u : 20u) + family_stat[G_PACE]); }
 
 static void on_start(uint8_t mv) {
   uint8_t d = dpad_now();
@@ -329,16 +334,21 @@ static void on_start(uint8_t mv) {
   ov_t = 0;
   switch (mv) {
     case EG_MV_DODGE:
-      dodge_dp = d ? d : f8dp[pmv.facing];
-      pmv.facing = face_of_dp(dodge_dp);
-      roll_dx = f8x[pmv.facing];
-      roll_dy = f8y[pmv.facing];
+      dodge_dp = f8dp[pin.dash_dir];
+      pmv.facing = pin.evade==EG_EVADE_FORWARD ? pin.dash_dir : pin.tap_face;
+      roll_dx = f8x[pin.dash_dir];
+      roll_dy = f8y[pin.dash_dir];
       pl_charge = 0;
       hud_charge();
       sfx(SFX_ROLL);
       puff(pl_x, (uint8_t)(pl_y + 4u), 2, ST_PUFF);
-      heir_play(pin.style == EG_DODGE_BLINK ? HA_DODGE_BLINK : (pin.style == EG_DODGE_SLIDE ? HA_DODGE_SLIDE
-                                                                                            : HA_DODGE_ROLL), 1);
+      heir_play(pin.evade ? HA_DODGE_SLIDE : (pin.style == EG_DODGE_BLINK ? HA_DODGE_BLINK : (pin.style == EG_DODGE_SLIDE ? HA_DODGE_SLIDE
+                                                                                            : HA_DODGE_ROLL)), 1);
+      break;
+    case EG_MV_SHOT:
+    case EG_MV_BURST:
+      if(d) pmv.facing=face_of_dp(d);
+      heir_play(HA_ATTACK,1u);
       break;
     case EG_MV_SPRINT: heir_play(HA_SPRINT, 1); break;
     case EG_MV_SKID: heir_play(HA_SKID, 1); break;
@@ -363,7 +373,8 @@ static void on_start(uint8_t mv) {
       if ((mods & MOD_STATIC) && pl_level < 3u) pl_level++; /* charges faster: a level up */
       pl_charge = 0;
       hud_charge();
-      if (pl_level >= 2u) {
+      if(family_stat[G_FOCUS]>=3u && pl_level<3u) pl_level++;
+      if (pl_level >= 2u && heir.weapon != 4u) {
         sfx(SFX_SPIN);
         heir_play(HA_SPIN, 1);
       } else {
@@ -383,9 +394,25 @@ static void on_start(uint8_t mv) {
 
 static uint8_t dodge_speed(void) {
   uint8_t ph = pin.phase;
+  if(pin.evade) return ph==EG_PH_ACTIVE ? (pin.evade==EG_EVADE_SIDE ? 36u : 30u) : 8u;
   if (pin.style == EG_DODGE_BLINK) return ph == EG_PH_ACTIVE ? 104u : (ph == EG_PH_STARTUP ? 8u : 0u);
   if (pin.style == EG_DODGE_SLIDE) return ph == EG_PH_ACTIVE ? 36u : 12u;
   return ph == EG_PH_ACTIVE ? 44u : (ph == EG_PH_STARTUP ? 24u : 16u);
+}
+
+static void secondary(void) {
+  uint8_t k;
+  if(heir.weapon==1u || heir.weapon==3u) {
+    hit_mask=0u;strike(1u,1u);pl_arc=2u;
+    puff(pl_x,pl_y,4u,ST_SPARK);sfx(SFX_THUD);
+  } else {
+    for(k=0u;k!=MAXO;k++) if(!orbs[k].live) break;
+    if(k==MAXO) return;
+    fire_orb_at(pl_x,pl_y,f8x[pmv.facing]*32,f8y[pmv.facing]*32,heir.weapon==4u ? 44u : 36u);
+    orbs[k].friendly=1u;orbs[k].pad=0u;orbs[k].life=heir.weapon==4u ? 52u : 36u;
+    puff(pl_x,pl_y,4u,ST_SPARK);sfx(SFX_SHOT);
+  }
+  heir_play(HA_ATTACK,1u);
 }
 
 /* walking, pushing, the idle animations */
@@ -424,6 +451,7 @@ void player_floor_start(void) BANKED {
   pg.wshift = 4u;
   pg.map = pmap;
   eg_input_init(&pin, heir.dodge);
+  pin.weapon = heir.weapon;
   eg_move_init(&pmv, (int16_t)psx - 96, (int16_t)psy - 96, EG_MODE_8WAY);
   pl_face = F_DOWN;
   pl_iframe = pl_arc = 0;
@@ -461,13 +489,15 @@ void player_update(void) BANKED {
       if (!--pl_t) {
         pl_state = PS_FREE;
         eg_input_init(&pin, heir.dodge);
+        pin.weapon = heir.weapon;
       }
       ha_dir = (uint8_t)((4u - pmv.facing) & 7u);
       return;
     }
     default: break;
   }
-  st = eg_input_step(&pin, (uint8_t)(joy & (J_A | J_B)));
+  pin.facing=pmv.facing;
+  st = eg_input_step(&pin, (uint8_t)(joy & (J_A | J_B | 0x0fu)));
   mv = pin.move;
   if (prev == EG_MV_DODGE && mv != EG_MV_DODGE && mv != EG_MV_SPRINT && (mods & MOD_FUSE)) {
     hit_mask = 0; /* the dodge ends in a static shock around the player */
@@ -499,6 +529,15 @@ void player_update(void) BANKED {
     case EG_MV_DODGE:
       pl_state = PS_ROLL;
       mstep(dodge_dp, dodge_speed(), 1);
+      pmv.facing=pin.evade==EG_EVADE_FORWARD ? pin.dash_dir : pin.tap_face;
+      cardinal_face();
+      break;
+    case EG_MV_SHOT:
+    case EG_MV_BURST:
+      pl_state=PS_LASH;
+      walk((uint8_t)(walk_speed()+(pin.gait ? 8u : 0u)),0u);
+      if((mv==EG_MV_SHOT && pin.frame==2u) || (mv==EG_MV_BURST && !pin.frame)) secondary();
+      else if(ha_done) heir_play(HA_CTX_READY,0u);
       break;
     case EG_MV_SPRINT: {
       uint8_t d = dpad_now(), sp = (heir.traits & HT_HEAVY) ? 25u : 28u;
@@ -526,16 +565,31 @@ void player_update(void) BANKED {
     case EG_MV_HIT2:
     case EG_MV_HIT3:
       pl_state = PS_LASH;
-      eg_input_fd_get(mv, &fd);
+      eg_input_attack_frames(&pin, &fd);
       if (pin.frame == 2u) mstep(f8dp[pmv.facing], 24u, 1); /* step into it */
       if (ph == EG_PH_ACTIVE) {
         dmg = mv == EG_MV_HIT3 ? ((mods & MOD_SURGE) ? 3u : 2u) : 1u;
         strike(0, dmg);
-        if (pin.frame == fd.startup) break_brick(front_cell(), (uint8_t)(mv == EG_MV_HIT3));
+        if (pin.frame == fd.startup) break_brick(front_cell(), (uint8_t)(mv == EG_MV_HIT3 || heir.weapon == 1u));
       }
       if (pin.frame >= 2u && pin.frame < (uint8_t)(fd.startup + fd.active + 3u)) pl_arc = 1;
       break;
     case EG_MV_CHARGED:
+      eg_input_attack_frames(&pin, &fd);
+      if (heir.weapon == 4u) {
+        pl_state=PS_LASH;
+        if(pin.frame==fd.startup) {
+          uint8_t k;
+          for(k=0u;k!=MAXO;k++) if(!orbs[k].live) break;
+          if(k!=MAXO) {
+            fire_orb_at(pl_x,pl_y,f8x[pmv.facing]*32,f8y[pmv.facing]*32,40u);
+            orbs[k].friendly=1u; orbs[k].pad=0u; orbs[k].life=(uint8_t)(24u+pl_level*12u);
+            puff(pl_x,pl_y,4u,ST_SPARK); sfx(SFX_SHOT);
+          }
+        }
+        if(ph==EG_PH_ACTIVE) pl_arc=1u;
+        break;
+      }
       if (pl_level >= 2u) {
         pl_state = PS_SPIN;
         if (ph == EG_PH_ACTIVE || (ph == EG_PH_RECOVERY && pin.frame < 14u)) {

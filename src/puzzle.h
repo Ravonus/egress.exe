@@ -5,7 +5,12 @@
 #include <stdint.h>
 #include "core/eg_room.h"
 
-extern uint8_t pocket[EG_MAX_ITEM], pocket_n; /* insertion order */
+#define POCKET_CAP 24u
+extern uint8_t __at(0xDBC0) pocket[POCKET_CAP]; /* finite carried units, insertion order */
+extern uint8_t pocket_n;
+void pocket_begin(void) BANKED;
+void pocket_enter(void) BANKED;
+void pocket_restore(void) BANKED;
 extern uint8_t bench_on, bench_cur, last_rx;
 void pocket_reset(void) BANKED;
 void puzzle_pick(uint8_t cell) BANKED; /* the player walked into a T_ITEM cell */

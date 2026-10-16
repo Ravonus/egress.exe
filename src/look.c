@@ -6,6 +6,7 @@
 #include <string.h>
 #include "look.h"
 #include "oam.h"
+void items_tick(void) BANKED;
 
 uint8_t look_present[EG_N / 8u];
 uint8_t look_busy_n;
@@ -586,6 +587,7 @@ void look_tick(void) BANKED {
     obj_mode = obj_want = 0;
   }
   ambient();
+  if (game_mode == MODE_PLAY && !look_busy_n) items_tick();
   budget = game_mode == MODE_PLAY ? 2u : LOOK_COMMITS_PER_FRAME;
   if (look_dbg_kind) { /* the harness: 0x80 applies a poked skin, else a break of that kind */
     if (look_dbg_kind == 0x80u) look_skin_set(look_dbg_cell, (uint8_t)(look_skin[look_dbg_cell] - 1u));

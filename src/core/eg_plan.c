@@ -5,7 +5,7 @@
 #include "eg_plan.h"
 #include "eg_stage.h" /* B2: the deck */
 
-const uint8_t eg_plan_order[MK_SLICE_COUNT - 2u] = {MK_BURN, MK_COLD, MK_GLASS, MK_STEPS, MK_SHORT, MK_WEIGHT, MK_RHYTHM,
+const uint8_t eg_plan_order[MK_SLICE_COUNT - 2u] = {MK_SHORT, MK_COLD, MK_WEIGHT, MK_GLASS, MK_STEPS, MK_RHYTHM, MK_BURN,
     MK_SLICE_RUSH, MK_SLICE_STEER, MK_SLICE_MIRROR, MK_SLICE_STARE};
 
 static uint8_t popc(uint16_t m) {
@@ -48,7 +48,7 @@ uint8_t eg_plan_target(const eg_plan_state *ps, uint8_t floor) EG_BANKED {
   return t < 0 ? 0u : (t > 15 ? 15u : (uint8_t)t);
 }
 
-uint8_t eg_plan_floor(eg_plan_state *ps, uint8_t floor, eg_seed_rec *rec) EG_BANKED {
+static uint8_t plan_floor(eg_plan_state *ps, uint8_t floor, eg_seed_rec *rec, uint8_t lesson) {
   eg_seed_rec e;
   uint8_t pos = (uint8_t)((floor - 1u) % 3u), stage, m = 255u, k, next = 255u, pass, lvl, tgt, n, ok, g;
   uint16_t i, allowed, best = 0u, cost, best_cost = 0xffffu, own;
@@ -58,10 +58,10 @@ uint8_t eg_plan_floor(eg_plan_state *ps, uint8_t floor, eg_seed_rec *rec) EG_BAN
       break;
     }
   g = ps->generation > 8u ? 8u : ps->generation;
-  if (ps->develop != 255u) {
+  if (ps->develop != 255u && !lesson) {
     stage = ST_DEVELOP;
     m = ps->develop;
-  } else if (next != 255u && (pos == 0u || ps->seen == MK_BASIC)) {
+  } else if (next != 255u && (lesson || pos == 0u || ps->seen == MK_BASIC)) {
     stage = ST_INTRO;
     m = next;
   } else if (pos == 2u)
@@ -126,6 +126,13 @@ uint8_t eg_plan_floor(eg_plan_state *ps, uint8_t floor, eg_seed_rec *rec) EG_BAN
   ps->prev_trick = rec->trick;
   ps->prev_level = (uint8_t)(rec->diff >> 4);
   return stage;
+}
+
+uint8_t eg_plan_floor(eg_plan_state *ps, uint8_t floor, eg_seed_rec *rec) EG_BANKED {
+  return plan_floor(ps,floor,rec,0u);
+}
+uint8_t eg_plan_intro(eg_plan_state *ps, uint8_t floor, eg_seed_rec *rec) EG_BANKED {
+  return plan_floor(ps,floor,rec,1u);
 }
 
 void eg_plan_result(eg_plan_state *ps, uint8_t resets, uint16_t frames) EG_BANKED {

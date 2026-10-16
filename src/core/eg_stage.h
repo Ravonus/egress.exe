@@ -116,6 +116,7 @@ typedef struct {
   uint8_t level;  /* the planned level (0-15) */
   uint8_t m;      /* the slot's mechanic (the baked room's trick as MK_*), 255 none; 254: the mid-boss (elite) */
   uint8_t planned; /* the run planner chose this floor's room (its result is reported back) */
+  uint8_t physical; /* PH_*: a canonical moving-object motif, rather than a baked reaction seed */
 } eg_slice;
 void eg_slice_begin(eg_slice *sl) EG_BANKED;
 /* The floor's slot on the cartridge's run: floors 1..last-1 are curriculum stages (the planner picks the baked room;

@@ -2,8 +2,7 @@
 #define EG_INPUT_H
 /* EGRESS two-button move resolver (proof module). See proto/input/FRAMES.md for the frame-data table and rules.
  *
- * Call eg_input_step() once per frame with the held-buttons byte (GBDK joypad() layout: J_A = 0x10, J_B = 0x20;
- * other bits are ignored). Press/release edges are computed inside. The whole state lives in eg_input_t: the
+ * Call eg_input_step() once per frame with the held joypad byte (A=0x10, B=0x20, d-pad=0x0f). Press/release edges are computed inside. The whole state lives in eg_input_t: the
  * resolver is a pure function of the input stream and the dodge style. Frame counters start at 0 on the frame a
  * move starts.
  *
@@ -21,6 +20,11 @@
 
 #define EG_IN_A 0x10u
 #define EG_IN_B 0x20u
+#define EG_DP_MASK 0x0fu
+#define EG_TAP_WINDOW 14u
+#define EG_RUN_HOLD 18u
+#define EG_NO_DIR 255u
+enum { EG_EVADE_FORWARD=0, EG_EVADE_SIDE, EG_EVADE_BACK };
 
 #define EG_HOLD_T 11u      /* a press held for >= 11 frames (press frame counts as 1) is a hold; released earlier = tap */
 #define EG_BUF_FRAMES 6u   /* a buffered press can fire on its press frame and the 5 frames after */
@@ -33,22 +37,24 @@
 
 enum {
   EG_MV_IDLE = 0,
-  EG_MV_DODGE,   /* B tap: roll / blink / slide (style) */
-  EG_MV_SPRINT,  /* B hold: the dodge flows into a sprint while B stays held (loop) */
-  EG_MV_SKID,    /* sprint brake after B is released */
-  EG_MV_LUNGE,   /* B then A: dodge-cancel strike, keeps dodge momentum */
+  EG_MV_DODGE,   /* directional double tap: roll / blink / slide, side/back step */
+  EG_MV_SPRINT,  /* held direction, including after a dodge */
+  EG_MV_SKID,    /* sprint brake after direction is released */
+  EG_MV_LUNGE,   /* B then A: rushing strike */
   EG_MV_HIT1,    /* A tap: combo hit 1 */
   EG_MV_HIT2,
   EG_MV_HIT3,
   EG_MV_CHARGE,  /* A hold: charging (loop) */
   EG_MV_CHARGED, /* A released after charging: the charged attack (level in .level) */
   EG_MV_PARRY,   /* A then B: weapon secondary / parry */
+  EG_MV_SHOT,    /* B tap: the heir's second attack */
+  EG_MV_BURST,   /* B held: repeated shots/pulses */
   EG_MV_COUNT
 };
 
 enum { EG_PH_NONE = 0, EG_PH_STARTUP, EG_PH_ACTIVE, EG_PH_RECOVERY, EG_PH_LOOP };
 enum { EG_DODGE_ROLL = 0, EG_DODGE_BLINK, EG_DODGE_SLIDE, EG_DODGE_COUNT };
-enum { EG_INT_NONE = 0, EG_INT_A, EG_INT_B, EG_INT_AB }; /* buffered intent */
+enum { EG_INT_NONE = 0, EG_INT_A, EG_INT_B, EG_INT_AB, EG_INT_BA }; /* ordered attack intents */
 
 #define EG_FL_IFRAME 0x01u   /* dodge active frames */
 #define EG_FL_MOMENTUM 0x02u /* dodge, sprint, lunge: the mover keeps dodge velocity */
@@ -80,6 +86,9 @@ typedef struct {
   uint8_t a_hold, b_hold; /* frames the button has been held (0 when up), saturating */
   uint8_t a_age;  /* frames since A's last press edge, capped at EG_AGE_CAP */
   uint8_t buf, buf_age; /* one-slot input buffer: EG_INT_*, newest press wins */
+  uint8_t weapon; /* 0 blade, 1 hammer, 2 whip, 3 gauntlet, 4 launcher: attack timing */
+  uint8_t facing; /* caller's aim before movement, N NE E SE S SW W NW */
+  uint8_t dp_prev, dp_hold, tap_dir, tap_age, tap_face, dash_dir, evade, dash_cd, gait, b_age;
 } eg_input_t;
 
 void eg_input_init(eg_input_t *s, uint8_t style) EG_BANKED;
@@ -88,5 +97,7 @@ uint8_t eg_input_step(eg_input_t *s, uint8_t held) EG_BANKED;
 const eg_frames_t *eg_input_frames(const eg_input_t *s, uint8_t move) EG_BANKED;
 uint8_t eg_input_total(const eg_input_t *s, uint8_t move) EG_BANKED; /* 0 for idle and loop moves */
 uint8_t eg_input_parry(const eg_input_t *s) EG_BANKED;               /* 0 none, 1 guard, 2 perfect */
+void eg_input_attack_frames(const eg_input_t *s, eg_frames_t *out) EG_BANKED;
+uint8_t eg_input_shot_period(uint8_t weapon) EG_BANKED;
 
 #endif

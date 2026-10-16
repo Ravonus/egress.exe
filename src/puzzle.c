@@ -14,8 +14,16 @@
 #include "core/eg_plan.h"
 #include "run.h"
 #include "look.h"
+#include "mob.h"
+#include "heir.h"
+#include "family.h"
+void items_tick(void) BANKED;
 
-uint8_t pocket[EG_MAX_ITEM], pocket_n;
+/* Bank 1 floor state, after the mover map; title playback uses bank 2 here. */
+uint8_t __at(0xDBC0) pocket[POCKET_CAP];
+uint8_t pocket_n;
+static uint8_t __at(0xDBD8) entry_pocket[POCKET_CAP];
+static uint8_t entry_n;
 uint8_t puzzle_dirty, frag_skip, floor_resets;
 eg_plan_state plan;
 static uint8_t pl_cell, pl_safe, beat_was, frag_pend, has_glitch;
@@ -26,17 +34,20 @@ static uint8_t frag_t[4][2]; /* timed resets: cell, ticks of 8 frames left (0: f
 uint8_t bench_on, bench_cur, last_rx; /* bench_on: 1 the bench is up, 2 a use is playing out */
 static uint8_t sock[2], told;
 static char buf[20];
+static uint8_t bench_cam_y;
+
+void pocket_begin(void) BANKED { memset(pocket, 0, sizeof pocket); pocket_n = 0; }
+void pocket_enter(void) BANKED { memcpy(entry_pocket, pocket, sizeof pocket); entry_n = pocket_n; }
+void pocket_restore(void) BANKED { memcpy(pocket, entry_pocket, sizeof pocket); pocket_n = entry_n; }
 
 void pocket_reset(void) BANKED {
   uint8_t i;
-  memset(pocket, 0, sizeof pocket);
   memset(frag_t, 0, sizeof frag_t);
   pl_cell = pl_safe = room.start;
   frag_pend = 255u;
   puzzle_dirty = frag_skip = dead_t = dead_run = 0;
   beat_was = 255u;
   look_glitch_period = 0; /* the puzzle drives the beat (frame-based, EG_BEAT_LEN; the solver's model is a window) */
-  pocket_n = 0;
   bench_on = 0;
   bench_cur = 0;
   last_rx = 0;
@@ -55,7 +66,8 @@ static void pocket_take(uint8_t slot) {
 /* the player walked into a piece lying in the room */
 void puzzle_pick(uint8_t cell) BANKED {
   uint8_t p = eg_item_at(&room, cell);
-  if (!p || pocket_n >= EG_MAX_ITEM) return;
+  if (!p) return;
+  if (pocket_n >= POCKET_CAP) { hud_msg("SATCHEL FULL: USE IT"); return; }
   pocket[pocket_n++] = p;
   room.c[cell] = T_EMPTY;
   queue_cell(cell);
@@ -146,11 +158,24 @@ static uint8_t use(uint8_t slot) {
   uint8_t occ[4], n = body(occ), here = cell_at(pl_x, pl_y), cell, rx, k, nd, pal;
   uint8_t order[EG_DIRTY_MAX];
   cell = (uint8_t)(here + (uint8_t)(fdy[pl_face] * (int8_t)EG_W) + (uint8_t)fdx[pl_face]);
-  if (slot >= pocket_n || enemy_in_cell(cell)) return 0;
+  if (slot >= pocket_n) return 0;
+  if (enemy_in_cell(cell)) {
+    /* Consumable tools enter the existing combat matrix, including wet -> shock/freeze. */
+    for (k = 0u; k != nen; k++) {
+      if (en[k].st == ES_DEAD || cell_at((uint8_t)(en[k].x >> 4), (uint8_t)(en[k].y >> 4)) != cell) continue;
+      if (en[k].kind != SPAWN_MOB) { hud_msg("ARMOURED: ITEM KEPT"); return 0u; }
+      if (!mob_tool(k,pocket[slot])) { hud_msg("BLOCKED: ITEM KEPT"); return 0; }
+      pocket_take(slot);
+      hud_msg("TOOL USED ON MOB");
+      sfx(SFX_CHARGED);
+      return 1u;
+    }
+    return 0u;
+  }
   rx = eg_apply(&room, pocket[slot], cell, occ, n);
   if (!rx) {
     sfx(SFX_DENY);
-    hud_msg("NOTHING HAPPENS");
+    hud_msg("NO EFFECT: KEPT");
     return 0;
   }
   last_rx = rx;
@@ -188,18 +213,55 @@ static void line(uint8_t y, const char *s) {
   text_at(1, 0, y, s, BP);
 }
 
+static uint8_t first_slot(uint8_t k) {
+  uint8_t j;
+  for(j=0u;j<k;j++) if(pocket[j]==pocket[k]) return j;
+  return k;
+}
+
+static void bench_step(uint8_t up) {
+  uint8_t k=bench_cur;
+  if(!pocket_n) return;
+  do {
+    k=up ? (k ? k-1u : pocket_n-1u) : (k+1u<pocket_n ? k+1u : 0u);
+  } while(first_slot(k)!=k);
+  bench_cur=k;
+}
+
+static const char *const target_names[T_TYPES] = {
+  "FLOOR","FOAM","CONCRETE","CRACK WALL","CRT","TOKEN","KEYCARD","DOOR",
+  "CARPET","GAP","PLATE","GATE","OPEN GATE","WATER","GLITCH","PAPER",
+  "PLANK","ITEM","SOCKET","POWERED","DEAD GATE","CRATE","LOADED",
+  "CARPET","WORN","TORN","CEILING","CRACKED","GLASS","ICE","THIN ICE","PARTITION"
+};
+
 static void bench_draw(void) {
-  uint8_t k, r = 0;
-  text_at(1, 0, 0, "POCKET    BENCH     ", BP);
-  for (k = 0; k != EG_MAX_ITEM; k++) {
-    text_at(1, 0, (uint8_t)(k + 1u), "          ", BP);
+  uint8_t k, j, row, count, rx, cell, r = 0, ordinal=0u, page;
+  if(pocket_n) bench_cur=first_slot(bench_cur);
+  for(k=0u;k<bench_cur;k++) if(first_slot(k)==k) ordinal++;
+  page=(uint8_t)((ordinal/6u)*6u);
+  text_at(1, 0, 0, "BAG       BENCH      ", BP);
+  num_at(1, 4, 0, pocket_n, 2u, BP);
+  text_at(1, 6, 0, "/24", BP);
+  k=0u; ordinal=0u;
+  for (row = 1u; row != 7u; row++) {
+    while(k<pocket_n && (first_slot(k)!=k || ordinal<page)) {
+      if(first_slot(k)==k) ordinal++;
+      k++;
+    }
+    text_at(1, 0, row, "          ", BP);
     if (k >= pocket_n) {
-      text_at(1, 1, (uint8_t)(k + 1u), k ? "" : (pocket_n ? "" : "EMPTY"), BP);
+      if (!pocket_n && row == 1u) text_at(1, 1, row, "EMPTY", BP);
       continue;
     }
-    eg_piece_name(pocket[k], buf);
-    text_at(1, 1, (uint8_t)(k + 1u), buf, (uint8_t)(sock[0] == k || sock[1] == k ? HP : BP));
-    if (k == bench_cur) text_at(1, 0, (uint8_t)(k + 1u), ">", HP);
+    count = 0u;
+    for (j = 0u; j != pocket_n; j++) if (pocket[j] == pocket[k]) count++;
+    eg_piece_abbr(pocket[k], buf);
+    text_at(1, 1, row, buf, (uint8_t)(sock[0] == k || sock[1] == k ? HP : BP));
+    text_at(1, 6, row, "x", BP);
+    num_at(1, 7, row, count, 2u, BP);
+    if (k == bench_cur) text_at(1, 0, row, ">", HP);
+    k++;
   }
   for (k = 0; k != 2u; k++) {
     text_at(1, 10, (uint8_t)(k + 1u), "          ", BP);
@@ -223,14 +285,24 @@ static void bench_draw(void) {
   text_at(1, 10, 4, "          ", BP);
   text_at(1, 10, 5, "          ", BP);
   text_at(1, 10, 6, "          ", BP);
-  /* the traits of what the A button would make, else of the piece under the cursor */
-  eg_tags_text(r ? r : (pocket_n ? pocket[bench_cur] : 0u), buf);
+  cell = (uint8_t)(cell_at(pl_x,pl_y) + (uint8_t)(fdy[pl_face] * (int8_t)EG_W) + (uint8_t)fdx[pl_face]);
+  rx = eg_use_rx(pocket_n ? pocket[bench_cur] : 0u, cell_type(cell));
+  text_at(1, 10, 4, "FACING:", BP);
+  if (enemy_in_cell(cell)) { text_at(1, 10, 5, "MOB", HP);text_at(1,10,6,"USE TOOL",HP); }
+  else {
+    text_at(1,10,5,target_names[cell_type(cell)],BP);
+    if (rx) { eg_rx_name(rx, buf); buf[10] = 0; text_at(1, 10, 6, buf, HP); }
+    else text_at(1, 10, 6, "NO EFFECT", BP);
+  }
+  eg_piece_name(r ? r : (pocket_n ? pocket[bench_cur] : 0u), buf);
   line(7, buf);
-  line(8, sock[1] != 255u ? "A MAKE  B BACK" : "A ADD B BACK ST USE");
+  if (pocket_n) text_at(1,10,7,"START USE",HP);
+  line(8, sock[1] != 255u ? "A MAKE B UNDO > DROP" : "A ADD B BACK > DROP");
 }
 
 static void bench_close(void) {
   bench_on = 0;
+  cam_y=bench_cam_y;move_bkg(cam_x,cam_y);
   clear_map(1, BP);
   hud_draw();
   hud_charge();
@@ -239,24 +311,45 @@ static void bench_close(void) {
 }
 
 void bench_run(void) BANKED {
-  uint8_t a, b, r;
+  uint8_t a, b, r, drop_t=0u;
   sock[0] = sock[1] = 255u;
   if (bench_cur >= pocket_n) bench_cur = 0;
+  bench_cam_y=cam_y;
+  cam_y=pl_y>40u ? (uint8_t)(pl_y-40u) : 0u;
+  if(cam_y>152u) cam_y=152u;
+  move_bkg(cam_x,cam_y);
   clear_map(1, BP);
   bench_draw();
   hud_line = BENCH_Y;
   move_win(7, BENCH_Y);
   sfx(SFX_STEP);
   bench_on = 1; /* up and listening (the harness waits for this) */
+  heir_idle_stop(); heir_play(HA_BENCH,1u);
   while (1) {
     frame_wait(); /* no hud_tick here: a toast closing would move the window under the bench */
     sound_tick();
+    items_tick();
+    if (!(frame_count&31u)) {
+      uint8_t target=(uint8_t)(cell_at(pl_x,pl_y)+(uint8_t)(fdy[pl_face]*(int8_t)EG_W)+(uint8_t)fdx[pl_face]);
+      puff((uint8_t)(EG_X(target)*16u+8u),(uint8_t)(EG_Y(target)*16u+8u),4u,ST_SPARK);
+    }
+    draw_sprites();
     input_poll();
+    if(joy&J_RIGHT) {
+      if(drop_t<31u) drop_t++;
+      if(drop_t==1u) line(8,"HOLD RIGHT: DROP ONE");
+      if(drop_t==30u && pocket_n) {
+        pocket_take(bench_cur);sock[0]=sock[1]=255u;
+        if(bench_cur>=pocket_n) bench_cur=0u;
+        bench_draw();line(8,"ONE UNIT DISCARDED");sfx(SFX_STEP);
+      }
+      continue;
+    }
+    if(drop_t) { drop_t=0u;bench_draw(); }
     if (joy_pressed & J_SELECT) break;
     if (joy_pressed & (J_UP | J_DOWN)) {
       if (pocket_n) {
-        if (joy_pressed & J_UP) bench_cur = bench_cur ? (uint8_t)(bench_cur - 1u) : (uint8_t)(pocket_n - 1u);
-        else bench_cur = (uint8_t)(bench_cur + 1u) >= pocket_n ? 0u : (uint8_t)(bench_cur + 1u);
+        bench_step((uint8_t)(joy_pressed & J_UP));
         sfx(SFX_STEP);
         bench_draw();
       }
@@ -267,8 +360,12 @@ void bench_run(void) BANKED {
         r = eg_recipe(pocket[a], pocket[b]);
         if (!r) {
           sfx(SFX_DENY);
+          text_at(1,10,6,"ITEMS KEPT",BP);
           continue;
         }
+        text_at(1,10,6,"MIXING...",HP);
+        for(r=0u;r!=12u;r++) { frame_wait(); sound_tick(); draw_sprites(); }
+        r=eg_recipe(pocket[a],pocket[b]);
         pocket_take(a > b ? a : b);
         pocket_take(a > b ? b : a);
         pocket[pocket_n++] = r;
@@ -301,7 +398,7 @@ void bench_run(void) BANKED {
 
 /* --- the run planner: the curriculum picks every generated floor's room (src/core/eg_plan.h) --- */
 void puzzle_plan_begin(void) BANKED {
-  eg_plan_begin(&plan, run_seed, MK_FROM_SEEN(meta.seen), meta.runs > 255u ? 255u : (uint8_t)meta.runs);
+  eg_plan_begin(&plan, run_seed, (uint16_t)(MK_FROM_SEEN(meta.seen) | (dbg_heir ? 0u : family.seen)), meta.runs > 255u ? 255u : (uint8_t)meta.runs);
 }
 
 void puzzle_plan_floor(void) BANKED {
@@ -321,6 +418,7 @@ void puzzle_plan_floor(void) BANKED {
 void puzzle_plan_done(void) BANKED {
   eg_plan_result(&plan, floor_resets, acts.frames);
   meta.seen |= MK_TO_SEEN(plan.seen);
+  if(!dbg_heir) family.seen |= plan.seen;
 }
 
 /* holding SELECT put the room back: it costs a token (never a heart), and the matrix remembers */

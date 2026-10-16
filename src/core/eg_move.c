@@ -6,6 +6,22 @@
 
 #define BOX_SUB ((int16_t)(EG_BOX_PX << EG_FIX))
 
+void eg_aim(int16_t dx, int16_t dy, uint8_t speed, int8_t *vx, int8_t *vy) EG_BANKED {
+  uint16_t ax=(uint16_t)(dx<0 ? -dx : dx), ay=(uint16_t)(dy<0 ? -dy : dy);
+  uint8_t minor;
+  if(!ax && !ay) {*vx=*vy=0;return;}
+  /* The dominant component is exactly +/-speed: only the minor one needs a division. */
+  if(ax>=ay) {
+    *vx=dx<0 ? -(int8_t)speed : (int8_t)speed;
+    minor=(uint8_t)((ay*speed)/ax);
+    *vy=dy<0 ? -(int8_t)minor : (int8_t)minor;
+  } else {
+    *vy=dy<0 ? -(int8_t)speed : (int8_t)speed;
+    minor=(uint8_t)((ax*speed)/ay);
+    *vx=dx<0 ? -(int8_t)minor : (int8_t)minor;
+  }
+}
+
 /* facing by the resolved d-pad bits (R 1, L 2, U 4, D 8; never both of a pair) */
 static const uint8_t face_of[16] = {0xffu,      EG_FACE_E,  EG_FACE_W,  0xffu, EG_FACE_N, EG_FACE_NE,
                                     EG_FACE_NW, 0xffu,      EG_FACE_S,  EG_FACE_SE, EG_FACE_SW, 0xffu,

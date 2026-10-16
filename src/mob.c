@@ -500,6 +500,7 @@ static void trail(uint8_t cell) {
 /* the next cell to walk to: toward the player (or beside them, for flankers), never into another mob's target */
 static void pick(uint8_t bit) {
   uint8_t c = cell_at(ex, ey), d, best = 255u, bd = 255u, n, k, j, gx = pl_x, gy = pl_y, nx, ny, dist;
+  if (Mb->status & MS_BLIND) { gx=(uint8_t)(eg_rnd()&0xf0u); gy=(uint8_t)(eg_rnd()&0xb0u); }
   if (Mb->ax.beh == MH_FLANK) { /* aim beside the player, on the side it already is */
     if (absdiff(ex, pl_x) < absdiff(ey, pl_y)) gx = (uint8_t)(pl_x + (K & 1u ? 24u : (uint8_t)-24));
     else gy = (uint8_t)(pl_y + (K & 1u ? 24u : (uint8_t)-24));
@@ -822,6 +823,11 @@ void mobs_update(void) BANKED {
       continue;
     }
     if ((Mb->status & MS_COLD) && (E->anim & 1u)) continue; /* slowed: half the frames */
+    if (Mb->status & MS_BLIND) {
+      if (!(E->anim&15u)) { pick(Mb->ax.body==MB_FLYER ? CF : CW); fx_burst(ex,ey,FX_STONE,1u); }
+      if (Mb->ax.body!=MB_TURRET) { approach(&E->x,E->tx,Mb->speed); approach(&E->y,E->ty,Mb->speed); }
+      continue;
+    }
     switch (Mb->ax.body) {
       case MB_FLYER: flyer(); break;
       case MB_TURRET: turret(); break;
@@ -856,16 +862,37 @@ static uint8_t weapon_tags(void) {
 }
 
 uint8_t combat_react(uint8_t tags, uint8_t el, uint8_t status) BANKED {
-  uint8_t i, rx = RX_NONE;
-  if ((status & MS_WET) && (hit_src == HS_FUSE || (hit_src == HS_SPIN && pl_level >= 3u))) return RX_SHORT;
-  for (i = 0; i != EG_TAGS; i++)
-    if (tags & (uint8_t)(1u << i)) {
-      rx = eg_rx(i, el);
-      if (rx == RX_NONE && (status & MS_WET) && i == TAG_COLD) rx = RX_FREEZE;
-      if (rx == RX_NONE && (status & MS_COLD) && i == TAG_COLD) rx = RX_DEEPFREEZE;
-      if (rx != RX_NONE) return rx;
-    }
-  return rx;
+  return eg_combat_reaction(tags,el,status,(uint8_t)(hit_src==HS_FUSE || (hit_src==HS_SPIN && pl_level>=3u)));
+}
+
+uint8_t mob_tool(uint8_t k, uint8_t piece) BANKED {
+  mob_t *m=&mob[k]; enemy_t *e=&en[k];
+  uint8_t x=(uint8_t)(e->x>>4),y=(uint8_t)(e->y>>4);
+  if(e->kind!=SPAWN_MOB || e->st==ES_DEAD || (m->status&MS_UNDER)) return 0u;
+  if(piece==P_AIR) {
+    if(m->ax.body==MB_HEAVY || m->ax.body==MB_TURRET) return 0u;
+    e->vx=x>pl_x ? 56 : x<pl_x ? -56 : 0;
+    e->vy=y>pl_y ? 56 : y<pl_y ? -56 : 0;
+    e->st=ES_HURT;e->t=10u;fx_burst(x,y,FX_KILL,3u);return 1u;
+  }
+  if(piece==P_WATER || piece==P_RAIN || piece==P_CLOUD) {
+    m->status=(uint8_t)((m->status&~MS_BURN)|MS_WET);m->st_t=240u;
+    fx_burst(x,y,FX_WET,3u);return 1u;
+  }
+  if(piece==P_MUD || piece==P_EARTH) {
+    m->status|=MS_COLD;m->st_t=180u;fx_burst(x,y,FX_STONE,3u);return 1u;
+  }
+  if(piece==P_STEAM || piece==P_DUST) {
+    m->status|=MS_BLIND;m->st_t=150u;e->st=ES_WALK;
+    e->tx=x;e->ty=y;fx_burst(x,y,FX_KILL,4u);return 1u;
+  }
+  if(piece==P_ELECTRIC && m->ax.el==TAG_STONE && !(m->status&MS_WET)) return 0u;
+  hit_src=piece==P_ELECTRIC ? HS_FUSE : HS_HIT1;
+  hit_tags=eg_piece_tags(piece);hit_result=HR_MISS;
+  enemy_hit(k,piece==P_LAVA ? 2u : 1u,pl_x,pl_y);
+  if(hit_result==HR_MISS || hit_result==HR_BLOCK) return 0u;
+  if(piece==P_ELECTRIC && e->st!=ES_DEAD && !(m->status&MS_STUN)) { m->status|=MS_STUN;m->st_t=30u; }
+  return 1u;
 }
 
 /* the hit came from the side it faces? */

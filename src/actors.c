@@ -11,6 +11,7 @@
 #include "boss_api.h" /* B2 bosses */
 #include "heir.h"
 #include "mob.h"
+#include "core/eg_move.h"
 
 enemy_t en[MAXE];
 uint8_t nen;
@@ -82,22 +83,16 @@ void enemy_hit(uint8_t k, uint8_t dmg, uint8_t fromx, uint8_t fromy) BANKED {
 
 /* fire an orb from (ex, ey) toward (tx, ty) at `speed` subpixels a frame */
 void fire_orb_at(uint8_t ex, uint8_t ey, int16_t dx, int16_t dy, uint8_t speed) BANKED {
-  uint8_t k, m, ax, ay;
+  uint8_t k;
+  orb_t *o;
   for (k = 0; k != MAXO; k++)
     if (!orbs[k].live) break;
   if (k == MAXO) return;
-  ax = (uint8_t)(dx < 0 ? -dx : dx);
-  ay = (uint8_t)(dy < 0 ? -dy : dy);
-  m = ax > ay ? ax : ay;
-  if (!m) m = 1;
-  orbs[k].live = 1;
-  orbs[k].friendly = 0;
-  orbs[k].pad = (uint8_t)(orb_shooter + 1u); /* B2: who fired it (0: a B1 eye or the boss) */
-  orbs[k].life = 200u;
-  orbs[k].x = (uint16_t)ex << 4;
-  orbs[k].y = (uint16_t)ey << 4;
-  orbs[k].vx = (int8_t)(dx * speed / m);
-  orbs[k].vy = (int8_t)(dy * speed / m);
+  o=&orbs[k];
+  o->live=1u;o->friendly=0u;
+  o->pad=(uint8_t)(orb_shooter+1u);
+  o->life=200u;o->x=(uint16_t)ex<<4;o->y=(uint16_t)ey<<4;
+  eg_aim(dx,dy,speed,&o->vx,&o->vy);
 }
 
 /* a straight, open line of carpet between two cells? */

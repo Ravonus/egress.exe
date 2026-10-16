@@ -1,4 +1,4 @@
-# EGRESS.EXE build. `make` builds build/egress.gbc (finished, trimmed, gated); `make test` runs the host tests;
+# EGRESS.EXE build. `make` builds build/egress.gbc (finished, trimmed, gated); `make test` runs host and cartridge checks;
 # `make shots` runs the PyBoy harness. Needs GBDK-2020 4.5.0 (GBDK_HOME) and the .venv (pyboy, pillow, numpy).
 #
 # Two ROMs from the same source; MAPPER picks which one `make` (`make rom`) builds:
@@ -23,7 +23,11 @@ SRC := src/main.c src/screens.c src/play.c src/grid.c src/hud.c src/player.c src
 	$(sort $(wildcard src/gen/heir_data_*.c))
 # B2 bosses (src/boss_api.h)
 SRC += src/boss_core.c src/boss_tenant.c src/boss_fax.c src/boss_art.c src/boss_oam.c
-MAPPER_SRC := src/run.c src/clock.c src/heir_draw.c
+SRC += src/core/eg_physics.c
+SRC += src/core/eg_family.c
+SRC += src/items.c
+SRC += src/core/eg_combat.c
+MAPPER_SRC := src/run.c src/clock.c src/heir_draw.c src/family.c
 # the title (src/title3d, docs/redesign.md 15): its C, its art (committed), the baked walk (generated into build/)
 SRC += src/title3d/title3d.c src/title3d/t3d_core.c
 T3D_GEN := src/title3d/gen
@@ -71,6 +75,10 @@ build/obj-mbc3/%.o: src/%.c $(HDRS)
 	$(LCC) $(CFLAGS) $(DEFS_mbc3) -o $@ $<
 
 build/obj/sound.o: src/gen/music_data.h
+build/obj/items.o: src/gen/item_idle.inc
+
+src/gen/item_idle.inc: tools/bake_item_idle.py tools/bake_look.py
+	$(PY) tools/bake_item_idle.py
 
 # the heir's baked frame records (tools/bake_heir.py): plain data, no headers but GBDK's
 build/obj/gen/heir_data_%.o: src/gen/heir_data_%.c
@@ -150,7 +158,7 @@ src/gen/boss_art.h src/gen/boss_art_data.h: tools/bake_boss.py tools/mock/mobgen
 src/gen/music_data.h: tools/compose.py
 	$(PY) tools/compose.py $@
 
-ROOM_SRC := src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c src/core/eg_obst.c src/core/eg_ogen.c host/eg_osolve.c
+ROOM_SRC := src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c src/core/eg_physics.c src/core/eg_obst.c src/core/eg_ogen.c host/eg_osolve.c
 ROOM_HDR := src/core/eg_room.h src/core/eg_piece.h host/eg_solve.h src/core/eg_obst.h host/eg_osolve.h
 build/host/egtool: host/egtool.c host/eg_solve.c host/eg_walls.c $(ROOM_SRC) $(ROOM_HDR)
 	@mkdir -p $(dir $@)
@@ -183,6 +191,48 @@ build/host/test_obst: host/test_obst.c $(ROOM_SRC) $(ROOM_HDR)
 build/host/test_room: host/test_room.c host/eg_solve.c $(ROOM_SRC) $(ROOM_HDR)
 	@mkdir -p $(dir $@)
 	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_room.c host/eg_solve.c $(ROOM_SRC)
+
+build/host/test_physics: host/test_physics.c host/eg_solve.c $(ROOM_SRC) $(ROOM_HDR) src/core/eg_physics.h
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_physics.c host/eg_solve.c $(ROOM_SRC)
+
+test-physics: build/host/test_physics
+	build/host/test_physics
+
+build/host/test_family: host/test_family.c src/core/eg_family.c src/core/eg_family.h src/core/eg_input.c src/core/eg_input.h
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_family.c src/core/eg_family.c src/core/eg_input.c
+
+test-family: build/host/test_family
+	build/host/test_family
+
+build/host/test_interactions: host/test_interactions.c src/core/eg_combat.c $(ROOM_SRC) $(ROOM_HDR)
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_interactions.c src/core/eg_combat.c $(ROOM_SRC)
+
+test-interactions: build/host/test_interactions
+	build/host/test_interactions
+
+build/host/test_curriculum: host/test_curriculum.c src/core/eg_family.c src/core/eg_plan.c src/core/eg_stage.c src/core/eg_room.c src/gen/eg_seeds.c $(HDRS)
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_curriculum.c src/core/eg_family.c src/core/eg_plan.c src/core/eg_stage.c src/core/eg_room.c src/gen/eg_seeds.c
+
+test-curriculum: build/host/test_curriculum
+	build/host/test_curriculum
+
+build/host/test_aim: host/test_aim.c src/core/eg_move.c src/core/eg_move.h
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_aim.c src/core/eg_move.c
+
+test-aim: build/host/test_aim
+	build/host/test_aim
+
+test-gameplay: build/egress.gbc build/egress-rtc.gbc build/host/egtool
+	$(PY) test/harness/gameplay_rebuild.py build/egress.gbc build/gameplay-rebuild/native
+	$(PY) test/harness/gameplay_rebuild.py build/egress-rtc.gbc build/gameplay-rebuild/native-rtc
+	$(PY) test/harness/controls.py build/egress.gbc build/gameplay-rebuild/controls
+	$(PY) test/harness/controls.py build/egress-rtc.gbc build/gameplay-rebuild/controls-rtc
+	$(PY) test/harness/tools_and_weapons.py build/egress.gbc build/gameplay-rebuild/tools
 
 # the ported face generator on the host, for the art tools and mocks (tools/avatar_png.py, tools/mock/*)
 AVATAR_SRC := src/avatar/crucible_avatar.c src/avatar/crucible_avatar_base.c
@@ -239,7 +289,7 @@ test-rtc: build/host/test_clock build/egress.gbc build/egress-rtc.gbc
 	$(PY) tools/mapper_audit.py build/linked-mbc5.map build/linked-mbc3.map
 	$(PY) test/rtc_test.py build/egress.gbc build/egress-rtc.gbc
 
-test: build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2
+test: build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-physics test-family test-interactions test-curriculum test-gameplay test-aim
 	build/host/test_obst
 	build/host/test_room src/gen/eg_seeds.c
 	build/host/egplan check 1000
@@ -254,4 +304,4 @@ shots: build/egress.gbc build/host/egtool $(TB_GEN)/chunks.mk
 clean:
 	rm -rf build
 
-.PHONY: rom all rtc test test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-fs-proto shots clean seeds heir
+.PHONY: rom all rtc test test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-fs-proto test-physics test-family test-interactions test-curriculum test-gameplay test-aim shots clean seeds heir

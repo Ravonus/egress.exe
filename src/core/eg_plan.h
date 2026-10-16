@@ -77,6 +77,9 @@ extern const uint8_t eg_plan_order[MK_SLICE_COUNT - 2u]; /* the order mechanics 
 void eg_plan_begin(eg_plan_state *ps, uint16_t run_seed, uint16_t seen, uint8_t generation) EG_BANKED;
 /* the room for floor 1..9: fills *rec and returns the stage */
 uint8_t eg_plan_floor(eg_plan_state *ps, uint8_t floor, eg_seed_rec *rec) EG_BANKED;
+/* A spaced lesson after intervening combat/physics: introduce the next unseen verb without pretending
+ * the intervening floors developed an elemental puzzle that was never there. */
+uint8_t eg_plan_intro(eg_plan_state *ps, uint8_t floor, eg_seed_rec *rec) EG_BANKED;
 /* how the floor went: resets used, and frames to clear (0: not cleared) */
 void eg_plan_result(eg_plan_state *ps, uint8_t resets, uint16_t frames) EG_BANKED;
 /* the floor's wave target (level 0-15) before the bias */

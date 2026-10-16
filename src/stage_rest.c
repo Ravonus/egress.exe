@@ -7,6 +7,7 @@
 #include "run.h"
 #include "stage.h"
 #include "core/eg_piece.h"
+#include "family.h"
 
 uint8_t rest_sel; /* the harness reads which line is chosen */
 static char rb[12];
@@ -37,8 +38,8 @@ static void rest_book(void) {
   uint8_t a, b, r, y = 3u, x;
   rest_screen();
   text_at(0, 2, 1, "THE BOOK         ", 4);
-  for (a = P_FIRE; a <= P_METAL; a++)
-    for (b = a; b <= P_METAL; b++) {
+  for (a = P_FIRE; a < P_COUNT; a++)
+    for (b = a; b < P_COUNT; b++) {
       r = eg_recipe(a, b);
       if (!r || y > 15u) continue;
       eg_piece_abbr(a, rb);
@@ -59,12 +60,18 @@ static void rest_book(void) {
 }
 
 static void rest_tree(void) {
+  uint8_t k,y;
   rest_screen();
   text_at(0, 2, 1, "THE TREE         ", 4);
-  text_at(0, 2, 5, "THE LINEAGE IS", 4);
-  text_at(0, 2, 6, "NOT WRITTEN YET.", 4);
-  text_at(0, 2, 8, "RUNS SO FAR", 5);
-  num_at(0, 14, 8, meta.runs, 3, 5);
+  text_at(0,1,3,"CURRENT GEN",4);num_at(0,14,3,family.generation,3,5);
+  text_at(0,1,5,"ANCESTOR FLOOR END",4);
+  for(k=0u;k<family.nrecord && k<EG_FAMILY_HISTORY;k++) {
+    y=(uint8_t)(6u+k);
+    num_at(0,2,y,family.history[k].generation,3,4);
+    num_at(0,10,y,family.history[k].floor,2,4);
+    text_at(0,13,y,family.history[k].won ? "CLEAR" : "LOST",5);
+  }
+  if(!family.nrecord) text_at(0,1,7,"YOUR LINE STARTS NOW",4);
   text_at(0, 2, 17, "B BACK", 5);
   rest_show();
   rest_wait_a();
