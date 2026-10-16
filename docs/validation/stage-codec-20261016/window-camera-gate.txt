@@ -1,0 +1,207 @@
+window: 256 seams, 4352 mutations, exact active/inactive state, 7168 bounded strip transfers
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "rom_sha256": "8ba7eb4c4350460bab8111d122265afa7bf316f360b6555f5b30e53b89e21eb9",
+  "trace_sha256": "429518fe28a7cd4c51ecc4520e1cb0f231210cbdba9e2af67ebac7b069ff8bec",
+  "seams": 64,
+  "bytes_per_state": 508,
+  "frames": 208,
+  "max_shift_cycles": 68884,
+  "mean_shift_cycles": 68438,
+  "all_bytes_match": true,
+  "bank_one_and_stack_canary": true
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "results": {
+    "real_ingredient_collected": true,
+    "crate_moved_by_normal_push": true,
+    "starting_floor_present": true,
+    "camera_travel_exposes_east": true,
+    "floor_arrives_to_east": true,
+    "floor_behind_camera_collapses": true,
+    "travel_preserves_puzzle_board": true,
+    "camera_returns_west": true,
+    "old_floor_reassembles": true,
+    "east_floor_collapses_on_return": true,
+    "collected_item_does_not_respawn": true,
+    "board_mutations_survive_backtracking": true,
+    "moved_crate_stays_moved": true,
+    "real_diagonal_travel_and_reversal": true,
+    "real_directional_evade_used": true,
+    "fast_reversal_keeps_mutations": true,
+    "floor_under_feet_stays_present": true,
+    "complete_body_retained": true,
+    "sprite_line_budget": true,
+    "floor_stack_canary": true,
+    "movement_frames_120_per_120": true
+  },
+  "frames": 1163,
+  "minimum_game_frames_per_120": 120,
+  "oam_max": 8,
+  "missing_floor": [],
+  "missing_body": [],
+  "log": []
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "8be9b1af311770a2ac1440072b8fb9b519822c345f5662942b56bf4000d84081",
+  "results": {
+    "real_ingredient_collected": true,
+    "crate_moved_by_normal_push": true,
+    "starting_floor_present": true,
+    "camera_travel_exposes_east": true,
+    "floor_arrives_to_east": true,
+    "floor_behind_camera_collapses": true,
+    "travel_preserves_puzzle_board": true,
+    "camera_returns_west": true,
+    "old_floor_reassembles": true,
+    "east_floor_collapses_on_return": true,
+    "collected_item_does_not_respawn": true,
+    "board_mutations_survive_backtracking": true,
+    "moved_crate_stays_moved": true,
+    "real_diagonal_travel_and_reversal": true,
+    "real_directional_evade_used": true,
+    "fast_reversal_keeps_mutations": true,
+    "floor_under_feet_stays_present": true,
+    "complete_body_retained": true,
+    "sprite_line_budget": true,
+    "floor_stack_canary": true,
+    "movement_frames_120_per_120": true
+  },
+  "frames": 1163,
+  "minimum_game_frames_per_120": 120,
+  "oam_max": 8,
+  "missing_floor": [],
+  "missing_body": [],
+  "log": []
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+  "results": {
+    "real_wave_mobs_present": true,
+    "both_action_buttons_used": true,
+    "actual_player_kills": true,
+    "sprite_line_budget": true,
+    "combat_and_travel_120_per_120": true,
+    "floor_under_feet_stays_present": true,
+    "complete_body_retained": true,
+    "floor_stack_canary": true,
+    "native_allocator_matches_reference": true,
+    "native_map_and_attributes_match": true
+  },
+  "frames": 3714,
+  "minimum_game_frames_per_120": 120,
+  "oam_max": 10,
+  "max_enemies": 2,
+  "allocator": {
+    "calls": {
+      "groups": 14936,
+      "size_1": 5540,
+      "off_y": 2316,
+      "size_2": 9396,
+      "full": 12361,
+      "left_clip": 252,
+      "refused": 324,
+      "right_clip": 7,
+      "off_x": 16
+    },
+    "mismatches": [],
+    "all_allocations_match": true
+  },
+  "grid": {
+    "native_quads": 1380,
+    "distinct_cells": 159,
+    "attributes": [
+      0,
+      3,
+      8,
+      9,
+      10,
+      11,
+      13,
+      35
+    ],
+    "max_masked_cycles": 964,
+    "all_map_and_attributes_match": true
+  },
+  "moves": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    8,
+    11,
+    12
+  ],
+  "missing_floor": [],
+  "missing_body": [],
+  "log": []
+}
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "8be9b1af311770a2ac1440072b8fb9b519822c345f5662942b56bf4000d84081",
+  "results": {
+    "real_wave_mobs_present": true,
+    "both_action_buttons_used": true,
+    "actual_player_kills": true,
+    "sprite_line_budget": true,
+    "combat_and_travel_120_per_120": true,
+    "floor_under_feet_stays_present": true,
+    "complete_body_retained": true,
+    "floor_stack_canary": true,
+    "native_allocator_matches_reference": true,
+    "native_map_and_attributes_match": true
+  },
+  "frames": 3729,
+  "minimum_game_frames_per_120": 120,
+  "oam_max": 10,
+  "max_enemies": 2,
+  "allocator": {
+    "calls": {
+      "groups": 14947,
+      "size_1": 5551,
+      "off_y": 2337,
+      "size_2": 9396,
+      "full": 12331,
+      "left_clip": 271,
+      "refused": 322,
+      "right_clip": 8,
+      "off_x": 34
+    },
+    "mismatches": [],
+    "all_allocations_match": true
+  },
+  "grid": {
+    "native_quads": 1405,
+    "distinct_cells": 160,
+    "attributes": [
+      0,
+      3,
+      8,
+      9,
+      10,
+      11,
+      13,
+      35
+    ],
+    "max_masked_cycles": 964,
+    "all_map_and_attributes_match": true
+  },
+  "moves": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    8,
+    11,
+    12
+  ],
+  "missing_floor": [],
+  "missing_body": [],
+  "log": []
+}

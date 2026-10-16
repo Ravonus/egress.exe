@@ -74,11 +74,25 @@ static uint8_t cq[64], cq_head, cq_tail; /* queue_cell (hot) stays in bank 0 */
 static uint8_t carpet_ink[7]; /* one bit per deterministic 2x2 carpet patch */
 void cells_reset(void) BANKED {
   uint8_t x,y;
+  room_origin_x=bg_origin_x=0u;room_width=EG_W;
   cq_head = cq_tail = 0;
   for(y=0u;y!=7u;y++) {
     carpet_ink[y]=0u;
     for(x=0u;x!=8u;x++) if(((x*3u+y*5u+(uint8_t)floor_seed)&7u)<2u) carpet_ink[y]|=look_bits[x];
   }
+}
+void grid_shift_view(int8_t direction) BANKED {
+  uint8_t n=(uint8_t)(cq_head-cq_tail),k,keep=0u,i,x,v;
+  for(k=0u;k<n;k++) {
+    i=cq[(uint8_t)(cq_tail+k)&63u];x=EG_X(i);
+    if(direction==1 ? x<4u : x>=12u)continue;
+    cq[(uint8_t)(cq_tail+keep++)&63u]=(uint8_t)(direction==1 ? i-4u : i+4u);
+  }
+  cq_head=(uint8_t)(cq_tail+keep);
+  for(k=0u;k<7u;k++) {
+    v=carpet_ink[k];carpet_ink[k]=direction==1 ? (uint8_t)((v>>2)|(v<<6)) : (uint8_t)((v<<2)|(v>>6));
+  }
+  bg_origin_x=(uint8_t)((bg_origin_x+(direction==1 ? 8u : 24u))&31u);
 }
 static uint8_t carpet_patch(uint8_t i) NONBANKED {
   return (uint8_t)(room.c[i]==T_EMPTY && (carpet_ink[EG_Y(i)>>1]&look_bits[EG_X(i)>>1]));
@@ -104,6 +118,7 @@ void queue_cell(uint8_t i) NONBANKED {
 static uint8_t void_ring(uint8_t i) {
   uint8_t x = EG_X(i), y = EG_Y(i);
   uint8_t t=cell_type(i);
+  if(room_width>EG_W) return EG_ABYSS(room.c[i]);
   return (uint8_t)((t==T_WALL || t==T_PIT) && (x == 0u || x == EG_W - 1u || y == EG_H - 1u));
 }
 uint8_t look_void_cell(uint8_t i) BANKED { return void_ring(i); }
@@ -129,7 +144,8 @@ static const uint8_t slab_variant[256]={
 };
 static uint8_t meta_for(uint8_t i) {
   uint8_t t = cell_type(i), x = EG_X(i), y = EG_Y(i), b;
-  uint8_t h = (uint8_t)(x * 7u + y * 13u + (x ^ y) + (uint8_t)floor_seed);
+  uint8_t gx=(uint8_t)(x+room_origin_x);
+  uint8_t h = (uint8_t)(gx * 7u + y * 13u + (gx ^ y) + (uint8_t)floor_seed);
   if (!solid_ground(i)) {
     /* the void: under ground the slab's dithered underside, beside it the slab's side face (B2: the left card, or
      * the same tiles X-flipped for ground on the right), the two together in an inside corner, and at an outside
@@ -253,7 +269,8 @@ static void meta_draw(uint8_t i, uint8_t m) {
   /* the attribute: the palette, and VRAM bank 1 unless the card lives in bank 0 (the fragile floors, the flying cards,
    * the items, the void's edges; these may be X-flipped: LOOK_META_FLIP is the attribute's own bit) */
   quad_attr=(p & LOOK_META_BANK0) ? (uint8_t)(p & (7u | LOOK_META_FLIP)) : (uint8_t)(p | 0x08u);
-  quad_dst=(uint8_t *)(0x9800u+((uint16_t)EG_Y(i)<<6)+(EG_X(i)<<1));
+  quad_dst=(uint8_t *)((LCDC_REG&LCDCF_BG9C00 ? 0x9C00u : 0x9800u)+((uint16_t)EG_Y(i)<<6)+
+    (((EG_X(i)<<1)+bg_origin_x)&31u));
   quad_src=meta_tile[m];
   CRITICAL {quad_write();}
 }

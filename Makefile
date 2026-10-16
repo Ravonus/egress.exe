@@ -25,6 +25,7 @@ SRC := src/main.c src/screens.c src/play.c src/grid.c src/hud.c src/player.c src
 SRC += src/boss_core.c src/boss_tenant.c src/boss_fax.c src/boss_art.c src/boss_oam.c
 SRC += src/core/eg_physics.c
 SRC += src/core/eg_link.c src/core/eg_link_gen.c
+SRC += src/core/eg_window.c src/window_fast.c src/window_cache.c
 SRC += src/core/eg_family.c
 SRC += src/items.c
 SRC += src/core/eg_combat.c src/core/eg_stamina.c src/stamina.c
@@ -120,6 +121,7 @@ build/linked-%.gbc: $$(OBJ_$$*)
 	@end=$$(grep -oE '[0-9A-F]{8}  s__HEAP ' build/linked-$*.map | head -1 | cut -c5-8); \
 	[ $$((0x$$end)) -le $$((0xD800)) ] || { echo "WRAM: game data ends at 0x$$end, past 0xD800 (the title mirrors \
 	0xD000-0xD7FF and keeps its buffers above it, src/title3d/t3d.h)" >&2; rm -f $@; exit 1; }
+	@$(PY) -c 'import re; from pathlib import Path; s=Path("build/linked-$*.noi").read_text(); a=int(re.search(r"DEF _eg_window_packet 0x([0-9A-Fa-f]+)",s)[1],16); assert 0xC000<=a<=0xCFF7,hex(a)'
 
 # GBDK's autobanker rewrites shared .rel inputs. Two mapper links must never run
 # concurrently, even under make -j; compilation can still run in parallel.
@@ -306,6 +308,56 @@ test-native-linked-puzzles: all build/host/egtool
 	$(PY) test/harness/linked_puzzles.py build/egress.gbc build/link-check/game-mbc5
 	$(PY) test/harness/linked_puzzles.py build/egress-rtc.gbc build/link-check/game-mbc3
 
+build/host/test_window: host/test_window.c src/core/eg_window.c src/core/eg_window.h
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc -o $@ host/test_window.c src/core/eg_window.c
+
+test-window: build/host/test_window
+	$<
+
+build/host/window_stream_dump: host/window_stream_dump.c test/native/window_cases.h src/core/eg_window.c src/core/eg_window.h
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc -o $@ host/window_stream_dump.c src/core/eg_window.c
+
+build/window-check/test.o: test/native/window_stream.c test/native/window_cases.h $(HDRS)
+	@mkdir -p $(dir $@)
+	$(LCC) $(CFLAGS) -o $@ $<
+
+build/window-check/window.gbc: build/window-check/test.o build/obj/core/eg_window.o build/obj/window_fast.o build/obj/window_cache.o
+	$(LCC) $(LDFLAGS) -Wm-yt0x1B -o $@ $^
+
+test-native-window: build/host/window_stream_dump build/window-check/window.gbc
+	$(PY) tools/test_window_stream.py $^
+
+src/gen/stage_codec.inc: assets/stages/codec.json tools/bake_stage_codec.py
+	$(PY) tools/bake_stage_codec.py
+
+build/obj/core/eg_land.o: src/gen/stage_codec.inc
+
+LAND_SRC := src/core/eg_land.c src/core/eg_room.c src/core/eg_link.c src/core/eg_piece.c
+build/host/test_land: host/test_land.c $(LAND_SRC) src/core/eg_land.h src/gen/stage_codec.inc
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc -o $@ host/test_land.c $(LAND_SRC)
+
+test-land: build/host/test_land
+	$(PY) tools/bake_stage_codec.py --check
+	$(PY) tools/test_stage_codec.py
+	$<
+
+build/host/land_dump: host/land_dump.c test/native/land_cases.h src/core/eg_land.c src/core/eg_land.h src/gen/stage_codec.inc
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc -o $@ host/land_dump.c src/core/eg_land.c
+
+build/land-check/test.o: test/native/land_codec.c test/native/land_cases.h src/core/eg_land.h
+	@mkdir -p $(dir $@)
+	$(LCC) $(CFLAGS) -o $@ $<
+
+build/land-check/land.gbc: build/land-check/test.o build/obj/core/eg_land.o
+	$(LCC) $(LDFLAGS) -Wm-yt0x1B -o $@ $^
+
+test-native-land: build/host/land_dump build/land-check/land.gbc
+	$(PY) tools/test_land_native.py $^
+
 test-curriculum: build/host/test_curriculum
 	build/host/test_curriculum
 
@@ -461,7 +513,7 @@ test-rtc: build/host/test_clock build/egress.gbc build/egress-rtc.gbc
 	$(PY) tools/mapper_audit.py build/linked-mbc5.map build/linked-mbc3.map
 	$(PY) test/rtc_test.py build/egress.gbc build/egress-rtc.gbc
 
-test: build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-physics test-island-edges test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-runtime test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera test-linked-puzzles test-native-links test-native-linked-puzzles
+test: build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-physics test-island-edges test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-runtime test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera test-linked-puzzles test-native-links test-native-linked-puzzles test-window test-native-window test-land test-native-land
 	build/host/test_obst
 	build/host/test_room src/gen/eg_seeds.c
 	build/host/egplan check 1000
@@ -478,3 +530,4 @@ clean:
 
 .PHONY: rom all rtc test test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-fs-proto test-physics test-island-edges test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-narrator test-journal test-runtime-core test-runtime test-wram-cache shots clean seeds heir
 .PHONY: test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera test-links test-linked-puzzles test-native-links test-native-linked-puzzles
+.PHONY: test-window test-native-window test-land test-native-land

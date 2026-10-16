@@ -36,7 +36,7 @@ static void controls_pause(void) {
   uint8_t old_y=cam_y;
   cam_y=pl_y>40u ? (uint8_t)(pl_y-40u) : 0u;
   if(cam_y>144u) cam_y=144u;
-  move_bkg(cam_x,cam_y);
+  move_bkg(BG_SCROLL_X(cam_x),cam_y);
   clear_map(1,LOOK_PAL_HUD);
   text_at(1,0,0,"A HIT / HOLD CHARGE",LOOK_PAL_HUD);
   text_at(1,0,1,"B SHOT / HOLD CHARGE",LOOK_PAL_HUD);
@@ -50,7 +50,7 @@ static void controls_pause(void) {
     frame_wait();look_tick();flush_cells(8u);sound_tick();draw_sprites();input_poll();
     if(joy_pressed&(J_START|J_B)) break;
   }
-  cam_y=old_y;move_bkg(cam_x,cam_y);
+  cam_y=old_y;move_bkg(BG_SCROLL_X(cam_x),cam_y);
   clear_map(1,LOOK_PAL_HUD);hud_draw();hud_charge();move_win(7,128);hud_line=128u;
 }
 
@@ -143,7 +143,7 @@ static void scroll(void) {
     sx = (uint8_t)(sx + ((frame_count & 2u) ? 1u : 255u));
     sy = (uint8_t)(sy + ((frame_count & 4u) ? 1u : 255u));
   }
-  move_bkg(sx, sy);
+  move_bkg(BG_SCROLL_X(sx), sy);
 }
 
 static void floor_show(void) {

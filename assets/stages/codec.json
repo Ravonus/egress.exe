@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "sizes": [
+    {"name":"xs",  "width":[16,20],  "height":[14,14], "goals":[1,1]},
+    {"name":"s",   "width":[24,32],  "height":[14,18], "goals":[1,2]},
+    {"name":"m",   "width":[36,48],  "height":[18,26], "goals":[1,3]},
+    {"name":"l",   "width":[52,64],  "height":[26,34], "goals":[2,3]},
+    {"name":"xl",  "width":[72,96],  "height":[34,42], "goals":[2,4]},
+    {"name":"xxl", "width":[100,128],"height":[42,54], "goals":[2,4]}
+  ],
+  "stages": [
+    {"name":"first_load", "goals":["load"], "conditions":["hold"], "shapes":["terraces","basins","bend"], "sizes":["xs","s"], "alternatives":["push","craft"]},
+    {"name":"heat_route", "goals":["heat","load"], "conditions":["hold","latch"], "shapes":["terraces","basins","bend","courts"], "sizes":["xs","s","m","l"], "alternatives":["push","craft"]},
+    {"name":"cold_route", "goals":["cold","load"], "conditions":["hold","either"], "shapes":["terraces","basins","bend","courts"], "sizes":["xs","s","m","l"], "alternatives":["push","craft","jump"]},
+    {"name":"power_route", "goals":["power","load"], "conditions":["hold","latch","both"], "shapes":["terraces","basins","bend","courts"], "sizes":["s","m","l","xl"], "alternatives":["push","craft"]},
+    {"name":"transport_chain", "goals":["load","portal","heat","cold","power"], "conditions":["hold","either","both","latch"], "shapes":["terraces","basins","bend","courts"], "sizes":["s","m","l","xl","xxl"], "alternatives":["push","craft","jump"], "required":["load","portal"]},
+    {"name":"mixed_world", "goals":["load","heat","cold","power"], "conditions":["hold","either","both","latch"], "shapes":["terraces","basins","bend","courts"], "sizes":["s","m","l","xl","xxl"], "alternatives":["push","craft","jump"]}
+  ],
+  "biomes": [
+    {"name":"office", "foliage":28, "water":30, "props":42, "water_style":0},
+    {"name":"vents", "foliage":12, "water":24, "props":56, "water_style":1},
+    {"name":"atrium", "foliage":88, "water":66, "props":30, "water_style":0},
+    {"name":"servers", "foliage":18, "water":92, "props":68, "water_style":2},
+    {"name":"foodcourt", "foliage":46, "water":40, "props":76, "water_style":0},
+    {"name":"garden", "foliage":140, "water":84, "props":26, "water_style":0},
+    {"name":"rooftop", "foliage":66, "water":52, "props":42, "water_style":1},
+    {"name":"glitch", "foliage":74, "water":112, "props":60, "water_style":3}
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "public_release": false,
+  "playable_scope": "ten-floor office; large-world generator is independently tested, not integrated",
+  "artifacts": [
+    {
+      "label": "standard",
+      "path": "build/egress.gbc",
+      "sha256": "5bc3bfa6cca680a328ad40c78cc7c156b626781507c5f0b0f18e8addda7937c0",
+      "bytes": 1196032
+    },
+    {
+      "label": "rtc",
+      "path": "build/egress-rtc.gbc",
+      "sha256": "8be9b1af311770a2ac1440072b8fb9b519822c345f5662942b56bf4000d84081",
+      "bytes": 1196032
+    },
+    {
+      "label": "native land fixture",
+      "path": "build/land-check/land.gbc",
+      "sha256": "0e25e88253b30acea28bf7e1471b64b635d1e88b681198403609d9c2c3886886",
+      "bytes": 2097152
+    },
+    {
+      "label": "native window fixture",
+      "path": "build/window-check/window.gbc",
+      "sha256": "8ba7eb4c4350460bab8111d122265afa7bf316f360b6555f5b30e53b89e21eb9",
+      "bytes": 2097152
+    }
+  ]
+}

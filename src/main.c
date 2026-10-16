@@ -6,6 +6,12 @@
 #include "gen/art.h"
 #include "clock.h"
 #include "tutorial.h"
+#include "core/eg_window.h"
+
+/* First module's data keeps the stream packet in fixed WRAM. The linker gate
+ * checks this: cache leaves must not read their packet from a switched bank. */
+uint8_t eg_window_packet[9];
+uint8_t room_origin_x,bg_origin_x,room_width;
 
 uint8_t game_mode;
 uint16_t run_seed;

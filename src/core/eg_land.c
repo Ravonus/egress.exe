@@ -1,0 +1,153 @@
+#ifdef __SDCC
+#pragma bank 255
+#endif
+#include <string.h>
+#include "eg_land.h"
+#include "eg_piece.h"
+#include "../gen/stage_codec.inc"
+/* Separate, stateless stream: decorations and window order never consume the
+ * combat RNG or alter puzzle placement. All arithmetic is identical on SM83. */
+static uint16_t hash(uint16_t seed,uint8_t a,uint8_t b) {
+  uint16_t v=(uint16_t)(seed^((uint16_t)a*251u)^((uint16_t)b*1387u));
+  v^=(uint16_t)(v<<7);v^=v>>9;v^=(uint16_t)(v<<8);return v;
+}
+static uint8_t pick(uint8_t bits,uint16_t roll) {
+  uint8_t n=0u,i;
+  for(i=0u;i<8u;i++)if(bits&(1u<<i))n++;
+  n=(uint8_t)(roll%n);
+  for(i=0u;i<8u;i++)if(bits&(1u<<i)) {if(!n)return i;n--;}
+  return 0u;
+}
+static uint8_t distance(uint8_t a,uint8_t b) {return a>b ? a-b : b-a;}
+static uint8_t centre(const eg_land *p,uint8_t segment) {
+  uint8_t cross=EL_CROSS(p),amplitude=(uint8_t)((cross-10u)>>1),period,phase;
+  if(amplitude>12u)amplitude=12u;
+  period=(uint8_t)(amplitude*4u);
+  phase=(uint8_t)(((uint16_t)segment*4u+(uint8_t)hash(p->seed,0u,71u))%period);
+  if(phase>amplitude*2u)phase=(uint8_t)(period-phase);
+  return (uint8_t)(cross/2u-amplitude+phase);
+}
+uint8_t eg_land_lane(const eg_land *p,uint8_t u) EG_BANKED {
+  uint8_t k=(uint8_t)(u>>3),f=(uint8_t)(u&7u),a=centre(p,k),b=centre(p,(uint8_t)(k+1u));
+  return (uint8_t)(((uint16_t)a*(8u-f)+(uint16_t)b*f)>>3);
+}
+static void item(eg_land *p,uint8_t u,uint8_t v,uint8_t piece) {
+  eg_land_item *it=&p->item[p->nitem++];it->u=u;it->v=v;it->piece=piece;
+}
+uint8_t eg_land_plan(eg_land *p,uint16_t seed,uint8_t rule,uint8_t size,uint8_t biome) EG_BANKED {
+  const uint8_t *r,*s;uint8_t k,spacing,capacity,count,kind,mask,v,u,channels=0u,required,needed=0u;
+  eg_land_node *n;
+  if(!p || rule>=EL_RULES || biome>=EL_BIOMES)return 0u;
+  r=land_rules[rule];
+  if(size==255u)size=pick(r[3],hash(seed,0u,11u));
+  if(size>=EL_SIZES || !(r[3]&(1u<<size)))return 0u;
+  s=land_sizes[size];memset(p,0,sizeof *p);
+  required=r[5];for(k=0u;k<EL_GOALS;k++)if(required&(1u<<k))needed++;
+  p->seed=seed;p->size=size;p->biome=biome;p->rule=rule;
+  p->width=(uint8_t)(s[0]+4u*(hash(seed,0u,12u)%((s[1]-s[0])/4u+1u)));
+  p->height=(uint8_t)(s[2]+4u*(hash(seed,0u,13u)%((s[3]-s[2])/4u+1u)));
+  p->shape=pick(r[2],hash(seed,0u,14u));
+  /* Some maps progress north/south, some widen east/west. Do not pretend a
+   * large footprint must have more locks: scale and thinking are separate. */
+  p->vertical=(uint8_t)(p->height>=26u && (hash(seed,0u,15u)&3u)==0u);
+  capacity=(uint8_t)((EL_LENGTH(p)-6u)/10u);if(capacity>EL_NODES)capacity=EL_NODES;
+  count=(uint8_t)(s[4]+hash(seed,0u,16u)%(s[5]-s[4]+1u));
+  if(count>capacity)count=capacity;
+  if(!(r[0]&((1u<<EL_HEAT)|(1u<<EL_COLD))) && count>2u)count=2u;
+  if(needed && count<needed) {
+    p->vertical=0u;capacity=(uint8_t)((p->width-6u)/10u);
+    if(capacity<needed) { /* selected profile has a valid wider realization */
+      p->width=s[1];capacity=(uint8_t)((p->width-6u)/10u);
+    }
+    if(capacity<needed)return 0u;
+    count=needed;
+  }
+  p->nnode=count;spacing=(uint8_t)((EL_LENGTH(p)-6u)/count);
+  for(k=0u;k<count;k++) {
+    n=&p->node[k];u=(uint8_t)(spacing*(k+1u));v=eg_land_lane(p,u);
+    mask=r[0];
+    /* Each circuit occupies one of the native room's two named channels.
+     * The mandatory powered transport consumes its preceding load channel. */
+    if(channels>=2u)mask&=(uint8_t)~((1u<<EL_LOAD)|(1u<<EL_POWER));
+    if(required) {for(kind=0u;kind<EL_GOALS;kind++)if(required&(1u<<kind))break;required&=(uint8_t)~(1u<<kind);}
+    else {mask&=(uint8_t)~(1u<<EL_PORTAL);kind=pick(mask,hash(seed,k,22u));}
+    n->kind=kind;n->at=u;n->lane=v;
+    if(kind==EL_LOAD || kind==EL_POWER)channels++;
+    n->condition=kind==EL_LOAD ? pick(r[1],hash(seed,k,23u)) : EL_HOLD;
+    n->needs=k ? (uint8_t)(1u<<(k-1u)) : 0u;
+    n->alternatives=r[4];
+    /* Every resource is supplied before its own cut, with persistent identity.
+     * A physical load route preserves the two optional crafting ingredients. */
+    if(kind==EL_LOAD) {item(p,u-5u,v-2u,P_FIRE);item(p,u-5u,v-1u,P_MUD);}
+    else if(kind==EL_HEAT)item(p,u-5u,v-2u,P_FIRE);
+    else if(kind==EL_COLD) {item(p,u-5u,v-2u,P_AIR);item(p,u-5u,v-1u,P_AIR);item(p,u-5u,v,P_WATER);}
+    else if(kind==EL_POWER) {item(p,u-5u,v-2u,P_ENERGY);item(p,u-5u,v-1u,P_METAL);}
+  }
+  return 1u;
+}
+uint8_t eg_land_item_at(const eg_land *p,uint8_t x,uint8_t y) EG_BANKED {
+  uint8_t k,u=p->vertical ? y : x,v=p->vertical ? x : y;
+  for(k=0u;k<p->nitem;k++)if(p->item[k].u==u && p->item[k].v==v)return p->item[k].piece;
+  return 0u;
+}
+static uint8_t floor_at(const eg_land *p,uint8_t u,uint8_t v) {
+  uint8_t lane=eg_land_lane(p,u),d=distance(lane,v),radius,k;
+  if(!u || !v || u>=EL_LENGTH(p)-1u || v>=EL_CROSS(p)-1u)return 0u;
+  /* The approach, working space and retreat around apparatus are reserved
+   * before any geography, hole or foliage is considered. */
+  for(k=0u;k<p->nnode;k++)if(u>=p->node[k].at-6u && u<=p->node[k].at+3u && distance(v,p->node[k].lane)<=3u)return 1u;
+  if(d<=2u)return 1u;
+  radius=(uint8_t)(3u+(hash(p->seed,(uint8_t)(u>>3),40u)&3u));
+  if(p->shape==EL_BASINS)radius=(uint8_t)(radius+EL_CROSS(p)/5u);
+  else if(p->shape==EL_BEND)radius=3u;
+  else if(p->shape==EL_COURTS) {
+    radius=(uint8_t)(radius+3u);
+    if(d>3u && ((u+3u)&15u)<3u && (hash(p->seed,u>>4,41u)&1u))return 0u;
+  }
+  return d<=radius;
+}
+void eg_land_at(const eg_land *p,uint8_t x,uint8_t y,eg_land_cell *o) EG_BANKED {
+  uint8_t u,v,k,lane,d,h,protected=0u;const eg_land_node *n;const uint8_t *b;
+  o->material=T_PIT|F_ABYSS;o->design=EL_FLOOR;o->variant=o->flags=0u;
+  if(x>=p->width || y>=p->height)return;
+  u=p->vertical ? y : x;v=p->vertical ? x : y;
+  if(!floor_at(p,u,v))return;
+  lane=eg_land_lane(p,u);d=distance(v,lane);
+  for(k=0u;k<p->nnode;k++)if(u>=p->node[k].at-6u && u<=p->node[k].at+3u && distance(v,p->node[k].lane)<=3u)protected=1u;
+  o->material=T_EMPTY;o->flags=protected ? EL_PROTECTED : 0u;
+  h=(uint8_t)hash(p->seed,x,y);o->variant=(uint8_t)(h&3u);b=land_biomes[p->biome];
+  if(!protected && d>2u) {
+    /* Connected streams follow a secondary contour beside the traversable
+     * spine. Water remains real reactive terrain, including in digital biomes. */
+    if((d==4u || d==5u) && (uint8_t)hash(p->seed,0u,42u)<b[1]) {
+      o->material=T_WATER;o->design=EL_RIVER;
+      if(!floor_at(p,u,(uint8_t)(v+1u)))o->design=EL_FALL;
+      o->variant=b[3];
+    } else if(h<b[0]) {
+      o->material=T_DIRT;o->design=(uint8_t)(EL_FERN+(h%3u));
+    } else if((uint8_t)(h^0x99u)<b[2])o->design=EL_PROP;
+  }
+  for(k=0u;k<p->nnode;k++) {
+    n=&p->node[k];
+    if(n->kind==EL_PORTAL && distance(u,n->at)<=1u) {o->material=T_PIT|F_ABYSS;o->design=EL_FLOOR;o->flags=EL_PROTECTED;return;}
+    if(u==n->at) {
+      o->material=T_WALL;o->design=EL_FLOOR;o->flags=EL_PROTECTED;
+      if(v==n->lane) {
+        o->material=n->kind==EL_LOAD || n->kind==EL_POWER ? T_GATE : n->kind==EL_HEAT ? T_PAPER : T_WATER;
+        if(n->kind==EL_COLD) {o->design=EL_RIVER;o->variant=b[3];}
+      }
+      return;
+    }
+    if(n->kind==EL_LOAD) {
+      if(u==n->at-3u && v==n->lane-1u)o->material=T_PLATE;
+      if(u==n->at-3u && v==n->lane+1u)o->material=T_BLOCK;
+      if(n->condition>=EL_EITHER) {
+        if(u==n->at-4u && v==n->lane+2u)o->material=T_PLATE;
+        if(u==n->at-3u && v==n->lane+2u)o->material=T_BLOCK;
+      }
+    } else if(n->kind==EL_POWER && u==n->at-3u && v==n->lane-1u)o->material=T_SOCKET;
+    else if(n->kind==EL_PORTAL && distance(u,n->at)==2u && v==n->lane) {o->design=EL_PAD;o->flags=EL_PROTECTED;}
+  }
+  if(eg_land_item_at(p,x,y))o->material=T_ITEM;
+  if(u==EL_LENGTH(p)-3u && v==eg_land_lane(p,u)) {o->material=T_DOOR;o->flags=EL_PROTECTED;}
+}

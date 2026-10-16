@@ -9,6 +9,7 @@ An integrated prototype, a passing host simulation, a native build and a played 
 |---|---|---|
 | Core, movement and rendering | Office checkpoint verified | Keep current two-action-button controls, full bodies and frame/OAM budgets through the full game |
 | Puzzles and finite tools | Partial | Composed dependency motifs, varied topology and states, resource-feasible alternatives, wrong-spend branches and native replay |
+| Authored stage codec and generated geography | Generator proven; playable integration pending | Editable goal/condition pools, XS–XXL dimensions and shapes, persistent streamed maps, biome environment variants and full native input replay |
 | Shared action/object/mob matrix | Partial | Complete the authored interactions and readable activation, reaction, spent and destruction states; exercise both directions |
 | Mobs, stages, biomes and full run | Partial | Native full-run layout and seed bank, all biomes, stage/obstacle combinations and their kill/exit guarantees |
 | Heirs, lineage, saves, tree and stats | Partial | Non-overlapping migrated SRAM journals, floor/landing continue, shortcut/line progress, full tree and stats pages with event accounting |
@@ -157,3 +158,12 @@ metatile rather than overwriting the cracked ice and preceding object. Native ho
 This still fits one local simulation grid. Larger streamed stages and the remaining full-run milestones are
 required. The complete native/host regression run passed; exact artifact evidence is in
 `validation/linked-puzzles-20261016/`. The public cartridge remains on the previous tested release.
+
+## Generative world correction (2026-10-16)
+
+The owner additionally requests authored stage goals/conditions with procedurally generated map dimensions,
+shapes, items and realizations, XS through XXL scales, horizontal shapes, fuller foliage, biome-shared variants,
+and digital rivers/waterfalls. `STAGE-CODEC.md` defines the editable source and separates generated-world proof
+from playable integration. The shared host/native constructor now covers those size and environment records;
+the active streamed game and native environment renderer remain required. Do not count a generated plan as a
+finished playable world or as completion of the sprint ledger.

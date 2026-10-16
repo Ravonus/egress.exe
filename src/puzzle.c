@@ -338,7 +338,7 @@ static void bench_draw(void) {
 
 static void bench_close(void) {
   bench_on = 4u;
-  cam_y=bench_cam_y;move_bkg(cam_x,cam_y);
+  cam_y=bench_cam_y;move_bkg(BG_SCROLL_X(cam_x),cam_y);
   clear_map(1, BP);
   hud_draw();
   hud_charge();
@@ -356,7 +356,7 @@ void bench_run(void) BANKED {
   bench_cam_y=cam_y;
   cam_y=pl_y>40u ? (uint8_t)(pl_y-40u) : 0u;
   if(cam_y>152u) cam_y=152u;
-  move_bkg(cam_x,cam_y);
+  move_bkg(BG_SCROLL_X(cam_x),cam_y);
   clear_map(1, BP);
   bench_draw();
   hud_line = BENCH_Y;
