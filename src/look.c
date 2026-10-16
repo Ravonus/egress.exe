@@ -307,10 +307,13 @@ void look_roam_tick(void) BANKED {
   }
   if(LY_REG>=(enemies_alive ? 48u : 80u) && LY_REG<144u) return;
   /* Bounded inspection, never a whole-room scan during a game frame. */
-  probes=6u;
+  probes=enemies_alive ? 2u : 6u;
   /* Backpressure pauses inspection instead of permanently skipping a slab
    * while the flight queue is full. Urgent approaching floor is independent. */
   for(k=0u;k!=probes && roam_left && (uint8_t)(q_n+n_flying)<12u;k++) {
+    /* A probe can touch a banked structure. Recheck the deadline inside the
+     * scan instead of admitting six probes on its final available line. */
+    if(video_epoch!=frame_epoch || (LY_REG>=(enemies_alive ? 48u : 64u) && LY_REG<144u))break;
     roam_left--;
     i=roam_scan;if(++roam_scan==EG_N) roam_scan=0u;
     if(look_void_cell(i) || cell_type(i)==T_PIT || roam_pending(i)) continue;
@@ -889,9 +892,9 @@ void look_anchor(uint8_t i) BANKED {
   if(EG_X(i)) mark((uint8_t)(i-1u));
   if(EG_X(i)<EG_W-1u) mark((uint8_t)(i+1u));
 }
-static uint8_t anchor_at(int16_t x,int16_t y) {
+static uint8_t anchor_at(uint8_t x,uint8_t y) {
   uint8_t i;
-  if((uint16_t)x>=EG_W || (uint16_t)y>=EG_H)return 0u;
+  if(x>=EG_W || y>=EG_H)return 0u;
   i=EG_IDX(x,y);
   if(look_here(i) || !(roam_hidden[i>>3]&BIT(i)))return 0u;
   look_anchor(i);return 1u;
@@ -899,7 +902,7 @@ static uint8_t anchor_at(int16_t x,int16_t y) {
 static uint8_t ground_ahead(void) {
   static const int8_t near_x[16]={0,1,-1,0,2,2,2,1,0,-1,-2,-2,-2,-1,0,1};
   static const int8_t near_y[16]={-1,0,0,1,-1,0,1,2,2,2,1,0,-1,-2,-2,-2};
-  int16_t x=pl_x,y=pl_y;int8_t dx=0,dy=0;uint8_t n=0u,k,c;
+  int16_t x=pl_x,y=pl_y;int8_t dx=0,dy=0;uint8_t n=0u,k,c,x0,x1,y0,y1;
   /* A blink travels at most 6.5px/tick. Prepare a 14px swept lead plus the
    * complete 12x12 foot box, including diagonal corners and released rolls. */
   if(pl_state==PS_ROLL) {dx=roll_dx;dy=roll_dy;}
@@ -908,15 +911,19 @@ static uint8_t ground_ahead(void) {
     if((joy&(J_UP|J_DOWN))!= (J_UP|J_DOWN))dy=joy&J_DOWN ? 1 : joy&J_UP ? -1 : 0;
   }
   x+=dx*14;y+=dy*14;
-  n+=anchor_at((x-6)>>4,(y-6)>>4);
-  if(n<2u)n+=anchor_at((x+5)>>4,(y-6)>>4);
-  if(n<2u)n+=anchor_at((x-6)>>4,(y+5)>>4);
-  if(n<2u)n+=anchor_at((x+5)>>4,(y+5)>>4);
-  if(n<2u)n+=anchor_at((pl_x-6)>>4,(pl_y-6)>>4);
-  if(n<2u)n+=anchor_at((pl_x+5)>>4,(pl_y+5)>>4);
+  x0=(uint8_t)((x-6)>>4);x1=(uint8_t)((x+5)>>4);
+  y0=(uint8_t)((y-6)>>4);y1=(uint8_t)((y+5)>>4);
+  n+=anchor_at(x0,y0);
+  if(n<2u && x1!=x0)n+=anchor_at(x1,y0);
+  if(n<2u && y1!=y0)n+=anchor_at(x0,y1);
+  if(n<2u && y1!=y0 && x1!=x0)n+=anchor_at(x1,y1);
+  /* The previous footprint is already protected by mstep. Do not probe its
+   * same four cells again, or spend a second cosmetic commit after a repair. */
+  if(n || video_epoch!=frame_epoch)return n;
+  if(LY_REG<144u && LY_REG>=(world_on ? 24u : 32u))return 0u;
   /* Nearby structures settle before contact instead of waiting behind the
-   * whole-room cosmetic scan. Bounded work: four probes, two total commits. */
-  for(k=0u;k<4u && n<2u;k++) {
+   * whole-room cosmetic scan. Four probes and one cosmetic commit at most. */
+  for(k=0u;k<4u && !n;k++) {
     c=near_cursor;if(++near_cursor==16u)near_cursor=0u;
     n+=anchor_at((int16_t)(pl_x>>4)+near_x[c],(int16_t)(pl_y>>4)+near_y[c]);
   }

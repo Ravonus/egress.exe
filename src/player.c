@@ -252,8 +252,8 @@ static void mstep(uint8_t dpad, uint8_t speed, uint8_t synth) {
   int16_t old_x=(int16_t)psx-96,old_y=(int16_t)psy-96;
   if(synth) {prev=pmv.prev;o0=pmv.order[0];o1=pmv.order[1];o2=pmv.order[2];o3=pmv.order[3];}
   if (map_door != door_open) door_map();
-  pmv.x = (int16_t)psx - 96;
-  pmv.y = (int16_t)psy - 96;
+  pmv.x = old_x;
+  pmv.y = old_y;
   pmv.mode = (opt_move4 || EG_OPT_MOVE4) && !synth ? EG_MODE_4WAY : EG_MODE_8WAY;
   eg_move_step(&pmv, dpad, speed, &pg);
   if(world_on) {
