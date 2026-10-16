@@ -18,6 +18,7 @@ typedef struct {
 } eg_family;
 void eg_founder(eg_genome *g, uint16_t seed) EG_BANKED;
 void eg_children(const eg_genome *parent, uint16_t seed, eg_genome *out3) EG_BANKED;
+void eg_sibling_style(const eg_genome *parent,eg_genome *child,uint8_t k) EG_BANKED;
 void eg_family_init(eg_family *f, uint16_t seed) EG_BANKED;
 void eg_family_choose(eg_family *f, uint8_t choice) EG_BANKED;
 void eg_family_finish(eg_family *f, uint8_t floor, uint8_t won) EG_BANKED;

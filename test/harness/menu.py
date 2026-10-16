@@ -21,6 +21,8 @@ def cursor(g,want):
 def run(rom,out):
     out.mkdir(parents=True,exist_ok=True);r={};g=Game(rom);lobby(g)
     r['new_save_defaults_to_new_run']=g.peek('menu_cursor')==1 and not g.peek('resume_ready')
+    order=" 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.,:!?-+/'>x"
+    r['lobby_title_and_footer_use_correct_rom_bank']=g.pb.memory[0,0x9822]==190+order.index('E') and g.pb.memory[0,0x9a20]==190+order.index('A')
     g.shot(out/'01-lobby.png');cursor(g,0);g.press('a',3);g.tick(20)
     r['missing_continue_stays_in_menu']=bool(g.peek('menu_active')) and not g.peek('floor_no')
     cursor(g,2);g.press('a',3);g.tick(15);g.shot(out/'02-actions.png');g.press('right',3);g.tick(10);g.shot(out/'03-movement.png')
@@ -33,7 +35,15 @@ def run(rom,out):
     newest=max(PREFS,key=lambda p:save[p+1]);torn=bytearray(save);torn[newest+14]^=0x80
     g=Game(rom,sram=bytes(torn));lobby(g)
     r['torn_settings_keep_previous_record']=not g.peek('tutorial_on') and bool(g.peek('voice_on'));g.stop()
-    g=Game(rom);assert start_run(g,True,True);old_generation=g.peek16_at('family',279);save=g.stop()
+    g=Game(rom);assert start_run(g,True,True);old_generation=g.peek16_at('family',279)
+    board=bytes(g.room()[:224]);position=g.player();palettes=bytes(g.pb.memory[g.addr('pal_bg'):g.addr('pal_bg')+64])
+    g.press('start',3);g.tick(8);g.shot(out/'06-pause.png')
+    r['pause_uses_framed_in_world_window']=g.peek('hud_line')==80
+    g.hold({'right','a'});g.tick(12);g.hold(set());g.tick(3)
+    r['pause_freezes_gameplay']=g.player()==position and bytes(g.room()[:224])==board
+    g.press('b',3);g.tick(4)
+    r['pause_restores_field_and_palette']=g.peek('hud_line') in (120,128) and g.pb.memory[0xff4a]==g.peek('hud_line') and bytes(g.pb.memory[g.addr('pal_bg'):g.addr('pal_bg')+64])==palettes
+    save=g.stop()
     g=Game(rom,sram=save);lobby(g)
     r['saved_run_defaults_to_continue']=g.peek('menu_cursor')==0 and bool(g.peek('resume_ready'))
     cursor(g,1);g.press('a',3);g.tick(10);g.shot(out/'04-new-run-confirm.png')

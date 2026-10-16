@@ -125,9 +125,13 @@ class WorldPlayer:
             if active:
                 delta=(fc-before)&65535
                 if delta!=1:self.hitches.append((g.frames,delta,g.peek16('world_seams')))
-                c=(g.peek('pl_y')//16)*16+g.peek('pl_x')//16
-                if not g.peek('pl_air') and not (g.peek('look_present',c>>3)&(1<<(c&7))):
-                    self.missing.append((g.frames,self.cell(),g.peek('pl_state'),g.peek16('world_seams')))
+                x,y=g.player()
+                for py in (y-6,y+5):
+                    for px in (x-6,x+5):
+                        if not (0<=px<256 and 0<=py<224):continue
+                        c=(py//16)*16+px//16;bit=1<<(c&7)
+                        if g.peek('roam_hidden',c>>3)&bit and not g.peek('look_present',c>>3)&bit:
+                            self.missing.append((g.frames,self.cell(),c,g.peek('pl_state'),g.peek16('world_seams')))
     def route(self,target):
         start=self.cell();q=deque([start]);seen={start:None}
         while q:

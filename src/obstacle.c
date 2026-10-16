@@ -95,6 +95,7 @@ void obstacle_tick(void) BANKED {
     psy = cell_sub(EG_Y(tick.p));
     pl_x = (uint8_t)(psx >> 4);
     pl_y = (uint8_t)(psy >> 4);
+    look_anchor(tick.p); /* a forced shove must also land on built terrain */
   }
   if (tick.hits) {
     if (pin.flags & EG_FL_GUARD) {

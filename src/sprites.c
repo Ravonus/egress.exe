@@ -548,7 +548,10 @@ void draw_sprites(void) BANKED {
   heir_tick();
   if ((pl_state!=PS_FALL || pl_t<24u) && (!pl_hp || !(pl_inv && (pl_inv & 4u)) || pl_state == PS_HURT || ha_state == HA_SPAWN)) {
     /* heir_draw writes hardware OAM coordinates; its X already includes the hardware's 8-pixel bias. */
-    oam_n = (uint8_t)(oam_n + heir_draw(oam_n, (int16_t)pl_x-cam_x, (int16_t)pl_y-7-cam_y-pl_z));
+    /* heir_draw accepts hardware Y (the LCD subtracts 16). With the WEAR
+     * layer at +6, +1 puts the feet at centre+6, on the 12x12 footprint.
+     * The old -7 lifted the entire character eight pixels off its collider. */
+    oam_n = (uint8_t)(oam_n + heir_draw(oam_n, (int16_t)pl_x-cam_x, (int16_t)pl_y+1-cam_y-pl_z));
     oam_count(0);
   }
   /* OP_WEAPON: aim and arc share all eight directions. */

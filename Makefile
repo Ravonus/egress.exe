@@ -31,6 +31,7 @@ SRC += src/gen/world_art.c
 SRC += src/world.c src/core/eg_land.c src/core/eg_land_bind.c
 SRC += src/world_dead.c src/core/eg_land_dead.c
 SRC += src/world_play.c
+SRC += src/ui.c
 SRC += src/core/eg_family.c
 SRC += src/items.c
 SRC += src/core/eg_combat.c src/core/eg_stamina.c src/stamina.c
@@ -519,6 +520,10 @@ test-island-edges: build/host/test_edges
 	build/host/test_edges
 
 test-runtime: all test-runtime-core
+	$(PY) test/harness/picker_collision.py build/egress.gbc build/sprints/picker-collision-mbc5
+	$(PY) test/harness/picker_collision.py build/egress-rtc.gbc build/sprints/picker-collision-mbc3
+	$(PY) test/harness/terrain_boundary.py build/egress.gbc build/sprints/terrain-boundary-mbc5
+	$(PY) test/harness/terrain_boundary.py build/egress-rtc.gbc build/sprints/terrain-boundary-mbc3
 	$(PY) test/harness/menu.py build/egress.gbc build/sprints/menu-mbc5
 	$(PY) test/harness/menu.py build/egress-rtc.gbc build/sprints/menu-mbc3
 	$(PY) test/harness/stamina.py build/egress.gbc build/sprints/stamina-mbc5

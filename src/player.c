@@ -148,6 +148,7 @@ static void fall_tick(void) {
   psx=cell_sub(EG_X(fall_safe));psy=cell_sub(EG_Y(fall_safe));
   pl_x=(uint8_t)(psx>>4);pl_y=(uint8_t)(psy>>4);pl_z=0;
   pl_state=PS_FREE;pl_inv=60u;
+  look_anchor(fall_safe);
   eg_input_init(&pin,heir.dodge);pin.weapon=heir.weapon;
   overlay(HA_SPAWN,20u);
   heir_play(HA_SPAWN,1u);
@@ -233,9 +234,22 @@ static void do_push(void) {
   grav_t = 1u; /* let it drop promptly if nothing holds it */
 }
 
+static uint8_t built_cell(uint8_t x,uint8_t y) {
+  uint8_t i;
+  if(x>=EG_W || y>=EG_H)return 1u; /* ordinary grid bounds own exterior edges */
+  i=EG_IDX(x,y);
+  return (uint8_t)(look_here(i) || !(roam_hidden[i>>3]&look_bits[i&7u]));
+}
+static uint8_t built_box(int16_t x,int16_t y) {
+  uint8_t x0=(uint8_t)((uint16_t)x>>8),y0=(uint8_t)((uint16_t)y>>8);
+  uint8_t x1=(uint8_t)((uint16_t)(x+176)>>8),y1=(uint8_t)((uint16_t)(y+176)>>8);
+  return (uint8_t)(built_cell(x0,y0) && (x1==x0 || built_cell(x1,y0)) &&
+    (y1==y0 || (built_cell(x0,y1) && (x1==x0 || built_cell(x1,y1)))));
+}
 /* one mover step from the player's centre (psx, psy are the centre, the mover's box is 12x12 from its corner) */
 static void mstep(uint8_t dpad, uint8_t speed, uint8_t synth) {
   uint8_t prev=0u,o0=0u,o1=0u,o2=0u,o3=0u;
+  int16_t old_x=(int16_t)psx-96,old_y=(int16_t)psy-96;
   if(synth) {prev=pmv.prev;o0=pmv.order[0];o1=pmv.order[1];o2=pmv.order[2];o3=pmv.order[3];}
   if (map_door != door_open) door_map();
   pmv.x = (int16_t)psx - 96;
@@ -250,6 +264,14 @@ static void mstep(uint8_t dpad, uint8_t speed, uint8_t synth) {
     if(world_view.x<world_view.width-EG_W && pmv.x>3616)pmv.x=3616;
     if(world_view.y && pmv.y<544)pmv.y=544;
     if(world_view.y<world_view.height-EG_H && pmv.y>3104)pmv.y=3104;
+  }
+  /* Presentation cannot become a gameplay hole. Test the entire destination
+   * footprint after grid collision, preserving sliding on the ready axis.
+   * Real pits, fragile failures and island edges never set roam_hidden. */
+  if(!built_box(pmv.x,pmv.y)) {
+    if(built_box(pmv.x,old_y))pmv.y=old_y;
+    else if(built_box(old_x,pmv.y))pmv.x=old_x;
+    else {pmv.x=old_x;pmv.y=old_y;}
   }
   if (synth) { /* momentum, not a press: the d-pad's press order and the push contact are not touched */
     pmv.prev = prev;
@@ -311,32 +333,37 @@ static void hit_from_move(uint8_t spin) {
   hit_tags = 0;
 }
 
-static void strike(uint8_t spin, uint8_t dmg) {
-  int16_t cx,cy;
-  uint8_t rx, ry, k, wide, cx8, cy8, width=14u, reach=14u;
-  if(heir.weapon==1u) { reach=12u; dmg++; }
+typedef struct {int16_t x,y;uint8_t rx,ry;} strike_box;
+static void strike_bounds(uint8_t spin,strike_box *b) {
+  uint8_t width=14u,reach=14u;
+  if(heir.weapon==1u) { reach=12u; }
   else if(heir.weapon==2u) { reach=24u; width=6u; }
   else if(heir.weapon==3u) { reach=10u; width=9u; }
   else if(heir.weapon==4u) { reach=20u; width=6u; }
   if(mods & MOD_LONG) reach+=4u;
-  if(pin.move==EG_MV_CHARGED && family_stat[G_POWER]>=3u) dmg++;
   int8_t ix = f8x[pmv.facing], iy = f8y[pmv.facing];
-  hit_from_move(spin); /* B2 */
   if (spin) {
-    cx = pl_x;
-    cy = pl_y;
-    rx = ry = (mods & MOD_LONG) ? 28u : 24u;
+    b->x = pl_x;
+    b->y = pl_y;
+    b->rx = b->ry = (mods & MOD_LONG) ? 28u : 24u;
   } else if (ix && iy) {
     reach = (uint8_t)(reach - (reach >> 2));
-    cx = (int16_t)pl_x + ix * (int8_t)reach;
-    cy = (int16_t)pl_y + iy * (int8_t)reach;
-    rx = ry = (uint8_t)(width-1u);
+    b->x = (int16_t)pl_x + ix * (int8_t)reach;
+    b->y = (int16_t)pl_y + iy * (int8_t)reach;
+    b->rx = b->ry = (uint8_t)(width-1u);
   } else {
-    cx = (int16_t)pl_x + ix * (int8_t)reach;
-    cy = (int16_t)pl_y + iy * (int8_t)reach;
-    rx = ix ? (uint8_t)(reach - 1u) : width;
-    ry = ix ? width : (uint8_t)(reach - 1u);
+    b->x = (int16_t)pl_x + ix * (int8_t)reach;
+    b->y = (int16_t)pl_y + iy * (int8_t)reach;
+    b->rx = ix ? (uint8_t)(reach - 1u) : width;
+    b->ry = ix ? width : (uint8_t)(reach - 1u);
   }
+}
+static void strike(uint8_t spin,uint8_t dmg) {
+  strike_box b;int16_t cx,cy;uint8_t rx,ry,k,wide,cx8,cy8;
+  strike_bounds(spin,&b);cx=b.x;cy=b.y;rx=b.rx;ry=b.ry;
+  if(heir.weapon==1u)dmg++;
+  if(pin.move==EG_MV_CHARGED && family_stat[G_POWER]>=3u)dmg++;
+  hit_from_move(spin);
   /* Resolve the exceptional outside-map centre once per attack. Ordinary
    * combat keeps the byte overlap path instead of rechecking it per target. */
   wide=(uint8_t)((uint16_t)cx>255u || (uint16_t)cy>255u);
@@ -382,18 +409,15 @@ static void guard(void) {
   }
 }
 
-static void spin_bricks(void) {
-  uint8_t c = cell_at(pl_x, pl_y);
-  break_brick((uint8_t)(c - EG_W), 1);
-  break_brick((uint8_t)(c + EG_W), 1);
-  break_brick((uint8_t)(c - 1u), 1);
-  break_brick((uint8_t)(c + 1u), 1);
-}
-
-static uint8_t front_cell(void) {
-  int16_t x=(int16_t)pl_x+f8x[pmv.facing]*12,y=(int16_t)pl_y+f8y[pmv.facing]*12;
-  if((uint16_t)x>=256u || (uint16_t)y>=224u) return cell_at(pl_x,pl_y);
-  return cell_at((uint8_t)x,(uint8_t)y);
+/* Attack the complete tile rectangle touched by the visible arc. A single
+ * point at centre+12 misses the lower side and diagonal corners of a wall. */
+static void strike_bricks(uint8_t spin,uint8_t force) {
+  strike_box b;int16_t l,r,t,d;uint8_t x,y;
+  strike_bounds(spin,&b);l=b.x-b.rx;r=b.x+b.rx-1;t=b.y-b.ry;d=b.y+b.ry-1;
+  if(r<0 || d<0 || l>=256 || t>=224)return;
+  if(l<0)l=0;if(t<0)t=0;if(r>255)r=255;if(d>223)d=223;
+  for(y=(uint8_t)(t>>4);y<=(uint8_t)(d>>4);y++)
+    for(x=(uint8_t)(l>>4);x<=(uint8_t)(r>>4);x++)break_brick(EG_IDX(x,y),force);
 }
 
 /* d-pad bits as the mover would resolve them (opposites cancel; 4-way: the newest held press) */
@@ -719,7 +743,7 @@ void player_update(void) BANKED {
       if (ph == EG_PH_ACTIVE) {
         dmg = mv == EG_MV_HIT3 ? ((mods & MOD_SURGE) ? 3u : 2u) : 1u;
         strike(0, dmg);
-        if (pin.frame == fd.startup) break_brick(front_cell(), (uint8_t)(mv == EG_MV_HIT3 || heir.weapon == 1u));
+        if (pin.frame == fd.startup) strike_bricks(0u,(uint8_t)(mv == EG_MV_HIT3 || heir.weapon == 1u));
       }
       if (pin.frame >= 2u && pin.frame < (uint8_t)(fd.startup + fd.active + 3u)) pl_arc = 1;
       break;
@@ -744,7 +768,7 @@ void player_update(void) BANKED {
         if (ph == EG_PH_ACTIVE || (ph == EG_PH_RECOVERY && pin.frame < 14u)) {
           strike(1, (uint8_t)(((mods & MOD_SURGE) ? 4u : 3u) + (pl_level == 3u ? 1u : 0u)));
           if (pin.frame == 3u) {
-            spin_bricks();
+            strike_bricks(1u,1u);
             shake = 4u;
           }
         }
@@ -753,7 +777,7 @@ void player_update(void) BANKED {
         pl_state = PS_LASH;
         if (ph == EG_PH_ACTIVE) {
           strike(0, 2u);
-          if (pin.frame == 3u) break_brick(front_cell(), 1);
+          if (pin.frame == 3u) strike_bricks(0u,1u);
         }
         if (pin.frame >= 2u && pin.frame < 10u) pl_arc = 1;
       }

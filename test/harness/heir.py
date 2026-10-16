@@ -292,7 +292,7 @@ def check_budget(rom: Path, out: Path, report: dict) -> bool:
 def crop_heir(g: Game, size: int = 40) -> Image.Image:
     img = g.pb.screen.image.convert("RGB")
     cx = g.peek("pl_x") - g.peek("cam_x")
-    cy = g.peek("pl_y") - g.peek("cam_y") - 13
+    cy = g.peek("pl_y") - g.peek("cam_y") - 5
     x0 = max(0, min(160 - size, cx - size // 2))
     y0 = max(0, min(128 - size, cy - size // 2))
     return img.crop((x0, y0, x0 + size, y0 + size))

@@ -46,6 +46,7 @@
 #include "play.h"
 
 extern uint8_t look_present[EG_N / 8u]; /* bit set: the cell is in the world (else it shows the void) */
+extern uint8_t roam_hidden[EG_N / 8u]; /* camera-owned construction only; never a real pit or broken floor */
 extern const uint8_t look_bits[8]; /* ROM0: a variable SM83 shift otherwise loops up to seven times */
 #define look_here(i) (look_present[(uint8_t)(i) >> 3] & look_bits[(uint8_t)(i) & 7u])
 extern uint8_t look_busy_n; /* cells queued or in flight */
