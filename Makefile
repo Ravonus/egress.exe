@@ -345,6 +345,8 @@ test-heir: build/host/test_input build/host/test_move build/host/test_idle
 
 test-character-art: build/egress.gbc build/egress-rtc.gbc
 	$(PY) test/harness/heir.py build/egress.gbc build/egress-rtc.gbc
+	$(PY) test/harness/heir_pixels.py build/egress.gbc build/sprints/heir-pixels-mbc5
+	$(PY) test/harness/heir_pixels.py build/egress-rtc.gbc build/sprints/heir-pixels-mbc3
 
 build/host/gravity_ref: host/gravity_ref.c src/core/eg_room.c src/core/eg_room.h
 	@mkdir -p $(dir $@)
