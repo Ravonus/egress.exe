@@ -526,18 +526,70 @@ static void incoming_pits_reference(uint8_t i) {
   look_present[j]|=mask;roam_hidden[j]&=(uint8_t)~mask;
 }
 #endif
+/* Retained card spans move by exactly 64 pixels. A near leaf keeps the two
+ * word updates out of the indexed queue loop and uses no additional WRAM. */
+typedef char card_span_leaf_uses_eight_slots[(LOOK_MAX_CARDS==8u) ? 1 : -1];
+static void shift_spans(int8_t dy) NAKED {
+  dy;
+  __asm
+    push bc
+    push de
+    bit 7,a
+    ld de,#0xFFC0
+    jr z,1$
+    ld de,#0x0040
+  1$:
+    ld c,#8
+    ld hl,#_c_kind
+  2$:
+    ld a,(hl+)
+    or a,a
+    jr z,3$
+    push hl
+    push bc
+    ld a,#8
+    sub a,c
+    add a,a
+    ld l,a
+    ld h,#0
+    push hl
+    ld bc,#_c_top
+    add hl,bc
+    ld a,(hl)
+    add a,e
+    ld (hl+),a
+    ld a,(hl)
+    adc a,d
+    ld (hl),a
+    pop hl
+    ld bc,#_c_bot
+    add hl,bc
+    ld a,(hl)
+    add a,e
+    ld (hl+),a
+    ld a,(hl)
+    adc a,d
+    ld (hl),a
+    pop bc
+    pop hl
+  3$:
+    dec c
+    jr nz,2$
+    pop de
+    pop bc
+    ret
+  __endasm;
+}
 void look_shift_view(int8_t dx,int8_t dy) BANKED {
   uint8_t k,i,keep=0u;
-  /* Finish leaving cards in their old coordinate system before rebasing any
-   * retained card. No material or object state belongs to this presentation. */
+  /* Each card is tested in its old coordinates. Recycle leaving slots and
+   * rebase retained slots without changing material or object state. */
   for(k=0u;k<LOOK_MAX_CARDS;k++)if(c_kind[k]) {
     i=eg_view_rebase(c_cell[k],dx,dy);
     if(i>=EG_N)finish(k);
-    else {
-      c_cell[k]=i;
-      if(dy) {c_top[k]-=(int16_t)dy*16;c_bot[k]-=(int16_t)dy*16;}
-    }
+    else c_cell[k]=i;
   }
+  if(dy)shift_spans(dy);
   for(k=0u;k<q_n;k++) {
     i=eg_view_rebase(q[(uint8_t)(q_head+k)],dx,dy);
     if(i<EG_N)q[(uint8_t)(q_head+keep++)]=i;

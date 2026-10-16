@@ -183,3 +183,8 @@ Evidence and hashes are in `validation/world-stream-20261016/`. The public cartr
 The input observer still measures up to 34 frames of terrain-preparation waiting at a few large-map corners.
 That delay is separate from frame rate and remains optimization work. These first integrated worlds are quiet;
 actor streaming, campaign-wide goals/biomes and continuation, the full run and remaining milestones stay open.
+
+The subsequent card-span timing pass retains the same pool and world buffers, reduces the largest observed
+window-margin wait from 34 to eight frames, and adds an independent native presentation-state oracle. Both
+mapper images pass all 42 world scenarios, both resets and the complete regression again; see
+`validation/world-reuse-tuning-20261016/`. The quiet-world scope and remaining full-game milestones are unchanged.

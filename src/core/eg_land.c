@@ -26,10 +26,16 @@ uint8_t eg_land_water_style(uint8_t biome) EG_BANKED {return biome<EL_BIOMES ? l
 static uint16_t hash(uint16_t seed,uint8_t a,uint8_t b) {
 #ifdef __SDCC
   uint16_t v=(uint16_t)(seed^product251[a]^product1387[b]);
+  uint8_t lo=(uint8_t)v,hi=(uint8_t)(v>>8);
+  /* The same three xorshifts expressed as byte operations. Avoid general
+   * word shifts in each terrain query; the host keeps the independent form. */
+  hi^=(uint8_t)((lo>>1)|(hi<<7));lo^=(uint8_t)(lo<<7);
+  lo^=(uint8_t)(hi>>1);hi^=lo;
+  return (uint16_t)(lo|((uint16_t)hi<<8));
 #else
   uint16_t v=(uint16_t)(seed^((uint16_t)a*251u)^((uint16_t)b*1387u));
-#endif
   v^=(uint16_t)(v<<7);v^=v>>9;v^=(uint16_t)(v<<8);return v;
+#endif
 }
 static uint8_t pick(uint8_t bits,uint16_t roll) {
   uint8_t n=0u,i;

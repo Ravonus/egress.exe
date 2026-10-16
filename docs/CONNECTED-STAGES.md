@@ -13,7 +13,7 @@ protection and crack state in WRAM banks 2–5; bank 6 holds initialization and 
 The overlapping cells and their five presentation bitmaps are shifted; only incoming strips need loading.
 The hardware background map rotates its origin rather than being replaced by another screen.
 
-Approach work is incremental: prepare at most six generated cells while spare scan lines remain, clear a bounded
+Approach work is incremental: prepare at most six generated cells before scan line 35 while spare time remains, clear a bounded
 number of off-screen background slots, and save outgoing packets during spare scan lines. Every material or skin mutation
 invalidates its saved certificate. Source/gate/portal metadata is prepared ahead of the transfer and revoked
 when relevant state changes. The actual transfer accepts only prepared incoming and outgoing strips.
@@ -32,8 +32,9 @@ replace the full game's timing, input, combat or continuation gates below.
 Prepared data transfers peak at 44,872 T-cycles horizontally and 43,424 vertically in that component fixture.
 `make test-world-play` plays S–XXL composed routes on both mappers. `make test-world-environments` covers XS and
 all eight biome records on both mappers. These explicit input gates pass 42 scenarios and supplement the passing complete regression suite.
-The actual window-margin observer still measures up to 34 frames of terrain waiting at a few large-map corners.
-See `validation/world-stream-20261016/` for exact source/ROM hashes and the remaining scope.
+After the card-span timing pass, the actual window-margin observer measures at most eight frames of terrain
+waiting at large-map corners; the input gate rejects more than twelve. See
+`validation/world-reuse-tuning-20261016/` for the final exact source/ROM hashes and independent presentation proof.
 
 ## Required architecture
 

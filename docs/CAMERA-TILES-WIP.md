@@ -1,7 +1,10 @@
-# Camera terrain development checkpoint (2026-10-16)
+# Archived camera failures (2026-10-16)
 
-This branch is unfinished. Do not publish it or describe it as a larger connected stage. Main's tested release
-is separate. The actual character delta-stream correction is independently committed as `82b7f0d`.
+This records earlier failed candidates, preserved for diagnosis. Their acceptance failures were resolved by the
+subsequent camera milestone in `validation/camera-20261016/`. Persistent quiet-world input acceptance is recorded
+separately in `validation/world-stream-20261016/`; combat streaming and the full campaign remain open.
+Do not publish the failed WIP hashes below or substitute their ROMs for a frozen validated candidate.
+The actual character delta-stream correction was independently committed as `82b7f0d`.
 
 The camera presentation owns a hidden-cell bitset and a bounded assembly/collapse queue. It preserves material
 cells, finite pickups and moved crates while travelling and returning. Boss arenas, dark stages and chase stages
@@ -12,8 +15,8 @@ The native quiet-room route collects a real ingredient, pushes a crate, travels 
 forward evade: 1,051 displayed frames, 120 game frames per 120, no missing body/floor, ten or fewer sprites per
 line, intact stack canary. Both mappers passed before the final art stream correction; rerun on the next candidate.
 
-Crowded combat is NOT accepted. The stronger `camera_combat.py` waits for actual holdout waves (three live enemies),
-travels and uses both actions. The latest combined candidate `edd335a7e609126abb9b229b5933b2baf59c3ce2fe9971269637dd3b8688d016`
+Crowded combat was not accepted at this historical checkpoint. The stronger `camera_combat.py` waits for actual holdout waves (three live enemies),
+travels and uses both actions. That combined candidate `edd335a7e609126abb9b229b5933b2baf59c3ce2fe9971269637dd3b8688d016`
 reached only 74 game frames in its worst 120-frame window, with ten sprites maximum. Its simple attack bot did not
 kill an enemy in that run; conditional enemy defences and frame-dependent movement make the route vary. The prior
 public island ROM also fails this stronger timing test (76/120 and a 13-sprite line). Do not weaken the acceptance
@@ -39,7 +42,7 @@ make -j2 all
 .venv/bin/python test/harness/camera_tiles.py build/egress-rtc.gbc build/sprints/camera-mbc3
 .venv/bin/python test/harness/camera_combat.py build/egress.gbc build/sprints/camera-combat-mbc5
 .venv/bin/python test/harness/boss.py build/egress.gbc build/sprints/camera-bosses
-make -j2 test
+make -j1 test
 ```
 
 Useful ignored development evidence remains in `build/sprints/`, including `profile-camera.py`,

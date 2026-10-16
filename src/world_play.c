@@ -204,7 +204,7 @@ void world_prefetch(void) BANKED {
   if(axes==3u)axes=my<32u && my<mx ? 2u : mx<32u && mx<=my ? 1u : 3u;
   /* Seed queries touch only the inactive backing store. Reserve their time
    * before simulation; a late collision/render pass must not starve a seam. */
-  for(n=0u;n<6u && spare(25u);n++) {
+  for(n=0u;n<6u && spare(35u);n++) {
     /* Finish publishing the requested strip before speculative work on the
      * other axis. Otherwise that extra generation can starve its BG/save pass. */
     if(axes==1u && px.dir && px.n==14u && (px.bg!=56u || !world_preserved(px.dir,0) || !world_binding_ready(px.dir*4,0)))break;

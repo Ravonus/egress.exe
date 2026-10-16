@@ -7,6 +7,7 @@ from play import Game,start_run,PASSABLE,pocket,bench_act
 from heir import OamMeter
 from grid_observer import GridObserver
 from heir_pixels import Pixels
+from look_window import LookWindow
 
 class WorldPlayer:
     def __init__(self,g,tool,rom=None):
@@ -46,7 +47,7 @@ class WorldPlayer:
         clamp=int(re.search(r'^\s+([0-9A-F]{8})\s+\S+',listing,re.M)[1],16)
         at=g.sym['_player_update'];g.pb.hook_register(at>>16,(at&65535)-offset+clamp,self.before_clamp,None)
         self.pixels=Pixels(g,rom) if rom is not None else None
-        self.meter=OamMeter(g);self.grid=GridObserver(g)
+        self.meter=OamMeter(g);self.grid=GridObserver(g);self.look_window=LookWindow(g)
         self.tick0=g.tick;g.tick=self.tick
         at=g.sym['_frame_wait'];g.pb.hook_register(at>>16,at&65535,self.completed,None)
         g.pb.memory[0xddd0:0xddf0]=[0xa7]*32
@@ -249,6 +250,7 @@ class WorldPlayer:
                 'minimum_game_frames_per_120':min(spans) if spans else None,'hitches':self.hitches[:30],
                 'missing_floor':self.missing[:30],'missing_body':self.body[:30],
                 'oam_max':self.meter.max_line,'oam_over':self.meter.over,'grid':self.grid.report(),
+                'presentation_window':self.look_window.report(),
                 'stack_canary':bytes(g.pb.memory[0xddd0:0xddf0])==bytes([0xa7]*32)}
 
 def run(rom,out,tool,seeds,rule=None,size=None,biome=0):
@@ -271,7 +273,10 @@ def run(rom,out,tool,seeds,rule=None,size=None,biome=0):
     (out/'report.json').write_text(json.dumps(report,indent=2)+'\n')
     return all(r['solved'] and not r['missing_floor'] and not r['missing_body'] and not r['oam_over'] and
                not r['heir_pixel_mismatches'] and r['native_heir_uploads']>10 and r['stack_canary'] and
-               r['minimum_game_frames_per_120']==120 and r['grid']['all_map_and_attributes_match'] for r in reports)
+               r['minimum_game_frames_per_120']==120 and r['grid']['all_map_and_attributes_match'] and
+               r['presentation_window']['all_cards_spans_queues_and_bitmaps_match'] and
+               r['presentation_window']['native_transfers']==r['seams'] and
+               r['maximum_stream_wait_frames']<=12 for r in reports)
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('rom',type=Path);p.add_argument('out',type=Path)

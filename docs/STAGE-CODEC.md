@@ -61,7 +61,8 @@ The continuation cartridge now integrates a persistent larger world behind the 1
 travel, prepared strips, rebased presentation queues, global source/gate/item state and native environment art.
 The seventh campaign floor can select the transport-chain contract; debug selectors exercise the remaining
 rules, sizes and biomes before a run begins. Quiet-world input replay and frame acceptance pass 42 scenarios on both mappers, and the complete native
-regression passes. The maximum observed corner preparation wait is 34 frames, separately measured from FPS.
+regression passes. The final card-span timing pass reduces the maximum observed corner preparation wait to eight frames,
+separately measured from FPS; see `validation/world-reuse-tuning-20261016/`.
 Latency tuning, actor streaming, campaign-wide curriculum and continuation remain required. See
 `CONNECTED-STAGES.md` for the current reuse architecture and its component evidence. Keep the public ROM on
 its verified release until those acceptance boundaries pass.
