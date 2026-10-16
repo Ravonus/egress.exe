@@ -14,5 +14,5 @@
   },
   "scope": "Ten-floor office development build with actual island rims. Connected larger stages, composed portals and the full run remain incomplete.",
   "physicalHardwareVerified": false,
-  "publicDeployment": "Pending HTTPS read-back of the authorized site update."
+  "publicDeployment": "Published and HTTPS-read-back verified; see site-release.json."
 }

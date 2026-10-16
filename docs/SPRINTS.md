@@ -1,7 +1,7 @@
 # Native game completion ledger
 
 This tracks the complete build order in `redesign.md` section 18 and the owner's later gameplay corrections.
-The public `e03755b` cartridge is the verified native feedback milestone. It does not complete this ledger.
+The public `7839518` cartridge is the verified native feedback and island-edge milestone. It does not complete this ledger.
 An integrated prototype, a passing host simulation, a native build and a played feature are separate evidence.
 
 | Milestone | Current state | Required before completion |
@@ -115,3 +115,7 @@ zero-hit, all-phase, 120/120 active-frame and ten-sprites-per-line gates remain 
 
 This is still one 16 × 14 simulation grid per floor. The connected-stage architecture and its native completion
 evidence are specified in `CONNECTED-STAGES.md`; opening the rim is not a larger-stage implementation.
+
+The island-edge milestone was merged, pushed and published after its complete native gate. Both public mapper
+images, the live browser and real older-save carryover were verified; see
+`validation/island-edges-20261016/site-release.json`. The remaining larger-stage/full-run milestones are unchanged.
