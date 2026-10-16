@@ -10,12 +10,32 @@
 #include "heir.h"
 
 static uint8_t buf[128];
-static uint8_t want[6], nwant;
+static uint8_t want[7], nwant; /* six selected slots and a sentinel */
 static uint8_t chunk_bank[HEIR_CHUNKS];
 static volatile uint8_t up_pending, up_tile;
 static uint8_t vbl_on;
 static const uint8_t *ap_p;
 static uint8_t ap_n;
+static uint8_t delta_mask;
+
+/* The base and VBlank upload are always exactly 128 bytes. */
+static void copy128(void *dst,const void *src) NONBANKED NAKED {
+  dst;src;
+  __asm
+    ld h,b
+    ld l,c
+    ld b,#16
+  1$:
+    .rept 8
+      ld a,(hl+)
+      ld (de),a
+      inc de
+    .endm
+    dec b
+    jr nz,1$
+    ret
+  __endasm;
+}
 
 /* ap_n patches from ap_p into buf: per patch (row, mask, plane 0, plane 1) -> buf[row * 2 + 0/1] = (b & ~mask) | p.
  * Hand-written: SDCC's loop costs ~6x this. Leaves ap_p past the patches. */
@@ -59,13 +79,76 @@ static void apply_patches(void) NAKED {
   __endasm;
 }
 
+/* Walk the compressed stream once. Advancing past a selected empty delta is
+ * essential: that gene may add nothing to this pose, while later genes do. */
+static uint8_t compose_deltas(void) NONBANKED NAKED {
+  __asm
+    ld hl,#_ap_p
+    ld a,(hl+)
+    ld h,(hl)
+    ld l,a
+    ld de,#_want
+    ld b,#0
+  1$:
+    ld a,(hl+)
+    ld c,a
+    ld a,(de)
+    cp a,b
+    jr nz,3$
+    inc de
+    ld a,c
+    or a,a
+    jr z,5$
+    ld a,(hl+)
+    push hl
+    ld hl,#_delta_mask
+    or a,(hl)
+    ld (hl),a
+    pop hl
+    ld a,c
+    ld (#_ap_n),a
+    ld a,l
+    ld (#_ap_p),a
+    ld a,h
+    ld (#_ap_p+1),a
+    push bc
+    push de
+    call _apply_patches
+    pop de
+    pop bc
+    jr 5$
+  3$:
+    ld a,c
+    or a,a
+    jr z,5$
+    inc hl
+    push de
+    ld e,c
+    ld d,#0
+    sla e
+    rl d
+    sla e
+    rl d
+    add hl,de
+    pop de
+  5$:
+    inc b
+    ld a,b
+    cp a,#27
+    jr nz,1$
+    ld a,(#_delta_mask)
+    ret
+  __endasm;
+}
+typedef char native_heir_slot_count[(HEIR_SLOTS==27u) ? 1 : -1];
+
 /* the VRAM upload runs in VBlank (an add_VBL handler): composing a frame never stalls the frame on STAT waits */
 static void heir_vbl(void) NONBANKED {
   uint8_t v;
   if (!up_pending) return;
   v = VBK_REG;
   VBK_REG = 0;
-  memcpy((uint8_t *)(0x8000u + ((uint16_t)up_tile << 4)), buf, 128u);
+  copy128((uint8_t *)(0x8000u + ((uint16_t)up_tile << 4)),buf);
   VBK_REG = v;
   up_pending = 0;
 }
@@ -83,6 +166,7 @@ void heir_compose_init(void) NONBANKED {
   want_slot(HEIR_SLOT_HAIR, HEIR_BASE_HAIR, heir.hair);
   want_slot(HEIR_SLOT_MARK, HEIR_BASE_MARK, heir.mark);
   want_slot(HEIR_SLOT_WEAPON, HEIR_BASE_WEAPON, heir.weapon);
+  want[nwant]=HEIR_SLOTS;
   heir_chunk_banks(chunk_bank);
   if (!vbl_on) {
     vbl_on = 1;
@@ -109,13 +193,13 @@ uint8_t heir_state_len(uint8_t state, uint8_t *loop) NONBANKED {
 }
 
 uint8_t heir_compose(uint8_t pose, uint8_t dd, uint8_t tile0) NONBANKED {
-  uint8_t save = CURRENT_BANK, s, n, w = 0, mask, k;
+  uint8_t save = CURRENT_BANK, mask, k;
   uint16_t i = (uint16_t)pose * 5u + dd;
   while (up_pending) /* the last frame's upload has not had its VBlank yet (the LCD is off): do it now */
     if (!(LCDC_REG & LCDCF_ON)) {
       k = VBK_REG;
       VBK_REG = 0;
-      memcpy((uint8_t *)(0x8000u + ((uint16_t)up_tile << 4)), buf, 128u);
+      copy128((uint8_t *)(0x8000u + ((uint16_t)up_tile << 4)),buf);
       VBK_REG = k;
       up_pending = 0;
     }
@@ -125,23 +209,11 @@ uint8_t heir_compose(uint8_t pose, uint8_t dd, uint8_t tile0) NONBANKED {
   r = heir_recs[i];
   EG_ROM_BANK(chunk_bank[r.chunk]);
   p = heir_chunk_ptr[r.chunk] + (uint16_t)(r.lo | ((uint16_t)r.hi << 8));
-  mask = *p++; /* the base's non-empty sprites; a delta that draws into another one adds it below */
-  memcpy(buf, p, 128u);
+  delta_mask = *p++; /* a selected delta may draw into an initially empty sprite */
+  copy128(buf,p);
   p += 128u;
-  for (s = 0; s != HEIR_SLOTS; s++) {
-    n = *p++;
-    if (!n) continue;
-    k = *p++; /* the sprites this slot draws into */
-    if (w != nwant && want[w] == s) {
-      w++;
-      mask |= k;
-      ap_p = p;
-      ap_n = n;
-      apply_patches();
-      p = ap_p;
-    } else
-      p += (uint16_t)n << 2;
-  }
+  ap_p=p;
+  mask=compose_deltas();
   EG_ROM_BANK(save);
   up_tile = tile0;
   up_pending = 1;
