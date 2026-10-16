@@ -1,0 +1,116 @@
+{
+  "merged_pr": "https://github.com/Ravonus/egress.exe/pull/1",
+  "merge_commit": "70a9ecb809d6665a12078ef73325cefcc4eeac37",
+  "local_branches": [
+    {
+      "branch": "b1-heir",
+      "head": "178b0f5b4f45b43b1622c7d6e61733a6935143bc",
+      "included_in_main": true
+    },
+    {
+      "branch": "b1-int",
+      "head": "79f1d337a489725fee126219f909e1cbdd150c4a",
+      "included_in_main": true
+    },
+    {
+      "branch": "b1-int2",
+      "head": "2dd666ec6ca3fa050980c12774f76af0002f515e",
+      "included_in_main": true
+    },
+    {
+      "branch": "b1-int3",
+      "head": "ba4e23658bb6aed30279a5ed9d253cf605e918ae",
+      "included_in_main": true
+    },
+    {
+      "branch": "b1-items",
+      "head": "c6d24c32e84695710395dd8a389189bf8967b887",
+      "included_in_main": true
+    },
+    {
+      "branch": "b1-look",
+      "head": "45be20d5d9fec4cd819e7db41cf53936be8f2bbf",
+      "included_in_main": true
+    },
+    {
+      "branch": "b1-puzzle",
+      "head": "7a8731b0cc78a550a86cd83d96a2aae247b98016",
+      "included_in_main": true
+    },
+    {
+      "branch": "b1-title",
+      "head": "846e7d5d8943bfec257301fb0fbd725a4dcaede8",
+      "included_in_main": true
+    },
+    {
+      "branch": "b2-boss",
+      "head": "5c08bdeb4d97a9d591e4a5dc566b2d360418efbb",
+      "included_in_main": true
+    },
+    {
+      "branch": "b2-edges",
+      "head": "9740ebe2183918dd43bd0ea9ff0ea8046cc2986a",
+      "included_in_main": true
+    },
+    {
+      "branch": "b2-mobs",
+      "head": "bc56abcd53bdaf5e1f2e7470578d1fe82fbd1b14",
+      "included_in_main": true
+    },
+    {
+      "branch": "b2-obstacle",
+      "head": "7fe1cd5e1dfb6a1e1423afaffe67493e8ecdd803",
+      "included_in_main": true
+    },
+    {
+      "branch": "b2-obstacles",
+      "head": "c0c92b835a6e95a106759adb7a1b54a352902e16",
+      "included_in_main": true
+    },
+    {
+      "branch": "b2-stages",
+      "head": "e19f98be536a1553cb3c99b60fb6b1f2706c103d",
+      "included_in_main": true
+    },
+    {
+      "branch": "b3-stats",
+      "head": "41e53a64e7491dc16816d6ac29a7a040b9f8681a",
+      "included_in_main": true
+    },
+    {
+      "branch": "codex/resume-stage2",
+      "head": "c523fbbebf7cbccdedfa06053c553f615deac5da",
+      "included_in_main": true
+    },
+    {
+      "branch": "fs-proto",
+      "head": "dc4b8d43c4e714da3bf4c11d092c35d58c8cc0e8",
+      "included_in_main": true
+    },
+    {
+      "branch": "main",
+      "head": "70a9ecb809d6665a12078ef73325cefcc4eeac37",
+      "included_in_main": true
+    },
+    {
+      "branch": "rtc-build",
+      "head": "c0d233f0a7d1c9e9aea0b3fbfde855f35d460593",
+      "included_in_main": true
+    },
+    {
+      "branch": "run50",
+      "head": "750cb3bcece0496fa8b079a0fc62cfde747f7ac6",
+      "included_in_main": true
+    }
+  ],
+  "active_worktrees": [
+    "worktree /Users/ravonus/dev/egress\nHEAD 70a9ecb809d6665a12078ef73325cefcc4eeac37\nbranch refs/heads/main"
+  ],
+  "unrelated_native_ui_notes_preserved": true,
+  "public_release": {
+    "verified": true,
+    "sourceCommit": "70a9ecb809d6665a12078ef73325cefcc4eeac37",
+    "url": "https://egress.onkeel.io"
+  },
+  "temporary_validation_checkout_removed": true
+}

@@ -1,7 +1,7 @@
 # Connected stages: implementation boundary
 
-The public cartridge still uses one 16 × 14 simulation grid per floor. The continuation branch now moves that
-fixed simulation window through generated worlds up to 128 × 54 cells. Quiet puzzle worlds are integrated;
+The development cartridge now moves its fixed 16 × 14 simulation window through generated worlds up to
+128 × 54 cells. Quiet puzzle worlds are integrated;
 their ordinary-input and frame-budget acceptance passes on both mappers. Combat actor streaming and the complete run
 remain required. Keep these distinctions in release notes and the completion ledger.
 

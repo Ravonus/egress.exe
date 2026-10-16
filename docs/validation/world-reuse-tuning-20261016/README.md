@@ -23,3 +23,7 @@ Frozen ROMs, maps, symbols, reports and the full log are retained in
 `build/candidates/world-reuse-tuning-20261016/`.
 
 An independent local `make -j4 all` reproduced both offloaded, fully tested ROMs byte for byte.
+
+The validated milestone was merged through PR #1 and deployed from `70a9ecb`; see `site-release.json` for public
+file read-back, live browser/download checks and real older-save carryover. All remaining local game branch
+heads are included in main; the primary checkout and unrelated native-UI notes are preserved.

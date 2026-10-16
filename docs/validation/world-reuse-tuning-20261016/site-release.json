@@ -1,0 +1,199 @@
+{
+  "sourceCommit": "70a9ecb809d6665a12078ef73325cefcc4eeac37",
+  "siteCommit": "dceaf8a750bad31fd97f110b3702700f97687652",
+  "verifiedAt": "2026-10-16T23:16:06.272715+00:00",
+  "scope": "ten-floor office development build; quiet generated worlds; full-game sprints remain open",
+  "public": {
+    "base": "https://egress.onkeel.io",
+    "verified_files": [
+      {
+        "path": "404.html",
+        "sha256": "284daad5fe43479a30561f9465610142cc1da1f3d04dc440392c74e8fd02b875",
+        "bytes": 10301
+      },
+      {
+        "path": "index.html",
+        "sha256": "e26cb3cc76360ba7966e59189af432db04c804d88b29808ee9c46c81db5ac61f",
+        "bytes": 39111
+      },
+      {
+        "path": "index.txt",
+        "sha256": "2fa0989ec3bb93c135ec2e7504d8a3644e4631ef8894525ab8dfedea1b1a5c40",
+        "bytes": 11870
+      },
+      {
+        "path": "404/index.html",
+        "sha256": "284daad5fe43479a30561f9465610142cc1da1f3d04dc440392c74e8fd02b875",
+        "bytes": 10301
+      },
+      {
+        "path": "_next/static/70tjcbvd_y4y2-X1IleLO/_buildManifest.js",
+        "sha256": "ad66286f852cae83f872dc46bcd2d8f30d6764dd335e2c1ba38413107b3d9486",
+        "bytes": 1122
+      },
+      {
+        "path": "_next/static/70tjcbvd_y4y2-X1IleLO/_ssgManifest.js",
+        "sha256": "678f6ce2cb80b1fe72fc67e7412be6e2ab6ada083111b64f7c40d35e3cba5e00",
+        "bytes": 80
+      },
+      {
+        "path": "_next/static/chunks/app/page-2533d0934ad528b8.js",
+        "sha256": "52b0c2aadc8f2c8e2b45479b45b80cc07208c0b70edfa6a1e473978413262880",
+        "bytes": 102364
+      },
+      {
+        "path": "_next/static/chunks/app/chromatic/page-e2b7ab3310a7cffe.js",
+        "sha256": "8ae301ddda124bafbfb97d76e1c1b39158c21c9f871a7900c645f4ca25dcdaf6",
+        "bytes": 95054
+      },
+      {
+        "path": "chromatic/index.html",
+        "sha256": "04ae8464dcbf25ef7fc4c9d284a986980b90e410a13ae6acccee968f221a875a",
+        "bytes": 25310
+      },
+      {
+        "path": "chromatic/index.txt",
+        "sha256": "8140fc5fbfab6a45663558d32ce784f7e76d3b296cbc1b7ddadb8750fa3156f1",
+        "bytes": 12097
+      },
+      {
+        "path": "game/egress-aee4e18e58c7b21a.chromatic.json",
+        "sha256": "99f43b9460b70760dd34373246d701d1e35c1f79b885f4e9dc025b2e4a9bfe63",
+        "bytes": 730
+      },
+      {
+        "path": "game/egress-aee4e18e58c7b21a.gbc",
+        "sha256": "aee4e18e58c7b21a4aefdf867c94d0590d0f2b29a551f0e7a73bac8a929b7df5",
+        "bytes": 1228800
+      },
+      {
+        "path": "game/egress-dev.gbc",
+        "sha256": "aee4e18e58c7b21a4aefdf867c94d0590d0f2b29a551f0e7a73bac8a929b7df5",
+        "bytes": 1228800
+      },
+      {
+        "path": "game/egress-rtc-c17f2085467b4fdc.chromatic.json",
+        "sha256": "56094ba08f117449fab2412f84f1c70bdf8d7658cf5870dcca9755d091169f68",
+        "bytes": 571
+      },
+      {
+        "path": "game/egress-rtc-c17f2085467b4fdc.gbc",
+        "sha256": "c17f2085467b4fdc7c9bf78afe9095a90c77d3130cdef6befa137534c786ab91",
+        "bytes": 1228800
+      },
+      {
+        "path": "game/releases.json",
+        "sha256": "59cb9ae0fe43c97618c9cba4f7ab80afcf6c44fbb5ee14f309db87c4cb0e761c",
+        "bytes": 1378
+      },
+      {
+        "path": "game/previews/egress-aee4e18e58c7b21a.png",
+        "sha256": "3d952a423a3c2e765997ba2cc29312cecb4e5689ab920c63c27b12d50e66592f",
+        "bytes": 3440
+      },
+      {
+        "path": "game/previews/egress-rtc-c17f2085467b4fdc.png",
+        "sha256": "77775ed854f81655bcc9aa921550a93b482d8f53727bafdbdc007b43efdc0e71",
+        "bytes": 3235
+      },
+      {
+        "path": "how-it-works/index.html",
+        "sha256": "12532ba09f47db0bec85590cba8cbb71a7e279938e0dc18757e8ade89630e9a0",
+        "bytes": 49656
+      },
+      {
+        "path": "how-it-works/index.txt",
+        "sha256": "ade964627b32c17e63fd0ae7ce88aba57b0ab6631b47aec00f740726e2264320",
+        "bytes": 26019
+      },
+      {
+        "path": "trailer/index.html",
+        "sha256": "5f4085a36c28299b2b829de89c7645caee25eec352e33d8ad08bd3bd37dc9bee",
+        "bytes": 22081
+      },
+      {
+        "path": "trailer/index.txt",
+        "sha256": "e657c2b2dc1ebbc97100f36264c52aee72287f8741a32fe614018dacd08c8878",
+        "bytes": 11552
+      }
+    ],
+    "old_rom_retained": true
+  },
+  "browser": {
+    "base": "https://egress.onkeel.io",
+    "checks": [
+      {
+        "width": 1280,
+        "downloads": true,
+        "github": true,
+        "noOverflow": true,
+        "explainerNoOverflow": true,
+        "pageErrors": []
+      },
+      {
+        "width": 768,
+        "downloads": true,
+        "github": true,
+        "noOverflow": true,
+        "explainerNoOverflow": true,
+        "pageErrors": []
+      },
+      {
+        "width": 390,
+        "downloads": true,
+        "github": true,
+        "noOverflow": true,
+        "explainerNoOverflow": true,
+        "pageErrors": []
+      },
+      {
+        "width": 320,
+        "downloads": true,
+        "github": true,
+        "noOverflow": true,
+        "explainerNoOverflow": true,
+        "pageErrors": []
+      }
+    ],
+    "standardSha256": "aee4e18e58c7b21a4aefdf867c94d0590d0f2b29a551f0e7a73bac8a929b7df5",
+    "rtcSha256": "c17f2085467b4fdc7c9bf78afe9095a90c77d3130cdef6befa137534c786ab91",
+    "actualDownloadsVerified": true,
+    "browserEmulatorUsesStandard": true
+  },
+  "saveCarryover": {
+    "base": "https://egress.onkeel.io",
+    "oldSha256": "1fab0cb81ef3532d3c7fae52ccbcfa464171e1d3c078f4df4b4b7f2d74e7e5f2",
+    "sha256": "aee4e18e58c7b21a4aefdf867c94d0590d0f2b29a551f0e7a73bac8a929b7df5",
+    "results": {
+      "realCheckpointSaveCarriedOver": true,
+      "sameInheritedGenome": true,
+      "nativeGameStarted": true,
+      "pageErrors": true
+    }
+  },
+  "deployment": {
+    "backup": "/opt/velatis-gateway/backups/egress-worlds-20261016T231316Z",
+    "changedFiles": 22,
+    "assetsUploadedBeforeEntryPages": true,
+    "oldRomRetained": true,
+    "verified": true
+  },
+  "merge": {
+    "pr": "https://github.com/Ravonus/egress.exe/pull/1",
+    "state": "MERGED",
+    "commit": "70a9ecb809d6665a12078ef73325cefcc4eeac37"
+  },
+  "siteTests": {
+    "unitTests": 33,
+    "assetMetadataPreviews": true,
+    "typecheck": true,
+    "staticBuild": true,
+    "preexistingChangesPreservedByteForByte": true
+  },
+  "cleanup": {
+    "temporaryOffloadCheckoutRemoved": true,
+    "mergedContinuationBranchRemoved": true,
+    "gameActiveWorktrees": 1
+  },
+  "physicalChromaticVerified": false
+}

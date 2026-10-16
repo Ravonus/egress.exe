@@ -1,7 +1,8 @@
 # Native game completion ledger
 
 This tracks the complete build order in `redesign.md` section 18 and the owner's later gameplay corrections.
-The public `f4df94b` cartridge includes the verified native feedback, island-edge and inherited-art corrections.
+The public `70a9ecb` development cartridge includes native feedback, island edges, inherited-art corrections,
+camera terrain, composed circuits/portals and the first quiet generated worlds.
 It does not complete this ledger.
 An integrated prototype, a passing host simulation, a native build and a played feature are separate evidence.
 
@@ -188,3 +189,11 @@ The subsequent card-span timing pass retains the same pool and world buffers, re
 window-margin wait from 34 to eight frames, and adds an independent native presentation-state oracle. Both
 mapper images pass all 42 world scenarios, both resets and the complete regression again; see
 `validation/world-reuse-tuning-20261016/`. The quiet-world scope and remaining full-game milestones are unchanged.
+
+
+The camera/circuit/world continuation is merged through PR #1 and published from `70a9ecb`. Both live downloads,
+metadata/previews, browser-emulator ROM identity, phone layouts and real older-save carryover are verified in
+`validation/world-reuse-tuning-20261016/site-release.json`. All twenty remaining local branch heads are included
+in main; only the primary game worktree remains, and the temporary offloaded test checkout was removed. This
+release retains the ten-floor office campaign. The full native run and the other open milestones above remain
+required.
