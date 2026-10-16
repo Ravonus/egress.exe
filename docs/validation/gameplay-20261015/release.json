@@ -3,7 +3,6 @@
   "siteReleaseCommit": "0f3dc3e",
   "siteVerificationCommit": "f1848912de72c8219071574ec9c109aebb6a6d91",
   "site": "https://egress.onkeel.io",
-  "publishedAt": "2026-10-16T03:10:00Z",
   "siteUnitTests": {
     "pass": 33,
     "fail": 0
@@ -90,5 +89,6 @@
     ]
   },
   "physicalChromaticTested": false,
-  "remaining": "Ten-floor office development slice; full run, arbitrary motif composition and physical-device acceptance remain."
+  "remaining": "Ten-floor office development slice; full run, arbitrary motif composition and physical-device acceptance remain.",
+  "verifiedAt": "2026-10-16T03:13:04.294576+00:00"
 }
