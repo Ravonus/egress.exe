@@ -217,7 +217,8 @@ static void do_push(void) {
 
 /* one mover step from the player's centre (psx, psy are the centre, the mover's box is 12x12 from its corner) */
 static void mstep(uint8_t dpad, uint8_t speed, uint8_t synth) {
-  uint8_t prev = pmv.prev, o0 = pmv.order[0], o1 = pmv.order[1], o2 = pmv.order[2], o3 = pmv.order[3];
+  uint8_t prev=0u,o0=0u,o1=0u,o2=0u,o3=0u;
+  if(synth) {prev=pmv.prev;o0=pmv.order[0];o1=pmv.order[1];o2=pmv.order[2];o3=pmv.order[3];}
   if (map_door != door_open) door_map();
   pmv.x = (int16_t)psx - 96;
   pmv.y = (int16_t)psy - 96;

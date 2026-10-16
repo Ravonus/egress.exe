@@ -134,7 +134,7 @@ fails the independent pixel comparison; both replacement mapper images pass 2,66
 The complete native gate, 128 seated-state/direction samples and live site/save read-back are recorded in
 `validation/heir-art-20261016/`. This release preserves the ten-floor office scope.
 
-Camera-driven terrain assembly/collapse remains on `codex/camera-tiles`. Its quiet-room travel/backtracking test
-passes, but crowded combat and the combined boss regression gate are unresolved. That branch is preserved and
-pushed for continuation; its camera changes are not in this public cartridge. A larger connected simulation
+Camera-driven terrain assembly/collapse remains on `codex/camera-tiles`. Both mapper builds now pass quiet travel/backtracking, diagonal reversal, actual combat, complete bodies,
+120/120 frame timing, native BG/OAM reference comparisons and the full regression gate. Evidence is in
+`validation/camera-20261016/`. Its camera changes are not yet in the public cartridge. A larger connected simulation
 window, composed portal/circuit proof and the rest of the full-run ledger are still required.

@@ -149,8 +149,15 @@ extern uint8_t eg_ndirty; /* > EG_DIRTY_MAX: overflowed, redraw everything */
 
 /* xorshift16, the game's own stream */
 extern uint16_t eg_rs;
-uint8_t eg_rnd(void) EG_BANKED;
-uint8_t eg_rndn(uint8_t n) EG_BANKED; /* 0..n-1 */
+/* This tiny state-only primitive reads no banked tables. ROM0 avoids a bank
+ * switch on every AI neighbour roll, physics placement and wave probe. */
+#ifdef __SDCC
+#define EG_RNG_ABI NONBANKED
+#else
+#define EG_RNG_ABI
+#endif
+uint8_t eg_rnd(void) EG_RNG_ABI;
+uint8_t eg_rndn(uint8_t n) EG_RNG_ABI; /* 0..n-1 */
 
 /* Cell kinds a body may stand in */
 #define EG_PASSABLE(t)                                                                                              \

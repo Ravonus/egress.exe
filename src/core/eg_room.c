@@ -10,7 +10,7 @@ uint8_t eg_dirty[EG_DIRTY_MAX];
 uint8_t eg_ndirty;
 
 /* near versions for this file (on the cartridge the public ones are banked calls) */
-static uint8_t rnd_next(void) {
+static uint8_t rnd_next(void) EG_RNG_ABI {
   uint16_t x = eg_rs;
   x ^= x << 7;
   x ^= x >> 9;
@@ -19,8 +19,8 @@ static uint8_t rnd_next(void) {
   return (uint8_t)(x ^ (x >> 8));
 }
 
-uint8_t eg_rnd(void) EG_BANKED { return rnd_next(); }
-uint8_t eg_rndn(uint8_t n) EG_BANKED { return (uint8_t)(((uint16_t)rnd_next() * n) >> 8); }
+uint8_t eg_rnd(void) EG_RNG_ABI { return rnd_next(); }
+uint8_t eg_rndn(uint8_t n) EG_RNG_ABI { return (uint8_t)(((uint16_t)rnd_next() * n) >> 8); }
 
 static uint8_t is_occ(uint8_t i, const uint8_t *occ, uint8_t n) {
   while (n) {
@@ -54,28 +54,19 @@ static uint16_t rock_rows(void) __naked {
   1$:
     sla e
     rl d
-    ld c, #14
-  2$:
-    ld a, (hl+)
-    and a, #0x5f
-    cp a, #0x04
-    jr z, 3$
-    dec c
-    jr nz, 2$
-    jr 5$
-  3$:
-    set 0, e
-    dec c
-    ld a, l
-    add a, c
-    ld l, a
-    jr nc, 5$
-    inc h
-  5$:
+    /* Fourteen fixed cells: avoid a counter/branch on every empty cell.
+     * OR the row bit for each CRT; a plate/falling flag still counts. */
+    .rept 14
+      ld a, (hl+)
+      and a, #0x5f
+      cp a, #0x04
+      jr nz, .+4
+      set 0, e
+    .endm
     inc hl
     inc hl
     dec b
-    jr nz, 1$
+    jp nz, 1$
     ld b, d
     ld c, e
     ret
@@ -249,6 +240,12 @@ uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) EG_BANKED {
   rows = rock_rows();
 #endif
   eg_ndirty = 0u;
+#ifdef EG_GRAV_ASM
+  /* Empty physics rows are common in combat stages. The row scan already
+   * proved that no CRT can move, land or strike; do not walk twelve empty
+   * rows in C. Plates still follow the full grounded footprint. */
+  if (!rows) return shutters(r, occ, nocc);
+#endif
   /* bottom-up, so a stack of CRTs falls together; F_MOVED keeps a CRT from moving twice in one step */
   for (y = (uint8_t)(EG_H - 2u); y != 0u; y--) {
 #ifdef EG_GRAV_ASM

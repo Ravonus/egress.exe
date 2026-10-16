@@ -30,6 +30,7 @@ static uint8_t was_falling, sel_t, floor_tokens0;
 static uint8_t restored_floor;
 static uint8_t weight_cells[4],weight_n;
 uint8_t run_loading;
+uint8_t floor_has_crt;
 
 static void controls_pause(void) {
   uint8_t old_y=cam_y;
@@ -78,6 +79,10 @@ static void floor_build(void) {
         if (eg_generate(&room, floor_seed, floor_tier)) break;
       }
   }
+  /* A room without CRTs cannot acquire one through ordinary reactions. A
+   * queued new CRT promotes this flag; boss arenas keep their full physics. */
+  floor_has_crt=0u;
+  for(i=0u;i!=EG_N;i++)if(cell_type(i)==T_ROCK) {floor_has_crt=1u;break;}
   /* game randomness from here on: seeded by the run and the floor */
   eg_rs = (uint16_t)(run_seed ^ floor_seed ^ ((uint16_t)floor_no << 8));
   if (!eg_rs) eg_rs = 1u;
@@ -107,26 +112,28 @@ static void floor_build(void) {
   stage_start();  /* B2 */
 }
 
+static uint8_t camera_follow(uint8_t current,uint8_t target) {
+  uint8_t distance;
+  if(target>current) {distance=(uint8_t)(target-current);return (uint8_t)(current+(distance>=4u ? distance>>2 : 1u));}
+  if(target<current) {distance=(uint8_t)(current-target);return (uint8_t)(current-(distance>=4u ? distance>>2 : 1u));}
+  return current;
+}
 static void camera(uint8_t snap) {
-  int16_t tx = (int16_t)pl_x - 80, ty = (int16_t)pl_y - 64, dx, dy;
+  uint8_t tx,ty;
   if (boss_floor) { /* B2 bosses: the arena is one screen, held still */
     cam_x = BOSS_CAM_X;
     cam_y = BOSS_CAM_Y;
     return;
   }
-  if (tx < 0) tx = 0;
-  if (tx > 96) tx = 96;
-  if (ty < 0) ty = 0;
-  if (ty > 96) ty = 96;
+  tx=pl_x<=80u ? 0u : pl_x>=176u ? 96u : (uint8_t)(pl_x-80u);
+  ty=pl_y<=64u ? 0u : pl_y>=160u ? 96u : (uint8_t)(pl_y-64u);
   if (snap) {
     cam_x = (uint8_t)tx;
     cam_y = (uint8_t)ty;
     return;
   }
-  dx = tx - cam_x;
-  dy = ty - cam_y;
-  cam_x = (uint8_t)(cam_x + (dx / 4 ? dx / 4 : (dx > 0 ? 1 : (dx < 0 ? -1 : 0))));
-  cam_y = (uint8_t)(cam_y + (dy / 4 ? dy / 4 : (dy > 0 ? 1 : (dy < 0 ? -1 : 0))));
+  cam_x=camera_follow(cam_x,tx);
+  cam_y=camera_follow(cam_y,ty);
 }
 
 static void scroll(void) {
@@ -192,7 +199,8 @@ static void gravity_tick(void) {
     }
   if(weights!=weight_n) {eg_plates_dirty=1u;for(k=weights;k<weight_n;k++) queue_cell(weight_cells[k]);}
   weight_n=weights;
-  g = eg_gravity(&room, occ, pl_hp && !pl_air && pl_state!=PS_FALL ? n : 0u);
+  g = floor_has_crt || boss_floor ? eg_gravity(&room, occ, pl_hp && !pl_air && pl_state!=PS_FALL ? n : 0u)
+                                : eg_shutters(&room, occ, pl_hp && !pl_air && pl_state!=PS_FALL ? n : 0u);
   if (eg_ndirty > EG_DIRTY_MAX) {
     for (c = 0; c != (uint8_t)EG_N; c++)
       if (cell_type(c) == T_ROCK || cell_type(c) == T_EMPTY) queue_cell(c);

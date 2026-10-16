@@ -55,6 +55,9 @@ def check(rom, reference, cases=96):
                 if case==3:cells[68]=10
             for i, v in enumerate(cells):
                 g.poke("room", v, i)
+            # A direct board fixture replaces the constructor's capability
+            # classification as well as its material cells.
+            g.poke('floor_has_crt',int(any(v&31==4 for v in cells)))
             g.poke("eg_plates_dirty", 1)
             for step in range(8):
                 before = bytes(g.peek("room", i) for i in range(224))

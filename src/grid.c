@@ -6,6 +6,7 @@
 #include "play.h"
 #include "look.h"
 #include "puzzle.h"
+extern uint8_t floor_has_crt;
 
 #pragma bank 255
 
@@ -70,9 +71,17 @@ uint8_t enemy_in_cell(uint8_t c) NONBANKED {
 
 /* --- the changed-cell queue, drawn a few cells a frame --- */
 static uint8_t cq[64], cq_head, cq_tail; /* queue_cell (hot) stays in bank 0 */
-void cells_reset(void) BANKED { cq_head = cq_tail = 0; }
+static uint8_t carpet_ink[7]; /* one bit per deterministic 2x2 carpet patch */
+void cells_reset(void) BANKED {
+  uint8_t x,y;
+  cq_head = cq_tail = 0;
+  for(y=0u;y!=7u;y++) {
+    carpet_ink[y]=0u;
+    for(x=0u;x!=8u;x++) if(((x*3u+y*5u+(uint8_t)floor_seed)&7u)<2u) carpet_ink[y]|=look_bits[x];
+  }
+}
 static uint8_t carpet_patch(uint8_t i) NONBANKED {
-  return (uint8_t)(room.c[i]==T_EMPTY && (((EG_X(i)>>1)*3u+(EG_Y(i)>>1)*5u+(uint8_t)floor_seed)&7u)<2u);
+  return (uint8_t)(room.c[i]==T_EMPTY && (carpet_ink[EG_Y(i)>>1]&look_bits[EG_X(i)>>1]));
 }
 static void enqueue(uint8_t i) NONBANKED {
   cq[cq_head & 63u] = i;
@@ -80,6 +89,7 @@ static void enqueue(uint8_t i) NONBANKED {
   if ((uint8_t)(cq_head - cq_tail) > 64u) cq_tail = (uint8_t)(cq_head - 64u);
 }
 void queue_cell(uint8_t i) NONBANKED {
+  if(cell_type(i)==T_ROCK)floor_has_crt=1u;
   enqueue(i);
   /* A removed crate or a new gap also changes the adjoining carpet's edge. */
   if(EG_Y(i) && carpet_patch((uint8_t)(i-EG_W))) enqueue((uint8_t)(i-EG_W));
@@ -99,6 +109,24 @@ static uint8_t void_ring(uint8_t i) {
 uint8_t look_void_cell(uint8_t i) BANKED { return void_ring(i); }
 static uint8_t solid_ground(uint8_t i) { return (uint8_t)(look_here(i) && !void_ring(i)); }
 
+static const uint8_t slab_variant[256]={
+  M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,
+  M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,
+  M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,
+  M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,
+  M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,
+  M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,
+  M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,
+  M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,
+  M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,
+  M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,
+  M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,
+  M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,
+  M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,
+  M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,
+  M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,M_SLAB_C,M_SLAB_D,M_SLAB_D,M_SLAB_D,
+  M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_A,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_B,M_SLAB_C,M_SLAB_C,
+};
 static uint8_t meta_for(uint8_t i) {
   uint8_t t = cell_type(i), x = EG_X(i), y = EG_Y(i), b;
   uint8_t h = (uint8_t)(x * 7u + y * 13u + (x ^ y) + (uint8_t)floor_seed);
@@ -128,8 +156,7 @@ static uint8_t meta_for(uint8_t i) {
         if(x && carpet_patch((uint8_t)(i-1u))) b|=8u;
         return (uint8_t)(M_AUTOCARPET0+b);
       }
-      h = (uint8_t)(h % 20u); /* A 50%, B 20%, C 15%, D 15% */
-      return h < 10u ? M_SLAB_A : (h < 14u ? M_SLAB_B : (h < 17u ? M_SLAB_C : M_SLAB_D));
+      return slab_variant[h]; /* exact previous h % 20 distribution */
     case T_DIRT:
       return (h & 2u) ? M_FOAM_A : M_FOAM_B;
     case T_WALL:
@@ -155,16 +182,78 @@ static uint8_t meta_for(uint8_t i) {
 }
 uint8_t cell_meta(uint8_t i) BANKED { return meta_for(i); }
 
+static uint8_t *quad_dst;
+static const uint8_t *quad_src;
+static uint8_t quad_attr;
+/* The map always receives one 2x2 card. Two-byte row bursts fit even the
+ * shortest remaining HBlank plus mode 2; recheck STAT before each row. The
+ * caller masks interrupts only for this bounded transfer, preserving audio. */
+static void quad_write(void) NONBANKED NAKED {
+  __asm
+    ld a,#1
+    ldh (_VBK_REG),a
+    ld hl,#_quad_dst
+    ld a,(hl+)
+    ld h,(hl)
+    ld l,a
+  1$:
+    ldh a,(_STAT_REG)
+    and a,#2
+    jr nz,1$
+    ld a,(#_quad_attr)
+    ld (hl+),a
+    ld (hl),a
+    ld bc,#31
+    add hl,bc
+  2$:
+    ldh a,(_STAT_REG)
+    and a,#2
+    jr nz,2$
+    ld a,(#_quad_attr)
+    ld (hl+),a
+    ld (hl),a
+    xor a,a
+    ldh (_VBK_REG),a
+    ld hl,#_quad_src
+    ld a,(hl+)
+    ld d,(hl)
+    ld e,a
+    ld hl,#_quad_dst
+    ld a,(hl+)
+    ld h,(hl)
+    ld l,a
+  3$:
+    ldh a,(_STAT_REG)
+    and a,#2
+    jr nz,3$
+    ld a,(de)
+    inc de
+    ld (hl+),a
+    ld a,(de)
+    inc de
+    ld (hl),a
+    ld bc,#31
+    add hl,bc
+  4$:
+    ldh a,(_STAT_REG)
+    and a,#2
+    jr nz,4$
+    ld a,(de)
+    inc de
+    ld (hl+),a
+    ld a,(de)
+    ld (hl),a
+    ret
+  __endasm;
+}
 static void meta_draw(uint8_t i, uint8_t m) {
-  uint8_t a[4];
   uint8_t p = meta_pal[m];
   /* the attribute: the palette, and VRAM bank 1 unless the card lives in bank 0 (the fragile floors, the flying cards,
    * the items, the void's edges; these may be X-flipped: LOOK_META_FLIP is the attribute's own bit) */
-  a[0] = a[1] = a[2] = a[3] = (p & LOOK_META_BANK0) ? (uint8_t)(p & (7u | LOOK_META_FLIP)) : (uint8_t)(p | 0x08u);
-  VBK_REG = 1;
-  set_bkg_tiles((uint8_t)(EG_X(i) << 1), (uint8_t)(EG_Y(i) << 1), 2, 2, a);
-  VBK_REG = 0;
-  set_bkg_tiles((uint8_t)(EG_X(i) << 1), (uint8_t)(EG_Y(i) << 1), 2, 2, meta_tile[m]);
+  quad_attr=(p & LOOK_META_BANK0) ? (uint8_t)(p & (7u | LOOK_META_FLIP)) : (uint8_t)(p | 0x08u);
+  quad_dst=(uint8_t *)(0x9800u+((uint16_t)EG_Y(i)<<6)+(EG_X(i)<<1));
+  quad_src=meta_tile[m];
+  CRITICAL {quad_write();}
 }
 
 void draw_meta(uint8_t i, uint8_t m) BANKED { meta_draw(i, m); }

@@ -430,6 +430,7 @@ static void trail(uint8_t cell) {
 
 /* the next cell to walk to: toward the player (or beside them, for flankers), never into another mob's target */
 static void pick(uint8_t bit) {
+  static const int8_t neighbour[4]={-16,16,-1,1};
   uint8_t c = cell_at(ex, ey), d, best = 255u, bd = 255u, n, k, j, gx = pl_x, gy = pl_y, nx, ny, dist;
   if (Mb->status & MS_BLIND) { gx=(uint8_t)(eg_rnd()&0xf0u); gy=(uint8_t)(eg_rnd()&0xb0u); }
   if (Mb->ax.beh == MH_FLANK) { /* aim beside the player, on the side it already is */
@@ -438,7 +439,7 @@ static void pick(uint8_t bit) {
   }
   for (k = 0; k != 4u; k++) {
     d = (uint8_t)((k + (eg_rnd() & 3u)) & 3u);
-    n = (uint8_t)(c + (int8_t)(fdy[d] * 16 + fdx[d]));
+    n = (uint8_t)(c + neighbour[d]);
     if (!(cell_ok[cell_type(n)] & bit)) continue;
     nx = (uint8_t)(EG_X(n) * 16u + 8u);
     ny = (uint8_t)(EG_Y(n) * 16u + 8u);
@@ -457,7 +458,7 @@ static void pick(uint8_t bit) {
     E->ty = (uint8_t)(EG_Y(c) * 16u + 8u);
     return;
   }
-  n = (uint8_t)(c + (int8_t)(fdy[best] * 16 + fdx[best]));
+  n = (uint8_t)(c + neighbour[best]);
   E->tx = (uint8_t)(EG_X(n) * 16u + 8u);
   E->ty = (uint8_t)(EG_Y(n) * 16u + 8u);
   if (Mb->ax.def == MD_ARMOR) /* the clipboard turns to the player */

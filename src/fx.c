@@ -31,20 +31,23 @@ void fx_reset(void) BANKED {
 
 void fx_burst(uint8_t x, uint8_t y, uint8_t kind, uint8_t n) BANKED {
   fx_t *p;
+  uint8_t life,tile,pal,v;
   if (kind >= FX_COUNT) kind = FX_HIT;
+  life=fx_life[kind];tile=(uint8_t)(MOB_FX_TILE+fx_shape[kind]*2u);pal=fx_pal[kind];
   while (n--) {
     p = &fx[fx_next];
     fx_next = (uint8_t)((fx_next + 1u) & (FXN - 1u));
-    p->t = fx_life[kind];
-    p->tile = (uint8_t)(MOB_FX_TILE + fx_shape[kind] * 2u);
-    p->pal = fx_pal[kind];
+    p->t = life;
+    p->tile = tile;
+    p->pal = pal;
     p->x = x;
     p->y = y;
     if (kind == FX_HIT) {
       p->vx = p->vy = 0;
     } else {
-      p->vx = fx_vx[(uint8_t)(n + fx_next) & 3u];
-      p->vy = fx_vy[(uint8_t)(n + fx_next) & 3u];
+      v=(uint8_t)(n+fx_next)&3u;
+      p->vx = fx_vx[v];
+      p->vy = fx_vy[v];
       if (kind == FX_WET || kind == FX_KILL) p->vy = (int8_t)(-p->vy >> 1);
     }
   }
@@ -54,7 +57,7 @@ void fx_burst(uint8_t x, uint8_t y, uint8_t kind, uint8_t n) BANKED {
  * of a frame counter: cheap and good enough for sparks) */
 void fx_draw(void) BANKED {
   fx_t *p = fx;
-  uint8_t i;
+  uint8_t i,quota=(uint8_t)(LY_REG>=88u && LY_REG<144u ? 1u : FXN);
   for (i = FXN; i; i--, p++) {
     if (!p->t) continue;
     p->t--;
@@ -63,6 +66,9 @@ void fx_draw(void) BANKED {
       p->y = (uint8_t)(p->y + (p->vy >> 3));
       p->vy = (int8_t)(p->vy + 2);
     }
-    oam_group((int16_t)p->x - 8 - cam_x, (int16_t)p->y - 8 - cam_y, 1u, p->tile, 0, p->pal);
+    if(quota && !(LY_REG>=118u && LY_REG<144u)) {
+      oam_group((int16_t)p->x - 8 - cam_x, (int16_t)p->y - 8 - cam_y, 1u, p->tile, 0, p->pal);
+      quota--;
+    }
   }
 }

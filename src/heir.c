@@ -232,15 +232,29 @@ uint8_t heir_draw(uint8_t oam, int16_t sx, int16_t sy) BANKED {
     d_flash = ha_fr.flash;
     d_sel = buf_sel;
     pal = d_flash == HEIR_FLASH_WHITE ? 6u : (d_flash == HEIR_FLASH_RED ? 7u : 0xffu);
-    e = d_ent;
-    d_n = 0;
-    for (s = 0; s != 4u; s++) {
-      if (!(spr_mask & (1u << s))) continue;
-      *e++ = s < 2u ? 1u : 6u;
-      *e++ = (uint8_t)(((s & 1u) ^ flip) << 3);
-      *e++ = (uint8_t)((buf_sel << 3) + (s << 1));
-      *e++ = (uint8_t)((pal != 0xffu ? pal : (s < 2u ? 0u : 1u)) | (flip ? S_FLIPX : 0u));
-      d_n++;
+    if(spr_mask==15u) {
+      /* All four layers are present in ordinary poses. Fixed stores avoid a
+       * variable mask shift and stack-spilled pointer loop on every new pose. */
+      d_n=4u;
+      d_ent[0]=d_ent[4]=1u;d_ent[8]=d_ent[12]=6u;
+      d_ent[1]=d_ent[9]=flip ? 8u : 0u;
+      d_ent[5]=d_ent[13]=flip ? 0u : 8u;
+      n=(uint8_t)(buf_sel<<3);
+      d_ent[2]=n;d_ent[6]=(uint8_t)(n+2u);d_ent[10]=(uint8_t)(n+4u);d_ent[14]=(uint8_t)(n+6u);
+      n=flip ? S_FLIPX : 0u;
+      d_ent[3]=d_ent[7]=(uint8_t)((pal==0xffu ? 0u : pal)|n);
+      d_ent[11]=d_ent[15]=(uint8_t)((pal==0xffu ? 1u : pal)|n);
+    } else {
+      e = d_ent;
+      d_n = 0;
+      for (s = 0; s != 4u; s++) {
+        if (!(spr_mask & (1u << s))) continue;
+        *e++ = s < 2u ? 1u : 6u;
+        *e++ = (uint8_t)(((s & 1u) ^ flip) << 3);
+        *e++ = (uint8_t)((buf_sel << 3) + (s << 1));
+        *e++ = (uint8_t)((pal != 0xffu ? pal : (s < 2u ? 0u : 1u)) | (flip ? S_FLIPX : 0u));
+        d_n++;
+      }
     }
   }
   n = d_n;

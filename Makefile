@@ -246,6 +246,33 @@ build/run-check/run.gbc: build/run-check/test.o build/run-check/plan.o build/cac
 test-native-run-stream: build/host/run_stream_dump build/run-check/run.gbc
 	$(PY) tools/test_run_stream.py $^
 
+build/host/move_stream_dump: host/move_stream_dump.c test/native/move_cases.h src/core/eg_move.c src/core/eg_move.h
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc -o $@ host/move_stream_dump.c src/core/eg_move.c
+
+build/move-check/test.o: test/native/move_stream.c test/native/move_cases.h src/core/eg_move.h
+	@mkdir -p $(dir $@)
+	$(LCC) $(CFLAGS) -o $@ $<
+
+build/move-check/move.gbc: build/move-check/test.o build/obj/core/eg_move.o
+	$(LCC) $(LDFLAGS) -Wm-yt0x1B -o $@ $^
+
+test-native-move: build/host/move_stream_dump build/move-check/move.gbc
+	$(PY) tools/test_move_stream.py $^
+
+test-camera: all
+	$(PY) test/harness/camera_tiles.py build/egress.gbc build/camera-check/mbc5
+	$(PY) test/harness/camera_tiles.py build/egress-rtc.gbc build/camera-check/mbc3
+	$(PY) test/harness/camera_combat.py build/egress.gbc build/camera-check/combat-mbc5
+	$(PY) test/harness/camera_combat.py build/egress-rtc.gbc build/camera-check/combat-mbc3
+
+build/host/test_gen_fingerprint: host/test_gen_fingerprint.c $(ROOM_SRC) $(ROOM_HDR) src/gen/eg_seeds.c
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc/core -o $@ host/test_gen_fingerprint.c $(ROOM_SRC) src/gen/eg_seeds.c
+
+test-gen-fingerprint: build/host/test_gen_fingerprint
+	$<
+
 test-curriculum: build/host/test_curriculum
 	build/host/test_curriculum
 
@@ -401,7 +428,7 @@ test-rtc: build/host/test_clock build/egress.gbc build/egress-rtc.gbc
 	$(PY) tools/mapper_audit.py build/linked-mbc5.map build/linked-mbc3.map
 	$(PY) test/rtc_test.py build/egress.gbc build/egress-rtc.gbc
 
-test: build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-physics test-island-edges test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-runtime test-run-stream test-native-run-stream
+test: build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-physics test-island-edges test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-runtime test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera
 	build/host/test_obst
 	build/host/test_room src/gen/eg_seeds.c
 	build/host/egplan check 1000
@@ -417,3 +444,4 @@ clean:
 	rm -rf build
 
 .PHONY: rom all rtc test test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-fs-proto test-physics test-island-edges test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-narrator test-journal test-runtime-core test-runtime test-wram-cache shots clean seeds heir
+.PHONY: test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera

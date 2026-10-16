@@ -54,7 +54,7 @@ void frame_wait(void) {
   vsync();
   frame_epoch=video_epoch;
   frame_count++;
-  if (!((uint8_t)frame_count & 63u)) clock_poll(); /* the clock counts VBlanks; any gap up to 18 minutes is exact */
+  if (((uint8_t)frame_count & 63u)==32u) clock_poll(); /* stagger with narration; elapsed VBlanks remain exact */
 }
 
 static uint16_t scale(uint16_t c, uint8_t level) {

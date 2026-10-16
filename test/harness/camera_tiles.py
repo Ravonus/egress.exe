@@ -44,12 +44,19 @@ def run(rom,out,measure=False):
     r['collected_item_does_not_respawn']=g.room()[pickup]==0 and pocket(g)==bag
     r['board_mutations_survive_backtracking']=bytes(g.room()[:224])==board
     r['moved_crate_stays_moved']=g.room()[crate]==0 and g.room()[crate+1]==21
-    assert walk(g,200,log);g.hold({'right'});g.tick(2);g.hold(set());g.tick(22)
+    # Two-axis camera travel and an immediate reversal, through ordinary input.
+    assert walk(g,181,log);x0,y0=g.player()
+    g.hold({'up','right'});g.tick(32);x1,y1=g.player()
+    g.hold({'down','left'});g.tick(24);x2,y2=g.player();g.hold(set());g.tick(20)
+    r['real_diagonal_travel_and_reversal']=x1-x0>16 and y0-y1>16 and x1-x2>16 and y2-y1>16
+    assert walk(g,200,log)
+    reversal_board=bytes(g.room()[:224]);reversal_bag=pocket(g)
+    g.hold({'right'});g.tick(2);g.hold(set());g.tick(22)
     g.hold({'right'});g.tick(2);g.hold(set());g.tick(2);g.hold({'right'});g.tick(12)
     g.hold({'left'});g.tick(10);g.hold(set());g.tick(2);g.hold({'left'});g.tick(12)
     g.hold(set());g.tick(80)
     r['real_directional_evade_used']=1 in moves
-    r['fast_reversal_keeps_mutations']=bytes(g.room()[:224])==board and pocket(g)==bag
+    r['fast_reversal_keeps_mutations']=bytes(g.room()[:224])==reversal_board and pocket(g)==reversal_bag
     r['floor_under_feet_stays_present']=not missing
     r['complete_body_retained']=not body_missing
     r['sprite_line_budget']=meter.over==0

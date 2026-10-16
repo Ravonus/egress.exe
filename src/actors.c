@@ -293,8 +293,8 @@ void enemies_update(void) BANKED {
 void orbs_update(void) BANKED {
   uint8_t k, j, ox, oy, t;
   uint16_t x,y;
-  for (k = 0; k != MAXO; k++) {
-    orb_t *o = &orbs[k];
+  orb_t *o=orbs;
+  for (k = 0; k != MAXO; k++,o++) {
     if (!o->live) continue;
     x = (uint16_t)(o->x + o->vx);
     y = (uint16_t)(o->y + o->vy);
@@ -314,9 +314,10 @@ void orbs_update(void) BANKED {
       continue;
     }
     if (o->friendly) {
-      for (j = 0; j != nen; j++) {
-        uint8_t r = en[j].kind == SPAWN_BOSS ? 16u : 9u;
-        if (en[j].st != ES_DEAD && overlap(ox, oy, (uint8_t)(en[j].x >> 4), (uint8_t)(en[j].y >> 4), r, r)) {
+      enemy_t *e=en;
+      for (j = 0; j != nen; j++,e++) {
+        uint8_t r = e->kind == SPAWN_BOSS ? 16u : 9u;
+        if (e->st != ES_DEAD && overlap(ox, oy, (uint8_t)(e->x >> 4), (uint8_t)(e->y >> 4), r, r)) {
           o->live = 0;
           hit_src = HS_ORB; /* B2: a returned orb, and whose it was */
           hit_orb_from = (uint8_t)(o->pad - 1u);
@@ -335,6 +336,10 @@ void orbs_update(void) BANKED {
 /* after a gravity step: a falling CRT in an enemy's cell crushes it (the boss: it takes a heavy hit) */
 void actors_crush(void) BANKED {
   uint8_t k, c, x, y;
+  /* Stage mobs already resolve standing inside any CRT in mobs_update. Only
+   * this step's newly falling load can reach another one afterward. Bosses
+   * retain their separate multi-cell geometry check. */
+  if(!board_busy && !boss_floor) return;
   for (k = 0; k != nen; k++) {
     enemy_t *e = &en[k];
     if (e->st == ES_DEAD) continue;

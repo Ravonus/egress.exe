@@ -25,16 +25,57 @@ void eg_stamina_tick(eg_stamina *s,uint8_t busy) EG_BANKED {
   if(s->wait) {s->wait--;return;}
   if(s->value<s->cap && ++s->pulse==4u) {s->pulse=0u;s->value=(uint8_t)(s->cap-s->value<2u ? s->cap : s->value+2u);}
 }
+#if defined(__SDCC) && defined(__PORT_sm83)
+static uint8_t meter_div5(uint16_t amount,uint16_t denom) __naked {
+  amount;denom;
+  __asm
+    ld h,#16
+    ld l,#0
+  1$:
+    ld a,d
+    cp a,b
+    jr c,3$
+    jr nz,2$
+    ld a,e
+    cp a,c
+    jr c,3$
+  2$:
+    ld a,e
+    sub a,c
+    ld e,a
+    ld a,d
+    sbc a,b
+    ld d,a
+    ld a,l
+    or a,h
+    ld l,a
+  3$:
+    srl b
+    rr c
+    srl h
+    jr nz,1$
+    ld a,l
+    ret
+  __endasm;
+}
+#endif
 uint8_t eg_stamina_meter(uint8_t value,uint8_t cap,uint8_t units) EG_BANKED {
-  uint16_t amount,denom;uint8_t bit=16u,result=0u;
+  uint16_t amount,denom;
   if(units>24u) units=24u;
   if(!cap || value>=cap) return units;
   if(!value) return 0u;
   amount=(uint16_t)value*units;denom=(uint16_t)cap<<4;
+#if defined(__SDCC) && defined(__PORT_sm83)
+  return meter_div5(amount,denom);
+#else
+  {
+  uint8_t bit=16u,result=0u;
   /* The quotient fits five bits; the library divide always processes sixteen. */
   do {
     if(amount>=denom) {amount-=denom;result|=bit;}
     denom>>=1;bit>>=1;
   } while(bit);
   return result;
+  }
+#endif
 }
