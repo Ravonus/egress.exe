@@ -221,6 +221,31 @@ build/host/test_curriculum: host/test_curriculum.c src/core/eg_family.c src/core
 	@mkdir -p $(dir $@)
 	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_curriculum.c src/core/eg_family.c src/core/eg_plan.c src/core/eg_stage.c src/core/eg_room.c src/gen/eg_seeds.c
 
+build/host/test_run_stream: host/test_run_stream.c src/core/eg_plan.c src/core/eg_stage.c src/core/eg_room.c src/gen/eg_seeds.c $(HDRS)
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc/core -o $@ host/test_run_stream.c src/core/eg_plan.c src/core/eg_stage.c src/core/eg_room.c src/gen/eg_seeds.c
+
+test-run-stream: build/host/test_run_stream
+	$<
+
+build/host/run_stream_dump: host/run_stream_dump.c test/native/run_cases.h src/core/eg_plan.c src/core/eg_stage.c src/core/eg_room.c src/gen/eg_seeds.c $(HDRS)
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc -o $@ host/run_stream_dump.c src/core/eg_plan.c src/core/eg_stage.c src/core/eg_room.c src/gen/eg_seeds.c
+
+build/run-check/test.o: test/native/run_stream.c test/native/run_cases.h $(HDRS)
+	@mkdir -p $(dir $@)
+	$(LCC) $(CFLAGS) -o $@ $<
+
+build/run-check/plan.o: src/core/eg_plan.c $(HDRS)
+	@mkdir -p $(dir $@)
+	$(LCC) $(CFLAGS) -DEG_FULL_RUN -o $@ $<
+
+build/run-check/run.gbc: build/run-check/test.o build/run-check/plan.o build/cache-check/cache.o build/obj/core/eg_stage.o build/obj/core/eg_room.o build/obj/core/eg_piece.o build/obj/gen/eg_seeds.o
+	$(LCC) $(LDFLAGS) -Wm-yt0x1B -o $@ $^
+
+test-native-run-stream: build/host/run_stream_dump build/run-check/run.gbc
+	$(PY) tools/test_run_stream.py $^
+
 test-curriculum: build/host/test_curriculum
 	build/host/test_curriculum
 
@@ -376,7 +401,7 @@ test-rtc: build/host/test_clock build/egress.gbc build/egress-rtc.gbc
 	$(PY) tools/mapper_audit.py build/linked-mbc5.map build/linked-mbc3.map
 	$(PY) test/rtc_test.py build/egress.gbc build/egress-rtc.gbc
 
-test: build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-physics test-island-edges test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-runtime
+test: build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-physics test-island-edges test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-runtime test-run-stream test-native-run-stream
 	build/host/test_obst
 	build/host/test_room src/gen/eg_seeds.c
 	build/host/egplan check 1000

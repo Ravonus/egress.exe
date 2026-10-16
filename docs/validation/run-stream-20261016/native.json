@@ -1,0 +1,130 @@
+{
+  "rom": "build/run-check/run.gbc",
+  "sha256": "51cbc0604940a93fe58fd2bc5a8f680b14d65aa559a26dacfc1c14be98fdd613",
+  "frames": 449,
+  "bytes": 11136,
+  "native_host_exact": true,
+  "bank_one_canaries": true,
+  "cases": [
+    {
+      "case": 0,
+      "slots": 59,
+      "floors": 52
+    },
+    {
+      "case": 1,
+      "slots": 50,
+      "floors": 44
+    },
+    {
+      "case": 2,
+      "slots": 46,
+      "floors": 41
+    },
+    {
+      "case": 3,
+      "slots": 38,
+      "floors": 34
+    },
+    {
+      "case": 4,
+      "slots": 31,
+      "floors": 28
+    },
+    {
+      "case": 5,
+      "slots": 7,
+      "floors": 6
+    },
+    {
+      "case": 6,
+      "slots": 16,
+      "floors": 15
+    },
+    {
+      "case": 7,
+      "slots": 59,
+      "floors": 52
+    },
+    {
+      "case": 8,
+      "slots": 55,
+      "floors": 49
+    },
+    {
+      "case": 9,
+      "slots": 44,
+      "floors": 39
+    },
+    {
+      "case": 10,
+      "slots": 6,
+      "floors": 6
+    },
+    {
+      "case": 11,
+      "slots": 31,
+      "floors": 28
+    },
+    {
+      "case": 12,
+      "slots": 24,
+      "floors": 22
+    },
+    {
+      "case": 13,
+      "slots": 15,
+      "floors": 14
+    },
+    {
+      "case": 14,
+      "slots": 61,
+      "floors": 54
+    },
+    {
+      "case": 15,
+      "slots": 7,
+      "floors": 6
+    },
+    {
+      "case": 16,
+      "slots": 45,
+      "floors": 40
+    },
+    {
+      "case": 17,
+      "slots": 39,
+      "floors": 35
+    },
+    {
+      "case": 18,
+      "slots": 30,
+      "floors": 27
+    },
+    {
+      "case": 19,
+      "slots": 23,
+      "floors": 21
+    },
+    {
+      "case": 20,
+      "slots": 6,
+      "floors": 6
+    },
+    {
+      "case": 21,
+      "slots": 60,
+      "floors": 53
+    },
+    {
+      "case": 22,
+      "slots": 52,
+      "floors": 46
+    },
+    {
+      "case": 23,
+      "slots": 44,
+      "floors": 39
+    }
+  ]
+}

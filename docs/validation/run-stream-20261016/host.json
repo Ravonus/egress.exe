@@ -1,0 +1,8 @@
+{
+  "layouts": 2048,
+  "legacy_digest": "36f811762b4adee7",
+  "stream_matches_full_constructor": true,
+  "world_and_scratch_bytes": 52,
+  "invalid_input_rejected": true,
+  "canary_bytes_each_side": 32
+}

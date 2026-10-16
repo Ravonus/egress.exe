@@ -3,6 +3,7 @@
 #pragma bank 255
 #endif
 #include "eg_plan.h"
+#include <string.h>
 #include "eg_stage.h" /* B2: the deck */
 
 const uint8_t eg_plan_order[MK_SLICE_COUNT - 2u] = {MK_SHORT, MK_COLD, MK_WEIGHT, MK_GLASS, MK_STEPS, MK_RHYTHM, MK_BURN,
@@ -188,7 +189,7 @@ static const uint8_t home[MK_ALL] = {BI_OFFICE, BI_OFFICE, BI_OFFICE, BI_ATRIUM,
 
 static uint8_t mix3(uint16_t a, uint16_t b, uint16_t c) { return mix8((uint16_t)(a ^ (uint16_t)(c * 0x2545u)), b); }
 
-void eg_run_world(eg_run *r, uint16_t cycle_seed, uint8_t cycle) EG_BANKED {
+static void run_world(eg_world *r,uint16_t cycle_seed,uint8_t cycle) {
   uint8_t p, k, j, t, b, pool[BI_COUNT];
   /* the first biome is the office or the vents, the glitch core is last, every biome once */
   r->order[0] = (cycle_seed & 1u) ? BI_VENTS : BI_OFFICE;
@@ -231,7 +232,10 @@ static uint8_t clamp15(int16_t v) { return v < 0 ? 0u : v > 15 ? 15u : (uint8_t)
 
 typedef struct {
   const eg_run_in *in;
-  eg_run *r;
+  eg_world *r;
+  eg_slot *slots;
+  eg_run_sink sink;
+  void *context;
   uint32_t intro, devel;  /* introduced and developed: the line's, plus this run's */
   uint8_t pend;           /* introduced last stage slot, developed next (255: none) */
   uint8_t prev_type, prev_rare, prev_lvl, rare_biome, sky_left, floor;
@@ -288,7 +292,10 @@ static uint8_t pick_set(bstate *b, uint8_t p, uint8_t biome, uint8_t want, uint8
 }
 
 static eg_slot *add(bstate *b, uint8_t kind, uint8_t biome, uint8_t p) {
-  eg_slot *s = &b->r->s[b->r->n++];
+  eg_slot *s;
+  if(b->sink && b->r->n) b->sink((uint8_t)(b->r->n-1u),b->slots,b->context);
+  s=&b->slots[b->sink ? 0u : b->r->n];
+  b->r->n++;
   s->kind = kind;
   s->stype = SG_PUZZLE;
   s->cstage = ST_COMBINE;
@@ -423,14 +430,15 @@ static void biome_block(bstate *b, uint8_t p, uint8_t biome, uint8_t S, int16_t 
   s->target = s->floor_min = clamp15(base + b->press + 3);
 }
 
-void eg_run_build(eg_run *r, const eg_run_in *in) EG_BANKED {
+static void run_build(eg_world *r,eg_slot *slots,const eg_run_in *in,eg_run_sink sink,void *context) {
   bstate b;
   uint8_t p, q;
   eg_slot *s;
-  eg_run_world(r, in->cycle_seed, in->cycle);
+  run_world(r,in->cycle_seed,in->cycle);
   r->n = r->floors = 0u;
   b.in = in;
   b.r = r;
+  b.slots=slots;b.sink=sink;b.context=context;
   b.intro = in->seen | MK_BASIC;
   b.devel = (in->developed & in->seen) | MK_BASIC;
   b.pend = 255u;
@@ -453,6 +461,7 @@ void eg_run_build(eg_run *r, const eg_run_in *in) EG_BANKED {
     b.floor = (uint8_t)(in->stratum * 6u);
     biome_block(&b, BI_COUNT - 1u, bi, 5u, (int16_t)(12 + (in->stratum >> 1)) - b.press, 1u);
     if (in->stratum & 1u) add(&b, SK_LANDING, bi, BI_COUNT - 1u);
+    if(sink && r->n) sink((uint8_t)(r->n-1u),slots,context);
     return;
   }
   /* a shortcut door: the line has met everything behind it; the floor numbers stay the full run's */
@@ -475,5 +484,25 @@ void eg_run_build(eg_run *r, const eg_run_in *in) EG_BANKED {
   s = add(&b, SK_EGRESS, BI_CORE, BI_COUNT - 1u);
   s->stype = SG_PUZZLE;
   s->target = s->floor_min = 0u; /* the egress asks its question; there is nothing left to solve */
+  if(sink && r->n) sink((uint8_t)(r->n-1u),slots,context);
+}
+void eg_run_world(eg_run *r,uint16_t seed,uint8_t cycle) EG_BANKED {
+  eg_world world;
+  run_world(&world,seed,cycle);
+  memcpy(r->order,world.order,sizeof world.order);
+  memcpy(r->stages,world.stages,sizeof world.stages);
+  memcpy(r->band,world.band,sizeof world.band);
+}
+void eg_run_build(eg_run *r,const eg_run_in *in) EG_BANKED {
+  eg_world world;
+  run_build(&world,r->s,in,0,0);
+  memcpy(r,&world,sizeof world);
+}
+uint8_t eg_run_stream(eg_world *world,eg_slot *scratch,const eg_run_in *in,
+                      eg_run_sink sink,void *context) EG_BANKED {
+  if(!world || !scratch || !in || !sink || in->mode>RM_DESCENT ||
+     (in->mode==RM_STORY && in->door>=BI_COUNT)) return 0u;
+  run_build(world,scratch,in,sink,context);
+  return world->n;
 }
 #endif /* EG_FULL_RUN */

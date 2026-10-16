@@ -92,6 +92,11 @@ Still required: connected larger stages with camera-driven assembly/backtracking
 graphs, the full native run/biomes/boss roster, complete tree/stats, adaptive music, first-person stages and cycles.
 The tested 8 KiB WRAM cache is a standalone prerequisite; it is not yet a larger playable stage.
 
+The full-run constructor can now stream into that cache with a 40-byte world header and one 12-byte scratch slot.
+It matches 2,048 legacy layouts on the host and 24 actual native constructions byte for byte, including the first
+52-floor run, shortcuts, cycles and descent, within the game's stack canary. See `validation/run-stream-20261016/`.
+The playable full-run integration and its content are still required.
+
 The feedback milestone was merged, pushed and published. Both public ROM downloads and the live browser's native
 save migration were read back and verified; see `validation/feedback-20261015/site-release.json`. The physical
 Chromatic has not been tested.
