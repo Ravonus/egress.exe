@@ -1,4 +1,4 @@
-/* Player movement and attacks. A tap/hold = primary/charge, B tap/hold = secondary/repeat.
+/* Player movement and attacks. A tap/hold = primary/charge, B tap/hold = shot/secondary charge.
  * Directional double taps evade relative to the pre-tap aim; holding a direction runs.
  * A>B counters, B>A rushes. The shared resolver in core/eg_input owns those decisions. */
 #pragma bank 255
@@ -13,6 +13,11 @@
 #include "core/eg_move.h"
 #include "puzzle.h"
 #include "family.h"
+#include "resume.h"
+#include "run.h"
+#include "narrator.h"
+#include "stamina.h"
+#include "tutorial.h"
 
 uint8_t pl_x, pl_y, pl_hp, pl_hp_max, pl_state, pl_face;
 uint8_t pl_t, pl_inv, pl_combo, pl_queue, pl_charge, roll_cd, push_t, hit_mask, walk_t, combo_gap;
@@ -31,6 +36,12 @@ static uint8_t __at(0xD940) pmap[256];
 static uint8_t map_door = 0xffu;
 static eg_grid_t pg; /* WRAM: eg_move (banked) reads it; set in player_floor_start */
 static uint8_t dodge_dp, ov_state, ov_t, fight_t, moved_last, last_face;
+int8_t __at(0xDB9A) pl_z;
+uint8_t __at(0xDB9B) pl_air;
+static uint8_t __at(0xDB9C) air_void;
+static uint8_t __at(0xDB9D) fall_safe;
+static const uint8_t jump_z[20]={0,3,5,7,9,10,11,12,12,12,11,10,9,7,5,3,1,0,0,0};
+static void overlay(uint8_t st,uint8_t t);
 
 /* 8-way facing (EG_FACE_*: N NE E SE S SW W NW) as vectors and d-pad bits */
 static const int8_t f8x[8] = {0, 1, 1, 1, 0, -1, -1, -1}, f8y[8] = {-1, -1, 0, 1, 1, 1, 0, -1};
@@ -68,7 +79,7 @@ static void grid_map(void) {
         : t == T_ROCK ? ((c & F_FALL) ? EG_C_WALL : EG_C_BLOCK)
         : EG_CRATE(t) ? EG_C_BLOCK
         : t == T_DOOR ? (door_open ? EG_C_FREE : EG_C_WALL)
-        : EG_PASSABLE(t) ? EG_C_FREE : EG_C_WALL;
+        : (EG_PASSABLE(t) || t==T_PIT) ? EG_C_FREE : EG_C_WALL;
     pmap[c] = v;
   } while (++c);
 }
@@ -77,12 +88,12 @@ static void door_map(void) { /* the door opened or closed: only door bytes chang
   map_door = door_open;
   do {
     pmap[c] = door_open ? EG_C_FREE : EG_C_WALL;
-    c += 0x10u;
+    c += 0x20u; /* five type bits: 0x10 would also overwrite worn carpet (type 23) */
   } while (c != T_DOOR);
 }
 
 void player_hurt(uint8_t n, uint8_t fromx, uint8_t fromy) BANKED {
-  if (pl_inv || pl_state == PS_EXIT || !pl_hp || pl_iframe) return;
+  if (pl_inv || pl_state == PS_EXIT || pl_state==PS_FALL || !pl_hp || pl_iframe) return;
   if (pin.flags & EG_FL_GUARD) { /* the parry's guard takes it */
     sfx(SFX_DENY);
     freeze = 2u;
@@ -97,6 +108,7 @@ void player_hurt(uint8_t n, uint8_t fromx, uint8_t fromy) BANKED {
   pl_charge = 0;
   pl_arc = 0;
   fight_t = 180u;
+  pl_air=0u;pl_z=0;
   kb_dx = fromx < pl_x ? 1 : (fromx > pl_x ? -1 : 0);
   kb_dy = fromy < pl_y ? 1 : (fromy > pl_y ? -1 : 0);
   freeze = 4u;
@@ -105,6 +117,34 @@ void player_hurt(uint8_t n, uint8_t fromx, uint8_t fromy) BANKED {
   hud_dirty = 1;
   heir_idle_stop();
   heir_play(pl_hp ? HA_HURT : HA_DEATH, 1);
+  narrator_event(NE_HURT,0u);
+  if(!pl_hp) run_record_end(0u);
+  else if(!dbg_god) {if(pl_hp<=2u) narrator_event(NE_CLOSE,0u);resume_damage();}
+}
+
+/* A void fall ignores dodge/guard immunity. Charge once, animate down into the void,
+ * then restore the last firm tile; power-off retains the already-paid damage. */
+void player_fall(uint8_t safe) BANKED {
+  if(pl_state==PS_FALL || pl_state==PS_EXIT || !pl_hp) return;
+  pl_inv=pl_iframe=0u;pin.flags=0u;pl_air=0u;pl_z=0;fall_safe=safe;
+  player_hurt(1u,pl_x,pl_y);
+  pl_state=PS_FALL;pl_t=0u;freeze=0u;pl_arc=pl_charge=0u;air_void=0u;
+  narrator_event(NE_FALL,0u);
+}
+
+static void fall_tick(void) {
+  if(pl_t<30u) {
+    pl_t++;
+    pl_z=(int8_t)-(int8_t)(pl_t+(pl_t>>1));
+    return;
+  }
+  if(!pl_hp) return;
+  psx=cell_sub(EG_X(fall_safe));psy=cell_sub(EG_Y(fall_safe));
+  pl_x=(uint8_t)(psx>>4);pl_y=(uint8_t)(psy>>4);pl_z=0;
+  pl_state=PS_FREE;pl_inv=60u;
+  eg_input_init(&pin,heir.dodge);pin.weapon=heir.weapon;
+  overlay(HA_SPAWN,20u);
+  heir_play(HA_SPAWN,1u);
 }
 
 void open_door(void) BANKED {
@@ -167,7 +207,11 @@ static void do_push(void) {
   queue_cell(beyond);
   if (crate && cell_type(beyond) == T_PIT) obstacle_noise(beyond);
   sfx(SFX_PUSH);
+  overlay(HA_PUSH,12u);
+  puff((uint8_t)(EG_X(c)*16u+5u),(uint8_t)(EG_Y(c)*16u+14u),2u,ST_PUFF);
+  puff((uint8_t)(EG_X(c)*16u+11u),(uint8_t)(EG_Y(c)*16u+14u),2u,ST_PUFF);
   if (acts.pushes != 255u) acts.pushes++;
+  narrator_event(NE_PUSH,crate);
   grav_t = 1u; /* let it drop promptly if nothing holds it */
 }
 
@@ -193,7 +237,8 @@ static void mstep(uint8_t dpad, uint8_t speed, uint8_t synth) {
   pl_x = (uint8_t)(psx >> 4);
   pl_y = (uint8_t)(psy >> 4);
   push_t = pmv.push_t;
-  collect();
+  if(push_t==1u) tutorial_queue(TE_PUSH);
+  if(!pl_air) collect();
 }
 
 static void break_brick(uint8_t i, uint8_t force) {
@@ -209,11 +254,13 @@ static void break_brick(uint8_t i, uint8_t force) {
   queue_cell(i);
   sfx(SFX_BREAK);
   if (acts.breaks != 255u) acts.breaks++;
+  narrator_event(NE_BREAK,0u);
   puff((uint8_t)(EG_X(i) * 16u + 8u), (uint8_t)(EG_Y(i) * 16u + 8u), 4, ST_PUFF);
   grav_t = 1u;
 }
 
 static void deflect(orb_t *o, uint8_t perfect) {
+  if(perfect) narrator_event(NE_PARRY,0u);
   o->friendly = 1;
   o->vx = (int8_t)(-o->vx - (o->vx >> 1));
   o->vy = (int8_t)(-o->vy - (o->vy >> 1));
@@ -231,7 +278,7 @@ static void deflect(orb_t *o, uint8_t perfect) {
 /* B2: what the next enemy_hit came from (src/mob.h hit_src) */
 static void hit_from_move(uint8_t spin) {
   static const uint8_t src[EG_MV_COUNT] = {HS_FUSE, HS_FUSE, HS_FUSE, HS_FUSE, HS_LUNGE, HS_HIT1,
-                                           HS_HIT2, HS_HIT3, HS_CHARGED, HS_CHARGED, HS_PARRY, HS_ORB, HS_HIT1};
+                                           HS_HIT2, HS_HIT3, HS_CHARGED, HS_CHARGED, HS_PARRY, HS_ORB, HS_HIT1, HS_CHARGED};
   hit_src = spin && pin.move == EG_MV_CHARGED ? HS_SPIN : src[pin.move];
   hit_tags = 0;
 }
@@ -309,7 +356,9 @@ static void spin_bricks(void) {
 }
 
 static uint8_t front_cell(void) {
-  return cell_at((uint8_t)(pl_x + fdx[pl_face] * 12), (uint8_t)(pl_y + fdy[pl_face] * 12));
+  int16_t x=(int16_t)pl_x+f8x[pmv.facing]*12,y=(int16_t)pl_y+f8y[pmv.facing]*12;
+  if((uint16_t)x>=256u || (uint16_t)y>=224u) return cell_at(pl_x,pl_y);
+  return cell_at((uint8_t)x,(uint8_t)y);
 }
 
 /* d-pad bits as the mover would resolve them (opposites cancel; 4-way: the newest held press) */
@@ -327,6 +376,10 @@ static uint8_t dpad_now(void) {
 static uint8_t walk_speed(void) { return (uint8_t)(((heir.traits & HT_HEAVY) ? 18u : 20u) + family_stat[G_PACE]); }
 
 static void on_start(uint8_t mv) {
+  if(mv==EG_MV_HIT1) tutorial_queue(TE_A);
+  else if(mv==EG_MV_BCHARGE) tutorial_queue(TE_B);
+  else if(mv==EG_MV_DODGE) tutorial_queue(TE_EVADE);
+  if((mv>=EG_MV_HIT1 && mv<=EG_MV_HIT3) || mv==EG_MV_SHOT || mv==EG_MV_CHARGED) narrator_event(NE_ATTACK,mv);
   uint8_t d = dpad_now();
   pl_arc = 0;
   hit_mask = 0;
@@ -346,10 +399,11 @@ static void on_start(uint8_t mv) {
                                                                                             : HA_DODGE_ROLL)), 1);
       break;
     case EG_MV_SHOT:
-    case EG_MV_BURST:
+    case EG_MV_BPOWER:
       if(d) pmv.facing=face_of_dp(d);
       heir_play(HA_ATTACK,1u);
       break;
+    case EG_MV_BCHARGE: heir_play(HA_CHARGE,1u);break;
     case EG_MV_SPRINT: heir_play(HA_SPRINT, 1); break;
     case EG_MV_SKID: heir_play(HA_SKID, 1); break;
     case EG_MV_LUNGE:
@@ -400,16 +454,17 @@ static uint8_t dodge_speed(void) {
   return ph == EG_PH_ACTIVE ? 44u : (ph == EG_PH_STARTUP ? 24u : 16u);
 }
 
-static void secondary(void) {
+static void secondary(uint8_t level) {
   uint8_t k;
   if(heir.weapon==1u || heir.weapon==3u) {
-    hit_mask=0u;strike(1u,1u);pl_arc=2u;
+    hit_mask=0u;strike(1u,level ? (uint8_t)(1u+level) : 1u);pl_arc=2u;
     puff(pl_x,pl_y,4u,ST_SPARK);sfx(SFX_THUD);
   } else {
     for(k=0u;k!=MAXO;k++) if(!orbs[k].live) break;
     if(k==MAXO) return;
     fire_orb_at(pl_x,pl_y,f8x[pmv.facing]*32,f8y[pmv.facing]*32,heir.weapon==4u ? 44u : 36u);
-    orbs[k].friendly=1u;orbs[k].pad=0u;orbs[k].life=heir.weapon==4u ? 52u : 36u;
+    orbs[k].friendly=(uint8_t)(1u+level);orbs[k].pad=0u;orbs[k].life=level ? (uint8_t)(48u+level*16u) : (heir.weapon==4u ? 52u : 36u);
+    if(level) {sfx(SFX_CHARGED);puff(pl_x,pl_y,5u,ST_SPARK);}
     puff(pl_x,pl_y,4u,ST_SPARK);sfx(SFX_SHOT);
   }
   heir_play(HA_ATTACK,1u);
@@ -444,6 +499,7 @@ static void walk(uint8_t speed, uint8_t anim) {
 }
 
 void player_floor_start(void) BANKED {
+  pl_z=0;pl_air=air_void=0u;
   grid_map(); /* here, not on the first step: 256 entries cost most of a frame */
   pg.cells = room.c;
   pg.w = EG_W;
@@ -466,7 +522,7 @@ void player_floor_start(void) BANKED {
 }
 
 void player_update(void) BANKED {
-  uint8_t st, mv, prev = pin.move, ph, dmg;
+  uint8_t st, mv, prev = pin.move, ph, dmg, was_air=pl_air;
   eg_frames_t fd;
   if (pl_inv) pl_inv--;
   if (fight_t) fight_t--;
@@ -480,6 +536,7 @@ void player_update(void) BANKED {
   }
   switch (pl_state) {
     case PS_EXIT: return;
+    case PS_FALL: fall_tick();return;
     case PS_HURT: { /* knocked back; the resolver starts clean after */
       uint8_t kd = (uint8_t)((kb_dx > 0 ? J_RIGHT : (kb_dx < 0 ? J_LEFT : 0u)) |
                              (kb_dy > 0 ? J_DOWN : (kb_dy < 0 ? J_UP : 0u)));
@@ -499,12 +556,19 @@ void player_update(void) BANKED {
   pin.facing=pmv.facing;
   st = eg_input_step(&pin, (uint8_t)(joy & (J_A | J_B | 0x0fu)));
   mv = pin.move;
+  pl_air=(uint8_t)(mv==EG_MV_DODGE && pin.evade==EG_EVADE_FORWARD);
+  pl_z=pl_air ? (int8_t)jump_z[pin.frame<20u ? pin.frame : 19u] : 0;
   if (prev == EG_MV_DODGE && mv != EG_MV_DODGE && mv != EG_MV_SPRINT && (mods & MOD_FUSE)) {
     hit_mask = 0; /* the dodge ends in a static shock around the player */
     strike(1, 1u);
     puff(pl_x, pl_y, 4, ST_SPARK);
   }
-  if (st != EG_NO_MOVE) on_start(st);
+  if(st!=EG_NO_MOVE && !stamina_move(st,pin.evade,pin.level)) {
+    eg_input_init(&pin,heir.dodge);pin.weapon=heir.weapon;pin.prev=joy;st=EG_NO_MOVE;mv=EG_MV_IDLE;pl_air=0u;pl_z=0;
+    overlay(HA_RECOVER,10u);
+  }
+  if(st!=EG_NO_MOVE) on_start(st);
+  stamina_tick((uint8_t)(mv!=EG_MV_IDLE && mv!=EG_MV_SKID));
   pl_iframe = (uint8_t)(pin.flags & EG_FL_IFRAME);
   ph = pin.phase;
   pl_t = pin.frame;
@@ -532,18 +596,26 @@ void player_update(void) BANKED {
       pmv.facing=pin.evade==EG_EVADE_FORWARD ? pin.dash_dir : pin.tap_face;
       cardinal_face();
       break;
+    case EG_MV_BCHARGE:
+      walk((uint8_t)(walk_speed()>>1),0u);pl_charge=pin.b_hold;heir_play(HA_CHARGE,0u);
+      if((pl_charge&3u)==0u) hud_charge();
+      break;
     case EG_MV_SHOT:
-    case EG_MV_BURST:
+    case EG_MV_BPOWER:
       pl_state=PS_LASH;
       walk((uint8_t)(walk_speed()+(pin.gait ? 8u : 0u)),0u);
-      if((mv==EG_MV_SHOT && pin.frame==2u) || (mv==EG_MV_BURST && !pin.frame)) secondary();
+      if(pin.frame==(mv==EG_MV_SHOT ? 4u : 5u)) secondary(mv==EG_MV_BPOWER ? pin.level : 0u);
       else if(ha_done) heir_play(HA_CTX_READY,0u);
       break;
     case EG_MV_SPRINT: {
       uint8_t d = dpad_now(), sp = (heir.traits & HT_HEAVY) ? 25u : 28u;
       if (d) dodge_dp = d;
+      if(!(frame_count&15u) && !stamina_move(EG_MV_SPRINT,0u,0u)) {pin.move=EG_MV_IDLE;pin.dp_hold=pin.gait=0u;sp=walk_speed();}
       pl_state = PS_ROLL;
-      mstep(dodge_dp, sp, 1);
+      /* Running into a movable object becomes a sustained brace. Sprinting
+       * must preserve contact time; synthetic evade steps deliberately don't. */
+      mstep(dodge_dp,sp,0);
+      if(push_t) {pin.move=EG_MV_IDLE;pin.dp_hold=pin.gait=0u;heir_play(HA_PUSH,0u);}
       pmv.facing = face_of_dp(dodge_dp);
       cardinal_face();
       walk_t++;
@@ -616,9 +688,15 @@ void player_update(void) BANKED {
     default:
       break;
   }
-  if (mv != EG_MV_CHARGE && pl_charge) {
+  if (mv != EG_MV_CHARGE && mv!=EG_MV_BCHARGE && pl_charge) {
     pl_charge = 0;
     hud_charge();
   }
   ha_dir = (uint8_t)((4u - pmv.facing) & 7u);
+  st=cell_type(cell_at(pl_x,pl_y));
+  if(pl_air && (st==T_PIT || (st==T_GLITCH && !eg_beat_on(frame_count)))) air_void=1u;
+  if(was_air && !pl_air) {
+    if(air_void && EG_PASSABLE(st) && (st!=T_GLITCH || eg_beat_on(frame_count))) narrator_event(NE_JUMP,0u);
+    air_void=0u;
+  }
 }

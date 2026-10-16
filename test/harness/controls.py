@@ -19,14 +19,16 @@ def run(rom,out):
     out.mkdir(parents=True,exist_ok=True);res={};detail={}
     g=fixture(rom);g.press('a',2);g.tick(3)
     res['a_primary_attack']=g.peek('pin',2)==5;g.stop()
-    g=fixture(rom);xy=g.player();g.press('b',2);g.tick(3)
+    g=fixture(rom);xy=g.player();g.press('b',2);g.tick(6)
     shots=sum(g.peek('orbs',k*10)!=0 for k in range(8))
     res['b_tap_fires_without_evading']=shots>0 and g.peek('pin',2)==11 and g.player()==xy
     g.shot(out/'b-shot.png');g.stop()
     g=fixture(rom);xy=g.player();g.hold({'b'});g.tick(60)
     shots=sum(g.peek('orbs',k*10)!=0 for k in range(8))
-    res['b_hold_repeat_fire']=g.peek('pin',2)==12 and shots>=2 and g.player()==xy
-    detail['live_repeat_shots']=shots;g.shot(out/'b-repeat.png');g.stop()
+    res['b_hold_charges_without_shooting']=g.peek('pin',2)==12 and shots==0 and g.player()==xy
+    g.hold(set());g.tick(7)
+    res['b_release_executes_charged_secondary']=g.peek('pin',2)==13 and any(g.peek('orbs',k*10+1)>1 for k in range(8))
+    g.shot(out/'b-charged.png');g.stop()
     g=fixture(rom);g.hold({'a'});g.tick(40);g.hold(set());g.tick(6)
     res['a_hold_charged_attack']=g.peek('pin',2)==9 and g.peek('pl_level')==2;g.stop()
     for order,want in [('ab',10),('ba',4)]:
@@ -46,7 +48,7 @@ def run(rom,out):
     g=fixture(rom);g.hold({'right'});g.tick(28)
     res['direction_hold_alone_runs']=g.peek('pin',2)==2
     g.hold({'right','b'});g.tick(30)
-    res['run_and_repeat_fire_together']=g.peek('pin',2)==12 and g.peek('pin',23)==1
+    res['movement_and_secondary_charge_together']=g.peek('pin',2)==12 and g.peek('pin',23)==1
     before=g.peek16('frame_count');g.tick(600);elapsed=(g.peek16('frame_count')-before)&65535
     res['steady_game_frame_pacing']=elapsed>=590
     detail['game_frames_per_600_vblanks']=elapsed

@@ -1,0 +1,22 @@
+{
+  "sha256": "6cddca83b8aed48c5b92368dac68c75ebde3d5f6ab77aaeace914efcbd4c2e0b",
+  "results": {
+    "clip_hurt_matches_baked_fal_audio": true,
+    "clip_fall_matches_baked_fal_audio": true,
+    "clip_jump_matches_baked_fal_audio": true,
+    "clip_wall_matches_baked_fal_audio": true,
+    "clip_crush_matches_baked_fal_audio": true,
+    "clip_last_item_matches_baked_fal_audio": true,
+    "clip_return_matches_baked_fal_audio": true,
+    "clip_family_matches_baked_fal_audio": true,
+    "real_fall_triggers_fall_voice": true,
+    "native_voice_runs_at_expected_rate": true,
+    "speech_does_not_pause_gameplay": true,
+    "music_sequence_continues": true,
+    "speech_finishes_and_restores_music_channel": true
+  },
+  "speech_bytes": 96432,
+  "voice_active_frames": 148,
+  "game_frames": 199,
+  "display_frames": 200
+}

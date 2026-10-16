@@ -1,0 +1,29 @@
+{
+  "sha256": "5db2e7bc788c7c4f9d8323239e58245bb2600bfaf606ae056bb06eaf063a06c1",
+  "results": {
+    "a_cost": true,
+    "b_cost": true,
+    "a_charge_pays_on_release": true,
+    "a_charge_cost": true,
+    "b_charge_pays_on_release": true,
+    "b_charge_cost": true,
+    "roll_cost": true,
+    "sidestep_cost": true,
+    "backstep_cost": true,
+    "running_drains_over_time": true,
+    "resting_recovers_to_cap": true,
+    "exhaustion_denies_attack": true,
+    "exhaustion_has_recovery_pose": true,
+    "recovery_waits_before_refilling": true,
+    "exhaustion_is_recoverable": true
+  },
+  "costs": {
+    "a": 8,
+    "b": 10,
+    "a_charge": 40,
+    "b_charge": 30,
+    "roll": 24,
+    "sidestep": 12,
+    "backstep": 16
+  }
+}

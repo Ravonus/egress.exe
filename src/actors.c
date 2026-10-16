@@ -11,6 +11,7 @@
 #include "boss_api.h" /* B2 bosses */
 #include "heir.h"
 #include "mob.h"
+#include "narrator.h"
 #include "core/eg_move.h"
 
 enemy_t en[MAXE];
@@ -23,6 +24,7 @@ void actors_spawn(void) BANKED { mobs_floor(); }
 
 void enemy_kill(uint8_t k, uint8_t crushed) BANKED {
   enemy_t *e = &en[k];
+  narrator_event(crushed ? NE_CRUSH : NE_KILL,0u);
   e->st = ES_DEAD;
   if (e->kind == SPAWN_MOB) mob_died(k); /* B2 */
   puff((uint8_t)(e->x >> 4), (uint8_t)(e->y >> 4), e->kind == SPAWN_MITE ? 2u : 3u, ST_PUFF);
@@ -311,7 +313,7 @@ void orbs_update(void) BANKED {
           hit_src = HS_ORB; /* B2: a returned orb, and whose it was */
           hit_orb_from = (uint8_t)(o->pad - 1u);
           hit_tags = 0;
-          enemy_hit(j, (mods & MOD_GROUND) ? 4u : 2u, ox, oy);
+          enemy_hit(j, (uint8_t)(((mods & MOD_GROUND) ? 4u : 2u)+(o->friendly-1u)), ox, oy);
           break;
         }
       }

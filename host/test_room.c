@@ -335,11 +335,11 @@ static void test_fragile(void) {
   CHECK(!eg_trivial(&r), "the glass bridge is the puzzle");
   r.trick = TRICK_GLASS;
   CHECK(eg_trick_needed(&r), "glass needed");
-  /* crossing first, keycard behind: dead */
+  /* A short hole now has a native roll-jump answer; do not falsely ask for a reset. */
   eg_room t = r;
   CHECK(eg_step_off(&t, g, BB_PLAYER, 1) && t.c[g] == T_PIT, "glass breaks on the first step off");
-  CHECK(eg_dead(&t, EG_IDX(7, 2), NULL, 0) == EG_DEAD_KEY, "keycard cut off: dead (%d)", eg_dead(&t, EG_IDX(7, 2), NULL, 0));
-  CHECK(eg_dead(&t, EG_IDX(7, 5), NULL, 0) == EG_DEAD_DOOR, "door cut off: dead");
+  CHECK(eg_dead(&t, EG_IDX(7, 2), NULL, 0) == 0, "short gap permits a roll back to the keycard");
+  CHECK(eg_dead(&t, EG_IDX(7, 5), NULL, 0) == 0, "short gap permits a roll toward the door");
   CHECK(eg_dead(&r, r.start, NULL, 0) == 0, "the start is not dead");
   /* worn carpet: three crossings, stage = base + steps */
   t = r;
@@ -414,7 +414,7 @@ static void test_fragile(void) {
   /* wearing the upper tile through before the keycard is a fatal mistake the detector sees */
   eg_room t2 = r;
   t2.c[EG_IDX(14, 3)] = T_PIT;
-  CHECK(eg_dead(&t2, EG_IDX(8, 8), NULL, 0) == EG_DEAD_DOOR, "a worn-through tile cuts the door off");
+  CHECK(eg_dead(&t2, EG_IDX(8, 8), NULL, 0) == 0, "one worn-through tile leaves a roll-jump route");
 }
 
 static void test_baked(const char *path) {

@@ -1,0 +1,16 @@
+{
+  "mbc5": {
+    "sha256": "6cddca83b8aed48c5b92368dac68c75ebde3d5f6ab77aaeace914efcbd4c2e0b",
+    "bytes": 1196032
+  },
+  "mbc3": {
+    "sha256": "5db2e7bc788c7c4f9d8323239e58245bb2600bfaf606ae056bb06eaf063a06c1",
+    "bytes": 1196032
+  },
+  "verifiedAt": "2026-10-16T05:56:59.052298+00:00",
+  "completeRegression": "make test: exit 0",
+  "standaloneCache": "make test-wram-cache: exit 0; not integrated into gameplay",
+  "scope": "Ten-floor office development milestone. Full run and composed larger stages remain on docs/SPRINTS.md.",
+  "physicalHardwareVerified": false,
+  "publicDeployment": "Not yet updated by this milestone."
+}

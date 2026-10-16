@@ -135,7 +135,8 @@ def start_run(g: Game, god: bool, no_enemies: bool, seed: int = SEED, floor: int
     for _ in range(40):  # the title polls once its fade-in is done: press until the run starts
         g.press("start")
         for _ in range(20):
-            if g.peek("floor_no") or g.peek("game_mode") == MODE_PLAY:
+            loading=g.peek('run_loading') if '_run_loading' in g.sym else 0
+            if (g.peek("floor_no") and not loading) or g.peek("game_mode") == MODE_PLAY:
                 break
             g.tick()
         else:
@@ -301,7 +302,9 @@ def bench_act(g: Game, act: str, log: list[str], shot: Path | None = None) -> bo
             g.shot(shot)
         n0 = g.peek("pocket_n")
         g.press("a", 4)
-        g.tick(12)
+        for _ in range(180):
+            g.tick()
+            if g.peek('pocket_n')==n0-1 and g.peek('bench_on')==1:break
         ok = g.peek("pocket_n") == n0 - 1
         g.press("b", 4)  # close
         g.tick(12)

@@ -356,6 +356,7 @@ def figure(C, st, h, dd, pose, ox, oy, big):
     lift = pose.get("lift", 0)
     shoe_h = st["shoe_h"]
     hand_y = oy + st["hand_y"] + up - pose.get("arms_up", 0)
+    if pose.get("seated"): hand_y = min(hand_y, oy + btop + 14.5)
     hairline = hcy - hry * (0.22 if front else 0.0)
     # ---- long hair behind everything
     if hair == 2:
@@ -392,6 +393,18 @@ def figure(C, st, h, dd, pose, ox, oy, big):
     sole = "sole" if st.get("neon_sole") else "shoe"
 
     def leg(sgn, g, sg, off=0.0, lf=0):
+        if pose.get("seated"):
+            # A seated bend has a thigh, knee and tucked shin. Crouching alone
+            # inverted the old leg segment and left two shoes beside the torso.
+            x0 = legx(sgn) if not side else tcx + sgn * 0.6
+            kx = tcx + (fx * 2.4 + sgn * 0.7 if side else sgn * (lw / 2 + 1.0))
+            ky = foot_y - 2.5
+            ax = kx + (fx * 0.6 if side else sgn * 0.5)
+            C.line(x0, hip_y - 0.5, kx, ky, lw, "pants", g)
+            C.line(kx, ky, ax, foot_y - 1, max(1.5, lw - 0.5), "pants", g)
+            C.rect(ax - 1.1, foot_y - 1, ax + 1.3, foot_y, "shoe", sg)
+            C.rect(ax - 1.1, foot_y, ax + 1.3, foot_y, sole, sg)
+            return
         top = hip_y - 0.5
         bot = foot_y - shoe_h + 0.5 - lf - (cr * 0.5)
         x0 = legx(sgn) if not side else tcx + sgn * 0.6

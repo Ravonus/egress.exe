@@ -17,8 +17,9 @@ const eg_frames_t eg_input_fd[EG_MV_COUNT] = {
     {0u, 0u, 0u, EG_NO_LINK, EG_NO_LINK},   /* CHARGE: loop while A held */
     {3u, 4u, 14u, EG_NO_LINK, EG_NO_LINK},  /* CHARGED */
     {2u, 8u, 12u, 2u, 4u},                  /* PARRY: perfect on frames 2..4 */
-    {2u, 1u, 9u, EG_NO_LINK, EG_NO_LINK},   /* B tap */
-    {0u, 0u, 0u, EG_NO_LINK, EG_NO_LINK},   /* B hold, repeat */
+    {4u, 1u, 21u, EG_NO_LINK, EG_NO_LINK},  /* B tap: deliberate recovery */
+    {0u, 0u, 0u, EG_NO_LINK, EG_NO_LINK},   /* B hold, charge */
+    {5u, 2u, 25u, EG_NO_LINK, EG_NO_LINK},  /* B charge release */
 };
 
 const eg_frames_t eg_dodge_fd[EG_DODGE_COUNT] = {
@@ -61,9 +62,9 @@ static uint8_t total_of(const eg_input_t *s, uint8_t move) {
 const eg_frames_t *eg_input_frames(const eg_input_t *s, uint8_t move) EG_BANKED { return frames_of(s, move); }
 uint8_t eg_input_total(const eg_input_t *s, uint8_t move) EG_BANKED { return total_of(s, move); }
 
-static uint8_t is_loop(uint8_t mv) { return (uint8_t)(mv == EG_MV_SPRINT || mv == EG_MV_CHARGE || mv == EG_MV_BURST); }
+static uint8_t is_loop(uint8_t mv) { return (uint8_t)(mv == EG_MV_SPRINT || mv == EG_MV_CHARGE || mv == EG_MV_BCHARGE); }
 static uint8_t shot_period(uint8_t weapon) {
-  return weapon==1u ? 16u : weapon==2u ? 12u : weapon==3u ? 10u : weapon==4u ? 7u : 11u;
+  (void)weapon;return 26u;
 }
 uint8_t eg_input_shot_period(uint8_t weapon) EG_BANKED { return shot_period(weapon); }
 
@@ -116,6 +117,7 @@ void eg_input_init(eg_input_t *s, uint8_t style) EG_BANKED {
 /* The move a buffered intent starts in the current state, or EG_NO_MOVE to keep waiting. */
 static uint8_t resolve(const eg_input_t *s, uint8_t intent) {
   uint8_t mv = s->move, ph = s->phase, fr = s->frame;
+  uint8_t secondary=s->b_hold ? EG_MV_BCHARGE : EG_MV_SHOT;
   const eg_frames_t *f = frames_of(s, mv);
   if (intent == EG_INT_A) {
     switch (mv) {
@@ -126,7 +128,7 @@ static uint8_t resolve(const eg_input_t *s, uint8_t intent) {
       case EG_MV_LUNGE: return fr >= f->open ? EG_MV_HIT2 : EG_NO_MOVE;
       case EG_MV_HIT2: return fr >= f->open ? EG_MV_HIT3 : EG_NO_MOVE;
       case EG_MV_DODGE: return (!s->chain && fr >= f->open && fr <= f->close) ? EG_MV_LUNGE : EG_NO_MOVE;
-      case EG_MV_BURST: return EG_MV_LUNGE;
+      case EG_MV_BCHARGE: return EG_MV_LUNGE;
       default: return EG_NO_MOVE;
     }
   }
@@ -135,13 +137,13 @@ static uint8_t resolve(const eg_input_t *s, uint8_t intent) {
       case EG_MV_IDLE:
       case EG_MV_SKID:
       case EG_MV_SPRINT:
-      case EG_MV_CHARGE: return EG_MV_SHOT;
+      case EG_MV_CHARGE: return secondary;
       case EG_MV_HIT1:
       case EG_MV_HIT2:
-      case EG_MV_HIT3: return ph != EG_PH_ACTIVE ? EG_MV_SHOT : EG_NO_MOVE;
+      case EG_MV_HIT3: return ph != EG_PH_ACTIVE ? secondary : EG_NO_MOVE;
       case EG_MV_LUNGE:
       case EG_MV_CHARGED:
-      case EG_MV_SHOT: return ph == EG_PH_RECOVERY ? EG_MV_SHOT : EG_NO_MOVE;
+      case EG_MV_SHOT: return fr>=total_of(s,mv)-EG_BUF_FRAMES ? secondary : EG_NO_MOVE;
       default: return EG_NO_MOVE;
     }
   }
@@ -155,7 +157,7 @@ static uint8_t resolve(const eg_input_t *s, uint8_t intent) {
       case EG_MV_HIT3:
       case EG_MV_CHARGE:
       case EG_MV_SHOT:
-      case EG_MV_BURST: return EG_MV_PARRY;
+      case EG_MV_BCHARGE: return EG_MV_PARRY;
       case EG_MV_LUNGE:
       case EG_MV_CHARGED: return ph == EG_PH_RECOVERY ? EG_MV_PARRY : EG_NO_MOVE;
       default: return EG_NO_MOVE;
@@ -194,6 +196,7 @@ static uint8_t movement(eg_input_t *s, uint8_t held) {
 uint8_t eg_input_step(eg_input_t *s, uint8_t held) EG_BANKED {
   uint8_t pa = (uint8_t)(held & (uint8_t)~s->prev & EG_IN_A);
   uint8_t pb = (uint8_t)(held & (uint8_t)~s->prev & EG_IN_B);
+  uint8_t b_rel=s->b_hold;
   uint8_t a_rel = s->a_hold; /* frames A was held before this frame */
   uint8_t intent = EG_INT_NONE, started = EG_NO_MOVE, mv, dash=movement(s,held);
 
@@ -222,14 +225,14 @@ uint8_t eg_input_step(eg_input_t *s, uint8_t held) EG_BANKED {
 
   /* Advance the current move; automatic ends and loop releases. */
   if (s->move != EG_MV_IDLE) {
-    if(s->move==EG_MV_BURST) {
-      s->frame++;
-      if(s->frame>=shot_period(s->weapon)) s->frame=0u;
-    } else s->frame = sat_inc(s->frame);
+    s->frame = sat_inc(s->frame);
     if (s->move == EG_MV_SPRINT) {
       if (!(held & EG_DP_MASK)) started = EG_MV_SKID;
-    } else if(s->move==EG_MV_BURST) {
-      if(!(held&EG_IN_B)) { s->move=EG_MV_IDLE;s->frame=0u; }
+    } else if(s->move==EG_MV_BCHARGE) {
+      if(!(held&EG_IN_B)) {
+        s->level=b_rel>=EG_CHARGE_L3 ? 3u : b_rel>=EG_CHARGE_L2 ? 2u : 1u;
+        started=b_rel<EG_HOLD_T ? EG_MV_SHOT : EG_MV_BPOWER;
+      }
     } else if (s->move == EG_MV_CHARGE) {
       if (!(held & EG_IN_A)) {
         s->level = a_rel >= EG_CHARGE_L3 ? 3u : (a_rel >= EG_CHARGE_L2 ? 2u : 1u);
@@ -240,6 +243,11 @@ uint8_t eg_input_step(eg_input_t *s, uint8_t held) EG_BANKED {
       s->frame = 0u;
       s->chain = 0u;
     }
+  }
+  /* Ordered combos take precedence over a secondary release in the same frame. */
+  if((started==EG_MV_SHOT || started==EG_MV_BPOWER) && (s->buf==EG_INT_BA || s->buf==EG_INT_AB)) {
+    mv=resolve(s,s->buf);
+    if(mv!=EG_NO_MOVE) {started=mv;s->buf=EG_INT_NONE;s->buf_age=0u;}
   }
   if (started != EG_NO_MOVE) start(s, started);
   else refresh(s);
@@ -260,14 +268,11 @@ uint8_t eg_input_step(eg_input_t *s, uint8_t held) EG_BANKED {
     }
   }
 
-  /* Direction holds run; held B repeats the secondary; held A charges outside active attack frames. */
+  /* Direction holds run; B starts charging on press and resolves its tap/charge on release. */
   if (started == EG_NO_MOVE) {
     if ((s->move == EG_MV_DODGE && s->dp_prev!=EG_NO_DIR && s->phase == EG_PH_RECOVERY) ||
         (s->move==EG_MV_IDLE && s->gait)) {
       started = EG_MV_SPRINT;
-    } else if((held&EG_IN_B) && s->b_hold>=EG_HOLD_T && s->phase!=EG_PH_ACTIVE &&
-              (s->move==EG_MV_IDLE || s->move==EG_MV_SHOT || s->move==EG_MV_SPRINT)) {
-      started=EG_MV_BURST;
     } else if ((held & EG_IN_A) && s->a_hold >= EG_HOLD_T && s->phase != EG_PH_ACTIVE &&
                (s->move == EG_MV_IDLE || s->move == EG_MV_LUNGE ||
                 (s->move >= EG_MV_HIT1 && s->move <= EG_MV_HIT3))) {

@@ -26,8 +26,11 @@ SRC += src/boss_core.c src/boss_tenant.c src/boss_fax.c src/boss_art.c src/boss_
 SRC += src/core/eg_physics.c
 SRC += src/core/eg_family.c
 SRC += src/items.c
-SRC += src/core/eg_combat.c
-MAPPER_SRC := src/run.c src/clock.c src/heir_draw.c src/family.c
+SRC += src/core/eg_combat.c src/core/eg_stamina.c src/stamina.c
+SRC += src/core/eg_journal.c
+SRC += src/narrator.c src/core/eg_narrator.c src/voice.c
+SRC += $(sort $(wildcard src/gen/voice_data_*.c))
+MAPPER_SRC := src/run.c src/clock.c src/heir_draw.c src/family.c src/resume.c src/tutorial.c
 # the title (src/title3d, docs/redesign.md 15): its C, its art (committed), the baked walk (generated into build/)
 SRC += src/title3d/title3d.c src/title3d/t3d_core.c
 T3D_GEN := src/title3d/gen
@@ -76,6 +79,7 @@ build/obj-mbc3/%.o: src/%.c $(HDRS)
 
 build/obj/sound.o: src/gen/music_data.h
 build/obj/items.o: src/gen/item_idle.inc
+build/obj/sprites.o: src/gen/diag_arc.inc
 
 src/gen/item_idle.inc: tools/bake_item_idle.py tools/bake_look.py
 	$(PY) tools/bake_item_idle.py
@@ -227,6 +231,75 @@ build/host/test_aim: host/test_aim.c src/core/eg_move.c src/core/eg_move.h
 test-aim: build/host/test_aim
 	build/host/test_aim
 
+build/host/test_journal: host/test_journal.c src/core/eg_journal.c src/core/eg_journal.h
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_journal.c src/core/eg_journal.c
+
+test-journal: build/host/test_journal
+	build/host/test_journal
+
+test-continue: all build/host/egtool test-journal
+	$(PY) test/harness/resume_game.py build/egress.gbc build/sprints/continue-mbc5
+	$(PY) test/harness/resume_game.py build/egress-rtc.gbc build/sprints/continue-mbc3
+
+build/host/test_narrator: host/test_narrator.c src/core/eg_narrator.c src/core/eg_narrator.h
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_narrator.c src/core/eg_narrator.c
+
+build/host/egnarrate: host/egnarrate.c src/core/eg_narrator.c src/core/eg_narrator.h
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/egnarrate.c src/core/eg_narrator.c
+
+test-narrator: build/host/test_narrator build/host/egnarrate
+	build/host/test_narrator
+
+build/host/test_plate: host/test_plate.c $(ROOM_SRC) $(ROOM_HDR)
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_plate.c $(ROOM_SRC)
+
+build/host/test_deadlock: host/test_deadlock.c $(ROOM_SRC) $(ROOM_HDR)
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ host/test_deadlock.c $(ROOM_SRC)
+
+build/host/test_stamina: host/test_stamina.c src/core/eg_stamina.c src/core/eg_stamina.h src/core/eg_input.h
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc -o $@ host/test_stamina.c src/core/eg_stamina.c
+
+test-runtime-core: build/host/test_plate build/host/test_deadlock build/host/test_stamina test-narrator test-journal
+	build/host/test_plate
+	build/host/test_deadlock
+	build/host/test_stamina
+	$(PY) tools/narrator/bake_assets.py --check
+
+build/cache-check/test.o: test/native/wram_cache.c src/wram_cache.h
+	@mkdir -p $(dir $@)
+	$(LCC) $(CFLAGS) -o $@ $<
+
+build/cache-check/cache.o: src/wram_cache.c src/wram_cache.h
+	@mkdir -p $(dir $@)
+	$(LCC) $(CFLAGS) -o $@ $<
+
+build/cache-check/cache.gbc: build/cache-check/test.o build/cache-check/cache.o
+	$(LCC) -Wm-yC -o $@ $^
+
+test-wram-cache: build/cache-check/cache.gbc
+	$(PY) tools/test_wram_cache.py $<
+
+test-runtime: all test-runtime-core
+	$(PY) test/harness/menu.py build/egress.gbc build/sprints/menu-mbc5
+	$(PY) test/harness/menu.py build/egress-rtc.gbc build/sprints/menu-mbc3
+	$(PY) test/harness/stamina.py build/egress.gbc build/sprints/stamina-mbc5
+	$(PY) test/harness/stamina.py build/egress-rtc.gbc build/sprints/stamina-mbc3
+	$(PY) test/harness/interaction_runtime.py build/egress.gbc build/sprints/interactions-mbc5
+	$(PY) test/harness/interaction_runtime.py build/egress-rtc.gbc build/sprints/interactions-mbc3
+	$(PY) test/harness/diagonal.py build/egress.gbc build/sprints/diagonal-mbc5
+	$(PY) test/harness/void_game.py build/egress.gbc build/sprints/void-mbc5
+	$(PY) test/harness/void_game.py build/egress-rtc.gbc build/sprints/void-mbc3
+	$(PY) test/harness/voice_game.py build/egress.gbc build/sprints/voice-mbc5
+	$(PY) test/harness/voice_game.py build/egress-rtc.gbc build/sprints/voice-mbc3
+	$(PY) test/harness/seated.py build/egress.gbc build/sprints/seated-native
+	$(PY) test/harness/bench_scene.py build/egress.gbc build/sprints/bench-native
+
 test-gameplay: build/egress.gbc build/egress-rtc.gbc build/host/egtool
 	$(PY) test/harness/gameplay_rebuild.py build/egress.gbc build/gameplay-rebuild/native
 	$(PY) test/harness/gameplay_rebuild.py build/egress-rtc.gbc build/gameplay-rebuild/native-rtc
@@ -289,7 +362,7 @@ test-rtc: build/host/test_clock build/egress.gbc build/egress-rtc.gbc
 	$(PY) tools/mapper_audit.py build/linked-mbc5.map build/linked-mbc3.map
 	$(PY) test/rtc_test.py build/egress.gbc build/egress-rtc.gbc
 
-test: build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-physics test-family test-interactions test-curriculum test-gameplay test-aim
+test: build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-physics test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-runtime
 	build/host/test_obst
 	build/host/test_room src/gen/eg_seeds.c
 	build/host/egplan check 1000
@@ -304,4 +377,4 @@ shots: build/egress.gbc build/host/egtool $(TB_GEN)/chunks.mk
 clean:
 	rm -rf build
 
-.PHONY: rom all rtc test test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-fs-proto test-physics test-family test-interactions test-curriculum test-gameplay test-aim shots clean seeds heir
+.PHONY: rom all rtc test test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-fs-proto test-physics test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-narrator test-journal test-runtime-core test-runtime test-wram-cache shots clean seeds heir

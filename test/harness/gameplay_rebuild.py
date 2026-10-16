@@ -83,7 +83,10 @@ def run(rom,out,tool):
         result['drop_solved_by_input']=g.peek('floor_no')==3 and g.peek('game_mode')!=2 or g.peek('floor_no')>=4
     result['family_choice_saved']=g.peek('family',283)==1
     selected=bytes(g.peek('family',k) for k in range(19))
-    saved=g.stop()
+    saved=bytearray(g.stop())
+    # This fixture isolates heir persistence; floor/landing continuation is covered by resume.py.
+    saved[0x40]=saved[0x140]=0
+    saved=bytes(saved)
     g=Game(rom,sram=saved);assert start_run(g,True,False)
     result['heir_choice_survives_poweroff']=bytes(g.peek('family',k) for k in range(19))==selected and g.peek('family',283)==1
     solve_here(g,tool,log);g.tick(240)
@@ -105,12 +108,13 @@ def run(rom,out,tool):
         looks.append(bytes(g.peek('family',38+choice*19+k) for k in range(7)))
         g.shot(out/f'heir-{choice+1}.png');g.press('right');g.tick(25)
     result['siblings_visibly_distinct']=len(set(looks))==3
-    g.press('a');assert g.wait_mode(2)
+    from picker_collision import wait_ready
+    g.press('a');wait_ready(g);g.press('a');assert g.wait_mode(2)
     result['legacy_meta_preserved']=g.peek('meta_loaded')==1 and g.peek16('meta')==1
     g.stop()
     # Tear the newest extension; CRC journal must retain the preceding selected heir and legacy meta.
     damaged=bytearray(dead_save)
-    newest=max((0x100,0x300),key=lambda at:damaged[at+3]);damaged[newest+20]^=0x80
+    newest=max((0x570,0xa6c),key=lambda at:damaged[at+3]);damaged[newest+20]^=0x80
     g=Game(rom,sram=bytes(damaged));assert start_run(g,True,False)
     result['torn_family_save_falls_back']=g.peek16_at('family',279)==1 and bytes(g.peek('family',k) for k in range(19))==selected and g.peek16('meta')==1
     g.stop()

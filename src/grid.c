@@ -61,10 +61,21 @@ uint8_t enemy_in_cell(uint8_t c) NONBANKED {
 /* --- the changed-cell queue, drawn a few cells a frame --- */
 static uint8_t cq[64], cq_head, cq_tail; /* queue_cell (hot) stays in bank 0 */
 void cells_reset(void) BANKED { cq_head = cq_tail = 0; }
-void queue_cell(uint8_t i) NONBANKED {
+static uint8_t carpet_patch(uint8_t i) NONBANKED {
+  return (uint8_t)(room.c[i]==T_EMPTY && (((EG_X(i)>>1)*3u+(EG_Y(i)>>1)*5u+(uint8_t)floor_seed)&7u)<2u);
+}
+static void enqueue(uint8_t i) NONBANKED {
   cq[cq_head & 63u] = i;
   cq_head++;
   if ((uint8_t)(cq_head - cq_tail) > 64u) cq_tail = (uint8_t)(cq_head - 64u);
+}
+void queue_cell(uint8_t i) NONBANKED {
+  enqueue(i);
+  /* A removed crate or a new gap also changes the adjoining carpet's edge. */
+  if(EG_Y(i) && carpet_patch((uint8_t)(i-EG_W))) enqueue((uint8_t)(i-EG_W));
+  if(EG_Y(i)<EG_H-1u && carpet_patch((uint8_t)(i+EG_W))) enqueue((uint8_t)(i+EG_W));
+  if(EG_X(i) && carpet_patch((uint8_t)(i-1u))) enqueue((uint8_t)(i-1u));
+  if(EG_X(i)<EG_W-1u && carpet_patch((uint8_t)(i+1u))) enqueue((uint8_t)(i+1u));
 }
 
 /* --- the look (src/look.h): which card a cell shows --- */
@@ -98,6 +109,14 @@ static uint8_t meta_for(uint8_t i) {
   if (t >= T_CRUMBLE) return puzzle_meta(i);         /* B1 puzzle cells: their cards (src/puzzle.c) */
   switch (t) {
     case T_EMPTY:
+      if(carpet_patch(i)) {
+        b=0u;
+        if(y && carpet_patch((uint8_t)(i-EG_W))) b|=1u;
+        if(x<EG_W-1u && carpet_patch((uint8_t)(i+1u))) b|=2u;
+        if(y<EG_H-1u && carpet_patch((uint8_t)(i+EG_W))) b|=4u;
+        if(x && carpet_patch((uint8_t)(i-1u))) b|=8u;
+        return (uint8_t)(M_AUTOCARPET0+b);
+      }
       h = (uint8_t)(h % 20u); /* A 50%, B 20%, C 15%, D 15% */
       return h < 10u ? M_SLAB_A : (h < 14u ? M_SLAB_B : (h < 17u ? M_SLAB_C : M_SLAB_D));
     case T_DIRT:

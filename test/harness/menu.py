@@ -1,0 +1,53 @@
+"""Native lobby, controls, persisted settings and safe voluntary new-run flow."""
+import argparse,hashlib,json
+from pathlib import Path
+from play import Game,MODE_TITLE,start_run
+
+PREFS=(0xf68,0xf78)
+def lobby(g):
+    assert g.wait_mode(MODE_TITLE,1500)
+    g.tick(60);g.press('start',3)
+    for _ in range(600):
+        g.tick()
+        if g.peek('menu_active'):g.hold(set());g.tick(4);return
+    raise AssertionError('lobby failed to open')
+
+def cursor(g,want):
+    for _ in range(6):
+        if g.peek('menu_cursor')==want:return
+        g.press('down',3);g.tick(3)
+    raise AssertionError('menu cursor failed')
+
+def run(rom,out):
+    out.mkdir(parents=True,exist_ok=True);r={};g=Game(rom);lobby(g)
+    r['new_save_defaults_to_new_run']=g.peek('menu_cursor')==1 and not g.peek('resume_ready')
+    g.shot(out/'01-lobby.png');cursor(g,0);g.press('a',3);g.tick(20)
+    r['missing_continue_stays_in_menu']=bool(g.peek('menu_active')) and not g.peek('floor_no')
+    cursor(g,2);g.press('a',3);g.tick(15);g.shot(out/'02-actions.png');g.press('right',3);g.tick(10);g.shot(out/'03-movement.png')
+    g.press('b',3);g.tick(10);r['controls_return_to_menu']=bool(g.peek('menu_active')) and g.peek('menu_cursor')==2
+    cursor(g,3);g.press('a',3);g.tick(10);r['tutorials_toggle']=not g.peek('tutorial_on')
+    cursor(g,5);g.press('a',3);g.tick(10);r['voice_toggles']=not g.peek('voice_on');save=g.stop()
+    r['settings_do_not_write_legacy_family']=save[0x100:0x426]==bytes(0x326)
+    g=Game(rom,sram=save);lobby(g)
+    r['settings_survive_poweroff']=not g.peek('voice_on') and not g.peek('tutorial_on');g.stop()
+    newest=max(PREFS,key=lambda p:save[p+1]);torn=bytearray(save);torn[newest+14]^=0x80
+    g=Game(rom,sram=bytes(torn));lobby(g)
+    r['torn_settings_keep_previous_record']=not g.peek('tutorial_on') and bool(g.peek('voice_on'));g.stop()
+    g=Game(rom);assert start_run(g,True,True);old_generation=g.peek16_at('family',279);save=g.stop()
+    g=Game(rom,sram=save);lobby(g)
+    r['saved_run_defaults_to_continue']=g.peek('menu_cursor')==0 and bool(g.peek('resume_ready'))
+    cursor(g,1);g.press('a',3);g.tick(10);g.shot(out/'04-new-run-confirm.png')
+    r['new_run_does_not_silently_discard_heir']=bool(g.peek('menu_active')) and g.peek16('meta')==0
+    g.press('b',3);g.tick(10);r['new_run_can_be_cancelled']=g.peek('menu_cursor')==1 and not g.peek('resume_new')
+    g.press('a',3);g.tick(10);g.press('a',3)
+    for _ in range(900):
+        g.tick()
+        if g.peek('game_mode')==6 and g.peek('family_ready'):break
+    r['confirmed_new_run_records_lineage_once']=g.peek('game_mode')==6 and g.peek16('meta')==1 and g.peek16_at('family',279)==old_generation+1
+    g.shot(out/'05-next-generation.png');g.stop()
+    report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':r}
+    (out/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2));return all(r.values())
+
+if __name__=='__main__':
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('rom',type=Path);p.add_argument('out',type=Path)
+    a=p.parse_args();raise SystemExit(0 if run(a.rom,a.out) else 1)

@@ -50,7 +50,7 @@ UP = {"n": (0, -9), "f": (0, -9)}
 WALK = [F(8, stride=2, swing=2, sq=1), F(8, lift=1, sq=-1), F(8, stride=-2, swing=-2, sq=1), F(8, lift=-1, sq=-1)]
 RUN = [F(6, stride=3, swing=3, lean=1, sq=1, fx=["dust:0"]), F(5, lift=2, lean=1, sq=-1, bob=-1),
        F(6, stride=-3, swing=-3, lean=1, sq=1, fx=["dust:1"]), F(5, lift=-2, lean=1, sq=-1, bob=-1)]
-SIT = dict(crouch=3, stride=0)
+SIT = dict(crouch=2, stride=0, seated=True)
 
 
 def _table():
@@ -137,7 +137,7 @@ def _table():
         "fidget_twitch": S([F(3, hdx=1, sq=1), F(3, hdx=-1), F(3, hdx=1, sq=-1), F(6)]),  # INSOMNIAC
         "fidget_bounce": S([F(6, bob=-2, sq=-1), F(5, sq=2), F(6, bob=-1, sq=-1), F(5, sq=1)]),  # SMALL
         # ---- long idles (about 10 s and up)
-        "long_sit": S([F(40, **SIT, hands=BOTH(1, 0)), F(40, **SIT, hands=BOTH(1, 0), sq=1)], True),
+        "long_sit": S([F(40, **SIT, hands=BOTH(-1, 0)), F(40, **SIT, hands=BOTH(-1, 0), sq=1)], True),
         "long_sit_twitch": S([F(3, **SIT, hdx=1, sq=1, eyes="wide"), F(3, **SIT, hdx=-1), F(6, **SIT, sq=1)]),
         "long_lie": S([F(50, lie=True, eyes="closed"), F(50, lie=True, eyes="closed", sq=1)], True),
         "long_doze": S([F(40, **SIT, eyes="closed", hdy=1, fx=["zzz:0"]),

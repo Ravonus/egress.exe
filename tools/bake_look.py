@@ -1268,6 +1268,40 @@ FIXED0 = {"SLAB_A": SPR_BASE, "WALL_TOP": SPR_BASE + 4}
 # src/gen/art_pics.c, and they are gone before a floor's look_load). The item cards and the cracked thin ice live
 # there; they never fly (an item flies in as a slab).
 LOW0_BASE = 16
+ICON_BASE = 112  # sixteen 8x8 inventory icons, signed BG bank 0 only
+
+def connected_carpet(mask: int) -> np.ndarray:
+    """N/E/S/W edges; sixteen cards share sixteen quadrant tiles.
+
+    Texture repeats across card boundaries instead of beveling every cell.
+    Each quadrant depends only on its two adjacent connections.
+    """
+    y,x=np.mgrid[0:16,0:16]
+    im=np.ones((16,16),np.uint8)
+    im[(x*3+y*5)%11<3]=2
+    im[(x+y)%8==0]=0
+    if not mask&1:im[0,:]=3;im[1,:]=2
+    if not mask&2:im[:,15]=0;im[:,14]=1
+    if not mask&4:im[15,:]=0;im[14,:]=1
+    if not mask&8:im[:,0]=3;im[:,1]=2
+    return im
+
+def plate_down() -> np.ndarray:
+    im=slab(6,'plate');im[5:12,5:12]=1
+    im[5,5:12]=im[5:12,5]=0
+    im[11,5:12]=im[5:12,11]=3
+    im[7:10,7:10]=3
+    return im
+
+def item_icon(rows: str) -> bytes:
+    """Reduce the authored object, excluding the card's slab and shadow."""
+    src=np.array([[int(c) if c in '0123' else 1 for c in r] for r in rows.strip().splitlines()],np.uint8)
+    dst=np.ones((8,8),np.uint8)
+    for y in range(8):
+        for x in range(8):
+            a=src[y*2:y*2+2,x*2:x*2+2].ravel()
+            dst[y,x]=0 if np.count_nonzero(a==0)>=2 else 3 if 3 in a else 2 if 2 in a else 1
+    return encode(dst)
 # B2: the void's side faces, after the items in the same block, their tiles shared where equal. *_R is the card
 # X-flipped: no tiles of its own, the map attribute's X-flip bit (0x20, kept in meta_pal for bank 0 cards) and the
 # columns swapped in meta_tile.
@@ -1278,7 +1312,10 @@ EDGES: list[tuple[str, int, object]] = [
 ]
 EDGE_FLIP = 0x20
 EDGE_NAMES = {n for n, _, _ in EDGES}
-LOW0 = {f"ITEM_{n}" for n, _, _ in ITEM_ART} | {"ICE1"} | EDGE_NAMES
+EXTRAS=[(f'AUTOCARPET{k}',PAL_FLOOR,lambda k=k:connected_carpet(k)) for k in range(16)]
+EXTRAS += [('PLATE_DOWN',PAL_FLOOR,plate_down)]
+SHARED_NAMES=EDGE_NAMES | {n for n,_,_ in EXTRAS}
+LOW0 = {f"ITEM_{n}" for n, _, _ in ITEM_ART} | {"ICE1"} | SHARED_NAMES
 
 
 def meta_tiles(m: np.ndarray) -> list[bytes]:
@@ -1303,6 +1340,7 @@ def layout() -> tuple[list, dict[int, bytes], dict[int, bytes], int, int, int, i
     ms += [(f"ITEM_{n}", p, item(rows, 60 + k, p in (PAL_FLOOR, PAL_OBJ))) for k, (n, p, rows) in enumerate(ITEM_ART)]
     ms += [(n, p, fn()) for n, p, fn in EDGES]
     ms += [(n + "_R", p, None) for n, p, _ in EDGES]  # the flips: placed below, on their card's tiles
+    ms += [(n,p,fn()) for n,p,fn in EXTRAS]
     b1: dict[int, bytes] = {}
     b0: dict[int, bytes] = {}
     t1, t0, tl = T_BASE, B0_BASE, LOW0_BASE
@@ -1317,7 +1355,7 @@ def layout() -> tuple[list, dict[int, bytes], dict[int, bytes], int, int, int, i
             src = next(o for o in out if o[0] == n[:-2])
             out.append((n, src[1] | EDGE_FLIP, src[2], src[3]))
             continue
-        if n in LOW0 and n in EDGE_NAMES:  # shared tiles: an explicit (TL, BL, TR, BR)
+        if n in SHARED_NAMES:  # shared tiles: an explicit (TL, BL, TR, BR)
             ids = []
             for t in meta_tiles(im):
                 hit = next((k for k in range(edge_t0, tl) if b0[k] == t), None)
@@ -1357,8 +1395,8 @@ def layout() -> tuple[list, dict[int, bytes], dict[int, bytes], int, int, int, i
         raise SystemExit(f"bank 0 look tiles overrun the flying cards: {t0} > {SPR_BASE}")
     spr, _ = BA.build_sprites()
     n_spr = len(spr.tiles)
-    if tl > 128:
-        raise SystemExit(f"bank 0 BG-only cards ({LOW0_BASE}..{tl - 1}) run past index 127 (into the sprites' tiles)")
+    if tl > ICON_BASE:
+        raise SystemExit(f"bank 0 BG-only cards ({LOW0_BASE}..{tl - 1}) run into inventory icons at {ICON_BASE}")
     if n_spr > B0_BASE:
         raise SystemExit(f"the sprite set ({n_spr} tiles) runs into the bank 0 look range at {B0_BASE}")
     return out, b1, b0, react_t, t1, shard_t, tl
@@ -1418,6 +1456,9 @@ def write(out: Path) -> None:
         h.append(f"#define M_{name} {edge_m + i}u /* B2: ground on the left (VOID_SIDE, VOID_CORNER) or up-left (VOID_TIP) */")
     for i, (name, _, _) in enumerate(EDGES):
         h.append(f"#define M_{name}_R {edge_m + len(EDGES) + i}u /* the same, X-flipped: ground on the right */")
+    for i,(name,_,_) in enumerate(EXTRAS):
+        h.append(f"#define M_{name} {edge_m+len(EDGES)*2+i}u")
+    h.append(f"#define LOOK_ICON_BASE {ICON_BASE}u /* sixteen 8x8 inventory icons in signed BG bank 0 */")
     for k, n in FRAG_STEPS.items():
         h.append(f"#define LOOK_{k}_STEPS {n}u")
     h.append(f"#define M_COUNT {len(ms)}u")
@@ -1454,6 +1495,7 @@ def write(out: Path) -> None:
         BA.c_bytes("look_tiles1", tiles1),
         BA.c_bytes("look_tiles0", tiles0),
         BA.c_bytes("look_tiles0l", tiles0l),
+        BA.c_bytes("look_item_icons", b''.join(item_icon(rows) for _,_,rows in ITEM_ART)),
         "static const uint8_t look_meta_pal[] = {" + ", ".join(map(str, pals)) + "};",
         "static const uint8_t look_meta_tile[] = {" + ", ".join(map(str, mtile)) + "};",
         BA.c_words("look_biome_pal", biome_words),
@@ -1468,6 +1510,7 @@ void look_art_load(uint8_t biome, uint16_t *pal_out, uint8_t *meta_pal, uint8_t 
   VBK_REG = 0;
   set_sprite_data(LOOK_B0_BASE, LOOK_NT0, look_tiles0);
   set_bkg_data(LOOK_LOW0_BASE, LOOK_NT0L, look_tiles0l); /* bank 0, signed BG addressing: 0x9000 + 16 * tile */
+  set_bkg_data(LOOK_ICON_BASE, LOOK_ITEMS, look_item_icons);
   memcpy(pal_out, &look_biome_pal[(uint16_t)biome * 32u], 64);
   memcpy(meta_pal, look_meta_pal, M_COUNT);
   memcpy(meta_tile, look_meta_tile, (uint16_t)M_COUNT * 4u);

@@ -247,10 +247,10 @@ static uint8_t shutters(eg_room *r, const uint8_t *occ, uint8_t nocc) {
   gates = 0u;
   for (i = 0u; i != (uint8_t)EG_N; i++) {
     v = c[i];
-    if ((uint8_t)(v & (T_MASK | F_PLATE)) == (T_ROCK | F_PLATE) || v == T_BLOCK_PLATE || v == (T_PLATE | F_OB)) {
+    if ((uint8_t)(v & (T_MASK | F_PLATE)) == (T_ROCK | F_PLATE) || v == T_BLOCK_PLATE || v == (T_PLATE | F_OB) || (v==T_PLATE && is_occ(i,occ,nocc))) {
       if (!(w & 2u)) w = 1u;
     }
-    if (v == T_PLATE) w = 2u; /* a bare plate: every shutter stays down */
+    if (v == T_PLATE && !is_occ(i,occ,nocc)) w = 2u; /* a bare plate: every shutter stays down */
     if (v == T_GATE || v == T_GATE_OPEN) gates = 1u;
   }
   if (w == 2u) w = 0u;
@@ -361,7 +361,7 @@ uint8_t eg_frag_hit(eg_room *r, uint8_t cell, uint8_t who) EG_BANKED {
 /* The flood runs in slices (eg_dead_step) so the cartridge can spread it over frames: a bit table for the seen
  * set (a variable shift is a loop on the SM83), the queue in WRAM, the key scan in chunks. */
 static uint8_t dd_seen[EG_N / 8u], dd_q[EG_N];
-static uint8_t dd_n, dd_h, dd_pass, dd_rock, dd_from, dd_k;
+static uint8_t dd_n, dd_h, dd_pass, dd_rock, dd_from, dd_k, dd_mode, dd_locked;
 static const uint8_t dd_bit[8] = {1u, 2u, 4u, 8u, 16u, 32u, 64u, 128u};
 #define DD_SEEN(c) (dd_seen[(uint8_t)(c) >> 3] & dd_bit[(uint8_t)(c) & 7u])
 #define DD_MARK(c) (dd_seen[(uint8_t)(c) >> 3] |= dd_bit[(uint8_t)(c) & 7u])
@@ -378,7 +378,8 @@ static void dd_visit(const eg_room *r, uint8_t s) {
   uint8_t t;
   if (DD_SEEN(s)) return;
   t = (uint8_t)(r->c[s] & T_MASK);
-  if (t == T_WALL || t == T_SOCKET || t == T_SOCKET_ON || (t == T_PIT && !dd_rock)) return;
+  if (t == T_WALL || t == T_SOCKET || t == T_SOCKET_ON || (t == T_PIT && !dd_rock) ||
+      (dd_locked && (t==T_GATE || t==T_GATE_OPEN))) return;
   DD_MARK(s);
   if (t == T_ROCK) dd_rock = 1u;
   if (t != T_DOOR) dd_q[dd_n++] = s; /* the door is a goal, not a way through */
@@ -386,13 +387,78 @@ static void dd_visit(const eg_room *r, uint8_t s) {
 
 void eg_dead_begin(uint8_t from) EG_BANKED {
   dd_from = from;
-  dd_pass = dd_rock = dd_k = 0u;
+  dd_pass = dd_rock = dd_k = dd_mode = dd_locked = 0u;
   dd_flood_begin();
 }
 
+/* Reverse-push reachability is optimistic: other crates, breakable material and
+ * closed gates do not obstruct the proof. Concrete and the map edge do. If even
+ * this graph cannot move a remaining load onto any bare plate, the gates cannot
+ * be opened by a crate. The same queue/bitset is reused, a bounded slice at a time. */
+static uint8_t dd_permanent(const eg_room *r,int16_t x,int16_t y) {
+  return (uint8_t)((uint16_t)x>=EG_W || (uint16_t)y>=EG_H || (r->c[EG_IDX(x,y)]&T_MASK)==T_WALL);
+}
+static uint8_t dd_weights(const eg_room *r,const uint8_t *pocket,uint8_t n) {
+  uint8_t i,t,plates=0u,gates=0u,p,tools=0u;
+  if(r->nob) return 1u; /* a living obstacle may still carry a plate */
+  for(i=0u;i!=EG_N;i++) {
+    t=(uint8_t)(r->c[i]&T_MASK);
+    if(t==T_ROCK || t==T_BLOCK_PLATE) return 1u;
+    if(t==T_PLATE) {
+      plates=1u;
+      /* A neighbouring gate may be held by the player while leaving the plate. */
+      if((i>=EG_W && (r->c[i-EG_W]&T_MASK)==T_GATE) ||
+         (i<EG_N-EG_W && (r->c[i+EG_W]&T_MASK)==T_GATE) ||
+         (EG_X(i) && (r->c[i-1u]&T_MASK)==T_GATE) ||
+         (EG_X(i)<15u && (r->c[i+1u]&T_MASK)==T_GATE)) return 1u;
+    }
+    if(t==T_GATE || t==T_GATE_OPEN) gates=1u;
+  }
+  if(!plates || !gates) return 1u;
+  for(i=0u;i<(uint8_t)(n+r->nitem);i++) {
+    if(i<n) p=pocket[i];
+    else {t=(uint8_t)(i-n);if((r->c[r->item_cell[t]]&T_MASK)!=T_ITEM) continue;p=r->item_piece[t];}
+    if(p==P_BRICK) return 1u;
+    if(p==P_FIRE) tools|=1u;if(p==P_MUD) tools|=2u;
+    if(p==P_EARTH) tools|=4u;if(p==P_WATER) tools|=8u;
+  }
+  return (uint8_t)((tools&1u) && ((tools&2u) || (tools&12u)==12u));
+}
+static void dd_jump(const eg_room *r,uint8_t i,int8_t dx,int8_t dy) {
+  int16_t x=(int16_t)EG_X(i)+dx,y=(int16_t)EG_Y(i)+dy;uint8_t t;
+  if((uint16_t)x>=EG_W || (uint16_t)y>=EG_H) return;
+  t=(uint8_t)(r->c[EG_IDX(x,y)]&T_MASK);if(t!=T_PIT && t!=T_GLITCH) return;
+  x+=dx;y+=dy;if((uint16_t)x<EG_W && (uint16_t)y<EG_H) dd_visit(r,EG_IDX(x,y));
+}
 uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, uint8_t budget) EG_BANKED {
   uint8_t i, k, j, p, bridge = 0u;
-  /* pass 0 floods without crossing pits; if it reached a CRT, pass 1 floods again letting pits through */
+  if(!dd_mode) {
+    dd_mode=2u;
+    if(!dd_weights(r,pocket,npocket)) {
+      for(i=0u;i!=EG_N/8u;i++) dd_seen[i]=0u;
+      dd_n=dd_h=0u;
+      for(i=0u;i!=EG_N;i++) if((r->c[i]&T_MASK)==T_PLATE) {DD_MARK(i);dd_q[dd_n++]=i;}
+      dd_mode=1u;
+    }
+  }
+  if(dd_mode==1u) {
+    static const int8_t dx[4]={0,1,0,-1},dy[4]={-1,0,1,0};
+    while(dd_h!=dd_n && budget) {
+      int16_t x,y,px,py;budget--;i=dd_q[dd_h++];
+      if(EG_CRATE(r->c[i])) {dd_locked=0u;break;}
+      for(k=0u;k!=4u;k++) {
+        x=(int16_t)EG_X(i)-dx[k];y=(int16_t)EG_Y(i)-dy[k];px=x-dx[k];py=y-dy[k];
+        if(dd_permanent(r,x,y) || dd_permanent(r,px,py)) continue;
+        j=EG_IDX(x,y);if(!DD_SEEN(j)) {DD_MARK(j);dd_q[dd_n++]=j;}
+      }
+    }
+    if(dd_h==dd_n || (dd_h && EG_CRATE(r->c[dd_q[dd_h-1u]]))) {
+      dd_locked=(uint8_t)(!dd_h || !EG_CRATE(r->c[dd_q[dd_h-1u]]));
+      dd_mode=2u;dd_flood_begin();
+    }
+    return EG_DEAD_BUSY;
+  }
+  /* pass 0 floods without crossing wide pits; short roll-jumps remain possible. */
   while (dd_h != dd_n) {
     if (!budget) return EG_DEAD_BUSY;
     budget--;
@@ -401,6 +467,7 @@ uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, u
     if (i < (uint8_t)(EG_N - EG_W)) dd_visit(r, (uint8_t)(i + EG_W));
     if (i & 15u) dd_visit(r, (uint8_t)(i - 1u));
     if ((i & 15u) != 15u) dd_visit(r, (uint8_t)(i + 1u));
+    dd_jump(r,i,0,-1);dd_jump(r,i,1,0);dd_jump(r,i,0,1);dd_jump(r,i,-1,0);
   }
   if (!dd_pass && !dd_rock) {
     /* An optimistic reachability hint, not the solver: reachable mud (or its ingredients)

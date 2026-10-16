@@ -1,0 +1,175 @@
+{
+  "sha256": "5db2e7bc788c7c4f9d8323239e58245bb2600bfaf606ae056bb06eaf063a06c1",
+  "fixture": "isolated pit columns in a native room; actual directional input and resolver",
+  "results": {
+    "walking_off_platform_starts_a_visible_fall": true,
+    "fall_charges_exactly_one_half_heart": true,
+    "fall_returns_to_last_firm_floor": true,
+    "forward_evade_has_airborne_arc": true,
+    "roll_crosses_one_tile_hole": true,
+    "jump_too_short_falls_instead_of_floating": true,
+    "invulnerability_does_not_remove_void_cost": true
+  },
+  "details": {
+    "walk_fall": {
+      "states": [
+        0,
+        6
+      ],
+      "hp": [
+        8,
+        7
+      ],
+      "end": [
+        104,
+        136
+      ]
+    },
+    "roll_jump": [
+      [
+        100,
+        136,
+        0,
+        0,
+        0,
+        8
+      ],
+      [
+        101,
+        136,
+        2,
+        1,
+        0,
+        8
+      ],
+      [
+        103,
+        136,
+        2,
+        1,
+        3,
+        8
+      ],
+      [
+        106,
+        136,
+        2,
+        1,
+        5,
+        8
+      ],
+      [
+        108,
+        136,
+        2,
+        1,
+        7,
+        8
+      ],
+      [
+        111,
+        136,
+        2,
+        1,
+        9,
+        8
+      ],
+      [
+        114,
+        136,
+        2,
+        1,
+        10,
+        8
+      ],
+      [
+        117,
+        136,
+        2,
+        1,
+        11,
+        8
+      ],
+      [
+        119,
+        136,
+        2,
+        1,
+        12,
+        8
+      ],
+      [
+        122,
+        136,
+        2,
+        1,
+        12,
+        8
+      ],
+      [
+        125,
+        136,
+        2,
+        1,
+        12,
+        8
+      ],
+      [
+        128,
+        136,
+        2,
+        1,
+        11,
+        8
+      ],
+      [
+        130,
+        136,
+        2,
+        1,
+        10,
+        8
+      ],
+      [
+        132,
+        136,
+        2,
+        0,
+        0,
+        8
+      ],
+      [
+        133,
+        136,
+        2,
+        0,
+        0,
+        8
+      ],
+      [
+        135,
+        136,
+        2,
+        0,
+        0,
+        8
+      ],
+      [
+        137,
+        136,
+        2,
+        0,
+        0,
+        8
+      ],
+      [
+        138,
+        136,
+        2,
+        0,
+        0,
+        8
+      ]
+    ]
+  }
+}

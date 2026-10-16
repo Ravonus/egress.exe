@@ -5,6 +5,7 @@
 #include <gb/cgb.h>
 #include "play.h"
 #include "heir.h"
+#include "narrator.h"
 #include "core/eg_input.h"
 
 heir_t heir;
@@ -134,6 +135,7 @@ static void load_frame(void) {
 
 void heir_play(uint8_t state, uint8_t restart) BANKED {
   if (state == ha_state && !restart) return;
+  if(state==HA_LONG_DOZE && ha_state!=state) narrator_event(NE_DOZE,0u);
   ha_state = state;
   ha_frame = 0;
   ha_done = 0;
@@ -212,8 +214,10 @@ uint8_t heir_draw(uint8_t oam, int16_t sx, int16_t sy) BANKED {
   fin = ha_fr.dir == HEIR_DIR_CAM ? 0u : (uint8_t)((ha_dir + ha_fr.dir) & 7u);
   flip = (uint8_t)(fin >= 5u);
   dd = flip ? (uint8_t)(8u - fin) : fin;
-  /* a gravity frame is the frame's heavy one: a new pose waits a frame unless nothing is on show yet */
-  if ((ha_fr.pose != shown_pose || dd != shown_dd) && (grav_t != GRAVITY_FRAMES || shown_pose == 0xffu)) {
+  /* Reuse the current full body for one tick when gravity or a late boss effect
+   * leaves too little rendering time for composition. Never hide the body. */
+  if ((ha_fr.pose != shown_pose || dd != shown_dd) &&
+      (shown_pose==0xffu || (grav_t!=GRAVITY_FRAMES && (LY_REG<64u || LY_REG>=144u)))) {
     buf_sel ^= 1u;
     spr_mask = heir_compose(ha_fr.pose, dd, (uint8_t)(buf_sel << 3));
     shown_pose = ha_fr.pose;

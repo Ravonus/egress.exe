@@ -90,7 +90,7 @@ void look_tick(void) BANKED;            /* once a frame, right after frame_wait:
  *
  * Showing a stage: either map the puzzle's cell types to these ids in grid.c meta_for, or set a skin: look_skin[i]
  * (0, or card + 1) overrides the cell's type while the cell is in the world. look_load clears every skin. */
-extern uint8_t look_skin[EG_N];
+extern uint8_t __at(0xDCF0) look_skin[EG_N]; /* floor-only; aliases picker scratch */
 #define LOOK_SKIN_NONE 0xffu
 void look_skin_set(uint8_t i, uint8_t m) BANKED; /* m = M_*, or LOOK_SKIN_NONE; redrawn by look_tick (budgeted) */
 void look_redraw(uint8_t i) BANKED;              /* queue a cell's redraw (after the puzzle changes its type) */

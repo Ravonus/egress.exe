@@ -5,6 +5,7 @@
 #include "egress.h"
 #include "gen/art.h"
 #include "clock.h"
+#include "tutorial.h"
 
 uint8_t game_mode;
 uint16_t run_seed;
@@ -161,6 +162,7 @@ void main(void) {
   set_interrupts(VBL_IFLAG | LCD_IFLAG);
   sound_init();
   game_mode = MODE_BOOT;
+  tutorial_init();
   clock_init(); /* the RTC build reads the chip once here and again after the boot: it must have ticked */
   keel_boot();
   clock_probe();

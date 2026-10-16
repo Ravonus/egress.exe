@@ -10,7 +10,10 @@ void items_tick(void) BANKED;
 
 uint8_t look_present[EG_N / 8u];
 uint8_t look_busy_n;
-uint8_t look_skin[EG_N];
+/* Floor-only skins alias the heir picker's DD00..DE7F scratch. Neither is live
+ * during the other phase; look_load clears this before every floor. The world
+ * retains 560 bytes above DDCF for the stack, rather than consuming hot BSS. */
+uint8_t __at(0xDCF0) look_skin[EG_N];
 uint8_t look_glitch_phase, look_glitch_period = 48u;
 uint8_t look_dbg_cell, look_dbg_kind;
 
@@ -588,7 +591,10 @@ void look_tick(void) BANKED {
   }
   ambient();
   if (game_mode == MODE_PLAY && !look_busy_n) items_tick();
-  budget = game_mode == MODE_PLAY ? 2u : LOOK_COMMITS_PER_FRAME;
+  /* Gravity, obstacles and actor composition share the frame. Defer BG commits
+   * on that heavy tick; moving/falling cards still animate, and a settled card
+   * waits for the next tick's bounded two-cell commit. */
+  budget = game_mode == MODE_PLAY ? (grav_t==1u ? 0u : 2u) : LOOK_COMMITS_PER_FRAME;
   if (look_dbg_kind) { /* the harness: 0x80 applies a poked skin, else a break of that kind */
     if (look_dbg_kind == 0x80u) look_skin_set(look_dbg_cell, (uint8_t)(look_skin[look_dbg_cell] - 1u));
     else look_break_tile(look_dbg_cell, look_dbg_kind);
@@ -626,7 +632,7 @@ void look_tick(void) BANKED {
     q_n--;
   }
   /* skins and stages changed: redraw with what is left of the budget */
-  if (rd_any) {
+  if (rd_any && budget) {
     rd_any = 0;
     for (k = 0; k != EG_N / 8u; k++) {
       while (redraw[k]) {

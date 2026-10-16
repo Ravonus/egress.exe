@@ -54,6 +54,18 @@ static void test_frames(void) {
     have = ((uint64_t)egc_secs(&t) << 18) + t.frac;
     CHECK(have == start + total, "frames in chunks of %u are exact", chunk[i]);
   }
+  {
+    uint32_t gap,bad=0u;
+    /* Every possible poll gap, varying fractional carry and crossing midnight.
+     * This independently checks the bounded minute-carry fast path. */
+    for(gap=0u;gap<=65535u;gap++) {
+      egc_time t={9784u,1439u,59u,(gap*17u)&262143u};
+      uint64_t want=((uint64_t)egc_secs(&t)<<18)+t.frac+(uint64_t)gap*EGC_FRAME;
+      egc_add_frames(&t,(uint16_t)gap);
+      if((((uint64_t)egc_secs(&t)<<18)+t.frac)!=want) bad++;
+    }
+    CHECK(!bad,"all 65536 frame gaps preserve midnight and fractional carry (%u bad)",(unsigned)bad);
+  }
 }
 
 static void test_local(void) {

@@ -13,6 +13,9 @@
 #include "oam.h"
 #include "mob.h"
 #include "obstacle.h"
+#include "core/eg_move.h"
+#include "gen/diag_arc.inc"
+extern eg_mover_t pmv;
 
 uint8_t oam_n, oam_cap = 40u, oam_spin, oam_refused;
 static uint8_t oam_last, was_busy;
@@ -60,6 +63,7 @@ void sprites_reset(void) BANKED {
   uint8_t i;
   for (i = 0; i != 40u; i++) move_sprite(i, 0, 0);
   oam_last = 0;
+  VBK_REG=1u;set_sprite_data(0u,4u,diagonal_arc);VBK_REG=0u;
   heir_reset(); /* the floor's art was reloaded over the heir's tiles */
   if (!boss_floor) mobs_reload(); /* B2: and over the mobs' looks */
 }
@@ -209,8 +213,8 @@ static const int8_t bob[8] = {0, 0, -1, -1, 0, 0, 1, 1};
 static void draw_b1(enemy_t *e) {
   uint8_t base, pal, flip;
   int16_t x, y;
-  x = (int16_t)(e->x >> 4) - 8;
-  y = (int16_t)(e->y >> 4) - 8;
+  x = (int16_t)(e->x >> 4);
+  y = (int16_t)(e->y >> 4);
   if (e->kind == SPAWN_MITE) {
     base = (uint8_t)(ST_MITE + (((e->anim >> 3) & 1u) << 2));
     pal = 2;
@@ -265,28 +269,37 @@ void draw_sprites(void) BANKED {
   }
   /* OP_HEIR: the heir (heir.c), BODY layer over WEAR layer, its box 16x22 with the feet at pl_y + 6 */
   heir_tick();
-  if (!pl_hp || !(pl_inv && (pl_inv & 4u)) || pl_state == PS_HURT || ha_state == HA_SPAWN) {
-    oam_n = (uint8_t)(oam_n + heir_draw(oam_n, (int16_t)pl_x - 8 - cam_x, (int16_t)pl_y - 15 - cam_y + 8));
+  if ((pl_state!=PS_FALL || pl_t<24u) && (!pl_hp || !(pl_inv && (pl_inv & 4u)) || pl_state == PS_HURT || ha_state == HA_SPAWN)) {
+    /* heir_draw writes hardware OAM coordinates; its X already includes the hardware's 8-pixel bias. */
+    oam_n = (uint8_t)(oam_n + heir_draw(oam_n, (int16_t)pl_x-cam_x, (int16_t)pl_y-7-cam_y-pl_z));
     oam_count(0);
   }
-  /* OP_WEAPON: an arc toward the cardinal facing while a strike is out, four around during the spin */
+  /* OP_WEAPON: aim and arc share all eight directions. */
   if (pl_arc == 1u) {
-    uint8_t reach = heir.weapon==1u ? 12u : heir.weapon==2u ? 24u : heir.weapon==3u ? 10u : heir.weapon==4u ? 20u : 14u;
-    if(mods & MOD_LONG) reach+=4u;
-    fr = (uint8_t)(pl_t >= 5u ? 4u : 0u);
-    x = (int16_t)pl_x - 8 + fdx[pl_face] * (int8_t)reach;
-    y = (int16_t)pl_y - 8 + fdy[pl_face] * (int8_t)reach;
-    if (pl_face == F_UP) spr16(x, y, (uint8_t)(ST_ARC_UP + fr), 4, 0);
-    else if (pl_face == F_DOWN) spr16(x, y, (uint8_t)(ST_ARC_DOWN + fr), 4, 0);
-    else spr16(x, y, (uint8_t)(ST_ARC_SIDE + fr), 4, (uint8_t)(pl_face == F_LEFT));
+    uint8_t reach=heir.weapon==1u ? 12u : heir.weapon==2u ? 24u : heir.weapon==3u ? 10u : heir.weapon==4u ? 20u : 14u;
+    if(mods&MOD_LONG) reach+=4u;
+    fr=(uint8_t)(pl_t>=5u ? 4u : 0u);
+    if(pmv.facing&1u) {
+      uint8_t left=(uint8_t)(pmv.facing>=5u),down=(uint8_t)(pmv.facing==3u || pmv.facing==5u);
+      reach=(uint8_t)(reach-(reach>>2));
+      x=(int16_t)pl_x+(left ? -(int8_t)reach : (int8_t)reach);
+      y=(int16_t)pl_y+(down ? (int8_t)reach : -(int8_t)reach);
+      if(left) oam_group(x-cam_x-8,y-cam_y-8,2u,2u,254u,(uint8_t)(4u|S_BANK|S_FLIPX|(down ? S_FLIPY : 0u)));
+      else oam_group(x-cam_x-8,y-cam_y-8,2u,0u,2u,(uint8_t)(4u|S_BANK|(down ? S_FLIPY : 0u)));
+    } else {
+      x=(int16_t)pl_x+fdx[pl_face]*(int8_t)reach;y=(int16_t)pl_y+fdy[pl_face]*(int8_t)reach;
+      if(pl_face==F_UP) spr16(x,y,(uint8_t)(ST_ARC_UP+fr),4u,0u);
+      else if(pl_face==F_DOWN) spr16(x,y,(uint8_t)(ST_ARC_DOWN+fr),4u,0u);
+      else spr16(x,y,(uint8_t)(ST_ARC_SIDE+fr),4u,(uint8_t)(pl_face==F_LEFT));
+    }
   } else if (pl_arc == 2u) {
     k = (uint8_t)((pl_t >> 1) & 3u);
-    x = (int16_t)pl_x - 8 + fdx[k] * 14;
-    y = (int16_t)pl_y - 8 + fdy[k] * 14;
+    x = (int16_t)pl_x + fdx[k] * 14;
+    y = (int16_t)pl_y + fdy[k] * 14;
     spr16(x, y, (uint8_t)((k == F_UP ? ST_ARC_UP : (k == F_DOWN ? ST_ARC_DOWN : ST_ARC_SIDE)) + 4u), 4,
           (uint8_t)(k == F_LEFT));
   }
-  if (pl_charge >= CHARGE_FULL && (frame_count & 4u)) spr8((int16_t)pl_x - 4, (int16_t)pl_y - 22, ST_SPARK, 4);
+  if (pl_charge >= CHARGE_FULL && (frame_count & 4u)) spr8((int16_t)pl_x, (int16_t)pl_y - 18, ST_SPARK, 4);
   /* OP_MARK: elite crowns and the like (mob.c) */
   if (boss_floor) boss_draw_marks();
   else if (nen) mobs_draw(OP_MARK);
@@ -298,7 +311,7 @@ void draw_sprites(void) BANKED {
   {
     orb_t *o = orbs;
     for (k = MAXO; k; k--, o++)
-      if (o->live) spr8((int16_t)(o->x >> 4) - 4, (int16_t)(o->y >> 4) - 4, ST_ORB, o->friendly ? 4u : 5u);
+      if (o->live) spr8((int16_t)(o->x >> 4), (int16_t)(o->y >> 4), ST_ORB, o->friendly ? 4u : 5u);
   }
   /* OP_MOB: bodies, from a rotating start so a crowded line flickers fairly */
   if (room.nob) obstacle_draw();
@@ -324,8 +337,8 @@ void draw_sprites(void) BANKED {
     for (k = MAXP; k; k--, p++)
       if (p->t) {
         p->t--;
-        py = (int16_t)p->y - 4 - (int16_t)((14u - p->t) >> 2);
-        spr8((int16_t)p->x - 4, py, p->tile, p->pal);
+        py = (int16_t)p->y - (int16_t)((14u - p->t) >> 2);
+        spr8((int16_t)p->x, py, p->tile, p->pal);
       }
   }
   if (look_busy_n && was_busy) {

@@ -42,7 +42,7 @@ static uint32_t mash(unsigned style,unsigned weapon) {
     CHECK(!(s.flags&(EG_FL_GUARD|EG_FL_PERFECT)) || s.move==EG_MV_PARRY,"only parry grants guard");
     CHECK(!((s.flags&EG_FL_HITBOX) && (s.flags&(EG_FL_IFRAME|EG_FL_GUARD))),"attacks and defence do not overlap");
     CHECK(s.buf<=EG_INT_BA && s.buf_age<EG_BUF_FRAMES,"buffer remains bounded");
-    CHECK(s.move!=EG_MV_BURST || (held&EG_IN_B),"repeat fire stops on release");
+    CHECK(s.move!=EG_MV_BCHARGE || (held&EG_IN_B),"B charging stops on release");
     if(i%1000==999) CHECK(s.move==EG_MV_IDLE,"released inputs settle to idle");
     hash=(hash^s.move)*16777619u;hash=(hash^s.frame)*16777619u;hash=(hash^s.flags)*16777619u;
   }
@@ -51,15 +51,17 @@ static uint32_t mash(unsigned style,unsigned weapon) {
 int main(void) {
   eg_input_t s;unsigned w,d,style,i;uint8_t dirs[8]={4,5,1,9,8,10,2,6};
   eg_input_init(&s,0);CHECK(eg_input_step(&s,EG_IN_A)==EG_MV_HIT1,"A taps attack");
-  eg_input_init(&s,0);CHECK(eg_input_step(&s,EG_IN_B)==EG_MV_SHOT,"B taps attack");
+  eg_input_init(&s,0);CHECK(eg_input_step(&s,EG_IN_B)==EG_MV_BCHARGE,"B press prepares a tap or charge");
+  CHECK(eg_input_step(&s,0)==EG_MV_SHOT,"B tap fires on release");
+  eg_input_init(&s,0);eg_input_step(&s,EG_IN_B);
   for(i=0;i<100;i++){eg_input_step(&s,EG_IN_B);CHECK(s.move!=EG_MV_DODGE && s.move!=EG_MV_SPRINT,"B never means dodge/run");}
-  CHECK(s.move==EG_MV_BURST,"held B repeats");eg_input_step(&s,0);CHECK(s.move==EG_MV_IDLE,"release B stops repeat");
+  CHECK(s.move==EG_MV_BCHARGE,"held B charges without repeating");eg_input_step(&s,0);CHECK(s.move==EG_MV_BPOWER && s.level==3,"release B executes its charged secondary");
   eg_input_init(&s,0);ticks(&s,EG_IN_A,65);CHECK(s.move==EG_MV_CHARGE,"held A charges");
   eg_input_step(&s,0);CHECK(s.move==EG_MV_CHARGED && s.level==3,"release A fires full charge");
   eg_input_init(&s,0);eg_input_step(&s,EG_IN_A);CHECK(eg_input_step(&s,EG_IN_B)==EG_MV_PARRY,"A then B counter combo");
   eg_input_init(&s,0);eg_input_step(&s,EG_IN_B);CHECK(eg_input_step(&s,EG_IN_A)==EG_MV_LUNGE,"B then A rushing combo");
   eg_input_init(&s,0);CHECK(eg_input_step(&s,EG_IN_A|EG_IN_B)==EG_MV_PARRY,"same-frame chord deterministic");
-  eg_input_init(&s,0);eg_input_step(&s,EG_IN_A);ticks(&s,0,9);CHECK(eg_input_step(&s,EG_IN_B)==EG_MV_SHOT,"late B is its own attack");
+  eg_input_init(&s,0);eg_input_step(&s,EG_IN_A);ticks(&s,0,9);CHECK(eg_input_step(&s,EG_IN_B)==EG_MV_BCHARGE,"late B starts its own secondary");
   for(style=0;style<3;style++) for(d=0;d<8;d++) {
     unsigned length=0,expect;
     eg_input_init(&s,(uint8_t)style);s.facing=0;
@@ -82,13 +84,12 @@ int main(void) {
   eg_input_init(&s,0);ticks(&s,3,40);CHECK(s.move==EG_MV_IDLE && !s.gait,"opposites cancel");
   for(w=0;w<5;w++) {
     eg_input_init(&s,0);s.weapon=(uint8_t)w;ticks(&s,4,25);
-    CHECK(eg_input_step(&s,4|EG_IN_B)==EG_MV_SHOT && s.gait,"run and shoot together");
-    ticks(&s,4|EG_IN_B,40);CHECK(s.move==EG_MV_BURST && s.gait,"run and repeat fire together");
-    {unsigned since=0,shots=0;for(i=0;i<2000;i++) {
-      eg_input_step(&s,EG_IN_B);since++;
-      if(!s.frame) {if(shots) CHECK(since==eg_input_shot_period((uint8_t)w),"held fire cadence survives long holds");shots++;since=0;}
-    }CHECK(shots>100,"holding B keeps firing beyond frame 255");}
-    CHECK(eg_input_shot_period((uint8_t)w)>=7,"bounded shot cadence");
+    CHECK(eg_input_step(&s,4|EG_IN_B)==EG_MV_BCHARGE && s.gait,"moving while preparing B");
+    ticks(&s,4|EG_IN_B,40);CHECK(s.move==EG_MV_BCHARGE && s.gait,"holding B charges while moving");
+    ticks(&s,EG_IN_B,2000);CHECK(s.move==EG_MV_BCHARGE && s.frame==255,"long B holds remain charging without overflow");
+    CHECK(eg_input_step(&s,0)==EG_MV_BPOWER && s.level==3,"one charge release after a long hold");
+    ticks(&s,0,40);CHECK(s.move==EG_MV_IDLE,"charged B recovers");
+    CHECK(eg_input_shot_period((uint8_t)w)>=26,"slower deliberate tap cadence");
   }
   timing_edges();
   for(style=0;style<3;style++) for(w=0;w<5;w++) {

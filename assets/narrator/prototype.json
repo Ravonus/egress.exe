@@ -1,0 +1,13 @@
+{
+  "voice": "original provisional voice; rex built-in, no impersonation",
+  "clips": [
+    {"id":"hurt", "trigger":"actual nonfatal enemy damage", "text":"[sigh] They hit you. I had hoped they would miss."},
+    {"id":"fall", "trigger":"actual pit or edge fall", "text":"Oh. There was less floor there than we needed."},
+    {"id":"jump", "trigger":"forward roll lands safely after crossing void", "text":"You made it across. [pause] I was reasonably certain."},
+    {"id":"wall", "trigger":"a partition is actually destroyed", "text":"The wall has reconsidered its position."},
+    {"id":"crush", "trigger":"a falling object kills an enemy", "text":"Gravity has resolved that disagreement. Efficient department."},
+    {"id":"last_item", "trigger":"successful use consumes the final carried unit", "text":"That was your last one. I assume we have a plan."},
+    {"id":"return", "trigger":"return to a previously visited chamber", "text":"Back here again. [pause] Yes. We are calling this progress."},
+    {"id":"family", "trigger":"reach the recorded floor of a parent death", "text":"Your parent stopped here. [sigh] A little further, perhaps."}
+  ]
+}

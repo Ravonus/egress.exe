@@ -14,11 +14,13 @@
 #include <gb/cgb.h>
 #include <string.h>
 #include "play.h"
+#include "stamina.h"
 #include "stage.h" /* B2 */
 
 #pragma bank 255
 
 static uint8_t msg_t, top, shown_top = 0xffu, rows_dirty, vbl_on;
+static uint8_t narr_t,shown_stamina;
 static volatile uint8_t vbl_rows, vbl_move, vbl_top; /* for hud_vbl: rows to copy, the window's new place */
 static uint8_t sh[3][20];   /* the window's rows 0..2, tiles */
 static uint8_t glyph[64];   /* ' ' .. '_' -> font tile (BT_FONT_ORDER); lower case folds to upper, but 'x' */
@@ -28,6 +30,7 @@ static void hud_vbl(void) NONBANKED;
 #define TOAST_Y 120u /* with one */
 
 static void hud_tile(uint8_t x, uint8_t y, uint8_t t) {
+  if(sh[y][x]==t) return;
   sh[y][x] = t;
   rows_dirty |= (uint8_t)(1u << y);
 }
@@ -88,8 +91,11 @@ void hud_init(void) BANKED {
   memset(a, (uint8_t)(LOOK_PAL_HUD | 0x08u), 20);
   VBK_REG = 1;
   for (i = 0; i != 3u; i++) set_win_tiles(0, i, 20, 1, a);
+  for(i=0u;i!=3u;i++) a[i]=(uint8_t)(LOOK_PAL_OBJ|0x08u);
+  set_win_tiles(0,0u,3u,1u,a);
   VBK_REG = 0;
   msg_t = 0;
+  narr_t=0;shown_stamina=255u;
   hud_layout(0);
   /* the first rows and the window's place now (the display may be off: no VBlank to wait for) */
   for (i = 0; i != 3u; i++) set_win_tiles(0, i, 20, 1, sh[i]);
@@ -122,6 +128,7 @@ void hud_msg(const char *s) NONBANKED {
 void hud_msg_w(void) BANKED {
   const char *s = msg_buf;
   uint8_t n = 0;
+  narr_t=0u;
   while (s[n]) n++;
   if (!n) {
     msg_t = 1u; /* closes on the next tick */
@@ -131,6 +138,11 @@ void hud_msg_w(void) BANKED {
   else memset(sh[0], BT_FONT, 20);
   hud_text((uint8_t)((20u - (n > 20u ? 20u : n)) >> 1), 0, s);
   msg_t = 150u;
+}
+uint8_t hud_narr_ready(void) BANKED {return (uint8_t)(!top && !msg_t && !narr_t);}
+void hud_narrate(const char *s) BANKED {
+  if(!hud_narr_ready()) return;
+  hud_text(6u,0u,s);narr_t=180u;
 }
 
 /* VBlank: the rows hud_tick handed over, then the window's place (rows first: never the new height over old rows) */
@@ -143,8 +155,12 @@ static void hud_vbl(void) NONBANKED {
     if (vbl_rows & 1u) memcpy(base, sh[0], 20);
     if (vbl_rows & 2u) memcpy(base + 32, sh[1], 20);
     if (vbl_rows & 4u) memcpy(base + 64, sh[2], 20);
-    VBK_REG = v;
-    vbl_rows = 0;
+    VBK_REG=1u;
+    base[0]=base[1]=base[2]=base[32]=base[33]=base[34]=base[64]=base[65]=base[66]=(uint8_t)(LOOK_PAL_HUD|0x08u);
+    base+=(vbl_move ? vbl_top : shown_top) ? 32u : 0u;
+    base[0]=base[1]=base[2]=(uint8_t)(LOOK_PAL_OBJ|0x08u);
+    VBK_REG=v;
+    vbl_rows=0;
   }
   if (vbl_move) {
     WX_REG = 7u;
@@ -155,6 +171,8 @@ static void hud_vbl(void) NONBANKED {
 }
 
 void hud_tick(void) BANKED {
+  if(shown_stamina!=stamina.value) {shown_stamina=stamina.value;charge_n();}
+  if(narr_t && !--narr_t) {uint8_t k;for(k=6u;k!=20u;k++) sh[top][k]=BT_RIM;rows_dirty|=(uint8_t)(1u<<top);}
   if (msg_t && !--msg_t) hud_layout(0);
   if (hud_dirty) draw_n();
   if (!rows_dirty && top == shown_top) return;
@@ -170,10 +188,16 @@ void hud_tick(void) BANKED {
 }
 
 static void draw_n(void) {
-  uint8_t i, n = (uint8_t)(pl_hp_max >> 1), hp = pl_hp, y = (uint8_t)(top + 1u);
+  uint8_t i, n = (uint8_t)((pl_hp_max+1u) >> 1), hp = pl_hp, y = (uint8_t)(top + 1u);
   uint8_t *d = sh[y];
-  for (i = 0; i != n; i++, hp = hp > 2u ? (uint8_t)(hp - 2u) : 0u) /* two halves a heart */
-    *d++ = hp >= 2u ? BT_HEART2 : (hp ? BT_HEART1 : BT_HEART0);
+  if(pl_hp_max>10u) {
+    /* Upgraded health still owns five cells; never overwrite the token count. */
+    hud_num(0u,y,pl_hp,2u);sh[y][2]=glyph['/'-32];hud_num(3u,y,pl_hp_max,2u);
+  } else {
+    for(i=0u;i!=5u;i++) sh[y][i]=BT_FONT;
+    for (i = 0; i != n; i++, hp = hp > 2u ? (uint8_t)(hp - 2u) : 0u) /* two halves a heart */
+      *d++ = hp >= 2u ? BT_HEART2 : (hp ? BT_HEART1 : BT_HEART0);
+  }
   sh[y][5] = BT_ICON_TOKEN;
   hud_num(6, y, tokens, 3);
   if (boss_floor) {
@@ -194,12 +218,14 @@ static void draw_n(void) {
 
 static void charge_n(void) {
   uint8_t i, full = CHARGE_FULL;
-  uint8_t lit = pl_charge >= full ? 40u : (uint8_t)((uint16_t)pl_charge * 40u / full);
-  for (i = 0; i != 5u; i++) {
+  uint8_t lit=stamina.cap ? (uint8_t)((uint16_t)stamina.value*24u/stamina.cap) : 24u;
+  for (i = 0; i != 3u; i++) {
     uint8_t n = lit > 8u ? 8u : lit;
     hud_tile(i, top, (uint8_t)(BT_BAR + n));
-    lit = (uint8_t)(lit - n);
+    lit=(uint8_t)(lit-n);
   }
+  lit=pl_charge>=full ? 16u : (uint8_t)((uint16_t)pl_charge*16u/full);
+  for(i=3u;i!=5u;i++) {uint8_t n=lit>8u ? 8u : lit;hud_tile(i,top,(uint8_t)(BT_BAR+n));lit-=n;}
 }
 
 void hud_draw(void) BANKED { draw_n(); }

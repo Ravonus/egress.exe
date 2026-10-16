@@ -75,6 +75,7 @@ class Fight:
         s["dp_prev"],s["tap_dir"],s["tap_age"],s["dash_cd"]=m[pin+15],m[pin+17],m[pin+18],m[pin+22]
         s["cells"] = g.room()
         s["clock"] = g.peek16("bs_clock")
+        s['stamina']=g.peek('stamina')
         s["fc"] = g.peek16("frame_count")
         s["obstacles"] = []
         base = g.addr("obstacle")
@@ -318,8 +319,8 @@ class Bot:
                 d = max(abs(dx), abs(dy))
                 if closing and d <= (11 if self.kind==BOSS_BIOME else 18):
                     near.append(o)
-            if near and s["mv"] in (MV_IDLE, 2, 3, MV_HIT1, MV_HIT2, MV_HIT3):
-                self.queue = [set()] if self.kind==BOSS_BIOME else [{"a","b"},set()]
+            if near and s['stamina']>=12 and s["mv"] in (MV_IDLE, 2, 3, MV_HIT1, MV_HIT2, MV_HIT3):
+                self.queue = [{"a","b"},set()]
                 self.cool = 2
                 self.log.append(f"{s['fc']} parry")
                 return {"a", "b"}
@@ -333,7 +334,7 @@ class Bot:
             safe = lambda x, y: self.danger(thr, x, y) is None  # noqa: E731
             p = self.path_to(s, nodes, safe)
             far = len(p) * 4 if p else 999
-            if here <= (7 if self.kind == BOSS_BIOME else 4) and far > 6 and s["mv"] in (MV_IDLE,2,3) and not self.cool:
+            if here <= 7 and far > (6 if self.kind == BOSS_BIOME else 0) and s['stamina']>=12 and s["mv"] in (MV_IDLE,2,3) and not self.cool:
                 # it will land before the heir is out: the guard takes it
                 self.queue = [{"a","b"},set()]
                 self.cool = 2
@@ -342,7 +343,7 @@ class Bot:
             return self.go(s, p)
         # strike what is open
         t = self.target(s)
-        if t is not None:
+        if t is not None and (self.kind==BOSS_BIOME or s['stamina']>=32):
             spots = [(x, y, f) for x, y, f in self.strike_from(s, *t) if (x, y) in nodes or standable(s["cells"], x, y)]
             spots = [sp for sp in spots if self.danger(thr, sp[0], sp[1]) is None]
             if spots:
@@ -378,6 +379,7 @@ def fight(rom: Path, kind: int, out: Path | None, report: dict, tag: str, mortal
     from heir import OamMeter
 
     g = Game(rom)
+    assert g.wait_mode(MODE_TITLE,1500)
     meter = OamMeter(g)
     g.poke("dbg_boss", kind)
     g.poke16("dbg_heir",7) # fixed blade/roll baseline; all five inherited weapons have separate native hit-box checks

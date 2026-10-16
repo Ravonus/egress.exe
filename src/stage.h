@@ -25,6 +25,7 @@ extern uint8_t stage_thp;    /* escort: the temp's hit points */
 
 void stage_run_begin(void) BANKED;   /* play_run: a new run's deck */
 void stage_plan_floor(void) BANKED;  /* before floor_build: the slot, the type, floor_seed and floor_tier */
+void stage_resume_floor(void) BANKED; /* restore constructor seed without dealing the saved floor a second time */
 uint8_t stage_build(void) BANKED;    /* in floor_build: 1 if the floor is a stage room (else build the puzzle room) */
 void stage_start(void) BANKED;       /* the end of floor_build (a reset too): the stage's own state */
 void stage_show(void) BANKED;        /* floor_show, display off, after look_load: cards, skins, palette */

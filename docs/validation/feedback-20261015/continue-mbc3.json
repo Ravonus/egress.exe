@@ -1,0 +1,27 @@
+{
+  "sha256": "5db2e7bc788c7c4f9d8323239e58245bb2600bfaf606ae056bb06eaf063a06c1",
+  "results": {
+    "real_enemy_damage_checkpointed": true,
+    "same_floor_after_poweroff": true,
+    "poweroff_does_not_heal": true,
+    "entry_inventory_and_heir_restored": true,
+    "wave_restarts_as_uncleared": true,
+    "death_recorded_once": true,
+    "death_clears_continue": true,
+    "end_transaction_before_meta": true,
+    "end_transaction_after_meta": true,
+    "end_transaction_after_family": true,
+    "checkpoint_family_migrated": true,
+    "new_family_regions_versioned": true,
+    "legacy_meta_untouched_by_migration": true,
+    "clock_regions_preserved": true,
+    "torn_continue_falls_back": true,
+    "landing_entry_checkpoint": true,
+    "landing_resumes_at_same_conversation": true,
+    "real_trade_spends_tokens": true,
+    "post_trade_rest_checkpoint": true,
+    "rest_does_not_repeat_trade_or_dialogue": true,
+    "landing_continue_reaches_next_floor": true
+  },
+  "log": []
+}

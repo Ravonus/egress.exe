@@ -83,17 +83,35 @@
 #define M_VOID_SIDE_R 77u /* the same, X-flipped: ground on the right */
 #define M_VOID_CORNER_R 78u /* the same, X-flipped: ground on the right */
 #define M_VOID_TIP_R 79u /* the same, X-flipped: ground on the right */
+#define M_AUTOCARPET0 80u
+#define M_AUTOCARPET1 81u
+#define M_AUTOCARPET2 82u
+#define M_AUTOCARPET3 83u
+#define M_AUTOCARPET4 84u
+#define M_AUTOCARPET5 85u
+#define M_AUTOCARPET6 86u
+#define M_AUTOCARPET7 87u
+#define M_AUTOCARPET8 88u
+#define M_AUTOCARPET9 89u
+#define M_AUTOCARPET10 90u
+#define M_AUTOCARPET11 91u
+#define M_AUTOCARPET12 92u
+#define M_AUTOCARPET13 93u
+#define M_AUTOCARPET14 94u
+#define M_AUTOCARPET15 95u
+#define M_PLATE_DOWN 96u
+#define LOOK_ICON_BASE 112u /* sixteen 8x8 inventory icons in signed BG bank 0 */
 #define LOOK_CARPET_STEPS 3u
 #define LOOK_CEIL_STEPS 2u
 #define LOOK_GLASS_STEPS 1u
 #define LOOK_GLITCH_STEPS 1u
-#define M_COUNT 80u
+#define M_COUNT 97u
 #define LOOK_SPR_BASE 248u /* VRAM bank 0: +0 the floor card (M_SLAB_A), +4 the wall card (M_WALL_TOP) */
 #define LOOK_T_REACT 138u
 #define LOOK_T_END 182u /* first tile past the reaction range */
 #define LOOK_T1_END 190u /* first bank 1 tile past the look */
 #define LOOK_B0_BASE 210u /* VRAM bank 0: the flying fragile cards from here */
-#define LOOK_LOW0_BASE 16u /* VRAM bank 0 BG-only (0x9000 + 16n): items, thin ice's crack, the void's edges, to 89 */
+#define LOOK_LOW0_BASE 16u /* VRAM bank 0 BG-only (0x9000 + 16n): items, thin ice's crack, the void's edges, to 109 */
 #define LOOK_SHARD 242u /* VRAM bank 0: two 8x16 glass shard sprites (+0, +2) */
 #define LOOK_META_BANK0 0x80u /* meta_pal bit: the card's tiles are in VRAM bank 0 */
 #define LOOK_META_FLIP 0x20u /* meta_pal bit, bank 0 cards: the map attribute's X-flip */

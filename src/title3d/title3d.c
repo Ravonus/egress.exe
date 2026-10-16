@@ -13,6 +13,7 @@
 #include <string.h>
 #include "egress.h"
 #include "clock.h"
+#include "resume.h"
 #include "title3d/t3d.h"
 #include "title3d/gen/t3d_data.h"
 #include "tb.h"
@@ -198,6 +199,7 @@ static void info_row(const char *s) {
 }
 static void seed_line(void) {
   static char s[17];
+  if(resume_ready) {info_row("START: CONTINUE");return;}
   memcpy(s, "SEED 0000 * KEEL", 17);
   s[5] = HEX[t3d_seed >> 12];
   s[6] = HEX[(t3d_seed >> 8) & 15u];

@@ -7,6 +7,7 @@ and inherited heirs. The current cartridge is a ten-floor office development sli
 The recovered B2 work and current verification are recorded in [the continuation notes](docs/recovery-20261015.md).
 The subsequent [gameplay rebuild](docs/gameplay-rebuild-20261015.md) records the implementation contract,
 completed native systems, controls, evidence and remaining work.
+The [completion ledger](docs/SPRINTS.md) tracks the continuing work beyond that published checkpoint.
 
 ## Build
 
@@ -65,13 +66,23 @@ three related successors and the last eight actual ancestors, without moving the
 Heirs inherit appearance, stats, weapon and dodge alleles; blade, hammer, whip, gauntlet and launcher have different
 timing, reach, force and secondary attacks. THE TREE on a landing shows the real family history.
 
-The satchel carries 24 finite units between floors. SELECT opens the two-slot, eleven-recipe bench with quantities,
-a result preview, the material faced and START-to-use. Invalid recipes and targets keep the items. A valid use
+The satchel carries 24 finite units between floors. SELECT opens the two-slot, eleven-recipe bench with inventory
+icons and quantities, animated ingredients/result, the material faced and START-to-use. Invalid recipes and targets keep the items. A valid use
 consumes one unit; a valid recipe consumes two and creates one. Hold RIGHT in the bench to discard one unit, then
 release before discarding another. A room reset restores its entry inventory, preventing pickup duplication.
 
+The lobby offers continue/new run, controls, tutorial and voice settings. Continue regenerates the saved floor from
+its entry state while retaining damage, or resumes a landing's conversation/trade state. Real falls cost health and
+return the heir to firm ground. A forward roll can cross a short hole. Plates respond to the player's weight, and
+an irreversibly stranded required crate triggers the reset cue while alternative tool routes remain valid.
+
+Eight original fal speech prototypes react to real hits, falls, crossings, broken walls and other recorded events.
+They are baked into both ROMs as 8,192 Hz four-bit PCM (96,432 bytes total); runtime playback needs no service or API
+key. `tools/narrator/bake_assets.py --check` reproduces their banks from the retained source WAVs. The broader
+event grammar and the remaining whole-game work are described in the ledger.
+
 Controls: d-pad move (lean into a CRT or crate to push it), A lash (three-hit combo; hold to charge and release),
-B tap for the secondary attack, B hold for repeat fire/pulses, B then A to rush, A then B to counter. Double-tap a direction to evade (sideways sidesteps, backward backsteps); hold the direction to run. START shows controls and pauses. Tap SELECT for the bench
+B tap for the secondary attack; hold B to charge and release to execute it. B then A rushes; A then B counters. Both attacks aim in eight directions. Double-tap a direction to evade (sideways sidesteps, backward backsteps); hold the direction to run. Each action spends stamina; resting restores it. START shows controls and pauses. Tap SELECT for the bench
 (combine two pieces with A, START uses the chosen piece on the cell you face); hold SELECT to reset for a token.
 
 ## Layout

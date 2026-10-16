@@ -8,6 +8,7 @@
 #include "stage.h"
 #include "core/eg_piece.h"
 #include "family.h"
+#include "resume.h"
 
 uint8_t rest_sel; /* the harness reads which line is chosen */
 static char rb[12];
@@ -80,7 +81,9 @@ static void rest_tree(void) {
 
 void stage_landing(void) BANKED {
   uint8_t k;
-  landing_screen();
+  game_mode=MODE_CLEAR;
+  if(!resume_rest) landing_screen();
+  resume_rest=1u;resume_save(RES_LANDING);
   rest_sel = 0;
   while (1) {
     rest_screen();
@@ -106,7 +109,7 @@ void stage_landing(void) BANKED {
     }
     sfx(SFX_KEY);
     fade_to(8, 0);
-    if (rest_sel == 0u) return;
+    if (rest_sel == 0u) {resume_rest=0u;return;}
     if (rest_sel == 1u) rest_book();
     else rest_tree();
   }

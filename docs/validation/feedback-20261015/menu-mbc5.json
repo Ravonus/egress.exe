@@ -1,0 +1,17 @@
+{
+  "sha256": "6cddca83b8aed48c5b92368dac68c75ebde3d5f6ab77aaeace914efcbd4c2e0b",
+  "results": {
+    "new_save_defaults_to_new_run": true,
+    "missing_continue_stays_in_menu": true,
+    "controls_return_to_menu": true,
+    "tutorials_toggle": true,
+    "voice_toggles": true,
+    "settings_do_not_write_legacy_family": true,
+    "settings_survive_poweroff": true,
+    "torn_settings_keep_previous_record": true,
+    "saved_run_defaults_to_continue": true,
+    "new_run_does_not_silently_discard_heir": true,
+    "new_run_can_be_cancelled": true,
+    "confirmed_new_run_records_lineage_once": true
+  }
+}

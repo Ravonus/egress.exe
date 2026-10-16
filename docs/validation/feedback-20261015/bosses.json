@@ -1,0 +1,195 @@
+{
+  "b2_boss": {
+    "tenant": {
+      "won": true,
+      "hits_taken": 0,
+      "hp": [
+        6,
+        6
+      ],
+      "frames": 4525,
+      "phases": [
+        0,
+        1,
+        2
+      ],
+      "good_hits": 24,
+      "oam_frames": 4564,
+      "oam_max_per_line": 10,
+      "oam_frames_over_10": 0,
+      "oam_over_by_phase": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "game_frames_per_120_min": {
+        "0": 120,
+        "1": 120,
+        "2": 120
+      },
+      "lag_windows": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "sequence_frames_per_120_min": {
+        "0": 120,
+        "1": 119,
+        "2": 109
+      },
+      "bot_log": [
+        "2365 guard tti=7",
+        "2635 parry",
+        "2898 guard tti=7",
+        "3020 guard tti=7",
+        "3042 guard tti=7",
+        "3307 guard tti=7",
+        "3318 guard tti=0",
+        "3451 guard tti=7",
+        "3822 guard tti=7",
+        "4257 guard tti=7",
+        "4511 guard tti=7",
+        "4633 guard tti=7"
+      ],
+      "end_mode": 3,
+      "bo_refused_last": 0,
+      "damage_events": []
+    },
+    "fax": {
+      "won": true,
+      "hits_taken": 0,
+      "hp": [
+        6,
+        6
+      ],
+      "frames": 10318,
+      "phases": [
+        0,
+        1
+      ],
+      "good_hits": 12,
+      "oam_frames": 10463,
+      "oam_max_per_line": 10,
+      "oam_frames_over_10": 0,
+      "oam_over_by_phase": {
+        "0": 0,
+        "1": 0
+      },
+      "game_frames_per_120_min": {
+        "0": 120,
+        "1": 120
+      },
+      "lag_windows": {
+        "0": 0,
+        "1": 0
+      },
+      "sequence_frames_per_120_min": {
+        "0": 120,
+        "1": 119
+      },
+      "bot_log": [
+        "7173 parry",
+        "7420 parry",
+        "7799 parry",
+        "8021 parry",
+        "8430 parry",
+        "8677 parry",
+        "9061 parry",
+        "9281 parry",
+        "9691 parry",
+        "9910 parry",
+        "10320 parry",
+        "10567 parry"
+      ],
+      "end_mode": 2,
+      "bo_refused_last": 0,
+      "damage_events": []
+    },
+    "boss_death": {
+      "died": true,
+      "cause": [
+        224,
+        242,
+        13
+      ],
+      "hits_by_attack": {
+        "SLAM": [
+          2,
+          4
+        ],
+        "SWEEP": [
+          0,
+          0
+        ],
+        "VOLLEY": [
+          0,
+          0
+        ],
+        "BEAM": [
+          0,
+          0
+        ],
+        "QUAKE": [
+          0,
+          0
+        ],
+        "FLOOR": [
+          0,
+          0
+        ],
+        "RAM": [
+          0,
+          0
+        ],
+        "JAM": [
+          0,
+          0
+        ],
+        "FAN": [
+          0,
+          0
+        ],
+        "CONTACT": [
+          0,
+          0
+        ]
+      },
+      "back_to_title": true
+    },
+    "profile_tenant": {
+      "SLAM": {
+        "hits": 36,
+        "half_hearts": 70,
+        "per_hit": 1.94
+      },
+      "SWEEP": {
+        "hits": 23,
+        "half_hearts": 46,
+        "per_hit": 2.0
+      }
+    },
+    "profile_fax": {
+      "RAM": {
+        "hits": 59,
+        "half_hearts": 116,
+        "per_hit": 1.97
+      }
+    }
+  },
+  "results": {
+    "boss_tenant_nohit": true,
+    "boss_tenant_phases": true,
+    "boss_tenant_hits_target": true,
+    "boss_tenant_oam": true,
+    "boss_tenant_frames": true,
+    "boss_fax_nohit": true,
+    "boss_fax_phases": true,
+    "boss_fax_hits_target": true,
+    "boss_fax_oam": true,
+    "boss_fax_frames": true,
+    "boss_death": true,
+    "boss_profile_tenant": true,
+    "boss_profile_fax": true
+  },
+  "sha256": "6cddca83b8aed48c5b92368dac68c75ebde3d5f6ab77aaeace914efcbd4c2e0b"
+}

@@ -158,7 +158,7 @@ void boss_hit(uint8_t dmg, uint8_t fromx, uint8_t fromy) BANKED {
 
 /* the phase's HP is gone */
 void bc_gate(void) BANKED {
-  uint8_t last = (uint8_t)(bs_kind == BOSS_BIOME ? 2u : 1u);
+  uint8_t c,last = (uint8_t)(bs_kind == BOSS_BIOME ? 2u : 1u);
   bs_open = 0;
   orbs_clear();
   if (bs_phase < last) {
@@ -171,6 +171,11 @@ void bc_gate(void) BANKED {
     if (bs_kind == BOSS_BIOME) tenant_gate(bs_phase);
     else fax_gate(bs_phase);
     return;
+  }
+  /* The reward must remain reachable after the fax has shattered its glass pool. */
+  if(bs_kind==BOSS_MID) for(c=EG_IDX(5u,7u);c<=EG_IDX(10u,8u);c++) {
+    if(EG_X(c)<5u || EG_X(c)>10u) continue;
+    if(cell_type(c)==T_PIT || cell_type(c)==T_GLASS) {room.c[c]=T_EMPTY;look_skin_set(c,LOOK_SKIN_NONE);}
   }
   /* down: the beat */
   bs_st = BS_DOWN;

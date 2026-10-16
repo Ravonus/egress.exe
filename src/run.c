@@ -12,6 +12,10 @@
 #include "run.h"
 #include "mapper.h"
 #include "clock.h"
+#include "family.h"
+#include "resume.h"
+#include "narrator.h"
+#include "boss_api.h"
 
 uint8_t mods;
 int8_t standing[FAC_COUNT];
@@ -19,6 +23,9 @@ uint8_t truth[9];
 meta_t meta;
 uint8_t meta_loaded;
 static uint8_t landing_no, met; /* met: factions talked to this run */
+static uint8_t run_finished;
+void run_resume_get(uint8_t *out2) BANKED {out2[0]=landing_no;out2[1]=met;}
+void run_resume_set(const uint8_t *in2) BANKED {landing_no=in2[0];met=in2[1];}
 
 #define TRUTH_MAX 60u
 #define POOL_BASE (MOD_LONG | MOD_STATIC | MOD_SURGE)
@@ -49,6 +56,7 @@ typedef struct {
   uint16_t crc;
 } record_t;
 static uint8_t save_gen;
+uint8_t run_save_serial(void) BANKED {return save_gen;}
 
 static uint16_t crc16(const uint8_t *p, uint8_t n) {
   uint16_t c = 0xffffu;
@@ -114,9 +122,11 @@ void run_begin(void) BANKED {
   pl_hp_max = 6u;
   pl_hp = 6u;
   mods = 0;
-  kills_run = 0;
+  kills_run = 0;heart_shards=0u;
   landing_no = 0;
   met = 0;
+  run_finished=0u;
+  floor_no=0u;
   memset(standing, 0, sizeof standing);
   /* the trace: half of what the last runs leaned toward */
   for (i = 0; i != 9u; i++) truth[i] = (uint8_t)(meta.trace[i] >> 1);
@@ -189,6 +199,14 @@ void run_end(uint8_t won) BANKED {
     meta.trace[i] = v > 15u ? 15u : v;
   }
   save_write();
+}
+
+void run_record_end(uint8_t won) BANKED {
+  if(run_finished) return;
+  run_finished=1u;
+  narrator_event(won ? NE_CLEAR : NE_DEATH,0u);
+  resume_save(won ? RES_WON : RES_DEAD);
+  run_end(won);family_end(won);resume_clear();
 }
 
 /* --- landings --- */

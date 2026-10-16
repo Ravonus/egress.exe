@@ -1,0 +1,115 @@
+{
+  "sha256": "6cddca83b8aed48c5b92368dac68c75ebde3d5f6ab77aaeace914efcbd4c2e0b",
+  "results": {
+    "direction_0_hits_forward_only": true,
+    "direction_0_shoots_along_aim": true,
+    "direction_1_hits_forward_only": true,
+    "direction_1_uses_diagonal_arc": true,
+    "direction_1_shoots_along_aim": true,
+    "direction_2_hits_forward_only": true,
+    "direction_2_shoots_along_aim": true,
+    "direction_3_hits_forward_only": true,
+    "direction_3_uses_diagonal_arc": true,
+    "direction_3_shoots_along_aim": true,
+    "direction_4_hits_forward_only": true,
+    "direction_4_shoots_along_aim": true,
+    "direction_5_hits_forward_only": true,
+    "direction_5_uses_diagonal_arc": true,
+    "direction_5_shoots_along_aim": true,
+    "direction_6_hits_forward_only": true,
+    "direction_6_shoots_along_aim": true,
+    "direction_7_hits_forward_only": true,
+    "direction_7_uses_diagonal_arc": true,
+    "direction_7_shoots_along_aim": true
+  },
+  "directions": [
+    {
+      "direction": 0,
+      "damage_front_back": [
+        1,
+        0
+      ],
+      "shot_velocity": [
+        0,
+        -36
+      ]
+    },
+    {
+      "direction": 1,
+      "damage_front_back": [
+        1,
+        0
+      ],
+      "shot_velocity": [
+        36,
+        -36
+      ]
+    },
+    {
+      "direction": 2,
+      "damage_front_back": [
+        1,
+        0
+      ],
+      "shot_velocity": [
+        36,
+        0
+      ]
+    },
+    {
+      "direction": 3,
+      "damage_front_back": [
+        1,
+        0
+      ],
+      "shot_velocity": [
+        36,
+        36
+      ]
+    },
+    {
+      "direction": 4,
+      "damage_front_back": [
+        1,
+        0
+      ],
+      "shot_velocity": [
+        0,
+        36
+      ]
+    },
+    {
+      "direction": 5,
+      "damage_front_back": [
+        1,
+        0
+      ],
+      "shot_velocity": [
+        -36,
+        36
+      ]
+    },
+    {
+      "direction": 6,
+      "damage_front_back": [
+        1,
+        0
+      ],
+      "shot_velocity": [
+        -36,
+        0
+      ]
+    },
+    {
+      "direction": 7,
+      "damage_front_back": [
+        1,
+        0
+      ],
+      "shot_velocity": [
+        -36,
+        -36
+      ]
+    }
+  ]
+}

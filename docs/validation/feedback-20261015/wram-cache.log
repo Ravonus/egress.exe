@@ -1,0 +1,13 @@
+.venv/bin/python tools/test_wram_cache.py build/cache-check/cache.gbc
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+{
+  "sha256": "f54a4f096971c523ca68b15c6e586bdaa080b5d6a4a55ad15c2fca70a3c0ba59",
+  "result": [
+    165,
+    16,
+    0,
+    0
+  ],
+  "frames": 128,
+  "scope": "eight complete sectors, eight partial transfers, live bank-one canaries, restored SVBK and invalid bounds"
+}

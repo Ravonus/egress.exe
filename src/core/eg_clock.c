@@ -63,12 +63,15 @@ void egc_add_frames(egc_time *t, uint16_t frames) EGC_BANKED {
   uint16_t s = (uint16_t)(f >> EGC_FRAC_BITS);
   t->frac = f & ((1ul << EGC_FRAC_BITS) - 1u);
   if (!s) return;
-  /* the common case (under a minute) without 32-bit division */
-  if ((uint16_t)(t->sec + s) < 60u) {
-    t->sec = (uint8_t)(t->sec + s);
-    return;
+  /* A uint16 frame gap is at most 1,098 seconds. Carry at most nineteen
+   * minutes directly; converting the whole date through 32-bit division at a
+   * minute boundary could consume half a gameplay frame on the SM83. */
+  s=(uint16_t)(s+t->sec);
+  while(s>=60u) {
+    s-=60u;
+    if(++t->minute==1440u) {t->minute=0u;t->days++;}
   }
-  egc_add_secs(t, s);
+  t->sec=(uint8_t)s;
 }
 
 void egc_local(const egc_time *t, int8_t off_q, egc_ymd *out) EGC_BANKED {

@@ -6,6 +6,7 @@
  * Effects borrow pulse 1 and noise; the music on those channels resumes at its next note. Music volume scales the
  * score's envelopes, SFX volume the effects'; fades ramp the master level. */
 #pragma bank 255
+#include "voice.h"
 #include <gb/gb.h>
 #include <gb/hardware.h>
 #include "egress.h"
@@ -140,6 +141,7 @@ void sound_init(void) BANKED {
   NR50_REG = 0x77u;
   fade_level = fade_target = 7u;
   music_song = SONG_NONE;
+  voice_init();
 }
 
 void sfx(uint8_t id) BANKED {
@@ -157,6 +159,7 @@ void sfx(uint8_t id) BANKED {
 }
 
 static void load_wave(const uint8_t *w) {
+  if(voice_busy) return;
   uint8_t i;
   NR30_REG = 0;
   for (i = 0; i != 16u; i++) (&AUD3WAVE[0])[i] = w[i];
@@ -167,6 +170,7 @@ void music_play(uint8_t song) BANKED {
   const uint8_t *h;
   uint8_t i;
   if (song == music_song) return;
+  voice_stop();
   music_song = song;
   NR12_REG = NR22_REG = NR42_REG = 0;
   NR32_REG = 0;
@@ -228,6 +232,7 @@ static void channel_row(uint8_t c) {
       }
       break;
     case 2:
+      if(voice_busy) return;
       if (note == MN_REST || !music_volume)
         NR32_REG = 0;
       else {
@@ -270,6 +275,10 @@ static void fx_tick(uint8_t c) {
 
 void sound_tick(void) BANKED {
   uint8_t c;
+  if(voice_dirty) {
+    voice_dirty=0u;NR32_REG=0u;
+    if(music_song!=SONG_NONE) load_wave(mn_waves[mn_songs[music_song-1u][7]]);
+  }
   if (fade_level != fade_target && ++fade_t >= 8u) {
     fade_t = 0;
     fade_level = fade_level < fade_target ? (uint8_t)(fade_level + 1u) : (uint8_t)(fade_level - 1u);

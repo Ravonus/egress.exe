@@ -17,6 +17,8 @@
 #include "mob.h"
 #include "heir.h"
 #include "family.h"
+#include "narrator.h"
+#include "tutorial.h"
 void items_tick(void) BANKED;
 
 /* Bank 1 floor state, after the mover map; title playback uses bank 2 here. */
@@ -31,7 +33,7 @@ uint8_t dead_t; /* the dead-room hint: 0 none, counting down, 1 shown (the harne
 uint8_t dead_run; /* the sliced dead-room check is under way (the harness reads it) */
 #define DEAD_SLICE 4u /* queue pops a frame (~3.5 lines each): a whole check is one or two floods, about a second */
 static uint8_t frag_t[4][2]; /* timed resets: cell, ticks of 8 frames left (0: free) */
-uint8_t bench_on, bench_cur, last_rx; /* bench_on: 1 the bench is up, 2 a use is playing out */
+uint8_t bench_on, bench_cur, last_rx; /* 1 listening, 2 a use, 3 the combination scene */
 static uint8_t sock[2], told;
 static char buf[20];
 static uint8_t bench_cam_y;
@@ -65,6 +67,7 @@ static void pocket_take(uint8_t slot) {
 
 /* the player walked into a piece lying in the room */
 void puzzle_pick(uint8_t cell) BANKED {
+  tutorial_queue(TE_BENCH);
   uint8_t p = eg_item_at(&room, cell);
   if (!p) return;
   if (pocket_n >= POCKET_CAP) { hud_msg("SATCHEL FULL: USE IT"); return; }
@@ -121,6 +124,9 @@ static uint8_t beat_phase(void) {
 uint8_t puzzle_meta(uint8_t i) BANKED {
   uint8_t t = cell_type(i);
   if (t == T_GLITCH) return (uint8_t)(M_GLITCH0 + beat_phase());
+  if(t==T_PLATE && pl_hp && !pl_air && pl_state!=PS_FALL &&
+     absdiff((uint8_t)(EG_X(i)*16u+8u),pl_x)<14u && absdiff((uint8_t)(EG_Y(i)*16u+8u),pl_y)<14u)
+    return M_PLATE_DOWN;
   if (t == T_ITEM) { /* the piece lying there, as an office thing that carries its element */
     t = eg_item_at(&room, i);
     return (t && t <= LOOK_ITEMS) ? (uint8_t)(M_ITEM0 - 1u + t) : M_SLAB_A;
@@ -165,6 +171,7 @@ static uint8_t use(uint8_t slot) {
       if (en[k].st == ES_DEAD || cell_at((uint8_t)(en[k].x >> 4), (uint8_t)(en[k].y >> 4)) != cell) continue;
       if (en[k].kind != SPAWN_MOB) { hud_msg("ARMOURED: ITEM KEPT"); return 0u; }
       if (!mob_tool(k,pocket[slot])) { hud_msg("BLOCKED: ITEM KEPT"); return 0; }
+      narrator_event(NE_USE,(uint8_t)(pocket[slot]|(pocket_n==1u ? 128u : 0u)));
       pocket_take(slot);
       hud_msg("TOOL USED ON MOB");
       sfx(SFX_CHARGED);
@@ -174,11 +181,13 @@ static uint8_t use(uint8_t slot) {
   }
   rx = eg_apply(&room, pocket[slot], cell, occ, n);
   if (!rx) {
+    narrator_event(NE_REFUSED,0u);
     sfx(SFX_DENY);
     hud_msg("NO EFFECT: KEPT");
     return 0;
   }
   last_rx = rx;
+  narrator_event(NE_USE,(uint8_t)(pocket[slot]|(pocket_n==1u ? 128u : 0u)));
   pocket_take(slot);
   nd = eg_ndirty;
   if (nd <= EG_DIRTY_MAX) memcpy(order, eg_dirty, nd);
@@ -228,6 +237,41 @@ static void bench_step(uint8_t up) {
   bench_cur=k;
 }
 
+static void bench_card(uint8_t x,uint8_t y,uint8_t m) {
+  uint8_t a[4],p=meta_pal[m];
+  memset(a,(p&LOOK_META_BANK0) ? (p&(7u|LOOK_META_FLIP)) : (p|8u),sizeof a);
+  VBK_REG=1u;set_win_tiles(x,y,2u,2u,a);
+  VBK_REG=0u;set_win_tiles(x,y,2u,2u,meta_tile[m]);
+}
+static void bench_icon(uint8_t y,uint8_t p) {
+  uint8_t t=(uint8_t)(LOOK_ICON_BASE+p-1u),a=(uint8_t)(meta_pal[M_ITEM0+p-1u]&7u);
+  VBK_REG=1u;set_win_tiles(1u,y,1u,1u,&a);
+  VBK_REG=0u;set_win_tiles(1u,y,1u,1u,&t);
+}
+static void bench_scene(uint8_t phase,uint8_t result) {
+  uint8_t y;
+  for(y=1u;y!=6u;y++) text_at(1,10u,y,"          ",BP);
+  bench_card(14u,3u,M_BENCH);
+  if(result) {
+    bench_card(14u,1u,(uint8_t)(M_ITEM0+result-1u));
+    text_at(1,11u,2u,"+",HP);text_at(1,18u,2u,"+",HP);
+  } else {
+    if(sock[0]!=255u) bench_card((uint8_t)(11u+phase),1u,(uint8_t)(M_ITEM0+pocket[sock[0]]-1u));
+    if(sock[1]!=255u) bench_card((uint8_t)(17u-phase),1u,(uint8_t)(M_ITEM0+pocket[sock[1]]-1u));
+    if(!phase) text_at(1,15u,1u,"+",HP);
+  }
+}
+static void bench_combine(uint8_t result) {
+  uint8_t phase,t;
+  text_at(1,10u,0u,"COMBINING ",HP);
+  for(phase=0u;phase!=3u;phase++) {
+    bench_scene(phase,0u);sfx(phase==2u ? SFX_CHARGED : SFX_PUSH);
+    for(t=0u;t!=8u;t++) {frame_wait();sound_tick();draw_sprites();}
+  }
+  bench_scene(0u,result);sfx(SFX_KEY);
+  for(t=0u;t!=18u;t++) {frame_wait();sound_tick();draw_sprites();}
+}
+
 static const char *const target_names[T_TYPES] = {
   "FLOOR","FOAM","CONCRETE","CRACK WALL","CRT","TOKEN","KEYCARD","DOOR",
   "CARPET","GAP","PLATE","GATE","OPEN GATE","WATER","GLITCH","PAPER",
@@ -257,42 +301,29 @@ static void bench_draw(void) {
     count = 0u;
     for (j = 0u; j != pocket_n; j++) if (pocket[j] == pocket[k]) count++;
     eg_piece_abbr(pocket[k], buf);
-    text_at(1, 1, row, buf, (uint8_t)(sock[0] == k || sock[1] == k ? HP : BP));
+    bench_icon(row,pocket[k]);
+    text_at(1, 2, row, buf, (uint8_t)(sock[0] == k || sock[1] == k ? HP : BP));
     text_at(1, 6, row, "x", BP);
     num_at(1, 7, row, count, 2u, BP);
     if (k == bench_cur) text_at(1, 0, row, ">", HP);
     k++;
   }
-  for (k = 0; k != 2u; k++) {
-    text_at(1, 10, (uint8_t)(k + 1u), "          ", BP);
-    text_at(1, 10, (uint8_t)(k + 1u), k ? "+" : " ", BP);
-    if (sock[k] != 255u) {
-      eg_piece_name(pocket[sock[k]], buf);
-      text_at(1, 11, (uint8_t)(k + 1u), buf, HP);
-    } else
-      text_at(1, 11, (uint8_t)(k + 1u), "-", BP);
-  }
-  text_at(1, 10, 3, "          ", BP);
+  bench_scene(0u,0u);
   if (sock[1] != 255u) {
     r = eg_recipe(pocket[sock[0]], pocket[sock[1]]);
-    text_at(1, 10, 3, ">", HP);
     if (r) {
       eg_piece_name(r, buf);
-      text_at(1, 11, 3, buf, HP);
+      text_at(1, 11, 5, buf, HP);
     } else
-      text_at(1, 11, 3, "NOTHING", BP);
+      text_at(1, 11, 5, "NOTHING", BP);
   }
-  text_at(1, 10, 4, "          ", BP);
-  text_at(1, 10, 5, "          ", BP);
   text_at(1, 10, 6, "          ", BP);
   cell = (uint8_t)(cell_at(pl_x,pl_y) + (uint8_t)(fdy[pl_face] * (int8_t)EG_W) + (uint8_t)fdx[pl_face]);
   rx = eg_use_rx(pocket_n ? pocket[bench_cur] : 0u, cell_type(cell));
-  text_at(1, 10, 4, "FACING:", BP);
-  if (enemy_in_cell(cell)) { text_at(1, 10, 5, "MOB", HP);text_at(1,10,6,"USE TOOL",HP); }
+  if (enemy_in_cell(cell)) { text_at(1,10,6,"MOB: TOOL",HP); }
   else {
-    text_at(1,10,5,target_names[cell_type(cell)],BP);
     if (rx) { eg_rx_name(rx, buf); buf[10] = 0; text_at(1, 10, 6, buf, HP); }
-    else text_at(1, 10, 6, "NO EFFECT", BP);
+    else text_at(1,10,6,target_names[cell_type(cell)],BP);
   }
   eg_piece_name(r ? r : (pocket_n ? pocket[bench_cur] : 0u), buf);
   line(7, buf);
@@ -359,20 +390,21 @@ void bench_run(void) BANKED {
         b = sock[1];
         r = eg_recipe(pocket[a], pocket[b]);
         if (!r) {
+          narrator_event(NE_REFUSED,0u);
           sfx(SFX_DENY);
           text_at(1,10,6,"ITEMS KEPT",BP);
           continue;
         }
-        text_at(1,10,6,"MIXING...",HP);
-        for(r=0u;r!=12u;r++) { frame_wait(); sound_tick(); draw_sprites(); }
-        r=eg_recipe(pocket[a],pocket[b]);
+        bench_on=3u;bench_combine(r);
         pocket_take(a > b ? a : b);
         pocket_take(a > b ? b : a);
         pocket[pocket_n++] = r;
+        narrator_event(NE_MIX,r);
         bench_cur = (uint8_t)(pocket_n - 1u);
         sock[0] = sock[1] = 255u;
         sfx(SFX_CHARGED);
         bench_draw();
+        bench_on=1u;
       } else if (pocket_n && sock[0] != bench_cur) {
         sock[sock[0] == 255u ? 0u : 1u] = bench_cur;
         sfx(SFX_PUSH);
@@ -423,6 +455,7 @@ void puzzle_plan_done(void) BANKED {
 
 /* holding SELECT put the room back: it costs a token (never a heart), and the matrix remembers */
 void puzzle_reset_cost(void) BANKED {
+  narrator_event(NE_RESET,0u);
   if (floor_resets != 255u) floor_resets++;
   if (tokens) tokens--;
   run_room_forgot();
@@ -462,6 +495,7 @@ static uint8_t body_on(uint8_t cell) {
 /* every frame of play: the beat, the player's steps on fragile floor, falls, timed resets, the dead-room hint */
 void puzzle_tick(void) BANKED {
   uint8_t c = cell_at(pl_x, pl_y), t, on = (uint8_t)eg_beat_on(frame_count), j;
+  if(pl_state==PS_FALL) return;
   on = beat_phase();
   if (on != beat_was && has_glitch) { /* the glitched glass changes phase (solid, flicker, gone) */
     beat_was = on;
@@ -471,6 +505,7 @@ void puzzle_tick(void) BANKED {
       if (cell_type(j) == T_GLITCH) queue_cell(j);
     } while (++j != (uint8_t)EG_N);
   }
+  if(c!=pl_cell && cell_type(c)==T_PLATE && !pl_air) tutorial_queue(TE_PLATE);
   if (c != pl_cell) { /* the centre moved on: the old cell counts once the whole body has left it */
     if (c == frag_pend) frag_pend = 255u; /* stepped back: no step */
     else if (EG_FRAGILE(cell_type(pl_cell)) && !frag_skip) frag_pend = pl_cell; /* (a blink, B3, skips it) */
@@ -487,16 +522,11 @@ void puzzle_tick(void) BANKED {
     frag_pend = 255u;
   }
   t = cell_type(c);
-  if (EG_PASSABLE(t) && !EG_FRAGILE(t) && t != T_GLITCH) pl_safe = c;
-  if ((t == T_PIT || (t == T_GLITCH && !eg_beat_on(frame_count))) && pl_state != PS_EXIT) { /* a fall: hurt, and back to firm floor */
-    player_hurt(1u, pl_x, pl_y);
-    psx = cell_sub(EG_X(pl_safe));
-    psy = cell_sub(EG_Y(pl_safe));
-    pl_x = (uint8_t)(psx >> 4);
-    pl_y = (uint8_t)(psy >> 4);
-    pl_cell = pl_safe;
+  if (!pl_air && EG_PASSABLE(t) && !EG_FRAGILE(t) && t != T_GLITCH) pl_safe = c;
+  if ((t == T_PIT || (t == T_GLITCH && !eg_beat_on(frame_count))) && !pl_air && pl_state != PS_EXIT) {
+    player_fall(pl_safe);
     frag_pend = 255u;
-    hud_msg("YOU FELL");
+    return;
   }
   if (!(frame_count & 7u))
     for (j = 0; j != 4u; j++)
@@ -515,6 +545,7 @@ void puzzle_tick(void) BANKED {
     if (j != EG_DEAD_BUSY) {
       dead_run = 0u;
       if (j && !dead_t) {
+        narrator_event(NE_STUCK,0u);
         dead_t = 120u;
         hud_msg("THE ROOM FORGETS");
         sfx(SFX_TELL);

@@ -31,6 +31,7 @@
 #include "core/eg_piece.h"
 #include "gen/stage_art.h"
 #include "core/eg_physics.h"
+#include "narrator.h"
 
 extern uint8_t dead_t; /* src/puzzle.c: 120 shows the lost room's hint, then HOLD SELECT */
 
@@ -114,6 +115,12 @@ void stage_plan_floor(void) BANKED {
   }
 }
 
+void stage_resume_floor(void) BANKED {
+  st_seed=(uint16_t)(run_seed^((uint16_t)floor_no*0x9e37u)^0x51a7u);
+  if(!st_seed) st_seed=1u;
+  stage_kind=slice.kind;stage_type=slice.type;
+}
+
 uint8_t stage_build(void) BANKED {
   if (slice.physical) {
     eg_physics_gen(&room, slice.physical, st_seed, slice.level);
@@ -129,6 +136,7 @@ uint8_t stage_build(void) BANKED {
 
 /* ---------------- waves: glitched in from the void, a probe batch a frame ---------------- */
 static void wave_begin(uint8_t n, uint8_t shooter) {
+  if(n && !dbg_no_enemies) narrator_event(NE_WAVE,0u);
   wv_pend = dbg_no_enemies ? 0u : n;
   wv_shoot = shooter;
   stage_wave++;

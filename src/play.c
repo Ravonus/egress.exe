@@ -18,11 +18,18 @@
 #include "boss_api.h" /* B2 bosses */
 #include "obstacle.h"
 #include "family.h"
+#include "resume.h"
+#include "narrator.h"
+#include "stamina.h"
+#include "tutorial.h"
 void sprites_budget(void) NONBANKED;
 
 uint8_t tokens, keys_held, door_open, board_busy, cam_x, cam_y;
 uint8_t freeze, shake, hud_dirty, grav_t, boss_floor;
 static uint8_t was_falling, sel_t, floor_tokens0;
+static uint8_t restored_floor;
+static uint8_t weight_cells[4],weight_n;
+uint8_t run_loading;
 
 static void controls_pause(void) {
   uint8_t old_y=cam_y;
@@ -31,7 +38,7 @@ static void controls_pause(void) {
   move_bkg(cam_x,cam_y);
   clear_map(1,LOOK_PAL_HUD);
   text_at(1,0,0,"A HIT / HOLD CHARGE",LOOK_PAL_HUD);
-  text_at(1,0,1,"B FIRE / HOLD REPEAT",LOOK_PAL_HUD);
+  text_at(1,0,1,"B SHOT / HOLD CHARGE",LOOK_PAL_HUD);
   text_at(1,0,2,"A>B COUNTER B>A RUSH",LOOK_PAL_HUD);
   text_at(1,0,3,"DIR x2 DODGE/STEP",LOOK_PAL_HUD);
   text_at(1,0,4,"HOLD DIR TO RUN",LOOK_PAL_HUD);
@@ -78,6 +85,8 @@ static void floor_build(void) {
   door_open = 0;
   board_busy = 0;
   was_falling = 0;
+  weight_n=0u;
+  eg_plates_dirty=1u;
   psx = cell_sub(EG_X(room.start));
   psy = cell_sub(EG_Y(room.start));
   pl_x = (uint8_t)(psx >> 4);
@@ -156,7 +165,7 @@ static void floor_show(void) {
 }
 
 static void gravity_tick(void) {
-  uint8_t occ[4], n = 0, c, k, g, a, b;
+  uint8_t occ[4], n = 0, c, k, g, a, b, weights=0u;
   uint8_t xs[2], ys[2];
   xs[0] = (uint8_t)(pl_x - 6u); /* the mover's 12x12 box (eg_move) */
   xs[1] = (uint8_t)(pl_x + 5u);
@@ -169,16 +178,35 @@ static void gravity_tick(void) {
         if (occ[k] == c) break;
       if (k == n) occ[n++] = c;
     }
-  g = eg_gravity(&room, occ, pl_hp ? n : 0u);
+  /* Compare only grounded plate contacts, rather than invalidating the full
+   * shutter scan on every subpixel movement. Keep the complete body footprint
+   * for falling CRTs and the occupied-gate safety check. */
+  if(pl_hp && !pl_air && pl_state!=PS_FALL)
+    for(k=0u;k!=n;k++) if(room.c[occ[k]]==T_PLATE) {
+      if(weights>=weight_n || weight_cells[weights]!=occ[k]) {
+        eg_plates_dirty=1u;queue_cell(occ[k]);
+        if(weights<weight_n) queue_cell(weight_cells[weights]);
+      }
+      weight_cells[weights++]=occ[k];
+    }
+  if(weights!=weight_n) {eg_plates_dirty=1u;for(k=weights;k<weight_n;k++) queue_cell(weight_cells[k]);}
+  weight_n=weights;
+  g = eg_gravity(&room, occ, pl_hp && !pl_air && pl_state!=PS_FALL ? n : 0u);
   if (eg_ndirty > EG_DIRTY_MAX) {
     for (c = 0; c != (uint8_t)EG_N; c++)
       if (cell_type(c) == T_ROCK || cell_type(c) == T_EMPTY) queue_cell(c);
   } else
-    for (k = 0; k != eg_ndirty; k++) queue_cell(eg_dirty[k]);
+    for (k = 0; k != eg_ndirty; k++) {
+      c=eg_dirty[k];queue_cell(c);
+      if(cell_type(c)==T_GATE || cell_type(c)==T_GATE_OPEN) {
+        sfx(SFX_DOOR);puff((uint8_t)(EG_X(c)*16u+8u),(uint8_t)(EG_Y(c)*16u+8u),4u,ST_SPARK);
+      }
+    }
   if (g & EG_G_HIT) player_hurt(2u, pl_x, (uint8_t)(pl_y - 16u));
   if (g & EG_G_BROKE) puzzle_dirty = 1u; /* B1 */
   board_busy = (uint8_t)((g & EG_G_FALLING) ? 1u : 0u);
   if (was_falling && !board_busy) {
+    narrator_event(NE_DROP,0u);
     sfx(SFX_THUD);
     shake = 3u;
   }
@@ -209,7 +237,12 @@ static uint8_t floor_play(void) {
   uint8_t end_t = 0;
   floor_tokens0 = tokens;
   pocket_enter();
-  if (floor_no < RUN_FLOORS) stage_plan_floor(); /* B1, B2: the slot, the stage type, the room */
+  if(restored_floor) {stage_resume_floor();restored_floor=0u;narrator_event(NE_RETURN,0u);}
+  else {
+    if (floor_no < RUN_FLOORS) stage_plan_floor(); /* B1, B2: the slot, the stage type, the room */
+    if(family.nrecord && !family.history[0].won && family.history[0].floor==floor_no) narrator_event(NE_ANCESTOR,0u);
+  }
+  resume_save(RES_FLOOR);
   floor_build();
   floor_show();
   music_play(boss_floor ? SONG_BOSS : SONG_FLOOR);
@@ -223,6 +256,7 @@ static uint8_t floor_play(void) {
   else hud_msg("ANOTHER FLOOR");
   while (1) {
     frame_wait();
+    input_poll(); /* sample before variable-cost VRAM/audio work can cross a display boundary */
     if (boss_floor) boss_vblank(); /* B2 bosses: in VBlank, before the look's writes */
     if (pal_dirty && !look_busy()) {
       set_sprite_palette(2u, 6u, &pal_sp[8]);
@@ -232,7 +266,6 @@ static uint8_t floor_play(void) {
     flush_cells(8);
     scroll();
     sound_tick();
-    input_poll();
     hud_tick();
     if (pl_state == PS_EXIT) {
       sprites_budget();
@@ -249,6 +282,7 @@ static uint8_t floor_play(void) {
       continue;
     }
     if (pl_hp == 0u) {
+      if(pl_state==PS_FALL) player_update();
       /* look: the world lets go around the body, leaving it on one tile and its neighbours (B3 owns the rest) */
       if (++end_t == 20u) look_collapse(cell_at(pl_x, pl_y), 2u);
       if (end_t >= 60u && (!look_busy() || end_t >= 150u)) {
@@ -311,35 +345,53 @@ static uint8_t floor_play(void) {
       hud_msg("EGRESS");
     }
     camera(0);
+    tutorial_tick();
+    if(!(frame_count&63u)) narrator_tick();
     draw_sprites();
   }
 }
 
 void play_run(void) BANKED {
+  run_loading=1u;
   art_copy_tables(&meta_tile[0][0], meta_pal, pal_bg, pal_sp, people);
   run_begin();
+  narrator_begin();
+  family_prepare();
+  if(resume_finish_pending()) {run_begin();narrator_begin();}
+  if(resume_new) {
+    if(resume_restore()) run_record_end(0u);
+    resume_new=0u;run_begin();narrator_begin();family_prepare();
+  }
+  run_loading=0u;
   family_begin();
+  stamina_begin();
   pocket_begin();
   puzzle_plan_begin(); /* B1 */
   stage_run_begin();   /* B2 */
-  floor_no = (dbg_floor && dbg_floor <= RUN_FLOORS) ? dbg_floor : 1u;
-  tokens = 0;
+  restored_floor=resume_restore();
+  if(!restored_floor) {
+    floor_no = (dbg_floor && dbg_floor <= RUN_FLOORS) ? dbg_floor : 1u;
+    tokens = 0;resume_rest=0u;
+    narrator_event(NE_HEIR,0u);
+  } else if(resume_state==RES_LANDING) {
+    restored_floor=0u;art_load_game();stage_landing();
+    art_copy_tables(&meta_tile[0][0],meta_pal,pal_bg,pal_sp,people);people_colours();floor_no++;
+  }
   while (1) {
     if (!floor_play()) {
       HIDE_WIN;
       hud_line = 144u;
-      run_end(0);
-      family_end(0);
+      run_record_end(0u);
       dead_screen();
       return;
     }
     if (floor_no < RUN_FLOORS) stage_floor_done(); /* B1, B2 */
     run_floor_done();
+    narrator_event(NE_CLEAR,0u);
     if (floor_no >= RUN_FLOORS) {
       HIDE_WIN;
       hud_line = 144u;
-      run_end(1);
-      family_end(1);
+      run_record_end(1u);
       ending_screen();
       return;
     }
@@ -347,6 +399,7 @@ void play_run(void) BANKED {
     if (floor_no % 3u == 0u) {
       HIDE_WIN;
       hud_line = 144u;
+      resume_rest=0u;resume_save(RES_LANDING);
       stage_landing(); /* B2: the landing, then the rest */
       art_copy_tables(&meta_tile[0][0], meta_pal, pal_bg, pal_sp, people);
       people_colours();

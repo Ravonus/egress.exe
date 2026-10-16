@@ -1994,7 +1994,8 @@ both tree copies fit (`tree_report.json`, entry "save").
 | `0xA470`–`0xA56F` | 256 | book: best tallies per stage type (4b), recipe margins. The lifetime stats moved to their own record (9.8) |
 | `0xA570`–`0xAA6B` | 1,276 | **tree copy A** (9.6): header 6, ring 24 x 49, founders 50, waiting kids 42, CRC 2 |
 | `0xAA6C`–`0xAF67` | 1,276 | **tree copy B** (same layout; the higher valid sequence wins) |
-| `0xAF68`–`0xB4BF` | 1,368 | **free** |
+| `0xAF68`–`0xAF87` | 32 | tutorial/settings A/B, 16-byte CRC records |
+| `0xAF88`–`0xB4BF` | 1,336 | **free** |
 | `0xB4C0`–`0xB4DF` | 32 | kept clock, two 16-byte records (9.7.1) |
 | `0xB4E0`–`0xB4EF` | 16 | HOST CLOCK block (9.7.1) |
 | `0xB4F0`–`0xB4FF` | 16 | RTC block (16b): chip anchor base, fold count and flags. The RTC build only; the MBC5 build leaves it untouched |
@@ -2005,7 +2006,7 @@ both tree copies fit (`tree_report.json`, entry "save").
 | `0xBF00`–`0xBFFE` | 255 | **free** |
 | `0xBFFF` | 1 | reserved: the byte the RTC build's register access goes through (16b), never used for save data |
 
-- **Used: 5,241 bytes. Free: 2,951 bytes**, in four runs: 112 at `0xA340`, 1,368 at `0xAF68`, 1,216 at `0xB740`
+- **Used: 5,273 bytes. Free: 2,919 bytes**, in four runs: 112 at `0xA340`, 1,336 at `0xAF88`, 1,216 at `0xB740`
   and 255 at `0xBF00`. Before B3 it was 4,345 used and 3,847 free; B3 made it 5,113 / 3,079.
 - **run50's claim is `0xA2C0`–`0xA33F` (128 bytes, the line progress A/B pair, new)** plus the contents of the
   existing continue records at `0xA040`–`0xA23F` (3.6.10). Nothing else moved.

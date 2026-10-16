@@ -48,7 +48,8 @@ enum {
   EG_MV_CHARGED, /* A released after charging: the charged attack (level in .level) */
   EG_MV_PARRY,   /* A then B: weapon secondary / parry */
   EG_MV_SHOT,    /* B tap: the heir's second attack */
-  EG_MV_BURST,   /* B held: repeated shots/pulses */
+  EG_MV_BCHARGE, /* B held: secondary charge, fires only on release */
+  EG_MV_BPOWER,  /* released secondary charge */
   EG_MV_COUNT
 };
 

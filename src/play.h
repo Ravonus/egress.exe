@@ -10,7 +10,7 @@
 #define MAXP 6u
 #define GRAVITY_FRAMES 8u
 
-enum { PS_FREE = 0, PS_LASH, PS_ROLL, PS_SPIN, PS_HURT, PS_EXIT };
+enum { PS_FREE = 0, PS_LASH, PS_ROLL, PS_SPIN, PS_HURT, PS_EXIT, PS_FALL };
 enum { F_UP = 0, F_DOWN, F_LEFT, F_RIGHT };
 enum { ES_WALK = 0, ES_TELL, ES_LUNGE, ES_REST, ES_HURT, ES_FLOAT, ES_DEAD, ES_DIVE, ES_STUN };
 #define SPAWN_BOSS 2u
@@ -35,6 +35,8 @@ extern uint8_t pl_x, pl_y, pl_hp, pl_hp_max, pl_state, pl_face;
 extern uint8_t pl_t, pl_inv, pl_combo, pl_queue, pl_charge, roll_cd, push_t, hit_mask, walk_t, combo_gap;
 extern int8_t roll_dx, roll_dy, kb_dx, kb_dy;
 extern uint16_t psx, psy;
+extern int8_t __at(0xDB9A) pl_z; /* presentation height; the logical position stays on the map */
+extern uint8_t __at(0xDB9B) pl_air;
 /* the floor */
 extern uint8_t tokens, keys_held, door_open, board_busy, cam_x, cam_y, enemies_alive;
 extern uint8_t freeze, shake, hud_dirty, grav_t, boss_floor;
@@ -92,6 +94,7 @@ uint8_t enemy_in_cell(uint8_t c) NONBANKED;
 /* --- player.c --- */
 void player_update(void) BANKED;
 void player_hurt(uint8_t n, uint8_t fromx, uint8_t fromy) BANKED;
+void player_fall(uint8_t safe) BANKED;
 void open_door(void) BANKED;
 /* --- actors.c --- */
 void actors_spawn(void) BANKED;

@@ -330,12 +330,20 @@ def main() -> int:
     check(c.boot(), "first_ask: blank save boots")
     c.shot(a.shots / "first_title.png")
     c.press("start")
-    check(c.wait_mode(MODE_SETUP, 200), "first_ask: PRESS START asks WHAT IS TODAY?")
+    for _ in range(400):
+        if c.peek('menu_active'):break
+        c.tick()
+    check(bool(c.peek('menu_active')), "first_ask: PRESS START opens the lobby")
+    c.press('a')
+    check(c.wait_mode(MODE_SETUP, 200), "first_ask: NEW RUN asks WHAT IS TODAY?")
     c.tick(90)
     c.shot(a.shots / "first_ask.png")
     c.press("a")
     check(c.wait_mode(6, 900), "first_ask: A keeps the clock and opens heir selection")
-    c.tick(30); c.press("a")
+    for _ in range(600):
+        if c.peek('family_ready'):break
+        c.tick()
+    c.press('a');c.tick(40);c.press('a')
     check(c.wait_mode(MODE_PLAY, 900), "first_ask: selected heir enters the run")
     sram, _ = c.stop()
     kk = kept(sram)
