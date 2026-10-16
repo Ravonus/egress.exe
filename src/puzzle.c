@@ -319,11 +319,11 @@ static void bench_draw(void) {
   }
   text_at(1, 10, 6, "          ", BP);
   cell = (uint8_t)(cell_at(pl_x,pl_y) + (uint8_t)(fdy[pl_face] * (int8_t)EG_W) + (uint8_t)fdx[pl_face]);
-  rx = eg_use_rx(pocket_n ? pocket[bench_cur] : 0u, cell_type(cell));
+  rx = EG_ABYSS(room.c[cell]) ? RX_NONE : eg_use_rx(pocket_n ? pocket[bench_cur] : 0u, cell_type(cell));
   if (enemy_in_cell(cell)) { text_at(1,10,6,"MOB: TOOL",HP); }
   else {
     if (rx) { eg_rx_name(rx, buf); buf[10] = 0; text_at(1, 10, 6, buf, HP); }
-    else text_at(1,10,6,target_names[cell_type(cell)],BP);
+    else text_at(1,10,6,EG_ABYSS(room.c[cell]) ? "OPEN VOID" : target_names[cell_type(cell)],BP);
   }
   eg_piece_name(r ? r : (pocket_n ? pocket[bench_cur] : 0u), buf);
   line(7, buf);

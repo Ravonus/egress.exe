@@ -173,7 +173,7 @@ static int heuristic(const uint8_t *c, uint8_t p, uint8_t keys, uint8_t door) {
       if (near_goal >= 0 && (near_item >= 0 || !items) && (near_trig >= 0 || !(dead | gate))) goto done;
       for (int d = 0; d < 4; d++) {
         int s = q + step4[d];
-        if (s < 0 || s >= (int)EG_N) continue;
+        if (s < 0 || s >= (int)EG_N || EG_ABYSS(c[s])) continue;
         uint8_t u = c[s] & T_MASK;
         int w;
         switch (u) {
@@ -545,7 +545,7 @@ int eg_solve_ban(const eg_room *r, int budget, uint64_t ban, char *moves, size_t
   fill_pits=0;
   for (int k=0;k<(int)EG_N;k++) {
     if(EG_CRATE(r->c[k])) push_crates=1;
-    if((r->c[k]&T_MASK)==T_PIT) fill_pits=1;
+    if(r->c[k]==T_PIT) fill_pits=1;
   }
   memset(st, 0, sizeof *st);
   st->fatal_depth = -1;
@@ -592,7 +592,7 @@ int eg_solve_ban(const eg_room *r, int budget, uint64_t ban, char *moves, size_t
         if (ni < 0 || ni >= (int)EG_N) continue;
         uint8_t tv = s.c[ni] & T_MASK;
         /* uses: a piece (made on the bench just before, if need be) on a cell the matrix acts on */
-        if (npq && (tv == T_WATER || tv == T_ICE || tv == T_ICE_1 || tv == T_PAPER || tv == T_PLANK || tv == T_SOCKET ||
+        if (npq && !EG_ABYSS(s.c[ni]) && (tv == T_WATER || tv == T_ICE || tv == T_ICE_1 || tv == T_PAPER || tv == T_PLANK || tv == T_SOCKET ||
                     tv == T_PLATE || tv == T_PIT || EG_CRATE(tv))) {
           for (int qi = 0; qi < npq; qi++) {
             node tmp = s;
@@ -726,7 +726,7 @@ static int sealed2(const eg_room *r, uint8_t type, uint8_t type2) {
       int s = c + step4[d];
       if (s < 0 || s >= (int)EG_N || seen[s]) continue;
       uint8_t t = r->c[s] & T_MASK;
-      if (t == T_WALL || t == T_SOCKET || t == type || t == type2) continue;
+      if (EG_ABYSS(r->c[s]) || t == T_WALL || t == T_SOCKET || t == type || t == type2) continue;
       seen[s] = 1;
       if (t != T_DOOR) q[n++] = (uint8_t)s;
     }

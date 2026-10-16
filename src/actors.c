@@ -292,13 +292,21 @@ void enemies_update(void) BANKED {
 
 void orbs_update(void) BANKED {
   uint8_t k, j, ox, oy, t;
+  uint16_t x,y;
   for (k = 0; k != MAXO; k++) {
     orb_t *o = &orbs[k];
     if (!o->live) continue;
-    o->x = (uint16_t)(o->x + o->vx);
-    o->y = (uint16_t)(o->y + o->vy);
-    ox = (uint8_t)(o->x >> 4);
-    oy = (uint8_t)(o->y >> 4);
+    x = (uint16_t)(o->x + o->vx);
+    y = (uint16_t)(o->y + o->vy);
+    o->x=x;o->y=y;
+    /* Bounds precede byte conversion and the cell lookup: the island has no
+     * invisible concrete rim to stop an orb before its coordinate would wrap. */
+    if((uint8_t)(x>>8)>=EG_W || (uint8_t)(y>>8)>=EG_H) {
+      o->live=0u;
+      continue;
+    }
+    ox = (uint8_t)(((uint8_t)x>>4)|((uint8_t)(x>>8)<<4));
+    oy = (uint8_t)(((uint8_t)y>>4)|((uint8_t)(y>>8)<<4));
     t = cell_type(cell_at(ox, oy));
     if (!--o->life || t == T_WALL || t == T_ROCK || t == T_BRICK || t == T_DOOR) {
       o->live = 0;

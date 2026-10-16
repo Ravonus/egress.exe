@@ -26,6 +26,21 @@ static uint8_t sh[3][20];   /* the window's rows 0..2, tiles */
 static uint8_t glyph[64];   /* ' ' .. '_' -> font tile (BT_FONT_ORDER); lower case folds to upper, but 'x' */
 static uint8_t glyph_x;     /* the font's own 'x' */
 static void hud_vbl(void) NONBANKED;
+/* Fixed-size row copy in ROM0. GBDK's register ABI passes dst in DE, src in BC;
+ * the VBlank path must not pay a general memcpy loop for every changed row. */
+static void hud_copy20(uint8_t *dst,const uint8_t *src) __sdcccall(1) NONBANKED NAKED {
+  dst;src;
+  __asm
+    ld h,b
+    ld l,c
+    .rept 20
+      ld a,(hl+)
+      ld (de),a
+      inc de
+    .endm
+    ret
+  __endasm;
+}
 #define HUD_Y 128u   /* the window's top without a toast */
 #define TOAST_Y 120u /* with one */
 
@@ -152,13 +167,17 @@ static void hud_vbl(void) NONBANKED {
     v = VBK_REG;
     VBK_REG = 0;
     base = (uint8_t *)((LCDC_REG & LCDCF_WIN9C00) ? 0x9C00u : 0x9800u);
-    if (vbl_rows & 1u) memcpy(base, sh[0], 20);
-    if (vbl_rows & 2u) memcpy(base + 32, sh[1], 20);
-    if (vbl_rows & 4u) memcpy(base + 64, sh[2], 20);
-    VBK_REG=1u;
-    base[0]=base[1]=base[2]=base[32]=base[33]=base[34]=base[64]=base[65]=base[66]=(uint8_t)(LOOK_PAL_HUD|0x08u);
-    base+=(vbl_move ? vbl_top : shown_top) ? 32u : 0u;
-    base[0]=base[1]=base[2]=(uint8_t)(LOOK_PAL_OBJ|0x08u);
+    if (vbl_rows & 1u) hud_copy20(base, sh[0]);
+    if (vbl_rows & 2u) hud_copy20(base + 32, sh[1]);
+    if (vbl_rows & 4u) hud_copy20(base + 64, sh[2]);
+    /* Attributes change only when the toast moves the bar to the other row. */
+    if(vbl_move) {
+      uint8_t *old=base+(vbl_top ? 0u : 32u);
+      VBK_REG=1u;
+      old[0]=old[1]=old[2]=(uint8_t)(LOOK_PAL_HUD|0x08u);
+      base+=vbl_top ? 32u : 0u;
+      base[0]=base[1]=base[2]=(uint8_t)(LOOK_PAL_OBJ|0x08u);
+    }
     VBK_REG=v;
     vbl_rows=0;
   }
@@ -218,15 +237,19 @@ static void draw_n(void) {
 
 static void charge_n(void) {
   uint8_t i, full = CHARGE_FULL;
-  uint8_t lit=stamina.cap ? (uint8_t)((uint16_t)stamina.value*24u/stamina.cap) : 24u;
+  uint8_t lit=eg_stamina_meter(stamina.value,stamina.cap,24u);
   for (i = 0; i != 3u; i++) {
     uint8_t n = lit > 8u ? 8u : lit;
     hud_tile(i, top, (uint8_t)(BT_BAR + n));
     lit=(uint8_t)(lit-n);
   }
-  lit=pl_charge>=full ? 16u : (uint8_t)((uint16_t)pl_charge*16u/full);
+  lit=eg_stamina_meter(pl_charge,full,16u);
   for(i=3u;i!=5u;i++) {uint8_t n=lit>8u ? 8u : lit;hud_tile(i,top,(uint8_t)(BT_BAR+n));lit-=n;}
 }
 
-void hud_draw(void) BANKED { draw_n(); }
+/* Called after the bench or controls page has replaced the window map. Restore
+ * all shadow rows and explicitly invalidate its palette-row/position state. */
+void hud_draw(void) BANKED {
+  draw_n();rows_dirty=7u;shown_top=0xffu;
+}
 void hud_charge(void) BANKED { charge_n(); }

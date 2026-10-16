@@ -104,6 +104,30 @@ static uint8_t scan_rock(void) __naked { /* cells skipped from scan_p before one
     ret
   __endasm;
 }
+/* Reject a room without shutters before the much heavier weighted-plate pass.
+ * The portable pass below remains the reference, including occupied gates. */
+static uint8_t scan_gates(void) __naked {
+  __asm
+    ld hl, #_scan_p
+    ld a, (hl+)
+    ld h, (hl)
+    ld l, a
+    ld c, #224
+  1$:
+    ld a, (hl+)
+    sub a, #11
+    cp a, #2
+    jr c, 2$
+    dec c
+    jr nz, 1$
+    xor a, a
+    ret
+  2$:
+    ld a, #1
+    ret
+  __endasm;
+}
+typedef char native_gate_values[(T_GATE==11u && T_GATE_OPEN==12u) ? 1 : -1];
 static void clear_moved(void) __naked { /* EG_N cells from scan_p: F_MOVED off */
   __asm
     ld hl, #_scan_p
@@ -147,6 +171,15 @@ static void move_rock(uint8_t *c, uint8_t i, uint8_t b) {
 
 static uint8_t shutters(eg_room *r, const uint8_t *occ, uint8_t nocc);
 
+void eg_island_edges(eg_room *r) EG_BANKED {
+  uint8_t y,i;
+  for(y=0u;y!=EG_H;y++) {
+    i=EG_IDX(0u,y);if(r->c[i]==T_WALL) r->c[i]=T_PIT|F_ABYSS;
+    i=EG_IDX(EG_W-1u,y);if(r->c[i]==T_WALL) r->c[i]=T_PIT|F_ABYSS;
+  }
+  for(i=EG_IDX(1u,EG_H-1u);i!=EG_N-1u;i++) if(r->c[i]==T_WALL) r->c[i]=T_PIT|F_ABYSS;
+}
+
 uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) EG_BANKED {
   uint8_t *c = r->c;
   uint8_t res = 0u, y, x, i, v, b, s;
@@ -177,11 +210,15 @@ uint8_t eg_gravity(eg_room *r, const uint8_t *occ, uint8_t nocc) EG_BANKED {
       v = c[i];
       if ((uint8_t)(v & (T_MASK | F_MOVED)) != T_ROCK) goto next;
       b = (uint8_t)(i + EG_W);
-      if (EG_ROCK_OPEN(c[b]) || c[b] == T_PIT) {
+      if (EG_ROCK_OPEN(c[b]) || c[b] == T_PIT || EG_ABYSS(c[b])) {
         if (is_occ(b, occ, nocc)) {
           if (v & F_FALL) res |= EG_G_HIT | EG_G_CHANGED;
           c[i] = (uint8_t)(v & (uint8_t)~F_FALL);
           goto next;
+        }
+        if(EG_ABYSS(c[b])) {
+          if(v&F_PLATE) eg_plates_dirty=1u;
+          c[i]=ROCK_LEFT(v);mark(i);res|=EG_G_CHANGED|EG_G_FALLING;goto next;
         }
         move_rock(c, i, b);
         res |= EG_G_CHANGED | EG_G_FALLING;
@@ -242,6 +279,8 @@ static uint8_t shutters(eg_room *r, const uint8_t *occ, uint8_t nocc) {
 #ifdef EG_GRAV_ASM
   if (!eg_plates_dirty) return res; /* no CRT came onto or off a plate: the shutters stay as they are */
   eg_plates_dirty = 0u;
+  scan_p=c;
+  if(!scan_gates()) return res;
 #endif
   w = 0u;
   gates = 0u;
@@ -280,7 +319,11 @@ uint8_t eg_shutters(eg_room *r, const uint8_t *occ, uint8_t nocc) EG_BANKED {
 }
 
 uint8_t eg_push(eg_room *r, uint8_t rock, uint8_t to) EG_BANKED {
-  uint8_t t = r->c[to];
+  uint8_t t;
+  if(rock>=EG_N || to>=EG_N || EG_Y(rock)!=EG_Y(to) ||
+     (rock+1u!=to && to+1u!=rock) || (r->c[rock]&T_MASK)!=T_ROCK) return 0u;
+  t=r->c[to];
+  if(EG_ABYSS(t)) {if(r->c[rock]&F_PLATE) eg_plates_dirty=1u;r->c[rock]=ROCK_LEFT(r->c[rock]);return 1u;}
   if ((r->c[rock] & F_PLATE) || t == T_PLATE) eg_plates_dirty = 1u; /* off a plate, or onto one */
   if (t == T_GLASS || t == T_CEIL || t == T_CEIL_1) { /* it smashes through into the void: both gone */
     r->c[to] = T_PIT;
@@ -295,7 +338,11 @@ uint8_t eg_push(eg_room *r, uint8_t rock, uint8_t to) EG_BANKED {
 
 uint8_t eg_leave(eg_room *r, uint8_t cell) EG_BANKED { return eg_step_off(r, cell, BB_PLAYER, 1u); }
 uint8_t eg_push_block(eg_room *r, uint8_t from, uint8_t to) EG_BANKED {
-  uint8_t t = r->c[to], f = r->c[from];
+  uint8_t t,f;
+  if(from>=EG_N || to>=EG_N) return 0u;
+  if(EG_Y(from)==EG_Y(to)) {if(from+1u!=to && to+1u!=from) return 0u;}
+  else if(from+EG_W!=to && to+EG_W!=from) return 0u;
+  t=r->c[to];f=r->c[from];
   if (!EG_CRATE(f)) return 0u;
   if (t == T_GLASS || t == T_CEIL || t == T_CEIL_1)
     t = T_PIT; /* through it, into the void: both gone */
@@ -303,7 +350,7 @@ uint8_t eg_push_block(eg_room *r, uint8_t from, uint8_t to) EG_BANKED {
     t = T_BLOCK;
   else if (t == T_PLATE)
     t = T_BLOCK_PLATE;
-  else
+  else if(t!=T_PIT && !EG_ABYSS(t))
     return 0u;
   r->c[to] = t;
   r->c[from] = f == T_BLOCK_PLATE ? T_PLATE : T_EMPTY;
@@ -378,7 +425,7 @@ static void dd_visit(const eg_room *r, uint8_t s) {
   uint8_t t;
   if (DD_SEEN(s)) return;
   t = (uint8_t)(r->c[s] & T_MASK);
-  if (t == T_WALL || t == T_SOCKET || t == T_SOCKET_ON || (t == T_PIT && !dd_rock) ||
+  if (EG_ABYSS(r->c[s]) || t == T_WALL || t == T_SOCKET || t == T_SOCKET_ON || (t == T_PIT && !dd_rock) ||
       (dd_locked && (t==T_GATE || t==T_GATE_OPEN))) return;
   DD_MARK(s);
   if (t == T_ROCK) dd_rock = 1u;
@@ -396,7 +443,8 @@ void eg_dead_begin(uint8_t from) EG_BANKED {
  * this graph cannot move a remaining load onto any bare plate, the gates cannot
  * be opened by a crate. The same queue/bitset is reused, a bounded slice at a time. */
 static uint8_t dd_permanent(const eg_room *r,int16_t x,int16_t y) {
-  return (uint8_t)((uint16_t)x>=EG_W || (uint16_t)y>=EG_H || (r->c[EG_IDX(x,y)]&T_MASK)==T_WALL);
+  return (uint8_t)((uint16_t)x>=EG_W || (uint16_t)y>=EG_H || EG_ABYSS(r->c[EG_IDX(x,y)]) ||
+                   (r->c[EG_IDX(x,y)]&T_MASK)==T_WALL);
 }
 static uint8_t dd_weights(const eg_room *r,const uint8_t *pocket,uint8_t n) {
   uint8_t i,t,plates=0u,gates=0u,p,tools=0u;

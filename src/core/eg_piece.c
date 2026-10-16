@@ -178,7 +178,7 @@ uint8_t eg_apply(eg_room *r, uint8_t piece, uint8_t cell, const uint8_t *occ, ui
   int8_t dx,dy,dir;
   eg_ndirty = 0u;
   eg_plates_dirty = 1u; /* a brick may land on a plate, or burn off one */
-  if (!piece || piece >= P_COUNT || in_occ(cell, occ, nocc)) return RX_NONE;
+  if (!piece || piece >= P_COUNT || EG_ABYSS(v) || in_occ(cell, occ, nocc)) return RX_NONE;
   if (piece == P_AIR && EG_CRATE(v) && nocc) {
     for(k=0u;k!=nocc;k++) {
       dx=(int8_t)EG_X(cell)-(int8_t)EG_X(occ[k]);dy=(int8_t)EG_Y(cell)-(int8_t)EG_Y(occ[k]);

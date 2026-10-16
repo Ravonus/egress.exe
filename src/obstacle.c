@@ -116,15 +116,16 @@ void obstacle_tick(void) BANKED {
   for (k = 0; k != eg_ndirty && k != EG_DIRTY_MAX; k++) queue_cell(eg_dirty[k]);
 }
 
-void obstacle_hit(uint8_t x, uint8_t y, uint8_t rx, uint8_t ry) BANKED {
-  uint8_t k, c, tags = hit_tags;
+void obstacle_hit(int16_t x, int16_t y, uint8_t rx, uint8_t ry) BANKED {
+  uint8_t k, c, wide=(uint8_t)((uint16_t)x>255u || (uint16_t)y>255u), tags = hit_tags;
   if (wmods & WM_RIME) tags |= TG(TAG_COLD);
   if (wmods & WM_EMBER) tags |= TG(TAG_HOT);
   if (wmods & WM_DAMP) tags |= TG(TAG_WET);
   for (k = 0; k != room.nob; k++) {
     if (hit_mask_ob & (1u << k)) continue;
     c = obstacle[k].cell;
-    if (!overlap(x, y, EG_X(c) * 16u + 8u, EG_Y(c) * 16u + 8u, rx + 6u, ry + 6u)) continue;
+    if (!(wide ? overlap_world(x,y,EG_X(c)*16u+8u,EG_Y(c)*16u+8u,rx+6u,ry+6u) :
+                 overlap((uint8_t)x,(uint8_t)y,EG_X(c)*16u+8u,EG_Y(c)*16u+8u,rx+6u,ry+6u))) continue;
     hit_mask_ob |= (uint8_t)(1u << k);
     if (tags & TG(TAG_COLD)) eg_ob_stop(&obstacle[k], OBS_FREEZE, 6u);
     else if (tags & TG(TAG_ALIVE)) eg_ob_stop(&obstacle[k], OBS_ROOT, 6u);

@@ -1,7 +1,7 @@
 # Native game completion ledger
 
 This tracks the complete build order in `redesign.md` section 18 and the owner's later gameplay corrections.
-The public `fcb65a0` cartridge is a verified office checkpoint. It does not complete this ledger.
+The public `e03755b` cartridge is the verified native feedback milestone. It does not complete this ledger.
 An integrated prototype, a passing host simulation, a native build and a played feature are separate evidence.
 
 | Milestone | Current state | Required before completion |
@@ -19,7 +19,7 @@ An integrated prototype, a passing host simulation, a native build and a played 
 
 ## Current work
 
-The native continuation branch now migrates FA1 families from A100/A300 into the reserved tree regions before
+The native feedback milestone now migrates FA1 families from A100/A300 into the reserved tree regions before
 enabling continue writes. Floor-entry/landing journals preserve damage, inventory, the chosen heir and narration
 history; interrupted end transactions finish once. This is a ten-floor office branch, still short of the full run.
 
@@ -87,7 +87,31 @@ The previous auto-run path cleared push contact every frame. Running into a crat
 BG commits defer on gravity ticks, late heir composition keeps the previous complete body for one tick, and the
 clock carries minutes directly to avoid its former periodic 32-bit division hitch. Frame/OAM gates remain strict.
 
-Still required: generated open island rims (the fall engine currently has native pit fixtures and fragile holes),
-connected larger stages with camera-driven assembly/backtracking, conditional portals and composed dependency
+Still required: connected larger stages with camera-driven assembly/backtracking, conditional portals and composed dependency
 graphs, the full native run/biomes/boss roster, complete tree/stats, adaptive music, first-person stages and cycles.
 The tested 8 KiB WRAM cache is a standalone prerequisite; it is not yet a larger playable stage.
+
+The feedback milestone was merged, pushed and published. Both public ROM downloads and the live browser's native
+save migration were read back and verified; see `validation/feedback-20261015/site-release.json`. The physical
+Chromatic has not been tested.
+
+## Native island edges
+
+The side and bottom silhouettes now use an explicit abyss cell. The same generated room can be walked off with
+ordinary input: the heir visibly falls, pays one half-heart and returns to firm ground. Crates and CRTs can be
+lost over the edge. Losing a required crate triggers the reset cue; a real alternative crafted weight still
+prevents a false warning. Mud and dropped CRTs can fill shallow floor holes, while the exterior abyss stays open.
+The falling-CRT switch motif now has a real pedestal instead of depending on an invisible boundary wall.
+
+Attack centres can extend outside the map without wrapping onto a distant enemy, orb or living obstacle. Shots
+expire before an out-of-map cell lookup. Shared push primitives reject wrapped row neighbours and invalid cells.
+The solver and reset checker distinguish the abyss from fillable holes; the accepted room list is preserved.
+
+Measured native optimization keeps the frame gates: shutter-free rooms skip the heavy plate pass, resource bars
+use an exact five-bit ratio, and the HUD copies fixed rows in ROM0 without rewriting unchanged palette cells.
+The bar's appearance is unchanged. The native no-hit player uses both attacks against the Fax, times its visible
+ram for a perfect parry and avoids cancelling that guard with an unintended directional double tap. The original
+zero-hit, all-phase, 120/120 active-frame and ten-sprites-per-line gates remain required.
+
+This is still one 16 × 14 simulation grid per floor. The connected-stage architecture and its native completion
+evidence are specified in `CONNECTED-STAGES.md`; opening the rim is not a larger-stage implementation.

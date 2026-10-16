@@ -341,7 +341,7 @@ uint8_t eg_generate(eg_room *r, uint16_t seed, uint8_t tier) EG_BANKED {
   for (k = 0u; k != EG_MAX_RUN; k++) r->run[k] = 0u;
   if (TRICK_OBSTACLE(r->trick)) { /* B2: the living-obstacle rooms are built in eg_ogen.c */
     r->support = 0u;
-    return eg_gen_obstacles(r, tier);
+    n=eg_gen_obstacles(r,tier);if(n) eg_island_edges(r);return n;
   }
   nsup = tier < 2u ? 0u : (tier < 4u ? 1u : 2u);
   r->support = 0u;
@@ -594,5 +594,6 @@ uint8_t eg_generate(eg_room *r, uint16_t seed, uint8_t tier) EG_BANKED {
     r->nspawn++;
   }
   settle(r);
+  eg_island_edges(r);
   return (uint8_t)(c[r->start] == T_EMPTY);
 }

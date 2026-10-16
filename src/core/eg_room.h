@@ -60,6 +60,8 @@ enum {
 #define F_FALL 0x80u  /* the CRT moved down or rolled on the last step */
 #define F_MOVED 0x40u /* scratch inside eg_gravity */
 #define F_PLATE 0x20u /* on a CRT: it rests on a pressure plate (the plate comes back when it leaves) */
+#define F_ABYSS 0x20u /* on T_PIT only: open exterior void, with no support for a one-cell crossing */
+#define EG_ABYSS(v) ((v)==(T_PIT|F_ABYSS))
 #define F_OB 0x80u    /* B2, on any cell but a CRT: a living obstacle stands here (src/core/eg_obst.h). Solid to the
                          player, crates and other obstacles; masked off wherever the cell's type is read */
 
@@ -117,6 +119,9 @@ enum { TRICK_BURN = 0, TRICK_COLD = 1, TRICK_SHORT = 2, TRICK_WEIGHT = 3, /* the
 /* Generation. Deterministic in (seed, tier); returns 0 when the layout failed its own checks (the caller reseeds).
  * Solvability is not checked here: the host solver accepts seeds and the cartridge plays only accepted seeds. */
 uint8_t eg_generate(eg_room *r, uint16_t seed, uint8_t tier) EG_BANKED;
+/* The side and bottom silhouettes are real void. Preserve the north architecture
+ * and every interior cell; used by all non-boss room constructors. */
+void eg_island_edges(eg_room *r) EG_BANKED;
 /* B2 part B: one wall structure (ST_*) in rows y0..y1, placed on carpet that isn't protected and never cutting the
  * rows in two; 1 when placed. The generator's own building block (eg_gen.c, eg_ogen.c). */
 enum { ST_LINE = 0, ST_L, ST_U, ST_RING, ST_COUNTER, ST_KINDS };

@@ -22,6 +22,10 @@ def run(rom,out):
        'combination_scene_plays':len(frames)>=40 and len({im.tobytes() for im in frames})>=4,
        'craft_consumes_exactly_two_units':made and pocket(g)==[8],
        'bench_closes_and_restores_hud':not g.peek('bench_on') and g.pb.memory[0xff4a] in (120,128)}
+    g.tick(4);base=0x9c00 if g.pb.memory[0xff40]&0x40 else 0x9800
+    at=base+(32 if g.pb.memory[0xff4a]==120 else 0);other=base+(0 if at!=base else 32)
+    r['bench_restores_meter_tiles_and_palettes']=all(243<=g.pb.memory[0,at+k]<=251 and
+        g.pb.memory[1,at+k]&7==6 and g.pb.memory[1,other+k]&7==5 for k in range(3))
     if frames:frames[0].save(out/'crafting-native.gif',save_all=True,append_images=frames[1::2],duration=34,loop=0)
     g.shot(out/'after-crafting.png');g.stop()
     report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':r,'scene_frames':len(frames),'icons':list_icons,'log':log}

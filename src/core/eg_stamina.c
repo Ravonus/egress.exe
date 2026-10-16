@@ -25,3 +25,16 @@ void eg_stamina_tick(eg_stamina *s,uint8_t busy) EG_BANKED {
   if(s->wait) {s->wait--;return;}
   if(s->value<s->cap && ++s->pulse==4u) {s->pulse=0u;s->value=(uint8_t)(s->cap-s->value<2u ? s->cap : s->value+2u);}
 }
+uint8_t eg_stamina_meter(uint8_t value,uint8_t cap,uint8_t units) EG_BANKED {
+  uint16_t amount,denom;uint8_t bit=16u,result=0u;
+  if(units>24u) units=24u;
+  if(!cap || value>=cap) return units;
+  if(!value) return 0u;
+  amount=(uint16_t)value*units;denom=(uint16_t)cap<<4;
+  /* The quotient fits five bits; the library divide always processes sixteen. */
+  do {
+    if(amount>=denom) {amount-=denom;result|=bit;}
+    denom>>=1;bit>>=1;
+  } while(bit);
+  return result;
+}

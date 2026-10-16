@@ -44,7 +44,8 @@ void eg_physics_gen(eg_room *r, uint8_t motif, uint16_t seed, uint8_t level) EG_
     if (motif == PH_DROP) {
       r->c[EG_IDX(px,wall+2u)] = T_ROCK;
       r->c[EG_IDX(px,wall+3u)] = T_DIRT;
-      r->c[EG_IDX(px,12u)] = T_PLATE;
+      r->c[EG_IDX(px,11u)] = T_PLATE;
+      r->c[EG_IDX(px,12u)] = T_WALL; /* a real pedestal supports the load above the open edge */
       /* A chute reads as a structure and stops the load rolling off the switch. */
       for (y = (uint8_t)(wall+4u); y != 13u; y++) {
         r->c[EG_IDX(px-1u,y)] = T_WALL;
@@ -74,6 +75,7 @@ void eg_physics_gen(eg_room *r, uint8_t motif, uint16_t seed, uint8_t level) EG_
     r->item_piece[1] = motif == PH_DROP ? P_ENERGY : P_WATER;
     r->c[r->item_cell[0]] = r->c[r->item_cell[1]] = T_ITEM;
   }
+  eg_island_edges(r);
 }
 
 void eg_physics_goal(uint8_t motif, char *out) EG_BANKED {

@@ -10,5 +10,5 @@ void obstacle_show(void) BANKED;
 void obstacle_tick(void) BANKED;
 void obstacle_draw(void) BANKED;
 void obstacle_noise(uint8_t cell) BANKED;
-void obstacle_hit(uint8_t x, uint8_t y, uint8_t rx, uint8_t ry) BANKED;
+void obstacle_hit(int16_t x, int16_t y, uint8_t rx, uint8_t ry) BANKED;
 #endif

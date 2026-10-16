@@ -284,7 +284,8 @@ static void hit_from_move(uint8_t spin) {
 }
 
 static void strike(uint8_t spin, uint8_t dmg) {
-  uint8_t cx, cy, rx, ry, k, width=14u, reach=14u;
+  int16_t cx,cy;
+  uint8_t rx, ry, k, wide, cx8, cy8, width=14u, reach=14u;
   if(heir.weapon==1u) { reach=12u; dmg++; }
   else if(heir.weapon==2u) { reach=24u; width=6u; }
   else if(heir.weapon==3u) { reach=10u; width=9u; }
@@ -299,20 +300,25 @@ static void strike(uint8_t spin, uint8_t dmg) {
     rx = ry = (mods & MOD_LONG) ? 28u : 24u;
   } else if (ix && iy) {
     reach = (uint8_t)(reach - (reach >> 2));
-    cx = (uint8_t)(pl_x + ix * (int8_t)reach);
-    cy = (uint8_t)(pl_y + iy * (int8_t)reach);
+    cx = (int16_t)pl_x + ix * (int8_t)reach;
+    cy = (int16_t)pl_y + iy * (int8_t)reach;
     rx = ry = (uint8_t)(width-1u);
   } else {
-    cx = (uint8_t)(pl_x + ix * (int8_t)reach);
-    cy = (uint8_t)(pl_y + iy * (int8_t)reach);
+    cx = (int16_t)pl_x + ix * (int8_t)reach;
+    cy = (int16_t)pl_y + iy * (int8_t)reach;
     rx = ix ? (uint8_t)(reach - 1u) : width;
     ry = ix ? width : (uint8_t)(reach - 1u);
   }
+  /* Resolve the exceptional outside-map centre once per attack. Ordinary
+   * combat keeps the byte overlap path instead of rechecking it per target. */
+  wide=(uint8_t)((uint16_t)cx>255u || (uint16_t)cy>255u);
+  cx8=(uint8_t)cx;cy8=(uint8_t)cy;
   obstacle_hit(cx, cy, rx, ry);
   for (k = 0; k != nen; k++) {
     uint8_t r2 = en[k].kind == SPAWN_BOSS ? 14u : 0u;
     if (en[k].st == ES_DEAD || (hit_mask & (uint8_t)(1u << k))) continue;
-    if (overlap(cx, cy, (uint8_t)(en[k].x >> 4), (uint8_t)(en[k].y >> 4), (uint8_t)(rx + r2), (uint8_t)(ry + r2))) {
+    if (wide ? overlap_world(cx, cy, (uint8_t)(en[k].x >> 4), (uint8_t)(en[k].y >> 4), (uint8_t)(rx + r2), (uint8_t)(ry + r2)) :
+               overlap(cx8, cy8, (uint8_t)(en[k].x >> 4), (uint8_t)(en[k].y >> 4), (uint8_t)(rx + r2), (uint8_t)(ry + r2))) {
       hit_mask |= (uint8_t)(1u << k);
       fight_t = 180u;
       enemy_hit(k, dmg, pl_x, pl_y);
@@ -320,7 +326,8 @@ static void strike(uint8_t spin, uint8_t dmg) {
   }
   for (k = 0; k != MAXO; k++) {
     if (!orbs[k].live || orbs[k].friendly) continue;
-    if (overlap(cx, cy, (uint8_t)(orbs[k].x >> 4), (uint8_t)(orbs[k].y >> 4), (uint8_t)(rx + 2u), (uint8_t)(ry + 2u)))
+    if (wide ? overlap_world(cx, cy, (uint8_t)(orbs[k].x >> 4), (uint8_t)(orbs[k].y >> 4), (uint8_t)(rx + 2u), (uint8_t)(ry + 2u)) :
+               overlap(cx8, cy8, (uint8_t)(orbs[k].x >> 4), (uint8_t)(orbs[k].y >> 4), (uint8_t)(rx + 2u), (uint8_t)(ry + 2u)))
       deflect(&orbs[k], 0); /* send it back faster; now it hurts them */
   }
 }

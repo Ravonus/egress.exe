@@ -2,7 +2,7 @@
 
 The native loop runs through normal frame input and updates; no injected function
 calls or emulator CPU patches. Cases cover empty rows, falling/rolling stacks,
-plates and shutters, and CRTs breaking glass or filling pits.
+plates and shutters, and CRTs breaking glass, filling pits or falling into the abyss.
 """
 import argparse
 import json
@@ -37,6 +37,10 @@ def check(rom, reference, cases=96):
         for case in range(cases):
             cells = [2] * 224
             kinds = [0] * 12 + [4] * (1 + case % 5) + [3, 9, 28, 10, 11]
+            if case & 1:
+                kinds.append(41)
+                for y in range(14):cells[y*16]=cells[y*16+15]=41
+                for x in range(16):cells[208+x]=41
             for y in range(1, 13):
                 for x in range(1, 15):
                     c = y * 16 + x

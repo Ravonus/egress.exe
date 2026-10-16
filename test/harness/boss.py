@@ -38,6 +38,7 @@ FACE_OPEN = 2
 T_ROCK, T_PIT, T_GLASS = 4, 9, 28
 F_FALL = 0x80
 MV_IDLE, MV_DODGE, MV_HIT1, MV_HIT2, MV_HIT3, MV_PARRY = 0, 1, 5, 6, 7, 10
+MV_SHOT = 11
 ORB_BYTES = 10
 SAFE_GLASS = False
 
@@ -308,6 +309,10 @@ class Bot:
         thr = self.threats(s)
         nodes = self.nodes(s)
         px, py = s["pl_x"], s["pl_y"]
+        # Finish a requested guard. Resuming a recent walking tap here can
+        # trigger a real directional evade and cancel the guard's startup.
+        if self.kind==BOSS_MID and s["mv"]==MV_PARRY and s["mv_frame"]<10:
+            return set()
         # pages and orbs on their way in: parry (fan) or strike (volley) them back
         hostile = [o for o in s["orbs"] if not o["friendly"]]
         busy = s["mv"] not in (MV_IDLE,) and s["mv_frame"] < 20
@@ -319,7 +324,7 @@ class Bot:
                 d = max(abs(dx), abs(dy))
                 if closing and d <= (11 if self.kind==BOSS_BIOME else 18):
                     near.append(o)
-            if near and s['stamina']>=12 and s["mv"] in (MV_IDLE, 2, 3, MV_HIT1, MV_HIT2, MV_HIT3):
+            if near and s['stamina']>=12 and s["mv"] in (MV_IDLE, 2, 3, MV_HIT1, MV_HIT2, MV_HIT3, MV_SHOT):
                 self.queue = [{"a","b"},set()]
                 self.cool = 2
                 self.log.append(f"{s['fc']} parry")
@@ -334,7 +339,11 @@ class Bot:
             safe = lambda x, y: self.danger(thr, x, y) is None  # noqa: E731
             p = self.path_to(s, nodes, safe)
             far = len(p) * 4 if p else 999
-            if here <= 7 and far > (6 if self.kind == BOSS_BIOME else 0) and s['stamina']>=12 and s["mv"] in (MV_IDLE,2,3) and not self.cool:
+            # A regular guard can stall the moving Fax ram through hitstop
+            # until the guard expires. Time the visible ram for the perfect
+            # window that actually stops it, rather than guarding its whole tell.
+            guard_at=4 if self.kind==BOSS_MID and s["bs_atk"]==ATK["RAM"] else 7
+            if here <= guard_at and far > (6 if self.kind == BOSS_BIOME else 0) and s['stamina']>=12 and s["mv"] in (MV_IDLE,2,3,MV_SHOT) and not self.cool:
                 # it will land before the heir is out: the guard takes it
                 self.queue = [{"a","b"},set()]
                 self.cool = 2
@@ -344,6 +353,23 @@ class Bot:
         # strike what is open
         t = self.target(s)
         if t is not None and (self.kind==BOSS_BIOME or s['stamina']>=32):
+            # The Fax can stop over water, beyond the lead's reach. Use the
+            # actual tap-B shot across that terrain when a visible opening
+            # lasts long enough for it to arrive. No inventory/position edits.
+            if self.kind==BOSS_MID and s["mv"] in (MV_IDLE,2,3):
+                dx,dy=t[0]-px,t[1]-py;ax,ay=abs(dx),abs(dy);distance=max(ax,ay)
+                aim=set()
+                if ax>=ay*2 and ay<=14:aim={"right" if dx>0 else "left"}
+                elif ay>=ax*2 and ax<=14:aim={"down" if dy>0 else "up"}
+                elif abs(ax-ay)<=14:aim={"right" if dx>0 else "left","down" if dy>0 else "up"}
+                probes=max(1,distance//4)
+                clear=all((s["cells"][((py+dy*i//probes)//16)*16+(px+dx*i//probes)//16]&31) not in (2,3,4,7)
+                          for i in range(1,probes+1))
+                flight=6+(max(0,distance-12)*4+8)//9
+                if 36<distance<=88 and aim and clear and s["bs_t"]>flight:
+                    self.queue=[aim,aim|{"b"},aim|{"b"},aim]
+                    self.log.append(f"{s['fc']} shoot opening")
+                    return set()
             spots = [(x, y, f) for x, y, f in self.strike_from(s, *t) if (x, y) in nodes or standable(s["cells"], x, y)]
             spots = [sp for sp in spots if self.danger(thr, sp[0], sp[1]) is None]
             if spots:

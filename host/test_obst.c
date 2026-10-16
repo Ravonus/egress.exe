@@ -214,12 +214,13 @@ static void test_rules(void) {
   r.c[EG_IDX(4, 1)] |= F_OB;
   eg_gravity(&r, &pc, 1);
   CHECK(r.c[EG_IDX(2, 2)] == T_GATE_OPEN, "both (an obstacle on one): up");
-  /* crates: Sokoban pushes; through glass; never into a pit */
+  /* Crates smash glass or fall into holes; unlike a CRT they never fill a pit. */
   static const char *const CR[] = {"#######", "#Bg.Bo#", "#######"};
   room_from(&r, CR, 3);
   CHECK(eg_push_block(&r, EG_IDX(1, 1), EG_IDX(2, 1)) && r.c[EG_IDX(2, 1)] == T_PIT && r.c[EG_IDX(1, 1)] == T_EMPTY,
         "a crate smashes through floor glass");
-  CHECK(!eg_push_block(&r, EG_IDX(4, 1), EG_IDX(5, 1)), "a crate never fills a pit");
+  CHECK(eg_push_block(&r, EG_IDX(4, 1), EG_IDX(5, 1)) && r.c[EG_IDX(4, 1)]==T_EMPTY &&
+        r.c[EG_IDX(5, 1)]==T_PIT, "a crate falls into a pit without filling it");
 }
 
 int main(void) {

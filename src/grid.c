@@ -28,11 +28,13 @@ static uint8_t solid_player(uint8_t i) NONBANKED {
   return (uint8_t)(t == T_DOOR ? !door_open : !EG_PASSABLE(t)); /* B1: water, shutters, paper, sockets, pits too */
 }
 uint8_t box_free(uint8_t x, uint8_t y) NONBANKED {
+  if((uint8_t)(x-5u)>246u || (uint8_t)(y-5u)>214u) return 0u;
   uint8_t l = (uint8_t)(x - 5u), r = (uint8_t)(x + 4u), t = (uint8_t)(y - 5u), b = (uint8_t)(y + 4u);
   return (uint8_t)(!solid_player(cell_at(l, t)) && !solid_player(cell_at(r, t)) && !solid_player(cell_at(l, b)) &&
                    !solid_player(cell_at(r, b)));
 }
 uint8_t mite_free(uint8_t x, uint8_t y) NONBANKED {
+  if((uint8_t)(x-5u)>246u || (uint8_t)(y-5u)>214u) return 0u;
   uint8_t l = (uint8_t)(x - 5u), r = (uint8_t)(x + 4u), t = (uint8_t)(y - 5u), b = (uint8_t)(y + 4u);
   return (uint8_t)(room.c[cell_at(l, t)] == T_EMPTY && room.c[cell_at(r, t)] == T_EMPTY &&
                    room.c[cell_at(l, b)] == T_EMPTY && room.c[cell_at(r, b)] == T_EMPTY);
@@ -42,6 +44,7 @@ static uint8_t eye_block(uint8_t i) NONBANKED {
   return (uint8_t)(t == T_WALL || t == T_DOOR);
 }
 uint8_t eye_free(uint8_t x, uint8_t y) NONBANKED {
+  if((uint8_t)(x-5u)>246u || (uint8_t)(y-5u)>214u) return 0u;
   uint8_t l = (uint8_t)(x - 5u), r = (uint8_t)(x + 4u), t = (uint8_t)(y - 5u), b = (uint8_t)(y + 4u);
   return (uint8_t)(!eye_block(cell_at(l, t)) && !eye_block(cell_at(r, t)) && !eye_block(cell_at(l, b)) &&
                    !eye_block(cell_at(r, b)));
@@ -49,6 +52,13 @@ uint8_t eye_free(uint8_t x, uint8_t y) NONBANKED {
 uint8_t absdiff(uint8_t a, uint8_t b) NONBANKED { return a > b ? (uint8_t)(a - b) : (uint8_t)(b - a); }
 uint8_t overlap(uint8_t ax, uint8_t ay, uint8_t bx, uint8_t by, uint8_t rx, uint8_t ry) NONBANKED {
   return (uint8_t)(absdiff(ax, bx) < rx && absdiff(ay, by) < ry);
+}
+uint8_t overlap_world(int16_t ax, int16_t ay, uint8_t bx, uint8_t by, uint8_t rx, uint8_t ry) NONBANKED {
+  int16_t dx,dy;
+  if((uint16_t)ax<=255u && (uint16_t)ay<=255u)
+    return overlap((uint8_t)ax,(uint8_t)ay,bx,by,rx,ry);
+  dx=ax-bx;dy=ay-by;
+  return (uint8_t)(dx>-(int16_t)rx && dx<(int16_t)rx && dy>-(int16_t)ry && dy<(int16_t)ry);
 }
 
 uint8_t enemy_in_cell(uint8_t c) NONBANKED {
@@ -83,7 +93,8 @@ void queue_cell(uint8_t i) NONBANKED {
 /* (near helpers inside this bank: a BANKED call per drawn cell would cost scan lines every frame) */
 static uint8_t void_ring(uint8_t i) {
   uint8_t x = EG_X(i), y = EG_Y(i);
-  return (uint8_t)(cell_type(i) == T_WALL && (x == 0u || x == EG_W - 1u || y == EG_H - 1u));
+  uint8_t t=cell_type(i);
+  return (uint8_t)((t==T_WALL || t==T_PIT) && (x == 0u || x == EG_W - 1u || y == EG_H - 1u));
 }
 uint8_t look_void_cell(uint8_t i) BANKED { return void_ring(i); }
 static uint8_t solid_ground(uint8_t i) { return (uint8_t)(look_here(i) && !void_ring(i)); }
