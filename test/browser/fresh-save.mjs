@@ -27,7 +27,8 @@ try {
   CanvasRenderingContext2D.prototype.putImageData=function(...args){const result=paint.apply(this,args);if(pending&&this.canvas.classList.contains('game-canvas')){const now=ticks();if(now>=pending.target){if(pending.code){event('keyup',pending.code);pending.code=null;pending.target=now+Math.ceil(pending.rest*4194304/1000);}else{const done=pending.resolve;pending=null;done();}}}return result;};
  });
  const waitEmulated=ms=>page.evaluate(ms=>window.__nativeInput(null,0,ms),ms),press=key=>page.evaluate(key=>window.__nativeInput(key,110,300),key);
- const wait=async(field,value)=>page.waitForFunction(({a,value})=>{const {m,id}=window.__egressNative;return (m._emulator_read_mem(id,0xff70)&7)<=1&&m._emulator_read_mem(id,a)===value;},{a:symbols['_'+field],value},{timeout:120000});
+ // C000-CFFF remains readable while the title renderer switches D000-DFFF.
+ const wait=async(field,value)=>page.waitForFunction(({a,value})=>{const {m,id}=window.__egressNative;return (a<0xd000||(m._emulator_read_mem(id,0xff70)&7)<=1)&&m._emulator_read_mem(id,a)===value;},{a:symbols['_'+field],value},{timeout:120000});
  const snapshot=()=>page.evaluate(s=>{const {m,id}=window.__egressNative,r=a=>m._emulator_read_mem(id,a);return {generation:r(s._family+279)|(r(s._family+280)<<8),history:r(s._family+284),runs:r(s._meta)|(r(s._meta+1)<<8),floor:r(s._floor_no),ready:r(s._resume_ready),pocket:r(s._pocket_n)};},symbols);
  await wait('game_mode',1);await waitEmulated(2500);await page.locator('.game-canvas').focus();await press('Enter');await wait('menu_active',1);
  const lobby=await snapshot();assert.equal(lobby.ready,0);await press('KeyX');
