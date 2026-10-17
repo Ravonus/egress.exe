@@ -32,6 +32,7 @@ SRC += src/world.c src/core/eg_land.c src/core/eg_land_bind.c
 SRC += src/world_dead.c src/core/eg_land_dead.c
 SRC += src/world_play.c
 SRC += src/ui.c
+SRC += src/pose_cache.c
 SRC += src/core/eg_family.c
 SRC += src/items.c
 SRC += src/core/eg_combat.c src/core/eg_stamina.c src/stamina.c
@@ -47,8 +48,10 @@ TB_HOST := build/t3d_bake/v160x104
 -include $(TB_GEN)/chunks.mk
 TB_OBJ := $(patsubst %,build/obj/tb/%.o,$(TB_CHUNKS) tb_index)
 OBJ := $(patsubst src/%.c,build/obj/%.o,$(SRC)) $(TB_OBJ)
-OBJ_mbc5 := $(OBJ) $(patsubst src/%.c,build/obj-mbc5/%.o,$(MAPPER_SRC))
-OBJ_mbc3 := $(OBJ) $(patsubst src/%.c,build/obj-mbc3/%.o,$(MAPPER_SRC))
+# Keep the fixed upload module before banked sources. The linker also gates
+# the shared pose's GDMA alignment and the fixed-WRAM stream packets below.
+OBJ_mbc5 := build/obj-mbc5/heir_draw.o $(OBJ) $(patsubst src/%.c,build/obj-mbc5/%.o,$(filter-out src/heir_draw.c,$(MAPPER_SRC)))
+OBJ_mbc3 := build/obj-mbc3/heir_draw.o $(OBJ) $(patsubst src/%.c,build/obj-mbc3/%.o,$(filter-out src/heir_draw.c,$(MAPPER_SRC)))
 ROM_mbc5 := build/egress.gbc
 ROM_mbc3 := build/egress-rtc.gbc
 CART_mbc5 := 0x1B
@@ -92,6 +95,14 @@ build/obj-mbc3/%.o: src/%.c $(HDRS)
 build/obj/sound.o: src/gen/music_data.h
 build/obj/items.o: src/gen/item_idle.inc
 build/obj/sprites.o: src/gen/diag_arc.inc
+build/obj/grid.o: src/overlap.inc
+
+build/overlap-check/overlap.gbc: test/native/overlap.c src/overlap.inc
+	@mkdir -p $(dir $@)
+	$(LCC) -Isrc -Wm-yC -o $@ $<
+
+test-native-overlap: build/overlap-check/overlap.gbc
+	$(PY) tools/test_native_overlap.py $<
 
 src/gen/item_idle.inc: tools/bake_item_idle.py tools/bake_look.py
 	$(PY) tools/bake_item_idle.py
@@ -131,7 +142,7 @@ build/linked-%.gbc: $$(OBJ_$$*)
 	@end=$$(grep -oE '[0-9A-F]{8}  s__HEAP ' build/linked-$*.map | head -1 | cut -c5-8); \
 	[ $$((0x$$end)) -le $$((0xD800)) ] || { echo "WRAM: game data ends at 0x$$end, past 0xD800 (the title mirrors \
 	0xD000-0xD7FF and keeps its buffers above it, src/title3d/t3d.h)" >&2; rm -f $@; exit 1; }
-	@$(PY) -c 'import re; from pathlib import Path; s=Path("build/linked-$*.noi").read_text(); sizes={"eg_window_packet":9,"world_mask_packet":9,"world_pre_x":9,"world_pre_y":9,"eg_stage_work":36}; addresses={n:int(re.search(r"DEF _"+n+r" 0x([0-9A-Fa-f]+)",s)[1],16) for n in sizes}; assert all(0xC000<=a and a+sizes[n]<=0xD000 for n,a in addresses.items()),{n:hex(a) for n,a in addresses.items()}'
+	@$(PY) -c 'import re; from pathlib import Path; s=Path("build/linked-$*.noi").read_text(); sizes={"eg_window_packet":9,"world_mask_packet":9,"world_pre_x":9,"world_pre_y":9,"eg_stage_work":36,"heir_cache_enabled":1,"heir_pixels":128}; addresses={n:int(re.search(r"DEF _"+n+r" 0x([0-9A-Fa-f]+)",s)[1],16) for n in sizes}; assert all(0xC000<=a and a+sizes[n]<=0xD000 for n,a in addresses.items()),{n:hex(a) for n,a in addresses.items()}; assert not(addresses["heir_pixels"]&255),hex(addresses["heir_pixels"])'
 
 # GBDK's autobanker rewrites shared .rel inputs. Two mapper links must never run
 # concurrently, even under make -j; compilation can still run in parallel.
@@ -523,7 +534,9 @@ build/host/test_edges: host/test_edges.c src/core/eg_stage.c src/core/eg_plan.c 
 test-island-edges: build/host/test_edges
 	build/host/test_edges
 
-test-runtime: all test-runtime-core
+test-runtime: all test-runtime-core test-native-overlap
+	$(PY) test/harness/mob_render_fixtures.py build/egress.gbc build/sprints/mob-render-mbc5
+	$(PY) test/harness/mob_render_fixtures.py build/egress-rtc.gbc build/sprints/mob-render-mbc3
 	$(PY) test/harness/waves.py build/egress.gbc build/sprints/waves-mbc5
 	$(PY) test/harness/waves.py build/egress-rtc.gbc build/sprints/waves-mbc3
 	$(PY) test/harness/picker_collision.py build/egress.gbc build/sprints/picker-collision-mbc5
@@ -633,3 +646,5 @@ clean:
 .PHONY: test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera test-links test-linked-puzzles test-native-links test-native-linked-puzzles
 .PHONY: test-window test-native-window test-land test-native-land
 .PHONY: test-view test-native-view test-native-land-bind test-native-world test-native-world-art test-world-play test-world-environments test-world-failure
+
+.PHONY: test-native-overlap

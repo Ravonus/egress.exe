@@ -6,6 +6,7 @@
 #pragma bank 255
 #include <gb/gb.h>
 #include <gb/cgb.h>
+#include <stddef.h>
 #include "play.h"
 #include "boss_api.h" /* B2 bosses */
 #include "heir.h"
@@ -226,8 +227,9 @@ static uint8_t oam_clipped(int16_t sx, int16_t sy, uint8_t n, uint8_t tile0, uin
   return 1u;
 }
 
-/* Register-only common path. Keep the portable clipping path for groups that
- * cross a screen edge; most mob/overlay/particle groups fit entirely on screen.
+/* Register-only common path, including clipping for one to four columns.
+ * Larger unusual groups retain the portable path. Every visible column still
+ * reserves the same bands and contiguous range before any sprite is written.
  * sdcccall(1): DE=x, BC=y; n/tile/step/prop are four callee-popped stack bytes. */
 uint8_t oam_group(int16_t sx, int16_t sy, uint8_t n, uint8_t tile0, uint8_t tstep, uint8_t prop) NONBANKED NAKED {
   sx;sy;n;tile0;tstep;prop;
@@ -236,21 +238,78 @@ uint8_t oam_group(int16_t sx, int16_t sy, uint8_t n, uint8_t tile0, uint8_t tste
     add hl,bc
     ld a,h
     or a,a
-    jr nz,8$
+    jp nz,8$
     ld a,l
     cp a,#159
-    jr nc,8$
-    ld a,d
-    or a,a
-    jp nz,_oam_clipped
+    jp nc,8$
     ld a,c
     add a,#16
     ld (#_emit_y),a
     ldhl sp,#2
     ld a,(hl)
     or a,a
-    jr z,8$
-    ld (#_emit_n),a
+    jp z,8$
+    cp a,#5
+    jr nc,20$
+    ld a,d
+    or a,a
+    jr z,21$
+    cp a,#255
+    jp nz,_oam_clipped
+    ld a,e
+    or a,a
+    jp z,8$
+    cpl
+    inc a
+    srl a
+    srl a
+    srl a
+    ld c,a
+    ld a,(hl)
+    sub a,c
+    jp z,8$
+    jp c,8$
+    ld (hl),a
+    ld a,c
+    add a,a
+    add a,a
+    add a,a
+    add a,e
+    ld e,a
+    ldhl sp,#4
+    ld d,(hl)
+    dec hl
+    ld a,(hl)
+    ld b,c
+    inc b
+  22$:
+    dec b
+    jr z,23$
+    add a,d
+    jr 22$
+  23$:
+    ld (hl),a
+    jr 24$
+  21$:
+    ld a,e
+    cp a,#160
+    jp nc,8$
+    ld a,#167
+    sub a,e
+    srl a
+    srl a
+    srl a
+    ld c,a
+    ld a,(hl)
+    cp a,c
+    jr c,24$
+    ld (hl),c
+    jr 24$
+  20$:
+    ld a,d
+    or a,a
+    jp nz,_oam_clipped
+    ld a,(hl)
     add a,a
     add a,a
     add a,a
@@ -259,6 +318,10 @@ uint8_t oam_group(int16_t sx, int16_t sy, uint8_t n, uint8_t tile0, uint8_t tste
     sub a,l
     cp a,e
     jp c,_oam_clipped
+  24$:
+    ldhl sp,#2
+    ld a,(hl)
+    ld (#_emit_n),a
     ld a,e
     add a,#8
     ld (#_emit_x),a
@@ -491,6 +554,27 @@ static void spr32(int16_t wx, int16_t wy, uint8_t tile, uint8_t pal) {
 
 static const int8_t bob[8] = {0, 0, -1, -1, 0, 0, 1, 1};
 
+/* No projection or allocation is needed after the FX deadline. Age every
+ * existing puff in place, preserving its lifetime without a C pointer walk. */
+static void age_puffs(void) NAKED {
+  __asm
+    ld hl,#_puffs
+    ld de,#5
+    ld b,#6
+  1$:
+    ld a,(hl)
+    or a,a
+    jr z,2$
+    dec (hl)
+  2$:
+    add hl,de
+    dec b
+    jr nz,1$
+    ret
+  __endasm;
+}
+typedef char puff_native_stride[(sizeof(puff_t)==5u && MAXP==6u) ? 1 : -1];
+
 /* the B1 kinds: mite, eye, the Watchman (boss.c) */
 static void draw_b1(enemy_t *e) {
   uint8_t base, pal, flip;
@@ -535,6 +619,136 @@ static void draw_boss(enemy_t *e) {
   if (e->flash) pal = (e->flash & 2u) ? 6u : pal;
   spr32(x, y, base, pal);
 }
+
+/* Projectiles retain their full twelve-bit pixel coordinates. The stack packet
+ * avoids spilling each source member and projection through the outer loop. */
+static void draw_orbs(void) NAKED {
+  __asm
+    add sp,#-8
+    ld de,#_orbs
+    ldhl sp,#0
+    ld (hl),e
+    inc hl
+    ld (hl),d
+    inc hl
+    ld (hl),#8
+  1$:
+    ldhl sp,#0
+    ld a,(hl+)
+    ld h,(hl)
+    ld l,a
+    ld a,(hl+)
+    or a,a
+    jp z,8$
+    ld a,(hl)
+    ld b,#4
+    or a,a
+    jr nz,2$
+    inc b
+  2$:
+    inc hl
+    inc hl
+    inc hl
+    ld a,(hl+)
+    ld e,a
+    ld d,(hl)
+    inc hl
+    ld c,l
+    ld a,h
+    ldhl sp,#3
+    ld (hl),b
+    ld b,a
+    .rept 4
+      srl d
+      rr e
+    .endm
+    ld a,e
+    sub a,#4
+    ld e,a
+    ld a,d
+    sbc a,#0
+    ld d,a
+    ld a,e
+    ld hl,#_cam_x
+    sub a,(hl)
+    ld e,a
+    ld a,d
+    sbc a,#0
+    ld d,a
+    ldhl sp,#4
+    ld (hl),e
+    inc hl
+    ld (hl),d
+    ld h,b
+    ld l,c
+    ld a,(hl+)
+    ld e,a
+    ld d,(hl)
+    .rept 4
+      srl d
+      rr e
+    .endm
+    ld a,e
+    sub a,#4
+    ld e,a
+    ld a,d
+    sbc a,#0
+    ld d,a
+    ld a,e
+    ld hl,#_cam_y
+    sub a,(hl)
+    ld e,a
+    ld a,d
+    sbc a,#0
+    ld d,a
+    ldhl sp,#6
+    ld (hl),e
+    inc hl
+    ld (hl),d
+    ldhl sp,#3
+    ld a,(hl)
+    push af
+    inc sp
+    xor a,a
+    push af
+    inc sp
+    ld a,#132
+    push af
+    inc sp
+    ld a,#1
+    push af
+    inc sp
+    ldhl sp,#8
+    ld a,(hl+)
+    ld e,a
+    ld d,(hl)
+    inc hl
+    ld a,(hl+)
+    ld c,a
+    ld b,(hl)
+    call _oam_group
+  8$:
+    ldhl sp,#0
+    ld a,(hl+)
+    ld h,(hl)
+    ld l,a
+    ld de,#10
+    add hl,de
+    ld e,l
+    ld d,h
+    ldhl sp,#0
+    ld (hl),e
+    inc hl
+    ld (hl),d
+    inc hl
+    dec (hl)
+    jp nz,1$
+    add sp,#8
+    ret
+  __endasm;
+}
+typedef char native_orb_draw_layout[(MAXO==8u && sizeof(orb_t)==10u && offsetof(orb_t,live)==0u &&
+  offsetof(orb_t,friendly)==1u && offsetof(orb_t,x)==4u && offsetof(orb_t,y)==6u && ST_ORB==132u) ? 1 : -1];
 
 void draw_sprites(void) BANKED {
   uint8_t k, fr, start;
@@ -589,12 +803,8 @@ void draw_sprites(void) BANKED {
   if (boss_floor) boss_draw_body();
   else for (k = 0; k != nen; k++)
     if (en[k].kind == SPAWN_BOSS && en[k].st != ES_DEAD) draw_boss(&en[k]);
-  /* OP_SHOT: orbs (pointers, not orbs[k]: SDCC multiplies the index on every access) */
-  if(orbs[0].live|orbs[1].live|orbs[2].live|orbs[3].live|orbs[4].live|orbs[5].live|orbs[6].live|orbs[7].live) {
-    orb_t *o = orbs;
-    for (k = MAXO; k; k--, o++)
-      if (o->live) spr8((int16_t)(o->x >> 4), (int16_t)(o->y >> 4), ST_ORB, o->friendly ? 4u : 5u);
-  }
+  /* OP_SHOT: projectiles keep their priority ahead of mob bodies. */
+  if(orbs[0].live|orbs[1].live|orbs[2].live|orbs[3].live|orbs[4].live|orbs[5].live|orbs[6].live|orbs[7].live)draw_orbs();
   /* OP_MOB: bodies, from a rotating start so a crowded line flickers fairly */
   if (room.nob) obstacle_draw();
   if (nen && !(boss_floor && nen == 1u)) {
@@ -616,12 +826,13 @@ void draw_sprites(void) BANKED {
   if(puffs[0].t|puffs[1].t|puffs[2].t|puffs[3].t|puffs[4].t|puffs[5].t) {
     puff_t *p = puffs;
     int16_t py;
-    uint8_t quota=(uint8_t)(LY_REG>=88u && LY_REG<144u ? 1u : MAXP);
-    for (k = MAXP; k; k--, p++)
+    uint8_t quota=(uint8_t)(LY_REG>=88u ? 0u : MAXP);
+    if(!quota)age_puffs();
+    else for (k = MAXP; k; k--, p++)
       if (p->t) {
         p->t--;
-        py = (int16_t)p->y - (int16_t)((14u - p->t) >> 2);
         if(quota && video_epoch==frame_epoch && !(LY_REG>=88u && LY_REG<144u)) {
+          py = (int16_t)p->y - (int16_t)((14u - p->t) >> 2);
           spr8((int16_t)p->x, py, p->tile, p->pal);
           quota--;
         }

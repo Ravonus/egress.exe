@@ -9,18 +9,20 @@
 #include "core/eg_window.h"
 #include "core/eg_stage.h"
 
-/* First module's data keeps the stream packet in fixed WRAM. The linker gate
+/* Early module data keeps the stream packet in fixed WRAM. The linker gate
  * checks this: cache leaves must not read their packet from a switched bank. */
 uint8_t eg_window_packet[9];
-uint8_t world_mask_packet[9],world_pre_x[9],world_pre_y[9];
-eg_stage_scratch eg_stage_work;
-uint8_t room_origin_x,room_origin_y,bg_origin_x,bg_origin_y,room_width,room_height;
-
 uint8_t game_mode;
 uint16_t run_seed;
 uint8_t floor_no;
 uint16_t floor_seed;
+uint8_t world_mask_packet[9],world_pre_x[9],world_pre_y[9];
+eg_stage_scratch eg_stage_work;
 uint8_t floor_tier;
+/* Existing fields fill the first page after Runtime's seventeen DATA bytes.
+ * Page alignment saves per-patch address arithmetic without adding WRAM. */
+uint8_t heir_pixels[128];
+uint8_t room_origin_x,room_origin_y,bg_origin_x,bg_origin_y,room_width,room_height;
 /* Floor-only state lives in bank 1 above the title's mirrored window. The title
  * never reads it, and leaves bank 1 untouched while using its bank 2 buffers. */
 eg_room __at(0xD800) room;
@@ -28,6 +30,7 @@ typedef char eg_room_fits_floor_wram[(sizeof(eg_room) <= 0x140u) ? 1 : -1];
 uint16_t frame_count;
 volatile uint8_t video_epoch;
 uint8_t frame_epoch;
+static uint8_t clock_due;
 uint8_t joy, joy_prev, joy_pressed;
 uint8_t dbg_god, dbg_no_enemies, dbg_floor;
 /* Pre-start native scenario selectors: zero follows the campaign. */
@@ -63,22 +66,33 @@ void frame_wait(void) {
    * hardware OAM instead of DMA copying a half-written body or stale cards. */
   ENABLE_OAM_DMA;
   if(game_mode==MODE_PLAY && (LCDC_REG&LCDCF_ON)) {
-    /* GBDK vsync clears its flag on entry. A VBlank between the call and
-     * that clear can be lost at the frame boundary. Wait for our monotonic
-     * epoch instead; EI/HALT is atomic with respect to the wakeup check. */
+    /* Periodic arithmetic/save work must not spend the new frame's early
+     * terrain/upload window. Elapsed VBlanks are still sampled exactly when
+     * a completed frame (often hitstop) has enough maintenance time left. */
+    if(clock_due && video_epoch==frame_epoch && LY_REG<104u) {
+      clock_due=0u;clock_poll();
+    }
+    /* Wait for our monotonic epoch. HALT with IME disabled wakes on a pending
+     * enabled interrupt, then EI/NOP services it before checking the epoch.
+     * The first NOP also makes the pending-at-HALT duplicate fetch harmless.
+     * EI/HALT can otherwise remain asleep after a boundary interrupt. */
     while(1) {
       disable_interrupts();
       if(video_epoch!=frame_epoch) {enable_interrupts();break;}
       __asm
-        ei
         halt
+        nop
+        ei
         nop
       __endasm;
     }
   } else vsync();
   frame_epoch=video_epoch;
   frame_count++;
-  if (((uint8_t)frame_count & 63u)==32u) clock_poll(); /* stagger with narration; elapsed VBlanks remain exact */
+  if (((uint8_t)frame_count & 63u)==32u) {
+    if(game_mode==MODE_PLAY)clock_due=1u;
+    else {clock_due=0u;clock_poll();}
+  }
 }
 
 static uint16_t scale(uint16_t c, uint8_t level) {

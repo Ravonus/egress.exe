@@ -80,14 +80,14 @@ def run(rom, out):
     a = g.addr("room")
     for y in range(5, 12):
         for x in range(6, 11):
-            g.pb.memory[a + y * 16 + x] = 0
-    g.pb.memory[a + 8 * 16 + 8] = 21
+            g.pb.memory[1,a + y * 16 + x] = 0
+    g.pb.memory[1,a + 8 * 16 + 8] = 21
     teleport(g, 136, 152)
     g.hold({"up"})
     g.tick(45)
     g.hold(set())
-    result["crate_pushes_north"] = g.pb.memory[a + 8 * 16 + 8] != 21 and any(
-        g.pb.memory[a + y * 16 + 8] == 21 for y in range(5, 8))
+    result["crate_pushes_north"] = g.pb.memory[1,a + 8 * 16 + 8] != 21 and any(
+        g.pb.memory[1,a + y * 16 + 8] == 21 for y in range(5, 8))
     g.stop()
 
     g = fresh(rom, 1, enemies=True)

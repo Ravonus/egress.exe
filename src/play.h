@@ -90,7 +90,7 @@ uint8_t eye_free(uint8_t x, uint8_t y) NONBANKED;
 uint8_t absdiff(uint8_t a, uint8_t b) NONBANKED;
 uint8_t overlap(uint8_t ax, uint8_t ay, uint8_t bx, uint8_t by, uint8_t rx, uint8_t ry) NONBANKED;
 /* Attack centres may extend outside the map; they must never wrap to its other side. */
-uint8_t overlap_world(int16_t ax, int16_t ay, uint8_t bx, uint8_t by, uint8_t rx, uint8_t ry) NONBANKED;
+uint8_t overlap_world(int16_t ax, int16_t ay, uint8_t bx, uint8_t by, uint8_t rx, uint8_t ry) BANKED;
 void queue_cell(uint8_t i) NONBANKED;
 void flush_cells(uint8_t max) BANKED;
 void draw_cell(uint8_t i) BANKED;

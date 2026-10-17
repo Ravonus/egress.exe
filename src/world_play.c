@@ -25,7 +25,10 @@ static uint8_t priority_axis(void) {
   uint8_t horizontal=joy&(J_LEFT|J_RIGHT),vertical=joy&(J_UP|J_DOWN);
   uint8_t n=portal ? world_plan.vertical : vertical && !horizontal ? 1u : horizontal && !vertical ? 0u : my<mx;
   preparation *p=n ? &py : &px;
-  if(!p->dir || p->n!=(n ? 16u : 14u))n^=1u;
+  /* Finish the requested strip before binding a speculative perpendicular
+   * one. Cell updates can invalidate that binding every tick;
+   * rebuilding it must not consume the approaching edge's generation time. */
+  if(!p->dir || (!(horizontal|vertical) && p->n!=(n ? 16u : 14u)))n^=1u;
   return n;
 }
 uint8_t world_work_pending(void) BANKED {
@@ -206,7 +209,7 @@ void world_prefetch(void) BANKED {
   if(axes==3u)axes=my<32u && my<mx ? 2u : mx<32u && mx<=my ? 1u : 3u;
   /* Seed queries touch only the inactive backing store. Reserve their time
    * before simulation; a late collision/render pass must not starve a seam. */
-  for(n=0u;n<6u && spare(35u);n++) {
+  for(n=0u;n<6u && spare(40u);n++) {
     /* Finish publishing the requested strip before speculative work on the
      * other axis. Otherwise that extra generation can starve its BG/save pass. */
     if(axes==1u && px.dir && px.n==14u && (px.bg!=56u || !world_preserved(px.dir,0) || !world_binding_ready(px.dir*4,0)))break;

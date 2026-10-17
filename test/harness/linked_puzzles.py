@@ -47,7 +47,7 @@ def run(rom,out,tool):
         assert len(host)==320 and bytes(g.peek('room',i) for i in range(320))==host
         meter=OamMeter(g);grid=GridObserver(g);items=ItemObserver(g);log=[];warps=[];snapshots=[]
         tick=g.tick;last=g.player();ports=list(host[317:319]);active=[];missing=[];hitches=[];prior_fc=g.peek16('frame_count')
-        g.pb.memory[0xDDD0:0xDDF0]=[0xA7]*32
+        g.pb.memory[1,0xDDD0:0xDDF0]=[0xA7]*32
         def record(n=1):
             nonlocal last,prior_fc
             for _ in range(n):
@@ -92,7 +92,7 @@ def run(rom,out,tool):
                  'native_bg_reference':grid_report['all_map_and_attributes_match'],
                  'native_item_uploads':item_report['mapped_destination_and_pixels_match'],
                  'sprite_line_budget':meter.over==0,'active_frames_120_per_120':bool(spans) and min(spans)==120,
-                 'stack_canary':bytes(g.pb.memory[0xDDD0:0xDDF0])==bytes([0xA7]*32)}
+                 'stack_canary':bytes(g.pb.memory[1,0xDDD0:0xDDF0])==bytes([0xA7]*32)}
         results['backtracking_keeps_objects_and_inventory']=backtracked
         reports.append({'seed':seed,'approach':approach,'results':results,'plan':plan,'warps':len(warps),'missing_floor':missing[:20],
                         'minimum_game_frames_per_120':min(spans) if spans else None,'hitches':hitches,'oam_max':meter.max_line,'items':item_report,'grid':grid_report})

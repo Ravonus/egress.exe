@@ -63,7 +63,10 @@ class Game:
         return self.sym["_" + name]
 
     def peek(self, name: str, off: int = 0) -> int:
-        return self.pb.memory[self.addr(name) + off]
+        a=self.addr(name)+off
+        if 0xD000<=a<0xE000 and self.pb.memory[self.addr('game_mode')]==MODE_PLAY:
+            return self.pb.memory[1,a]
+        return self.pb.memory[a]
 
     def peek16(self, name: str) -> int:
         return self.peek(name) | (self.peek(name, 1) << 8)
@@ -72,7 +75,10 @@ class Game:
         return self.peek(name, off) | (self.peek(name, off + 1) << 8)
 
     def poke(self, name: str, v: int, off: int = 0) -> None:
-        self.pb.memory[self.addr(name) + off] = v & 0xFF
+        a=self.addr(name)+off
+        if 0xD000<=a<0xE000 and self.pb.memory[self.addr('game_mode')]==MODE_PLAY:
+            self.pb.memory[1,a]=v&0xFF
+        else:self.pb.memory[a] = v & 0xFF
 
     def poke16(self, name: str, v: int) -> None:
         self.poke(name, v)
@@ -111,7 +117,7 @@ class Game:
 
     def room(self) -> list[int]:
         a = self.addr("room")
-        return [self.pb.memory[a + i] for i in range(EG_N + 5)]
+        return list(self.pb.memory[1,a:a+EG_N+5])
 
     def player(self) -> tuple[int, int]:
         return self.peek("pl_x"), self.peek("pl_y")

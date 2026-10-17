@@ -1,0 +1,64 @@
+{
+  "samples": 1138,
+  "requested_poses": 60,
+  "compositions": 195,
+  "visible_sprite_buffers": 52,
+  "maximum_unserved_pose_frames": 38,
+  "starved": [
+    {
+      "frame": 829,
+      "state": 42,
+      "requested": [
+        44,
+        2
+      ],
+      "composed": [
+        110,
+        0
+      ],
+      "line": 64
+    },
+    {
+      "frame": 838,
+      "state": 21,
+      "requested": [
+        105,
+        2
+      ],
+      "composed": [
+        44,
+        2
+      ],
+      "line": 70
+    },
+    {
+      "frame": 1050,
+      "state": 21,
+      "requested": [
+        105,
+        4
+      ],
+      "composed": [
+        110,
+        2
+      ],
+      "line": 66
+    },
+    {
+      "frame": 2023,
+      "state": 21,
+      "requested": [
+        105,
+        2
+      ],
+      "composed": [
+        24,
+        2
+      ],
+      "line": 61
+    }
+  ],
+  "animation_keeps_advancing": false,
+  "sha256": "6840760b170f3be198f3d609d1d8e61f71e9fdd299b936c2dbf1a813c8edc76e",
+  "scenario": "Native holdout, normal movement and A/B inputs; immortal test fixture, no pose or enemy-health writes."
+}

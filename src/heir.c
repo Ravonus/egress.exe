@@ -9,6 +9,8 @@
 #include "core/eg_input.h"
 extern volatile uint8_t video_epoch;
 extern uint8_t frame_epoch;
+extern uint8_t world_on;
+void heir_cache_reset(uint8_t enabled) BANKED;
 
 heir_t heir;
 uint16_t dbg_heir;
@@ -202,8 +204,43 @@ void heir_idle(uint8_t ctx) BANKED {
 void heir_idle_stop(void) BANKED { idle_on = 0; }
 
 void heir_reset(void) BANKED {
+  heir_cache_reset((uint8_t)!world_on);
   shown_pose = 0xffu;
   d_sel = 0xffu;
+}
+
+static void compose_pose(uint8_t dd) {
+  buf_sel ^= 1u;
+  spr_mask = heir_compose(ha_fr.pose, dd, (uint8_t)(buf_sel << 3));
+  shown_pose = ha_fr.pose;
+  shown_dd = dd;
+  d_sel = 0xffu;
+}
+
+void heir_prepare(void) BANKED {
+  uint8_t dd,inv;
+  if(ha_state==0xffu || heir_pending) return;
+  if(video_epoch!=frame_epoch || (LY_REG>=32u && LY_REG<144u))return;
+  /* A multi-tick frame that is about to advance will replace this deferred
+   * pose in heir_tick below. Save the composition for its successor. Terminal
+   * poses and one-tick frames still get served. */
+  if(ha_left==1u && ha_fr.dur>1u && ((uint8_t)(ha_frame+1u)<ha_n || ha_loop))return;
+  /* Serve the next light tick instead of stacking composition on gravity or
+   * an input that is about to replace this pose with a new action. */
+  if(grav_t==1u || (joy_pressed&(J_A|J_B|J_START|J_SELECT)))return;
+  inv=pl_inv ? (uint8_t)(pl_inv-1u) : 0u;
+  if((pl_state==PS_FALL && pl_t>=24u) ||
+     (pl_hp && (inv&4u) && pl_state!=PS_HURT && ha_state!=HA_SPAWN))return;
+  dd=ha_fr.dir;
+  if(dd==HEIR_DIR_CAM)dd=0u;
+  else {
+    dd=(uint8_t)((ha_dir+dd)&7u);
+    if(dd>=5u)dd=(uint8_t)(8u-dd);
+  }
+  /* Actor work can make every late draw miss its composition deadline. Serve
+   * that pose before speculative terrain and simulation on the next frame.
+   * A second composition waits until the first complete upload is published. */
+  if(ha_fr.pose!=shown_pose || dd!=shown_dd) compose_pose(dd);
 }
 
 /* the four sprites: BODY at box row 1, WEAR at row 6, two columns; X-flip mirrors E/SE/NE into W/SW/NW. The
@@ -216,16 +253,12 @@ uint8_t heir_draw(uint8_t oam, int16_t sx, int16_t sy) BANKED {
   fin = ha_fr.dir == HEIR_DIR_CAM ? 0u : (uint8_t)((ha_dir + ha_fr.dir) & 7u);
   flip = (uint8_t)(fin >= 5u);
   dd = flip ? (uint8_t)(8u - fin) : fin;
-  /* Reuse the current full body for one tick when gravity or a late boss effect
-   * leaves too little rendering time for composition. Never hide the body. */
-  if ((ha_fr.pose != shown_pose || dd != shown_dd) &&
+  /* Early preparation guarantees deferred poses progress. An idle upload slot
+   * may also take this frame's new pose while its remaining budget permits. */
+  if (!heir_pending && (ha_fr.pose != shown_pose || dd != shown_dd) &&
       (shown_pose==0xffu || (grav_t!=GRAVITY_FRAMES &&
        (game_mode!=MODE_PLAY || video_epoch==frame_epoch) && (LY_REG<56u || LY_REG>=144u)))) {
-    buf_sel ^= 1u;
-    spr_mask = heir_compose(ha_fr.pose, dd, (uint8_t)(buf_sel << 3));
-    shown_pose = ha_fr.pose;
-    shown_dd = dd;
-    d_sel = 0xffu;
+    compose_pose(dd);
   }
   if (flip != d_flip || ha_fr.flash != d_flash || buf_sel != d_sel) {
     d_flip = flip;
