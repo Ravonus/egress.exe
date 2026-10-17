@@ -263,14 +263,12 @@ def pocket(g: Game) -> list[int]:
 
 
 def bench_open(g: Game, log: list[str]) -> bool:
-    for _ in range(3):
-        g.press("select", 3)
-        for _ in range(40):
-            if g.peek("bench_on") == 1:
-                g.tick(2)
-                return True
-            g.tick()
-    log.append("the bench did not open")
+    # START opens the normal in-world pause, A opens its bench action.
+    g.press("start", 3);g.tick(12);g.press("a",3)
+    for _ in range(80):
+        if g.peek("bench_on")==1:g.tick(2);return True
+        g.tick()
+    log.append("the bench did not open through START, A")
     return False
 
 
@@ -333,9 +331,11 @@ def bench_act(g: Game, act: str, log: list[str], shot: Path | None = None, *, pr
             log.append(f"{act}: the bench made nothing (pocket {pocket(g)})")
         return ok and not g.peek("bench_on")
     n0 = g.peek("pocket_n")
-    g.press("start", 4)
+    g.press("select",4)  # equip this stable piece ID and close the bench
+    g.tick(12)
+    g.press("select",4)  # use only on a fresh gameplay tap/release
     for _ in range(600):  # the reaction plays out inside the use
-        if not g.peek("bench_on"):
+        if g.peek("pocket_n")==n0-1 and not g.peek("bench_on"):
             break
         g.tick()
     g.tick(4)

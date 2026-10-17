@@ -544,6 +544,12 @@ static void secondary(uint8_t level) {
   heir_play(HA_ATTACK,1u);
 }
 
+/* A tool uses the existing eight-way hand/thrust pose without replacing the
+ * input resolver or stopping the world while its recovery overlay advances. */
+void player_tool_cast(void) BANKED {
+  heir_idle_stop();overlay(HA_ATTACK,18u);heir_play(HA_ATTACK,1u);fight_t=90u;
+}
+
 /* walking, pushing, the idle animations */
 static void walk(uint8_t speed, uint8_t anim) {
   uint8_t d = (uint8_t)(joy & 0x0fu), f0 = pmv.facing;

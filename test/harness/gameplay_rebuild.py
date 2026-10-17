@@ -47,7 +47,7 @@ def run(rom,out,tool):
     result['reset_restores_entry_bag_and_pickups']=pocket(g)==[] and g.room()[178]==17 and g.room()[179]==17
     for d in 'URDL': assert step(g,d,log)
     assert bench_open(g,log); bench_cursor(g,0);g.shot(out/'02-bench.png')
-    g.press('start');g.tick(35)
+    g.press('select',4);g.tick(12);g.press('select',4);g.tick(35)
     result['invalid_target_keeps_units']=pocket(g)==[4,2]
     assert bench_act(g,'Cdb',log)
     result['finite_recipe_consumption']=pocket(g)==[8]

@@ -18,7 +18,7 @@ static uint8_t serial,slot,pending,cool;
 static uint16_t queued_at;
 uint8_t hud_narr_ready(void) BANKED;
 void hud_narrate(const char *s) BANKED;
-static const char *const cues[10]={"WALK UP TO ITEMS","TAP A: STRIKE","HOLD A THEN RELEASE","TAP B: ONE SHOT","HOLD B THEN RELEASE","DIR TWICE: EVADE","PUSH BOX ONTO PLATE","FIRE+WATER: STEAM","FACE GAP. DIR TWICE","TAKE KEY. USE DOOR"};
+static const char *const cues[10]={"WALK UP TO ITEMS","TAP A: STRIKE","HOLD A THEN RELEASE","TAP B: ONE SHOT","HOLD B THEN RELEASE","DIR TWICE: EVADE","PUSH BOX ONTO PLATE","START+A BENCH: MIX","FACE GAP. DIR TWICE","TAKE KEY. USE DOOR"};
 #define TSLOT(k) ((uint8_t *)((k) ? SAVE_PREF_B : SAVE_PREF_A))
 void tutorial_init(void) BANKED {
   uint8_t *p,*a=TSLOT(0u),*b=TSLOT(1u),va,vb;

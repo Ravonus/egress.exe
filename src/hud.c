@@ -15,6 +15,8 @@
 #include <string.h>
 #include "play.h"
 #include "stamina.h"
+#include "puzzle.h"
+#include "core/eg_piece.h"
 #include "stage.h" /* B2 */
 
 #pragma bank 255
@@ -89,6 +91,18 @@ static void clear_rim(uint8_t start) {
   uint8_t *d=&sh[top][start];
   for(;start!=20u;start++)*d++=BT_RIM;
 }
+/* Keep the equipped finite unit beside the existing meters. A sparse narrator
+ * caption temporarily borrows the same rim and restores the slot afterward. */
+static void draw_tool(void) {
+  char name[5];uint8_t count;
+  if(narr_t)return;
+  clear_rim(6u);hud_text(6u,top,"S:");
+  if(tool_piece && tool_piece<P_COUNT) {
+    eg_piece_abbr(tool_piece,name);hud_text(8u,top,name);
+    count=pocket_count(tool_piece);hud_text(13u,top,"x");hud_num(14u,top,count,2u);
+  } else hud_text(8u,top,"--");
+  rows_dirty|=(uint8_t)(1u<<top);
+}
 static void hud_layout(uint8_t toast) {
   if(shown_stamina!=255u && top!=toast) {
     /* A toast changes the row positions, not the values. Move the two
@@ -97,7 +111,7 @@ static void hud_layout(uint8_t toast) {
     else {hud_copy20(sh[0],sh[1]);hud_copy20(sh[1],sh[2]);memset(sh[2],BT_FONT,20u);}
     top=toast;
     counter_top=top; /* the counter row moved intact */
-    clear_rim(5u);
+    clear_rim(5u);draw_tool();
     rows_dirty=7u;
     if(hud_dirty)draw_n();
     return;
@@ -107,7 +121,7 @@ static void hud_layout(uint8_t toast) {
   counter_top=255u;
   shown_stamina=shown_cap=shown_charge=255u;
   rows_dirty = 7u;
-  clear_rim(5u);
+  clear_rim(5u);draw_tool();
   charge_n();
   draw_n();
 }
@@ -175,7 +189,7 @@ void hud_msg_w(void) BANKED {
 uint8_t hud_narr_ready(void) BANKED {return (uint8_t)(!top && !msg_t && !narr_t);}
 void hud_narrate(const char *s) BANKED {
   if(!hud_narr_ready()) return;
-  hud_text(6u,0u,s);narr_t=180u;
+  clear_rim(6u);hud_text(6u,0u,s);narr_t=180u;
 }
 
 /* VBlank: the rows hud_tick handed over, then the window's place (rows first: never the new height over old rows) */
@@ -268,7 +282,7 @@ typedef char hud_native_layout[(LOOK_PAL_HUD==5u && LOOK_PAL_OBJ==6u && HUD_Y==1
 
 void hud_tick(void) BANKED {
   if(shown_stamina!=stamina.value || shown_cap!=stamina.cap) charge_n();
-  if(narr_t && !--narr_t) {clear_rim(6u);rows_dirty|=(uint8_t)(1u<<top);}
+  if(narr_t && !--narr_t)draw_tool();
   if (msg_t && !--msg_t) hud_layout(0);
   if (hud_dirty) draw_n();
   if (!rows_dirty && top == shown_top) return;
@@ -323,6 +337,7 @@ static void draw_n(void) {
   counter_floor=floor_no;
   }
   counter_top=top;
+  draw_tool();
   rows_dirty |= (uint8_t)(1u << y);
   hud_dirty = 0;
 }

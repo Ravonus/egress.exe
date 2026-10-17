@@ -53,7 +53,7 @@ def run(rom,out):
  r['all_course_goals_completed']=phase()>=9 and not g.peek('tutorial_on') and g.peek('game_mode')==MODE_TITLE
  after=g.stop();changed=[i for i,(a,b) in enumerate(zip(save,after)) if a!=b and not (0xf68<=i<0xf88 or 0x14c0<=i<0x1500)];log.append('non-settings/clock changes: '+str(changed[:40]));r['training_keeps_existing_heir_and_checkpoint']=not changed
  g=Game(rom,sram=after);enter(g);r['replay_uses_same_authored_board']=bytes(g.room()[:224])==board
- g.press('start',3);g.tick(40);r['start_leaves_training']=not g.peek('tutorial_on');g.stop()
+ g.press('start',3);g.tick(12);g.press('start',3);g.tick(40);r['pause_start_leaves_training']=not g.peek('tutorial_on');g.stop()
  report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':r,'progress':progress,'log':log}
  (out/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2));return all(r.values())
 if __name__=='__main__':

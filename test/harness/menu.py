@@ -33,7 +33,7 @@ def run(rom,out):
         g.tick()
         if g.peek('game_mode')==2:break
     r['tutorial_enters_a_dedicated_fixed_stage']=g.peek('game_mode')==2 and g.peek('tutorial_on')==2 and g.peek('room',room_start:=10*16+3)==0 and g.peek('room',8*16+3)==0
-    g.shot(out/'tutorial-course.png');g.press('start',3);g.tick(20);lobby(g)
+    g.shot(out/'tutorial-course.png');g.press('start',3);g.tick(12);g.press('start',3);g.tick(20);lobby(g)
     r['course_returns_to_lobby']=bool(g.peek('menu_active')) and not g.peek('tutorial_on')
     cursor(g,5)
     for _ in range(3):g.press('a',3);g.tick(10)
@@ -48,7 +48,7 @@ def run(rom,out):
     board=bytes(g.room()[:224]);position=g.player();palettes=bytes(g.pb.memory[g.addr('pal_bg'):g.addr('pal_bg')+64])
     g.press('start',3);g.tick(8);g.shot(out/'06-pause.png')
     r['pause_uses_framed_in_world_window']=g.peek('hud_line')==80
-    g.hold({'right','a'});g.tick(12);g.hold(set());g.tick(3)
+    g.hold({'right'});g.tick(12);g.hold(set());g.tick(3)
     r['pause_freezes_gameplay']=g.player()==position and bytes(g.room()[:224])==board
     g.press('b',3);g.tick(4)
     r['pause_restores_field_and_palette']=g.peek('hud_line') in (120,128) and g.pb.memory[0xff4a]==g.peek('hud_line') and bytes(g.pb.memory[g.addr('pal_bg'):g.addr('pal_bg')+64])==palettes

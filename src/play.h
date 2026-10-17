@@ -100,6 +100,7 @@ uint8_t enemy_in_cell(uint8_t c) NONBANKED;
 
 /* --- player.c --- */
 void player_update(void) BANKED;
+void player_tool_cast(void) BANKED;
 void player_hurt(uint8_t n, uint8_t fromx, uint8_t fromy) BANKED;
 void player_fall(uint8_t safe) BANKED;
 void open_door(void) BANKED;

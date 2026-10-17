@@ -38,8 +38,8 @@ static uint8_t weight_cells[4],weight_n;
 uint8_t run_loading;
 uint8_t floor_has_crt;
 
-static void controls_pause(void) {
-  uint8_t old_y=cam_y;
+static uint8_t controls_pause(void) {
+  uint8_t old_y=cam_y,open_bench=0u,leave_course=0u;
   cam_y=pl_y>40u ? (uint8_t)(pl_y-40u) : 0u;
   if(cam_y>144u) cam_y=144u;
   move_bkg(BG_SCROLL_X(cam_x),BG_SCROLL_Y(cam_y));
@@ -49,15 +49,19 @@ static void controls_pause(void) {
   text_at(1,1,2,"HOLD EITHER: CHARGE",LOOK_PAL_HUD);
   text_at(1,1,3,"A>B PARRY B>A RUSH",LOOK_PAL_HUD);
   text_at(1,1,4,"DIR x2 EVADE / RUN",LOOK_PAL_HUD);
-  text_at(1,1,5,"SELECT BENCH/TOOLS",LOOK_PAL_HUD);
-  text_at(1,2,7,"START / B RESUME",LOOK_PAL_HUD);
+  text_at(1,1,5,"SELECT: USE ELEMENT",LOOK_PAL_HUD);
+  text_at(1,1,6,"A: BENCH / EQUIP",LOOK_PAL_HUD);
+  text_at(1,1,7,tutorial_on==2u ? "START EXIT B RESUME" : "START / B RESUME",LOOK_PAL_HUD);
   hud_line=80u;move_win(7,80);
   while(1) {
     frame_wait();look_pause_tick();flush_cells(8u);sound_tick();draw_sprites();input_poll();
-    if(joy_pressed&(J_START|J_B)) break;
+    if(joy_pressed&J_A) {open_bench=1u;break;}
+    if(joy_pressed&(J_START|J_B)) {leave_course=(uint8_t)(tutorial_on==2u && (joy_pressed&J_START));break;}
   }
   cam_y=old_y;move_bkg(BG_SCROLL_X(cam_x),BG_SCROLL_Y(cam_y));
   clear_map(1,LOOK_PAL_HUD);hud_draw();hud_charge();move_win(7,128);hud_line=128u;
+  if(open_bench) {if(!stage_select())bench_run();sel_t=60u;}
+  return leave_course;
 }
 
 
@@ -342,14 +346,13 @@ static uint8_t floor_play(void) {
       continue;
     }
     if (joy_pressed & J_START) {
-      if(tutorial_on==2u) {look_end();return 0u;}
-      controls_pause();
+      if(controls_pause()) {look_end();return 0u;}
       continue;
     }
     /* hold SELECT to put the floor back the way it was (B1: it costs a token, never a heart) */
-    if ((joy & J_SELECT) && !boss_floor) {
-      if (sel_t != 61u && ++sel_t == 60u) { /* 61: still held from closing the bench */
-        sel_t = 0;
+    if (joy & J_SELECT) {
+      if (sel_t<60u && ++sel_t==60u && !boss_floor) {
+        sel_t = 60u;
         tokens = floor_tokens0;
         puzzle_reset_cost(); /* B1: a token and a lean of the matrix, never a heart */
         look_freeze();
@@ -363,10 +366,8 @@ static uint8_t floor_play(void) {
         continue;
       }
     } else {
-      if (sel_t && sel_t < 20u && !boss_floor && pl_state == PS_FREE) { /* B1: a tap of SELECT opens the bench */
-        if (!stage_select()) bench_run(); /* B2: the heist's desk, the ring's bench */
-        sel_t = 61u;
-        continue;
+      if(sel_t && sel_t<60u && pl_state==PS_FREE) {
+        sel_t=0u;puzzle_tool_use();
       }
       sel_t = 0;
     }

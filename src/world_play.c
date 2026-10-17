@@ -98,7 +98,10 @@ static uint8_t generate_one(preparation *p,uint8_t vertical,uint8_t *packet) {
 static uint8_t clear_one(preparation *p,uint8_t vertical) {
   uint8_t x,y,cam=vertical ? cam_y : cam_x;
   if(!p->dir || (!(p->bg&128u) && p->bg>=(vertical ? 64u : 56u)))return 0u;
-  if(p->dir>0 ? cam<64u : cam>(vertical ? 64u : 32u))return 0u;
+  /* South retires padding rows 14/15 and real rows 0/1. The latter are
+   * completely outside the 128px view once SCY reaches 32, unlike the four
+   * real columns retired by a horizontal transfer. */
+  if(p->dir>0 ? cam<(vertical ? 32u : 64u) : cam>(vertical ? 64u : 32u))return 0u;
   if(p->bg&128u) {
     /* A horizontal transfer retains the perpendicular cleared strip. Only
      * the two padding rows in its new four-column corner need clearing. */
@@ -208,6 +211,10 @@ void world_prefetch(void) BANKED {
   if(!axes)axes=3u;
   mx=pl_x<128u ? pl_x : (uint8_t)(255u-pl_x);
   my=pl_y<112u ? pl_y : (uint8_t)(223u-pl_y);
+  /* Warm both started strips near a corner even before the player turns.
+   * Following only the held axis leaves the next perpendicular strip cold
+   * when the current seam rebases the active window. */
+  if(px.dir && py.dir && (mx<48u || my<48u))axes=3u;
   /* Retire one already-offscreen quad early near a requested boundary.
    * This work must progress even while late actors/cards use their margin. */
   if(spare(24u)) {

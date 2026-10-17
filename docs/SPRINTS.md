@@ -14,7 +14,7 @@ An integrated prototype, a passing host simulation, a native build and a played 
 | Authored stage codec and generated geography | Quiet native worlds verified on both mappers; campaign integration partial | Reduce measured corner preparation waits; actor streaming, campaign curriculum, environment/reaction coverage and continuation |
 | Shared action/object/mob matrix | Partial | Complete the authored interactions and readable activation, reaction, spent and destruction states; exercise both directions |
 | Mobs, stages, biomes and full run | Partial | Native full-run layout and seed bank, all biomes, stage/obstacle combinations and their kill/exit guarantees |
-| Heirs, lineage, saves, tree and stats | Partial | Non-overlapping migrated SRAM journals, floor/landing continue, shortcut/line progress, full tree and stats pages with event accounting |
+| Heirs, lineage, saves, tree and stats | Partial | Current SRAM journals, floor/landing continue, shortcut/line progress, full tree and stats pages with event accounting |
 | Boss roster | Two office fights verified | Remaining biome bosses, final stretch and no-hit feasibility/frame budgets |
 | Music | Existing score player | Native adaptive composition, transitions and in-key effects across the complete run, with captured/listened audio |
 | Title and first-person stages | Title verified; renderer prototype | Playable generated first-person stages with the same tools/combat and measured timing |
@@ -23,9 +23,12 @@ An integrated prototype, a passing host simulation, a native build and a played 
 
 ## Current work
 
-The native feedback milestone now migrates FA1 families from A100/A300 into the reserved tree regions before
-enabling continue writes. Floor-entry/landing journals preserve damage, inventory, the chosen heir and narration
-history; interrupted end transactions finish once. This is a ten-floor office branch, still short of the full run.
+The current release requires a fresh save, as requested by the owner on 2026-10-17. Earlier family, run,
+meta-progress and tutorial journals are rejected; the FA1/FA2 family migration and saved-floor migration paths
+are deleted. The browser reads only the current cartridge's battery namespace. Current floor-entry/landing
+journals preserve damage, inventory, the chosen heir and narration history; interrupted end transactions finish
+once. This is a ten-floor office branch, still short of the full run. The dated checkpoint notes below retain the
+evidence for earlier releases; their migration policies no longer describe the current cartridge.
 
 No milestone will be called complete just because a checkpoint can be merged or published. Each completed entry
 must point to its native implementation, focused evidence and relevant regression gates. The public ROM stays on
@@ -75,8 +78,8 @@ voiced clips. More causal/history combinations, voice approval and human listeni
   with fitting SFX, particles, subtle palette/dither variety and connected autotiled terrain/ground structures.
 
 Settings/tutorial journal: AF68/AF78 (16 bytes each), from the explicitly free region after both tree copies.
-This avoids both the 128-byte sky record at A240 and the legacy FA1 family source at A300. Settings writes must
-not corrupt an old family before its migration. Core/native checks must cover mixed mapper saves and torn writes.
+This avoids the 128-byte sky record at A240 and the family/tree journals. The current settings epoch rejects
+earlier tutorial records. Core/native checks cover both mappers, prior-save rejection and torn writes.
 
 ## Integrated feedback branch
 

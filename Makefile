@@ -540,6 +540,8 @@ test-island-edges: build/host/test_edges
 	build/host/test_edges
 
 test-runtime: all test-runtime-core test-native-overlap
+	$(PY) test/harness/element_slot.py build/egress.gbc build/sprints/element-slot-mbc5
+	$(PY) test/harness/element_slot.py build/egress-rtc.gbc build/sprints/element-slot-mbc3
 	$(PY) test/harness/terrain_effect.py build/egress.gbc build/sprints/terrain-effect-mbc5
 	$(PY) test/harness/terrain_effect.py build/egress-rtc.gbc build/sprints/terrain-effect-mbc3
 	$(PY) test/harness/tutorial_course.py build/egress.gbc build/sprints/tutorial-course-mbc5

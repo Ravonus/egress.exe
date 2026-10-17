@@ -47,7 +47,7 @@ try {
  await page.goto(base,{waitUntil:'networkidle'});await page.getByRole('button',{name:'Play now',exact:true}).click();
  await page.waitForFunction(()=>document.querySelector('.game-canvas')?.dataset.bootReady==='true',null,{timeout:120000});
  const peek=async name=>page.evaluate(address=>{const {m,id}=window.__egressNative;return m._emulator_read_mem(id,address);},sym['_'+name]);
- const state=async()=>page.evaluate(sym=>{const {m,id}=window.__egressNative,r=a=>m._emulator_read_mem(id,a);if((r(0xff70)&7)>1)return null;return Object.fromEntries(['game_mode','family_ready','family_page','pl_x','pl_y','bench_on','bench_cur','bench_phase','pocket_n','floor_no'].map(k=>[k,r(sym['_'+k])]).concat([['pocket',Array.from({length:r(sym._pocket_n)},(_,i)=>r(sym._pocket+i))]]));},sym);
+ const state=async()=>page.evaluate(sym=>{const {m,id}=window.__egressNative,r=a=>m._emulator_read_mem(id,a);if((r(0xff70)&7)>1)return null;return Object.fromEntries(['game_mode','family_ready','family_page','pl_x','pl_y','bench_on','bench_cur','bench_phase','pocket_n','tool_piece','floor_no'].map(k=>[k,r(sym['_'+k])]).concat([['pocket',Array.from({length:r(sym._pocket_n)},(_,i)=>r(sym._pocket+i))]]));},sym);
  const wait=async(predicate,timeout=120000)=>{const end=Date.now()+timeout;while(Date.now()<end){const s=await state();if(s&&predicate(s))return s;await page.waitForTimeout(25);}throw new Error('Native state timed out: '+JSON.stringify(await state()));};
  await page.evaluate(()=>{
   const paint=CanvasRenderingContext2D.prototype.putImageData;let pending=null;
@@ -77,16 +77,19 @@ try {
   const reached=await wait(s=>s.game_mode===2);assert.ok(Math.abs(reached[axis]-target)<=3,JSON.stringify({axis,target,reached}));
  }
  const before=await wait(s=>s.pocket_n===2);assert.deepEqual(before.pocket,[4,2]);console.log('Real floor materials collected');
- await press('ShiftLeft');await wait(s=>s.bench_on===1);await press('KeyX');await press('ArrowDown');await press('KeyX');await capture('recipe-ready.png');
+ await press('Enter');await press('KeyX');await wait(s=>s.bench_on===1);
+ await press('ArrowDown');await press('ShiftLeft');await wait(s=>s.bench_on===0&&s.tool_piece===2);
+ const equipped=await state();assert.deepEqual(equipped.pocket,[4,2]);
+ await press('Enter');await press('KeyX');await wait(s=>s.bench_on===1);await press('KeyX');await press('ArrowDown');await press('KeyX');await capture('recipe-ready.png');
  const phases=new Set(),images=new Set();let count=0;await page.evaluate(()=>window.__nativeInput('KeyX',60,0));
  const end=Date.now()+120000;
  while(Date.now()<end){const s=await state();if(s?.bench_on===3){phases.add(s.bench_phase);images.add(await capture('merge-'+String(count++).padStart(3,'0')+'.png'));}if(s?.bench_on===1&&count)break;await page.waitForTimeout(16);}
  const painted=await page.evaluate(()=>window.__benchPaints);
  for(const [p,url] of Object.entries(painted.images)){phases.add(Number(p));images.add(url);await writeFile(out+'/painted-phase-'+p+'.png',Buffer.from(url.split(',')[1],'base64'));}
  for(let i=0;i<painted.frames.length;i++){images.add(painted.frames[i]);await writeFile(out+'/painted-'+String(i).padStart(3,'0')+'.png',Buffer.from(painted.frames[i].split(',')[1],'base64'));}
- const after=await state();assert.deepEqual(after.pocket,[8]);assert.ok([1,2,3,4].every(p=>painted.phases.includes(p)),JSON.stringify(painted.phases));assert.ok(images.size>=5);await capture('result.png');
+ const after=await state();assert.deepEqual(after.pocket,[8]);assert.equal(after.tool_piece,8);assert.ok([1,2,3,4].every(p=>painted.phases.includes(p)),JSON.stringify(painted.phases));assert.ok(images.size>=5);await capture('result.png');
  assert.ok((await Promise.all(loads)).includes(expected));assert.deepEqual(errors,[]);
- const report={base,viewport:page.viewportSize(),sha256:expected,source:'Current-ROM authored crafting checkpoint in the website; DOM keyboard events released at native paint boundaries, actual pickups and crafting; no RAM or inventory writes.',results:{exactRomFetch:true,realFloorPickups:true,fourMergePhases:true,visibleMergeFrames:images.size>=5,finiteRecipeConsumption:true,pageErrors:errors.length===0},phases:painted.phases,frames:painted.frames.length,before:before.pocket,after:after.pocket};
+ const report={base,viewport:page.viewportSize(),sha256:expected,source:'Current-ROM authored crafting checkpoint in the website; DOM keyboard events released at native paint boundaries, actual pickups and crafting; no RAM or inventory writes.',results:{exactRomFetch:true,realFloorPickups:true,fourMergePhases:true,visibleMergeFrames:images.size>=5,finiteRecipeConsumption:true,selectEquipsWithoutConsuming:true,recipeAutoEquips:true,pageErrors:errors.length===0},phases:painted.phases,frames:painted.frames.length,before:before.pocket,after:after.pocket};
  await writeFile(out+'/report.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));
  await press('KeyZ');await wait(s=>s.bench_on===0);
  await page.evaluate(()=>window.__nativeInput('KeyX',110,500));

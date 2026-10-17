@@ -14,7 +14,7 @@
  *             pocket. Made: the door opens.
  *   dark      unlit cells show the void; light reaches 1 cell around you (2 with a GLOWS piece, the tealight, in the
  *             pocket) and 1 around each lamp; the door is lit. Keycards open the door as usual.
- *   heist     the shopkeeper behind the counter; SELECT at the desk buys the goods. Walk in and take them: the door
+ *   heist     the shopkeeper behind the counter; START, A at the desk buys the goods. Walk in and take them: the door
  *             seals and waves come (a holdout without the ring); the last one down, the door opens again.
  * Per-frame work is sliced: at most one spawn probe batch, four dropped cells, one neighbourhood relight a frame. */
 #pragma bank 255
@@ -510,7 +510,7 @@ static void heist_tick(void) {
   }
   if (!st_paid && pcell() == desk && !st_told) {
     st_told = 1u;
-    strcpy(sbuf, "SELECT BUYS: ");
+    strcpy(sbuf, "START+A BUYS:");
     k = 13u;
     if (stg.price >= 10u) sbuf[k++] = (char)('0' + stg.price / 10u);
     sbuf[k++] = (char)('0' + stg.price % 10u);
