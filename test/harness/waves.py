@@ -15,11 +15,18 @@ def run(rom,out):
         g.pb.hook_register(entry>>16,entry&65535,choose_level,None)
         assert g.wait_mode(1,1500);g.poke('dbg_stage',2)
         assert start_run(g,True,False,seed=0xb222,floor=2)
-        meter=OamMeter(g);original=g.tick;families=set();by_wave={};wave_start={};wave_kills={};max_alive=0;fc=[];log=[]
+        meter=OamMeter(g);original=g.tick;families=set();by_wave={};wave_start={};wave_kills={};max_alive=0;fc=[];log=[];hitches=[];late=[];epochs=[]
+        def completed(_):
+            if g.peek('game_mode')!=2:return
+            epoch=g.peek('frame_epoch')
+            if g.peek('video_epoch')!=epoch:late.append(g.peek16('frame_count'))
+            epochs.append(epoch if not epochs else epochs[-1]+((epoch-epochs[-1])&255))
+        at=g.sym['_frame_wait'];g.pb.hook_register(at>>16,at&65535,completed,None)
         def record(n=1):
             nonlocal max_alive
             for _ in range(n):
-                original();fc.append(g.peek16('frame_count'))
+                before=g.peek16('frame_count');original();after=g.peek16('frame_count');fc.append(after)
+                if ((after-before)&65535)!=1:hitches.append({'display':g.frames,'before':before,'after':after,'pc':hex(g.pb.register_file.PC),'line':g.pb.memory[0xff44],'mode':g.peek('game_mode'),'wave':g.peek('stage_wave'),'state':g.peek('pl_state'),'epoch_delta':(g.peek('video_epoch')-g.peek('frame_epoch'))&255})
                 live=[k for k in range(g.peek('nen')) if g.peek('en',k*16+1)!=6]
                 max_alive=max(max_alive,len(live))
                 w=g.peek('stage_wave')
@@ -47,20 +54,29 @@ def run(rom,out):
             ex=g.peek16_at('en',k*16+8)//16;ey=g.peek16_at('en',k*16+10)//16
             if max(abs(ex-x),abs(ey-y))>24:walk(g,(ey//16)*16+ex//16,log,2)
             x,y=g.player();ex=g.peek16_at('en',k*16+8)//16;ey=g.peek16_at('en',k*16+10)//16
-            aim={'right' if ex>x else 'left'} if abs(ex-x)>abs(ey-y) else {'down' if ey>y else 'up'}
+            dx,dy=ex-x,ey-y
+            aim=set()
+            if abs(dx)*2>=abs(dy):aim.add('right' if dx>0 else 'left')
+            if abs(dy)*2>=abs(dx):aim.add('down' if dy>0 else 'up')
             g.hold(aim);g.tick(1);g.hold({'a'});g.tick(34);g.hold(set());g.tick(40)
         results[f'level_{level}_victory_requires_real_kills']=bool(g.peek('stage_won')) and g.peek('kills_run')>0 and g.peek('stage_pct')==100
         results[f'level_{level}_finite_complete_waves']=g.peek('stage_wave')==g.peek('stg',5) and not g.peek('enemies_alive')
         results[f'level_{level}_pooled_three_live_enemies']=max_alive<=3 and meter.over==0
         results[f'level_{level}_every_wave_grows']=all(wave_kills.get(w,0)==min(8,g.peek('stg',6)+level//5+w-1) for w in range(1,g.peek('stg',5)+1))
         spans=[(fc[i]-fc[i-120])&65535 for i in range(120,len(fc))]
-        results[f'level_{level}_combat_120_per_120']=bool(spans) and min(spans)==120
+        # Observe completed updates against the actual VBlank epoch. Sampling
+        # frame_count at LCD line zero can land just before/after ISR return
+        # and produce a paired 0/2 even when no update missed its deadline.
+        windows=[epochs[i]-epochs[i-120] for i in range(120,len(epochs))]
+        results[f'level_{level}_combat_120_per_120']=bool(windows) and min(windows)==max(windows)==120
+        results[f'level_{level}_completes_before_vblank']=not late
         if level>=5:results[f'level_{level}_different_enemy_roles']=len(families)>=3
         g.shot(out/f'level-{level}-cleared.png')
         cases.append({'level':level,'generated_level':g.peek('stg',1),'waves':g.peek('stage_wave'),
             'kills':g.peek('kills_run'),'max_alive':max_alive,'families':sorted(families),
             'by_wave':{k:sorted(v) for k,v in by_wave.items()},'wave_kills':wave_kills,
-            'minimum_game_frames_per_120':min(spans) if spans else None,'oam_max':meter.max_line,'log':log[:8]})
+            'vblank_span_for_120_completed_updates':[min(windows),max(windows)] if windows else None,
+            'raw_counter_minimum_at_lcd_boundary':min(spans) if spans else None,'hitches':hitches[:30],'late_frames':late[:30],'oam_max':meter.max_line,'log':log[:8]})
         g.stop()
     results['later_stages_spawn_more_enemies']=cases[-1]['kills']>cases[0]['kills']
     report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':results,'cases':cases}

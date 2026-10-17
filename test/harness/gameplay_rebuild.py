@@ -67,7 +67,10 @@ def run(rom,out,tool):
         ex=g.peek16_at('en',k*16+8)//16;ey=g.peek16_at('en',k*16+10)//16
         walk(g,(ey//16)*16+ex//16,log,4)
         x,y=g.player();ex=g.peek16_at('en',k*16+8)//16;ey=g.peek16_at('en',k*16+10)//16
-        g.hold({'right' if ex>x else 'left'} if abs(ex-x)>abs(ey-y) else {'down' if ey>y else 'up'});g.tick(1)
+        dx,dy=ex-x,ey-y;aim=set()
+        if abs(dx)*2>=abs(dy):aim.add('right' if dx>0 else 'left')
+        if abs(dy)*2>=abs(dx):aim.add('down' if dy>0 else 'up')
+        g.hold(aim);g.tick(1)
         g.hold({'a'});g.tick(38);g.hold(set());g.tick(40)
     result['wave_victory_by_player_attacks']=bool(g.peek('stage_won')) and g.peek('kills_run')>0
     report['wave_kills']=g.peek('kills_run');report['wave_count']=g.peek('stage_wave')

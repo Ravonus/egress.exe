@@ -18,6 +18,8 @@
 #include "core/eg_move.h"
 #include "gen/diag_arc.inc"
 extern eg_mover_t pmv;
+extern volatile uint8_t video_epoch;
+extern uint8_t frame_epoch;
 
 uint8_t oam_n, oam_cap = 40u, oam_spin, oam_refused;
 static uint8_t oam_last, was_busy;
@@ -619,7 +621,7 @@ void draw_sprites(void) BANKED {
       if (p->t) {
         p->t--;
         py = (int16_t)p->y - (int16_t)((14u - p->t) >> 2);
-        if(quota && !(LY_REG>=118u && LY_REG<144u)) {
+        if(quota && video_epoch==frame_epoch && !(LY_REG>=88u && LY_REG<144u)) {
           spr8((int16_t)p->x, py, p->tile, p->pal);
           quota--;
         }

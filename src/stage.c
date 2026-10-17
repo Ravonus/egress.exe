@@ -151,7 +151,10 @@ static void wave_begin(uint8_t n, uint8_t shooter) {
 }
 static void wave_step(void) {
   uint8_t k, c, fam,slot,rank;
-  if (!wv_pend || ss_alive() >= 3u) return;
+  if (!wv_pend || enemies_alive >= 3u) return;
+  /* A reinforcement is optional work, unlike the current attack and live AI.
+   * Do not stack its setup on a hit/charge frame that has spent the budget. */
+  if(freeze || (frame_count&3u) || (LY_REG>=24u && LY_REG<144u))return;
   for (k = 0; k != 2u; k++) {
     c = EG_IDX(1u + eg_rndn(14u), 1u + eg_rndn(12u));
     if (!look_here(c) || (stage_type == SG_DARK && look_skin[c]) || !ss_spawn_ok(c)) continue;
@@ -590,7 +593,7 @@ void stage_tick(void) BANKED {
   switch (stage_type) {
     case SG_HOLDOUT:
       if (stage_won) break;
-      left=(uint8_t)(wv_pend+ss_alive());
+      left=(uint8_t)(wv_pend+enemies_alive);
       if(left!=st_pc) {
         st_pc=left;sbuf[0]='W';sbuf[1]=(char)('0'+stage_wave);sbuf[2]='/';
         sbuf[3]=(char)('0'+stg.waves);sbuf[4]=' ';sbuf[5]=(char)('0'+left);sbuf[6]=0;hud_set(sbuf);

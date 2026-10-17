@@ -360,6 +360,8 @@ static void strike_bounds(uint8_t spin,strike_box *b) {
 }
 static void strike(uint8_t spin,uint8_t dmg) {
   strike_box b;int16_t cx,cy;uint8_t rx,ry,k,wide,cx8,cy8;
+  enemy_t *e=en;
+  orb_t *o;
   strike_bounds(spin,&b);cx=b.x;cy=b.y;rx=b.rx;ry=b.ry;
   if(heir.weapon==1u)dmg++;
   if(pin.move==EG_MV_CHARGED && family_stat[G_POWER]>=3u)dmg++;
@@ -368,22 +370,25 @@ static void strike(uint8_t spin,uint8_t dmg) {
    * combat keeps the byte overlap path instead of rechecking it per target. */
   wide=(uint8_t)((uint16_t)cx>255u || (uint16_t)cy>255u);
   cx8=(uint8_t)cx;cy8=(uint8_t)cy;
-  obstacle_hit(cx, cy, rx, ry);
-  for (k = 0; k != nen; k++) {
-    uint8_t r2 = en[k].kind == SPAWN_BOSS ? 14u : 0u;
-    if (en[k].st == ES_DEAD || (hit_mask & (uint8_t)(1u << k))) continue;
-    if (wide ? overlap_world(cx, cy, (uint8_t)(en[k].x >> 4), (uint8_t)(en[k].y >> 4), (uint8_t)(rx + r2), (uint8_t)(ry + r2)) :
-               overlap(cx8, cy8, (uint8_t)(en[k].x >> 4), (uint8_t)(en[k].y >> 4), (uint8_t)(rx + r2), (uint8_t)(ry + r2))) {
+  if(room.nob)obstacle_hit(cx, cy, rx, ry);
+  for (k = 0; k != nen; k++,e++) {
+    uint8_t r2 = e->kind == SPAWN_BOSS ? 14u : 0u;
+    if (e->st == ES_DEAD || (hit_mask & (uint8_t)(1u << k))) continue;
+    if (wide ? overlap_world(cx, cy, (uint8_t)(e->x >> 4), (uint8_t)(e->y >> 4), (uint8_t)(rx + r2), (uint8_t)(ry + r2)) :
+               overlap(cx8, cy8, (uint8_t)(e->x >> 4), (uint8_t)(e->y >> 4), (uint8_t)(rx + r2), (uint8_t)(ry + r2))) {
       hit_mask |= (uint8_t)(1u << k);
       fight_t = 180u;
       enemy_hit(k, dmg, pl_x, pl_y);
     }
   }
-  for (k = 0; k != MAXO; k++) {
-    if (!orbs[k].live || orbs[k].friendly) continue;
-    if (wide ? overlap_world(cx, cy, (uint8_t)(orbs[k].x >> 4), (uint8_t)(orbs[k].y >> 4), (uint8_t)(rx + 2u), (uint8_t)(ry + 2u)) :
-               overlap(cx8, cy8, (uint8_t)(orbs[k].x >> 4), (uint8_t)(orbs[k].y >> 4), (uint8_t)(rx + 2u), (uint8_t)(ry + 2u)))
-      deflect(&orbs[k], 0); /* send it back faster; now it hurts them */
+  if(!(orbs[0].live|orbs[1].live|orbs[2].live|orbs[3].live|
+       orbs[4].live|orbs[5].live|orbs[6].live|orbs[7].live))return;
+  o=orbs;
+  for (k = 0; k != MAXO; k++,o++) {
+    if (!o->live || o->friendly) continue;
+    if (wide ? overlap_world(cx, cy, (uint8_t)(o->x >> 4), (uint8_t)(o->y >> 4), (uint8_t)(rx + 2u), (uint8_t)(ry + 2u)) :
+               overlap(cx8, cy8, (uint8_t)(o->x >> 4), (uint8_t)(o->y >> 4), (uint8_t)(rx + 2u), (uint8_t)(ry + 2u)))
+      deflect(o, 0); /* send it back faster; now it hurts them */
   }
 }
 

@@ -10,6 +10,9 @@ extern uint8_t mob_slot_bmask[MOB_SLOTS],mob_has_elite;
 
 /* ---- drawing ---- */
 static const int8_t bob2[4] = {0, -1, 0, 0};
+/* Body and overlay use identical transformed positions. Visible coordinates
+ * biased by 16 fit in bytes, including partially clipped edge sprites. */
+static uint8_t draw_x[MAXE],draw_y[MAXE];
 
 void mob_draw(uint8_t k) BANKED {
   enemy_t *e = &en[k];
@@ -36,6 +39,8 @@ void mob_draw(uint8_t k) BANKED {
   if ((m->flags & MOBF_ELITE) && (e->anim & 0x38u) == 0x38u) pal = 7u; /* the elite's pulse */
   if (m->status & MS_FROZEN) pal = 5u;
   if (e->flash) pal = (e->flash & 2u) ? 6u : pal;
+  if(sx<=-16 || sx>=160 || sy<=-16 || sy>=144)return;
+  draw_x[k]=(uint8_t)(sx+16);draw_y[k]=(uint8_t)(sy+16);
   tile = (uint8_t)(MOB_TILE0 + m->slot * MOB_SLOT_TILES + (f << 2));
   flip = (uint8_t)(e->face == F_LEFT);
   if (flip) m->drawn = oam_group(sx, sy, 2u, (uint8_t)(tile + 2u), 254u, (uint8_t)(pal | S_FLIPX));
@@ -47,10 +52,10 @@ void mob_draw(uint8_t k) BANKED {
 void mobs_draw(uint8_t pass) BANKED {
   uint8_t k, f, b, tile;
   int16_t sx, sy;
+  enemy_t *e=en;
+  mob_t *m=mob;
   if(pass==OP_MARK && !mob_has_elite) return;
-  for (k = 0; k != nen; k++) {
-    enemy_t *e = &en[k];
-    mob_t *m = &mob[k];
+  for (k = 0; k != nen; k++,e++,m++) {
     if (e->kind != SPAWN_MOB || e->st == ES_DEAD || (m->status & MS_UNDER)) continue;
     if (pass == OP_MARK) {
       if (m->flags & MOBF_ELITE) {
@@ -65,14 +70,7 @@ void mobs_draw(uint8_t pass) BANKED {
     if (f == 2u) f = 1u;
     b = (uint8_t)((mob_slot_bmask[m->slot] >> (f << 1)) & 3u);
     if (!b) continue;
-    sx = (int16_t)(e->x >> 4) - 16 - cam_x;
-    sy = (int16_t)(e->y >> 4) - 16 - cam_y;
-    if (e->st == ES_TELL) sx += (e->t & 2u) ? 1 : -1;
-    else if (e->st == ES_LUNGE) {
-      sx += fdx[e->face] * 2;
-      sy += fdy[e->face] * 2;
-    }
-    if (m->ax.body == MB_FLYER) sy += bob2[(e->anim >> 3) & 3u];
+    sx=(int16_t)draw_x[k]-16;sy=(int16_t)draw_y[k]-16;
     tile = (uint8_t)(MOB_TILE0 + m->slot * MOB_SLOT_TILES + 16u + (f << 2));
     if(b==3u) { /* A complete two-column overlay shares one reservation. */
       if(e->face==F_LEFT) oam_group(sx,sy,2u,(uint8_t)(tile+2u),254u,5u|S_FLIPX);
@@ -93,4 +91,3 @@ uint8_t mob_look_draw(uint8_t slot, uint8_t f, int16_t sx, int16_t sy, uint8_t p
   return oam_group(sx, sy, 2u, (uint8_t)(MOB_TILE0 + slot * MOB_SLOT_TILES + (f << 2)), 2u,
                    (uint8_t)((2u + (slot & 1u)) | prop_or));
 }
-

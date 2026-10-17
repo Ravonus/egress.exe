@@ -7,6 +7,8 @@
 #include "mob.h"
 #include "oam.h"
 #include "gen/mob_art.h"
+extern volatile uint8_t video_epoch;
+extern uint8_t frame_epoch;
 
 #define FXN 8u
 typedef struct {
@@ -67,7 +69,7 @@ void fx_draw(void) BANKED {
       p->y = (uint8_t)(p->y + (p->vy >> 3));
       p->vy = (int8_t)(p->vy + 2);
     }
-    if(quota && !(LY_REG>=118u && LY_REG<144u)) {
+    if(quota && video_epoch==frame_epoch && !(LY_REG>=88u && LY_REG<144u)) {
       oam_group((int16_t)p->x - 8 - cam_x, (int16_t)p->y - 8 - cam_y, 1u, p->tile, 0, p->pal);
       quota--;
     }

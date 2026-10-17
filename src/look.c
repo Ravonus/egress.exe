@@ -287,7 +287,7 @@ void look_roam_tick(void) BANKED {
   dy=pl_y>roam_y ? 1 : pl_y<roam_y ? -1 : 0;
   if(dx || dy) {roam_dx=dx;roam_dy=dy;roam_left=EG_N;}
   roam_x=pl_x;roam_y=pl_y;
-  if(world_on && (video_epoch!=frame_epoch || (LY_REG>=80u && LY_REG<144u)))return;
+  if((world_on || enemies_alive) && (video_epoch!=frame_epoch || (LY_REG>=80u && LY_REG<144u)))return;
   if(dx && dy) {
     roam_ahead((int16_t)(pl_x>>4)+dx*4,(int16_t)(pl_y>>4)+dy*3);
     roam_ahead((int16_t)(pl_x>>4)+dx*3,(int16_t)(pl_y>>4)+dy*4);
@@ -920,6 +920,7 @@ static uint8_t ground_ahead(void) {
   /* The previous footprint is already protected by mstep. Do not probe its
    * same four cells again, or spend a second cosmetic commit after a repair. */
   if(n || video_epoch!=frame_epoch)return n;
+  if(enemies_alive>=2u && (pl_state==PS_LASH || pl_state==PS_SPIN))return n;
   if(LY_REG<144u && LY_REG>=(world_on ? 24u : 32u))return 0u;
   /* Nearby structures settle before contact instead of waiting behind the
    * whole-room cosmetic scan. Four probes and one cosmetic commit at most. */
@@ -1042,5 +1043,11 @@ static void look_update(uint8_t prepare) {
   look_busy_n = (uint8_t)(q_n + n_flying);
 }
 
-void look_frame_end(void) BANKED {roam_late=1u;look_update(0u);}
+void look_frame_end(void) BANKED {
+  roam_late=1u;
+  /* Actors already hide the late card slots. Keep their animation/queue
+   * state intact when only the VBlank publication margin remains. */
+  if(roam_on && (video_epoch!=frame_epoch || (LY_REG>=108u && LY_REG<144u)))return;
+  look_update(0u);
+}
 void look_tick(void) BANKED {roam_late=0u;look_frame_begin();look_update(0u);}

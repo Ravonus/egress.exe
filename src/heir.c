@@ -220,7 +220,7 @@ uint8_t heir_draw(uint8_t oam, int16_t sx, int16_t sy) BANKED {
    * leaves too little rendering time for composition. Never hide the body. */
   if ((ha_fr.pose != shown_pose || dd != shown_dd) &&
       (shown_pose==0xffu || (grav_t!=GRAVITY_FRAMES &&
-       (game_mode!=MODE_PLAY || video_epoch==frame_epoch) && (LY_REG<64u || LY_REG>=144u)))) {
+       (game_mode!=MODE_PLAY || video_epoch==frame_epoch) && (LY_REG<56u || LY_REG>=144u)))) {
     buf_sel ^= 1u;
     spr_mask = heir_compose(ha_fr.pose, dd, (uint8_t)(buf_sel << 3));
     shown_pose = ha_fr.pose;

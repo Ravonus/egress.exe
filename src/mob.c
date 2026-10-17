@@ -31,6 +31,8 @@
 #include "core/eg_input.h"
 
 extern eg_input_t pin;
+extern volatile uint8_t video_epoch;
+extern uint8_t frame_epoch;
 
 mob_t mob[MAXE];
 uint8_t hit_src, hit_orb_from, hit_tags, hit_result, cond_kills, wmods, orb_shooter = 255u;
@@ -431,23 +433,31 @@ static void trail(uint8_t cell) {
 /* the next cell to walk to: toward the player (or beside them, for flankers), never into another mob's target */
 static void pick(uint8_t bit) {
   static const int8_t neighbour[4]={-16,16,-1,1};
+  /* Steering is retried at the current cell centre next tick. Position,
+   * collision, attack tells and statuses still update every simulation tick. */
+  if(video_epoch!=frame_epoch || (LY_REG>=56u && LY_REG<144u))return;
   uint8_t c = cell_at(ex, ey), d, best = 255u, bd = 255u, n, k, j, gx = pl_x, gy = pl_y, nx, ny, dist;
+  uint8_t rotation=eg_rnd(),wobble=eg_rnd();
+  enemy_t *other;
   if (Mb->status & MS_BLIND) { gx=(uint8_t)(eg_rnd()&0xf0u); gy=(uint8_t)(eg_rnd()&0xb0u); }
   if (Mb->ax.beh == MH_FLANK) { /* aim beside the player, on the side it already is */
     if (absdiff(ex, pl_x) < absdiff(ey, pl_y)) gx = (uint8_t)(pl_x + (K & 1u ? 24u : (uint8_t)-24));
     else gy = (uint8_t)(pl_y + (K & 1u ? 24u : (uint8_t)-24));
   }
   for (k = 0; k != 4u; k++) {
-    d = (uint8_t)((k + (eg_rnd() & 3u)) & 3u);
+    /* Visit each neighbour once in a seeded order. Re-rolling every probe
+     * both repeated directions and spent up to eight RNG calls per choice. */
+    d = (uint8_t)((k + rotation) & 3u);
     n = (uint8_t)(c + neighbour[d]);
     if (!(cell_ok[cell_type(n)] & bit)) continue;
     nx = (uint8_t)(EG_X(n) * 16u + 8u);
     ny = (uint8_t)(EG_Y(n) * 16u + 8u);
-    for (j = 0; j != nen; j++)
-      if (j != K && en[j].st != ES_DEAD && en[j].tx == nx && en[j].ty == ny) break;
+    other=en;
+    for (j = 0; j != nen; j++,other++)
+      if (j != K && other->st != ES_DEAD && other->tx == nx && other->ty == ny) break;
     if (j != nen) continue;
     dist = (uint8_t)(absdiff(nx, gx) + absdiff(ny, gy));
-    if ((eg_rnd() & 7u) == 0u) dist = (uint8_t)(dist >> 1); /* a wobble */
+    if ((wobble & 7u) == k) dist = (uint8_t)(dist >> 1);
     if (dist < bd) {
       bd = dist;
       best = d;

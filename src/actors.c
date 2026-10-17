@@ -333,6 +333,7 @@ void orbs_update(void) BANKED {
       o->live = 0;
       player_hurt(1u, ox, oy);
     }
+    if(freeze)break; /* the remaining projectiles share this impact's hitstop */
   }
 }
 

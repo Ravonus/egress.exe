@@ -359,11 +359,15 @@ static uint8_t floor_play(void) {
     stage_tick(); /* B2 */
     puzzle_tick(); /* B1: fragile floor, the beat, the dead-room hint */
     obstacle_tick();
-    enemies_update();
-    orbs_update();
-    if (!--grav_t) {
-      grav_t = GRAVITY_FRAMES;
-      gravity_tick();
+    /* An impact starts hitstop immediately. Publish the new hit/pose below,
+     * rather than moving every live actor once more before the frozen ticks. */
+    if(!freeze) {
+      enemies_update();
+      if(!freeze)orbs_update();
+      if (!freeze && !--grav_t) {
+        grav_t = GRAVITY_FRAMES;
+        gravity_tick();
+      }
     }
     if (door_open && cell_at(pl_x, pl_y) == room.door) {
       pl_state = PS_EXIT;
