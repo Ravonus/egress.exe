@@ -301,7 +301,11 @@ static uint8_t floor_play(void) {
     if(streamed) {}
     else if(late) {
       /* Combat renders actors before spending spare time on cosmetic terrain. */
-      if(!world_on)look_frame_begin();flush_cells(2u);
+      if(!world_on)look_frame_begin();
+      /* Dirty BG cells share the early budget with terrain and heir uploads.
+       * A busy office turn publishes one, rather than stacking two metadata
+       * draws on a fresh pose before attacks, wave completion and live AI. */
+      if(world_on || LY_REG>=144u || LY_REG<16u)flush_cells(world_on ? 2u : 1u);
     } else if(roaming) {flush_cells(2u);look_tick();}
     else {look_tick();flush_cells(8u);}
     scroll();
@@ -398,7 +402,7 @@ static uint8_t floor_play(void) {
     if(!(frame_count&63u)) narrator_tick();
     draw_sprites();
     if(world_on && !streamed)world_frame_end();
-    if(late && !streamed) look_frame_end();
+    if(late && !streamed && video_epoch==frame_epoch && LY_REG<108u) look_frame_end();
     /* Publish complete visible actors first. An offer that does not fit here
      * gets the next frame's early allowance before another composition. */
     if(!world_on && video_epoch==frame_epoch && LY_REG<100u)heir_cache_flush();

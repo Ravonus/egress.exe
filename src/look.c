@@ -956,7 +956,7 @@ void look_frame_begin(void) BANKED {
      * bounded ready card / launch here; animation stays after the actors. */
     roam_late=0u;
     k=ground_ahead();
-    if(k<2u && (LY_REG<24u || LY_REG>=144u) && grav_t!=1u && !push_t &&
+    if(k<2u && prepare_time() && grav_t!=1u && !push_t &&
        (stage_type==SG_PUZZLE || (frame_count&3u))) {
       if(!(frame_count&1u))look_roam_tick();
       look_update((uint8_t)(1u+k));
@@ -1055,7 +1055,7 @@ void look_frame_end(void) BANKED {
   roam_late=1u;
   /* Actors already hide the late card slots. Keep their animation/queue
    * state intact when only the VBlank publication margin remains. */
-  if(roam_on && (video_epoch!=frame_epoch || (LY_REG>=108u && LY_REG<144u)))return;
+  if(roam_on && (video_epoch!=frame_epoch || LY_REG>=108u))return;
   look_update(0u);
 }
 void look_tick(void) BANKED {roam_late=0u;look_frame_begin();look_update(0u);}
