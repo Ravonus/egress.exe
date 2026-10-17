@@ -1,0 +1,16 @@
+{
+  "gameSourceCommit": "212adf04bdc1ea32d1595cd8cc6282fe870849c3",
+  "mergeCommit": "e9e3ff3cd8982f90d612530e7ef0ed1729237899",
+  "pullRequest": "https://github.com/Ravonus/egress.exe/pull/3",
+  "siteCommit": "ed98df9f9ce0ad4d90b841cc29094cb137f86d36",
+  "publicUrl": "https://egress.onkeel.io/",
+  "preservedSiteFiles": 65,
+  "preexistingSiteStatusUnchanged": true,
+  "siteStatusCommand": "git status --short --untracked-files=all",
+  "onlyPrimaryGameWorktree": true,
+  "noUnmergedGameBranches": true,
+  "mergedTaskBranchRemoved": true,
+  "localPreviewStopped": true,
+  "remoteScratchCleanup": "Other Mac is offline; two task-owned rsync copies remain, not Git worktrees",
+  "physicalCartridgeWritten": false
+}

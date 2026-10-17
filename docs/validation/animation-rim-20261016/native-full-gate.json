@@ -1,0 +1,17 @@
+{
+  "command": "PYTHONUNBUFFERED=1 make -j1 test",
+  "exitCode": 0,
+  "sourceCommit": "212adf04bdc1ea32d1595cd8cc6282fe870849c3",
+  "roms": {
+    "egress.gbc": {
+      "sha256": "03597246c14a74e74e566e61bb4eb810bfe9f4d0827cf8fcc2234a17f00087d5",
+      "bytes": 1228800
+    },
+    "egress-rtc.gbc": {
+      "sha256": "2faab26f0f34edbf82e52ee4c05bde69cd1b10f6851f21a0090e1a45a2719a92",
+      "bytes": 1228800
+    }
+  },
+  "logSha256": "63950086ddc28d4401a9fb429bd3869e8c2e40523a0c6c004bef01d0cbed331e",
+  "completedAt": "2026-10-17T04:21:26.169237+00:00"
+}

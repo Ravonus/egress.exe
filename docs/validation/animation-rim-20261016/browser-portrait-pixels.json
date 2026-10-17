@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "card": 0,
+      "different_silhouette_pixels": 0,
+      "same_colour_pixel_structure": true,
+      "native_colours": 7
+    },
+    {
+      "card": 1,
+      "different_silhouette_pixels": 0,
+      "same_colour_pixel_structure": true,
+      "native_colours": 7
+    },
+    {
+      "card": 2,
+      "different_silhouette_pixels": 0,
+      "same_colour_pixel_structure": true,
+      "native_colours": 7
+    }
+  ],
+  "all_portraits_match": true
+}

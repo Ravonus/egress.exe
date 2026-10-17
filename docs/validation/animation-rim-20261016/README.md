@@ -30,4 +30,25 @@ Projectile drawing uses an eight-byte stack packet and retains the complete twel
 
 Harness accesses to game data in D000-DFFF explicitly select WRAM bank 1: an emulator display boundary can pause inside a stack-free pose-cache copy with another bank selected. This changes inspection/fixture addressing, without writing the CPU's bank register or advancing extra frames to normalize observations.
 
-Validation and deployment are pending. No physical cartridge has been written.
+## Verified release
+
+[PR #3](https://github.com/Ravonus/egress.exe/pull/3) merged as `e9e3ff3cd8982f90d612530e7ef0ed1729237899`. Tested game source: `212adf04bdc1ea32d1595cd8cc6282fe870849c3`.
+
+| ROM | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Standard MBC5 | 1,228,800 | `03597246c14a74e74e566e61bb4eb810bfe9f4d0827cf8fcc2234a17f00087d5` |
+| MBC3 + RTC | 1,228,800 | `2faab26f0f34edbf82e52ee4c05bde69cd1b10f6851f21a0090e1a45a2719a92` |
+
+- Full serial `PYTHONUNBUFFERED=1 make -j1 test` passed with zero failures. Both frozen ROMs and every source-file hash still match the tested build. The complete raw log is retained at `build/candidates/animation-rim-20261016/native-full-test.log`; its digest is in `native-full-gate.json`.
+- Each mapper passed 2,932 canonical native uploads and 4,091 selected-empty-delta cases with zero pixel mismatches. Renderer fixtures cover 7,680 actor cases per mapper plus full-range projectiles and allocation parity.
+- Camera combat retained complete bodies and advanced visible buffers on both mappers. Maximum unserved pose: three frames on MBC5, four on MBC3. All normal wave cases meet their strict 120-update/120-VBlank deadlines.
+- Each camera-travel run observed 1,163 samples with no unbuilt central cells or central construction. Both mappers pass the eight-direction blink and held-sprint cold-strip checks. The generated-world suite covers 42 routes plus both reset/dead-room checks; the maximum seam wait is nine frames.
+- Exact-ROM browser play verifies changing sprite buffers. All three heir portraits match native pixel structure. A real legacy family save retains its inherited genome; real floor pickups combine through four painted crafting phases and consume the finite ingredients.
+
+Published at https://egress.onkeel.io/. All 42 changed production files match the tested export. Public HTTP readback matches both ROM hashes above and confirms the previous standard ROM remains available. Existing browser save identities and all 47 baseline game assets are retained. The live animation and download reports accompany this record.
+
+The site's nine release files are committed locally as `ed98df9f9ce0ad4d90b841cc29094cb137f86d36`; that checkout has no remote. Its 65 preexisting edited/untracked files remain byte-for-byte intact. This task's local preview is stopped and its merged local/remote branch is removed. Only the primary game worktree remains, and there are no unmerged game branches. Historical merged branch labels are retained.
+
+Production rollback copies are at `/opt/velatis-gateway/backups/egress-animation-rim-20261017T042158Z`, with a before-file manifest. Old immutable ROM/assets were not deleted. The other Mac is offline, so two task-owned rsync scratch directories remain there: `/Users/chad/work/egress-animation-rim-20261016` and `/Users/chad/work/egress-animation-rim-site-20261016`. These are copies, not Git worktrees.
+
+This release addresses animation progression and peripheral terrain preparation. The full campaign remains in development. No physical cartridge has been written.

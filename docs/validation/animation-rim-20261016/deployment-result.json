@@ -1,0 +1,198 @@
+{
+  "verified": [
+    {
+      "path": "404.html",
+      "sha256": "98994ac1fe7252e0f85e953527ba22cb7ab541b6b7342799c19ec83b18c41594"
+    },
+    {
+      "path": "index.html",
+      "sha256": "357aba999c9c1972b6fada21a9c52ceff85a7284f8e32ce69af8ac9a82729f77"
+    },
+    {
+      "path": "index.txt",
+      "sha256": "d1fa6f354a8a0a835fe4a44ae9627e3de92b79eabc3f642f79fac67269d7e32b"
+    },
+    {
+      "path": "404/index.html",
+      "sha256": "98994ac1fe7252e0f85e953527ba22cb7ab541b6b7342799c19ec83b18c41594"
+    },
+    {
+      "path": "_next/static/6SZ_H9HxdM38xFNSv-D5c/_buildManifest.js",
+      "sha256": "3c74b64899457eccea97eea260480776ad5596707924b77130f83b67e3359ca4"
+    },
+    {
+      "path": "_next/static/6SZ_H9HxdM38xFNSv-D5c/_ssgManifest.js",
+      "sha256": "678f6ce2cb80b1fe72fc67e7412be6e2ab6ada083111b64f7c40d35e3cba5e00"
+    },
+    {
+      "path": "_next/static/chunks/45fb42b0-cabdadc14664092a.js",
+      "sha256": "e95aa3c4a57914a62bf7f55e4ba7c298856ab242218e934df0edf3cac48d382e"
+    },
+    {
+      "path": "_next/static/chunks/460-1839f512f6f90f4d.js",
+      "sha256": "c2fd969a7db7f6fe4837e9f17b8d42ee96e69e153c0efd072124aec0dc452244"
+    },
+    {
+      "path": "_next/static/chunks/54-2eaef5c47e3e4f6c.js",
+      "sha256": "09184c697769b8c258736e1fa5b4751eefc36017ec9aefb40c4378737678d51c"
+    },
+    {
+      "path": "_next/static/chunks/821.fe979fb83b00ef21.js",
+      "sha256": "5b4b1d6ee77a6751154817367ae98b07584e32344296ea4b7abbe0159c1c0c28"
+    },
+    {
+      "path": "_next/static/chunks/858.4dc0f094c90d04a8.js",
+      "sha256": "7baa0dabf83b863d6f8583a79bd53fade0cdd7e64af1e94c7abd07d02ece6612"
+    },
+    {
+      "path": "_next/static/chunks/989-7cbec0b860a984b3.js",
+      "sha256": "75aeba61bac68da32b9a1ebb6afe44851523c5067b5c282cb635b125af93b5c2"
+    },
+    {
+      "path": "_next/static/chunks/framework-1f7de2aeadf550c2.js",
+      "sha256": "9237448cde0ef85c2e8a89c90b448ffbd9e4e050ea70c5e069592b89d7e3c0fc"
+    },
+    {
+      "path": "_next/static/chunks/main-47fdb95187aee962.js",
+      "sha256": "e78a4159c4c2e2a4fc580106b13e6e9615413f2240131609c5b2016eb3c5268b"
+    },
+    {
+      "path": "_next/static/chunks/main-app-886f39413cd89fa3.js",
+      "sha256": "36d8440d59dc8c5e98d56befe580a4c1036555ebfbb13e9c19f6ae485609e48c"
+    },
+    {
+      "path": "_next/static/chunks/webpack-9a69cafe99bfe8fc.js",
+      "sha256": "973ec292adb6dcf2dbe90e37023122c6796ef27f001367d0b982e048323a8f6b"
+    },
+    {
+      "path": "_next/static/chunks/app/layout-9afaa9321bf8c4ce.js",
+      "sha256": "bae43922838c86349ac0bda044798d53a33db89c02dbf10db91e8a648079f7a1"
+    },
+    {
+      "path": "_next/static/chunks/app/not-found-2ea1f2afbe6d0bd5.js",
+      "sha256": "3360b4841b1ee4bfbdcb6391d4c2cd7646f6e1cdadeaa1a7418f9b4f24ebc186"
+    },
+    {
+      "path": "_next/static/chunks/app/page-683c89b39780f3c1.js",
+      "sha256": "0b0dfdbb26109a687eb1187f95bb070690cef5545fbe567c12b5b763295c4b88"
+    },
+    {
+      "path": "_next/static/chunks/app/_not-found/page-5d177328ad6eb877.js",
+      "sha256": "bda941f4277c854a7f30cacab37ac75889db756be8e01bd08324e0ab3321f822"
+    },
+    {
+      "path": "_next/static/chunks/app/chromatic/page-6a55317b6b4c30cc.js",
+      "sha256": "a648192c0677906b4dc997741b11d2e6fa4ff9a7dcc886840d3a3769a907a157"
+    },
+    {
+      "path": "_next/static/chunks/app/how-it-works/page-18524ec79a90979a.js",
+      "sha256": "71422235a3f551940368d8a15c2db1ae4e78294d0a693c09d4ad4d852052483b"
+    },
+    {
+      "path": "_next/static/chunks/app/manifest.webmanifest/route-5d177328ad6eb877.js",
+      "sha256": "bda941f4277c854a7f30cacab37ac75889db756be8e01bd08324e0ab3321f822"
+    },
+    {
+      "path": "_next/static/chunks/app/robots.txt/route-5d177328ad6eb877.js",
+      "sha256": "bda941f4277c854a7f30cacab37ac75889db756be8e01bd08324e0ab3321f822"
+    },
+    {
+      "path": "_next/static/chunks/app/sitemap.xml/route-5d177328ad6eb877.js",
+      "sha256": "bda941f4277c854a7f30cacab37ac75889db756be8e01bd08324e0ab3321f822"
+    },
+    {
+      "path": "_next/static/chunks/app/trailer/page-c3e29d902c269a9b.js",
+      "sha256": "0bb70733587756504e26db6a0e7800fd2a1f576ce9aedea956ebf5a3e33042da"
+    },
+    {
+      "path": "_next/static/chunks/pages/_app-469a155b2f9ba9df.js",
+      "sha256": "12cdee9ea9c9ec947ad737b31d049e8ef83d8ac1cea9b0235f8596815508eafb"
+    },
+    {
+      "path": "_next/static/chunks/pages/_error-5046cb28d7326f0c.js",
+      "sha256": "ab67391ad99c9fc56bd9604db0875c38b6461ec6c9d7d7445260a387d444e852"
+    },
+    {
+      "path": "chromatic/index.html",
+      "sha256": "dea4e6d7ad39c045ea916a25c9c5cedd43fd5c3c74fb457f09b56e0248ca8653"
+    },
+    {
+      "path": "chromatic/index.txt",
+      "sha256": "9dee6657b570935dff98482cd2bf8683fdad9a13d3f04b8ed584e28000da9be8"
+    },
+    {
+      "path": "game/egress-03597246c14a74e7.chromatic.json",
+      "sha256": "d9ce591b1d4a87917de8e195bb8bb7557640509389849cf904e66fc17d0535ad"
+    },
+    {
+      "path": "game/egress-03597246c14a74e7.gbc",
+      "sha256": "03597246c14a74e74e566e61bb4eb810bfe9f4d0827cf8fcc2234a17f00087d5"
+    },
+    {
+      "path": "game/egress-dev.gbc",
+      "sha256": "03597246c14a74e74e566e61bb4eb810bfe9f4d0827cf8fcc2234a17f00087d5"
+    },
+    {
+      "path": "game/egress-rtc-2faab26f0f34edbf.chromatic.json",
+      "sha256": "22dd915f34e9cc1e3d77a79f626f2e654ea7a504495059801af8b9020ae0d9e6"
+    },
+    {
+      "path": "game/egress-rtc-2faab26f0f34edbf.gbc",
+      "sha256": "2faab26f0f34edbf82e52ee4c05bde69cd1b10f6851f21a0090e1a45a2719a92"
+    },
+    {
+      "path": "game/releases.json",
+      "sha256": "8b9645d7c0243040e48a955bda95ff5061cdace44696dd4516a48def8e035fa4"
+    },
+    {
+      "path": "game/previews/egress-03597246c14a74e7.png",
+      "sha256": "2205d09bdef961cac376a19e9e32432bd826eb65aab695c09dff9f69b50645b9"
+    },
+    {
+      "path": "game/previews/egress-rtc-2faab26f0f34edbf.png",
+      "sha256": "2205d09bdef961cac376a19e9e32432bd826eb65aab695c09dff9f69b50645b9"
+    },
+    {
+      "path": "how-it-works/index.html",
+      "sha256": "0f7c53e860820b2e5963f7f3345677c7e1a7959f8bb4f302c2420befe99ca53b"
+    },
+    {
+      "path": "how-it-works/index.txt",
+      "sha256": "a694ce2196aea3a538a79b34d078793cd14177454220969dc4c794d34cad85ae"
+    },
+    {
+      "path": "trailer/index.html",
+      "sha256": "9dd3cd74cdf1b804971d20b2bbc54d2d89d98a1685d2b43beaac84ba11e86b14"
+    },
+    {
+      "path": "trailer/index.txt",
+      "sha256": "af55dbec8150bf1a1cac57fe29ccadc1dab5c511c79e3aa73931b3976214a6d9"
+    }
+  ],
+  "oldRomPreserved": true,
+  "backup": "/opt/velatis-gateway/backups/egress-animation-rim-20261017T042158Z",
+  "sourceCommit": "212adf04bdc1ea32d1595cd8cc6282fe870849c3",
+  "mergeCommit": "e9e3ff3cd8982f90d612530e7ef0ed1729237899",
+  "site": "https://egress.onkeel.io",
+  "deployedAt": "2026-10-17T04:22:03.641301+00:00",
+  "http": [
+    {
+      "url": "https://egress.onkeel.io/game/egress-03597246c14a74e7.gbc",
+      "status": 200,
+      "bytes": 1228800,
+      "sha256": "03597246c14a74e74e566e61bb4eb810bfe9f4d0827cf8fcc2234a17f00087d5"
+    },
+    {
+      "url": "https://egress.onkeel.io/game/egress-rtc-2faab26f0f34edbf.gbc",
+      "status": 200,
+      "bytes": 1228800,
+      "sha256": "2faab26f0f34edbf82e52ee4c05bde69cd1b10f6851f21a0090e1a45a2719a92"
+    },
+    {
+      "url": "https://egress.onkeel.io/game/egress-6840760b170f3be1.gbc",
+      "status": 200,
+      "bytes": 1228800,
+      "sha256": "6840760b170f3be198f3d609d1d8e61f71e9fdd299b936c2dbf1a813c8edc76e"
+    }
+  ]
+}

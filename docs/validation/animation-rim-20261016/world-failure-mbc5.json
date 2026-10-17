@@ -1,0 +1,94 @@
+{
+  "sha256": "03597246c14a74e74e566e61bb4eb810bfe9f4d0827cf8fcc2234a17f00087d5",
+  "crate_stopped_or_lost_at": [
+    1,
+    8
+  ],
+  "warning_wait_frames": 303,
+  "finite_alternatives_discarded": true,
+  "reset_restores_plan_crate_and_ingredients": true,
+  "native_input_only_after_start": true,
+  "before_reset": {
+    "size": [
+      16,
+      14
+    ],
+    "vertical": false,
+    "nodes": [
+      [
+        0,
+        10,
+        7,
+        0,
+        0,
+        3
+      ]
+    ],
+    "preparation": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    "view": [
+      0,
+      0,
+      16,
+      14
+    ],
+    "camera": [
+      0,
+      73
+    ],
+    "incoming_pit_presentation_checks": 0,
+    "maximum_pending_terrain": 12,
+    "maximum_animated_cards": 1,
+    "maximum_stream_wait_frames": 0,
+    "total_stream_wait_frames": 0,
+    "stream_wait_samples": [],
+    "native_heir_uploads": 111,
+    "heir_pixel_mismatches": [],
+    "seams": 0,
+    "windows": 1,
+    "warps": [],
+    "minimum_game_frames_per_120": 120,
+    "hitches": [],
+    "missing_floor": [],
+    "missing_body": [],
+    "oam_max": 7,
+    "oam_over": 0,
+    "grid": {
+      "native_quads": 301,
+      "distinct_cells": 127,
+      "attributes": [
+        0,
+        2,
+        3,
+        8,
+        9,
+        10,
+        11,
+        13,
+        14,
+        35
+      ],
+      "max_masked_cycles": 964,
+      "all_map_and_attributes_match": true
+    },
+    "presentation_window": {
+      "native_transfers": 0,
+      "vertical_transfers": 0,
+      "maximum_cycles": 0,
+      "all_cards_spans_queues_and_bitmaps_match": true
+    },
+    "stack_canary": true
+  }
+}

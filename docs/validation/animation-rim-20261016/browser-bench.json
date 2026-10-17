@@ -1,0 +1,28 @@
+{
+  "base": "http://127.0.0.1:3242",
+  "sha256": "03597246c14a74e74e566e61bb4eb810bfe9f4d0827cf8fcc2234a17f00087d5",
+  "source": "Normal browser game and keyboard input; only native reads, no RAM or inventory writes.",
+  "results": {
+    "exactRomFetch": true,
+    "realFloorPickups": true,
+    "fourMergePhases": true,
+    "visibleMergeFrames": true,
+    "finiteRecipeConsumption": true,
+    "pageErrors": true
+  },
+  "phases": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "frames": 90,
+  "before": [
+    4,
+    2
+  ],
+  "after": [
+    8
+  ]
+}
