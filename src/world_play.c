@@ -212,6 +212,11 @@ void world_prefetch(void) BANKED {
   if(!axes)axes=3u;
   mx=pl_x<128u ? pl_x : (uint8_t)(255u-pl_x);
   my=pl_y<112u ? pl_y : (uint8_t)(223u-pl_y);
+  /* Near a corner, finish the closer continuation before the next turn.
+   * The held axis resumes as soon as that strip is cached. Splitting every
+   * frame between both strips leaves the imminent edge half prepared. */
+  if(axes==1u && py.dir && my<48u && my<mx)axes=2u;
+  else if(axes==2u && px.dir && mx<48u && mx<my)axes=1u;
   /* Retire one already-offscreen quad early near a requested boundary.
    * This work must progress even while late actors/cards use their margin. */
   if(spare(24u)) {
