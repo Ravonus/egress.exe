@@ -19,8 +19,9 @@ class Pixels:
         mapper='mbc3' if self.rom[0x147]==0x10 else 'mbc5'
         symbols=(ROOT/f'build/obj-{mapper}/heir_draw.sym').read_text()
         offsets={m[1]:int(m[2],16) for m in re.finditer(r'^\s*5\s+(_\w+)\s+([0-9A-F]+)\s+\w+',symbols,re.M)}
-        a=g.sym['_heir_compose']-offsets['_heir_compose']+offsets['_copy128']
-        g.pb.hook_register(0,a,self.copy,None)
+        base=g.sym['_heir_compose']-offsets['_heir_compose']
+        for name in ('_copy128','_upload128'):
+            if name in offsets:g.pb.hook_register(0,base+offsets[name],self.copy,None)
     def read(self,addr,n):
         bank=addr>>16;off=(bank*16384+(addr&16383)) if bank else addr
         return self.rom[off:off+n]
