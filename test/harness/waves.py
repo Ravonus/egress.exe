@@ -11,6 +11,7 @@ from hud_vblank import HudVblank
 from fx_progress import FxProgress
 from mob_render import MobRender
 from shot_render import ShotRender
+from spawn_view import SpawnView
 
 def run(rom,out):
     out.mkdir(parents=True,exist_ok=True);results={};cases=[]
@@ -20,7 +21,7 @@ def run(rom,out):
         g.pb.hook_register(entry>>16,entry&65535,choose_level,None)
         assert g.wait_mode(1,1500);g.poke('dbg_stage',2)
         assert start_run(g,True,False,seed=0xb222,floor=2)
-        meter=OamMeter(g);clock=ClockProgress(g,rom);hud=HudVblank(g,rom);fx=FxProgress(g,rom);shots=ShotRender(g);art=MobRender(g,observe_group=shots.group);original=g.tick;families=set();by_wave={};wave_start={};wave_kills={};max_alive=0;fc=[];log=[];hitches=[];late=[];epochs=[];starts=[]
+        meter=OamMeter(g);clock=ClockProgress(g,rom);hud=HudVblank(g,rom);fx=FxProgress(g,rom);shots=ShotRender(g);art=MobRender(g,observe_group=shots.group);spawn=SpawnView(g);original=g.tick;families=set();by_wave={};wave_start={};wave_kills={};max_alive=0;fc=[];log=[];hitches=[];late=[];epochs=[];starts=[]
         def input_start(_):
             if g.peek('game_mode')==2:
                 ly=g.pb.memory[0xff44];starts.append(ly-144 if ly>=144 else ly+10)
@@ -85,6 +86,7 @@ def run(rom,out):
         results[f'level_{level}_particle_updates_match']=fx.report()['particle_updates_match']
         results[f'level_{level}_mob_art_requests_match']=art.report()['mob_art_requests_match']
         results[f'level_{level}_shot_requests_match']=shots.report()['shot_requests_match']
+        results[f'level_{level}_reinforcements_created_outside_camera']=spawn.report()['all_entries_start_offscreen']
         if level>=5:results[f'level_{level}_enemy_projectiles_drawn']=shots.report()['groups']>10
         if level>=5:results[f'level_{level}_different_enemy_roles']=len(families)>=3
         g.shot(out/f'level-{level}-cleared.png')
@@ -93,9 +95,10 @@ def run(rom,out):
             'by_wave':{k:sorted(v) for k,v in by_wave.items()},'wave_kills':wave_kills,
             'vblank_span_for_120_completed_updates':[min(windows),max(windows)] if windows else None,
             'maximum_input_start_scanlines_after_vblank':max(starts) if starts else None,
-            'raw_counter_minimum_at_lcd_boundary':min(spans) if spans else None,'hitches':hitches[:30],'late_frames':late[:30],'clock':clock.report(),'hud':hud.report(),'fx':fx.report(),'mob_art':art.report(),'shots':shots.report(),'oam_max':meter.max_line,'log':log[:8]})
+            'raw_counter_minimum_at_lcd_boundary':min(spans) if spans else None,'hitches':hitches[:30],'late_frames':late[:30],'clock':clock.report(),'hud':hud.report(),'fx':fx.report(),'mob_art':art.report(),'shots':shots.report(),'spawn_view':spawn.report(),'oam_max':meter.max_line,'log':log[:8]})
         g.stop()
     results['later_stages_spawn_more_enemies']=cases[-1]['kills']>cases[0]['kills']
+    results['entry_positions_follow_the_moving_camera']=len({tuple(c) for case in cases for c in case['spawn_view']['camera_positions']})>1
     report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':results,'cases':cases}
     (out/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2));return all(results.values())
 if __name__=='__main__':

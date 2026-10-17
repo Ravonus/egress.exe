@@ -178,6 +178,13 @@ uint8_t stage_build(void) BANKED {
 }
 
 /* ---------------- waves: glitched in from the void, a probe batch a frame ---------------- */
+static uint8_t entry_offscreen(uint8_t cell) {
+  int16_t x=(int16_t)((uint16_t)EG_X(cell)*16u+8u)-(int16_t)cam_x;
+  int16_t y=(int16_t)((uint16_t)EG_Y(cell)*16u+8u)-(int16_t)cam_y;
+  /* Include the complete body, entry particles and the next camera easing
+   * step. Recheck the current camera for every probe, including pooled slots. */
+  return (uint8_t)(x<=-24 || x>=184 || y<=-24 || y>=152);
+}
 static void wave_begin(uint8_t n, uint8_t shooter) {
   if(n && !dbg_no_enemies) narrator_event(NE_WAVE,0u);
   wv_pend = dbg_no_enemies ? 0u : n;
@@ -188,12 +195,15 @@ static void wave_begin(uint8_t n, uint8_t shooter) {
 static void wave_step(void) {
   uint8_t k, c, fam,slot,rank;
   if (!wv_pend || enemies_alive >= 3u) return;
+  if(pl_state==PS_FALL || pl_state==PS_EXIT)return;
   /* A reinforcement is optional work, unlike the current attack and live AI.
    * Do not stack its setup on a hit/charge frame that has spent the budget. */
   if(freeze || (frame_count&3u) || (LY_REG>=24u && LY_REG<144u))return;
   for (k = 0; k != 2u; k++) {
     c = EG_IDX(1u + eg_rndn(14u), 1u + eg_rndn(12u));
-    if (!look_here(c) || (stage_type == SG_DARK && look_skin[c]) || !ss_spawn_ok(c)) continue;
+    /* Cosmetic visibility is not material: actors can approach over genuine
+     * offscreen floor before its camera-owned cards are drawn. */
+    if (!entry_offscreen(c) || (stage_type == SG_DARK && look_skin[c]) || !ss_spawn_ok(c)) continue;
     fam=wv_shoot ? SS_SHOOTER : SS_CHASER;
     if(stage_type==SG_HOLDOUT) {
       /* Three preloaded silhouettes; the third role opens after the first
@@ -244,13 +254,15 @@ static void win(const char *msg) {
 
 /* ---------------- hunt ---------------- */
 static const uint8_t kc_fam[KC_COUNT] = {SS_CRUSH, SS_ORB, SS_BACK};
-static uint8_t hunt_spawn(void) {
+static uint8_t hunt_spawn(uint8_t arrival) {
   uint8_t c = stg.tcell, k, p = pcell();
-  for (k = 0; k != 24u && !ss_spawn_ok(c); k++) {
-    c = EG_IDX(1u + eg_rndn(14u), 1u + eg_rndn(8u));
+  if(arrival && (freeze || (LY_REG>=24u && LY_REG<144u)))return 0u;
+  for (k = 0; k != (arrival ? 2u : 24u); k++) {
+    if((!arrival || entry_offscreen(c)) && ss_spawn_ok(c))break;
+    c = EG_IDX(1u + eg_rndn(14u), 1u + eg_rndn(12u));
     if (cheb(c, p) < 5u) c = 0u;
   }
-  if (k == 24u) return 0u;
+  if (k == (arrival ? 2u : 24u)) return 0u;
   stage_cell = ss_spawn(st_fam, c, (uint8_t)(stage_kind == SK_MIDBOSS), frame_count);
   if (stage_cell == 255u) return 0u;
   if (stg.cond[st_cond] == KC_BACK) mob[stage_cell].flags |= MOBF_HUNT_BACK;
@@ -266,7 +278,7 @@ static void hunt_tick(void) {
   enemy_t *e;
   uint8_t k, ex, ey, ok, near = 0;
   if (st_pend) { /* re-forming */
-    if (--st_pend == 1u && !hunt_spawn()) st_pend = 2u;
+    if (--st_pend == 1u && !hunt_spawn(1u)) st_pend = 2u;
     return;
   }
   e = &en[stage_cell];
@@ -543,7 +555,7 @@ void stage_start(void) BANKED {
       break;
     case SG_HUNT:
       st_fam = kc_fam[stg.cond[0]];
-      if (!hunt_spawn()) st_pend = 2u;
+      if (!hunt_spawn(0u)) st_pend = 2u;
       hud_numset("MARK", 1u, stg.conds == 2u ? "/2" : "/1");
       break;
     case SG_ESCORT:
