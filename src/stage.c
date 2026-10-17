@@ -526,7 +526,6 @@ static void heist_tick(void) {
 
 /* ---------------- the hooks ---------------- */
 void stage_start(void) BANKED {
-  uint8_t k;
   stage_won = stage_lost = stage_wave = stage_pct = 0;
   stage_row = 255u;
   stage_cell = 255u;
