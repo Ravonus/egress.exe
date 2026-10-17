@@ -885,7 +885,7 @@ static uint8_t anchor_at(uint8_t x,uint8_t y) {
   look_anchor(i);return 1u;
 }
 static uint8_t ground_ahead(void) {
-  int16_t x=pl_x,y=pl_y;int8_t dx=0,dy=0;uint8_t n=0u,k,c,x0,x1,y0,y1,vertical,limit;
+  int16_t x=pl_x,y=pl_y;int8_t dx=0,dy=0;uint8_t n=0u,k,c,x0,x1,y0,y1,vertical,limit,wide;
   /* A blink travels at most 6.5px/tick. Prepare the next 7px step's complete
    * 12x12 foot box, including diagonal corners and released rolls. A farther
    * point can skip the two adjacent cells crossed by a diagonal step. */
@@ -921,10 +921,11 @@ static uint8_t ground_ahead(void) {
   if(near_cursor>=limit)near_cursor=0u;
   x=vertical ? cam_x>>4 : ((uint16_t)cam_x+(dx>0 ? 152u : 8u))>>4;
   y=vertical ? ((uint16_t)cam_y+(dy>0 ? 120u : 8u))>>4 : cam_y>>4;
-  /* A streamed camera can ease by four pixels in one tick. Inspect a whole
-   * edge and land up to two slabs, so its nine rows cannot outrun a single
-   * repair per frame. Office combat retains the smaller allowance. */
-  for(k=0u;k<(world_on ? limit : 4u) && n<(world_on ? 2u : 1u);k++) {
+  /* Quiet puzzles can ease just as fast as streamed worlds. Inspect their
+   * complete edge and land up to two slabs; a single repair cannot cover all
+   * nine rows during a fast reversal. Combat retains its smaller allowance. */
+  wide=(uint8_t)(world_on || (stage_type==SG_PUZZLE && !enemies_alive));
+  for(k=0u;k<(wide ? limit : 4u) && n<(wide ? 2u : 1u);k++) {
     c=near_cursor;if(++near_cursor==limit)near_cursor=0u;
     n+=anchor_at((uint8_t)(x+(vertical ? c : 0u)),(uint8_t)(y+(vertical ? 0u : c)));
   }
