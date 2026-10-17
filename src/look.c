@@ -405,12 +405,12 @@ static uint8_t launch(uint8_t i) {
   if(!cached)for(k=0u;k<LOOK_MAX_CARDS-1u;k++)if(!c_kind[k])break;
   if(k==LOOK_MAX_CARDS-1u || ((!cached || !roam_on) && budget<2u))return 0u;
   if(!cached) {
-    /* A stationary quiet room can finish one bounded cold-card upload after
-     * heir preparation. Moving, attacking, combat and world turns keep the
-     * original cutoff; a cold rim card cannot lock a resting queue forever. */
+    /* The streamed world's earlier phase has room for one cold card after
+     * heir preparation. Office movement/combat keeps its original cutoff;
+     * a resting quiet office may finish one later bounded upload. */
     if(roam_on && game_mode==MODE_PLAY && LY_REG>=
        (!(joy&(J_LEFT|J_RIGHT|J_UP|J_DOWN)) && pl_state==PS_FREE && !world_on &&
-        !enemies_alive && stage_type==SG_PUZZLE ? 32u : 12u) && LY_REG<144u)return 0u;
+        !enemies_alive && stage_type==SG_PUZZLE ? 32u : world_on ? 16u : 12u) && LY_REG<144u)return 0u;
     look_art_card(h,k);budget=0u;
   }
   c_kind[k]=fall ? K_FALL : K_DROP;c_cell[k]=i;c_meta[k]=h;c_t[k]=0u;
