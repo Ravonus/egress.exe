@@ -5,7 +5,7 @@ const {chromium}=await import(pathToFileURL(resolve(process.env.EGRESS_SITE_ROOT
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
-const base=process.argv[2]||'http://127.0.0.1:3241',romRoot=process.argv[3]||'build/candidates/menu-terrain-20261016';
+const base=process.argv[2]||'http://127.0.0.1:3241',romRoot=process.argv[3]||'build';
 const expected=createHash('sha256').update(await readFile(romRoot+'/egress.gbc')).digest('hex');
 const noi=await readFile(romRoot+'/egress.noi','utf8'),sym=Object.fromEntries([...noi.matchAll(/DEF (\S+) 0x([0-9A-Fa-f]+)/g)].map(m=>[m[1],parseInt(m[2],16)]));
 const fixture=JSON.parse(await readFile(process.argv[4]||'build/sprints/current-browser-fixture.json','utf8'));
