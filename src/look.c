@@ -410,7 +410,7 @@ static uint8_t launch(uint8_t i) {
      * a resting quiet office may finish one later bounded upload. */
     if(roam_on && game_mode==MODE_PLAY && LY_REG>=
        (!(joy&(J_LEFT|J_RIGHT|J_UP|J_DOWN)) && pl_state==PS_FREE && !world_on &&
-        !enemies_alive && stage_type==SG_PUZZLE ? 32u : world_on ? 16u : 12u) && LY_REG<144u)return 0u;
+        !enemies_alive && stage_type==SG_PUZZLE ? 32u : world_on ? 32u : 12u) && LY_REG<144u)return 0u;
     look_art_card(h,k);budget=0u;
   }
   c_kind[k]=fall ? K_FALL : K_DROP;c_cell[k]=i;c_meta[k]=h;c_t[k]=0u;
