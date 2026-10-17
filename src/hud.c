@@ -179,33 +179,92 @@ void hud_narrate(const char *s) BANKED {
 }
 
 /* VBlank: the rows hud_tick handed over, then the window's place (rows first: never the new height over old rows) */
-static void hud_vbl(void) NONBANKED {
-  uint8_t v, *base;
-  if (vbl_rows) {
-    v = VBK_REG;
-    VBK_REG = 0;
-    base = (uint8_t *)((LCDC_REG & LCDCF_WIN9C00) ? 0x9C00u : 0x9800u);
-    if (vbl_rows & 1u) hud_copy20(base, sh[0]);
-    if (vbl_rows & 2u) hud_copy20(base + 32, sh[1]);
-    if (vbl_rows & 4u) hud_copy20(base + 64, sh[2]);
-    /* Attributes change only when the toast moves the bar to the other row. */
-    if(vbl_move) {
-      uint8_t *old=base+(vbl_top ? 0u : 32u);
-      VBK_REG=1u;
-      old[0]=old[1]=old[2]=(uint8_t)(LOOK_PAL_HUD|0x08u);
-      base+=vbl_top ? 32u : 0u;
-      base[0]=base[1]=base[2]=(uint8_t)(LOOK_PAL_OBJ|0x08u);
-    }
-    VBK_REG=v;
-    vbl_rows=0;
-  }
-  if (vbl_move) {
-    WX_REG = 7u;
-    WY_REG = hud_line = vbl_top ? TOAST_Y : HUD_Y;
-    LYC_REG = hud_line;
-    vbl_move = 0;
-  }
+static void hud_vbl(void) NONBANKED NAKED {
+  __asm
+    ld a,(#_vbl_rows)
+    or a,a
+    jr z,7$
+    ldh a,(_VBK_REG)
+    push af
+    xor a,a
+    ldh (_VBK_REG),a
+    ld d,#0x98
+    ldh a,(_LCDC_REG)
+    bit 6,a
+    jr z,1$
+    ld d,#0x9c
+  1$:
+    ld a,(#_vbl_rows)
+    bit 0,a
+    jr z,2$
+    ld e,#0
+    ld bc,#_sh
+    call _hud_copy20
+  2$:
+    ld a,(#_vbl_rows)
+    bit 1,a
+    jr z,3$
+    ld e,#32
+    ld bc,#_sh+20
+    call _hud_copy20
+  3$:
+    ld a,(#_vbl_rows)
+    bit 2,a
+    jr z,4$
+    ld e,#64
+    ld bc,#_sh+40
+    call _hud_copy20
+  4$:
+    ld a,(#_vbl_move)
+    or a,a
+    jr z,6$
+    ld a,#1
+    ldh (_VBK_REG),a
+    ld e,#32
+    ld a,(#_vbl_top)
+    or a,a
+    jr z,5$
+    ld e,#0
+  5$:
+    ld h,d
+    ld l,e
+    ld a,#13
+    ld (hl+),a
+    ld (hl+),a
+    ld (hl),a
+    ld a,e
+    xor a,#32
+    ld l,a
+    ld a,#14
+    ld (hl+),a
+    ld (hl+),a
+    ld (hl),a
+  6$:
+    pop af
+    ldh (_VBK_REG),a
+    xor a,a
+    ld (#_vbl_rows),a
+  7$:
+    ld a,(#_vbl_move)
+    or a,a
+    ret z
+    ld a,#7
+    ldh (_WX_REG),a
+    ld a,(#_vbl_top)
+    or a,a
+    ld a,#128
+    jr z,8$
+    ld a,#120
+  8$:
+    ldh (_WY_REG),a
+    ld (#_hud_line),a
+    ldh (_LYC_REG),a
+    xor a,a
+    ld (#_vbl_move),a
+    ret
+  __endasm;
 }
+typedef char hud_native_layout[(LOOK_PAL_HUD==5u && LOOK_PAL_OBJ==6u && HUD_Y==128u && TOAST_Y==120u) ? 1 : -1];
 
 void hud_tick(void) BANKED {
   if(shown_stamina!=stamina.value || shown_cap!=stamina.cap) charge_n();

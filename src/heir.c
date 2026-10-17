@@ -221,6 +221,10 @@ void heir_prepare(void) BANKED {
   uint8_t dd,inv;
   if(ha_state==0xffu || heir_pending) return;
   if(video_epoch!=frame_epoch || (LY_REG>=32u && LY_REG<144u))return;
+  /* A multi-tick frame that is about to advance will replace this deferred
+   * pose in heir_tick below. Save the composition for its successor. Terminal
+   * poses and one-tick frames still get served. */
+  if(ha_left==1u && ha_fr.dur>1u && ((uint8_t)(ha_frame+1u)<ha_n || ha_loop))return;
   /* Serve the next light tick instead of stacking composition on gravity or
    * an input that is about to replace this pose with a new action. */
   if(grav_t==1u || (joy_pressed&(J_A|J_B|J_START|J_SELECT)))return;

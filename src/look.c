@@ -926,9 +926,10 @@ void look_frame_begin(void) BANKED {
     set_sprite_palette(6, 2, &pal_sp[24]);
     obj_mode = obj_want = 0;
   }
-  /* A deferred character pose owns this frame's cosmetic allowance. Keep
-   * palette ownership and swept-foot safety, then resume ambience next tick. */
-  if(!heir_pending || !roam_on || game_mode!=MODE_PLAY) {
+  /* Upload cosmetic palettes/cards while there is an early VRAM window.
+   * Office combat cannot pay their STAT waits after a periodic clock/HUD
+   * update. Quiet generated worlds have their separate wider allowance. */
+  if(!roam_on || game_mode!=MODE_PLAY || LY_REG>=144u || LY_REG<(world_on ? 40u : 8u)) {
     ambient();
     if (game_mode == MODE_PLAY && !look_busy_n) items_tick();
   }

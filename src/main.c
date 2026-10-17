@@ -28,6 +28,7 @@ typedef char eg_room_fits_floor_wram[(sizeof(eg_room) <= 0x140u) ? 1 : -1];
 uint16_t frame_count;
 volatile uint8_t video_epoch;
 uint8_t frame_epoch;
+static uint8_t clock_due;
 uint8_t joy, joy_prev, joy_pressed;
 uint8_t dbg_god, dbg_no_enemies, dbg_floor;
 /* Pre-start native scenario selectors: zero follows the campaign. */
@@ -63,22 +64,33 @@ void frame_wait(void) {
    * hardware OAM instead of DMA copying a half-written body or stale cards. */
   ENABLE_OAM_DMA;
   if(game_mode==MODE_PLAY && (LCDC_REG&LCDCF_ON)) {
-    /* GBDK vsync clears its flag on entry. A VBlank between the call and
-     * that clear can be lost at the frame boundary. Wait for our monotonic
-     * epoch instead; EI/HALT is atomic with respect to the wakeup check. */
+    /* Periodic arithmetic/save work must not spend the new frame's early
+     * terrain/upload window. Elapsed VBlanks are still sampled exactly when
+     * a completed frame (often hitstop) has enough maintenance time left. */
+    if(clock_due && video_epoch==frame_epoch && LY_REG<104u) {
+      clock_due=0u;clock_poll();
+    }
+    /* Wait for our monotonic epoch. HALT with IME disabled wakes on a pending
+     * enabled interrupt, then EI/NOP services it before checking the epoch.
+     * The first NOP also makes the pending-at-HALT duplicate fetch harmless.
+     * EI/HALT can otherwise remain asleep after a boundary interrupt. */
     while(1) {
       disable_interrupts();
       if(video_epoch!=frame_epoch) {enable_interrupts();break;}
       __asm
-        ei
         halt
+        nop
+        ei
         nop
       __endasm;
     }
   } else vsync();
   frame_epoch=video_epoch;
   frame_count++;
-  if (((uint8_t)frame_count & 63u)==32u) clock_poll(); /* stagger with narration; elapsed VBlanks remain exact */
+  if (((uint8_t)frame_count & 63u)==32u) {
+    if(game_mode==MODE_PLAY)clock_due=1u;
+    else {clock_due=0u;clock_poll();}
+  }
 }
 
 static uint16_t scale(uint16_t c, uint8_t level) {

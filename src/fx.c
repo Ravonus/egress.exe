@@ -3,6 +3,7 @@
  * and colour: shards for COLD, drops for WET, embers for HOT, bolts for a short, leaves for ALIVE, runes for MAGIC. */
 #pragma bank 255
 #include <gb/gb.h>
+#include <stddef.h>
 #include "play.h"
 #include "mob.h"
 #include "oam.h"
@@ -17,6 +18,59 @@ typedef struct {
 } fx_t;
 static fx_t fx[FXN];
 static uint8_t fx_next;
+
+/* The late path still advances every particle, but never projects or allocates
+ * invisible OBJs. Keep the seven-byte records in registers instead of spilling
+ * pointers for each lifetime/velocity member. */
+static void age_fx(void) NAKED {
+  __asm
+    ld hl,#_fx
+    ld b,#8
+  1$:
+    ld a,(hl)
+    or a,a
+    jr z,4$
+    dec (hl)
+    bit 0,(hl)
+    jr z,4$
+    inc hl
+    inc hl
+    inc hl
+    ld e,l
+    ld d,h
+    inc hl
+    inc hl
+    ld a,(hl+)
+    sra a
+    sra a
+    sra a
+    ld c,a
+    ld a,(de)
+    add a,c
+    ld (de),a
+    inc de
+    ld a,(hl)
+    sra a
+    sra a
+    sra a
+    ld c,a
+    ld a,(de)
+    add a,c
+    ld (de),a
+    ld a,(hl)
+    add a,#2
+    ld (hl+),a
+    jr 5$
+  4$:
+    ld de,#7
+    add hl,de
+  5$:
+    dec b
+    jr nz,1$
+    ret
+  __endasm;
+}
+typedef char native_fx_layout[(FXN==8u && sizeof(fx_t)==7u && offsetof(fx_t,x)==3u && offsetof(fx_t,vx)==5u) ? 1 : -1];
 
 /* per FX_*: shape, palette (4 the lead's, 5 the floor's FX colours, 7 the elite's), life, speed */
 static const uint8_t fx_shape[FX_COUNT] = {FXT_STAR, FXT_DOT,  FXT_EMBER, FXT_SHARD, FXT_DROP, FXT_BOLT,
@@ -59,6 +113,7 @@ void fx_burst(uint8_t x, uint8_t y, uint8_t kind, uint8_t n) BANKED {
  * of a frame counter: cheap and good enough for sparks) */
 void fx_draw(void) BANKED {
   if(!(fx[0].t|fx[1].t|fx[2].t|fx[3].t|fx[4].t|fx[5].t|fx[6].t|fx[7].t))return;
+  if(LY_REG>=88u || video_epoch!=frame_epoch) {age_fx();return;}
   fx_t *p = fx;
   uint8_t i,quota=(uint8_t)(LY_REG>=88u ? 0u : FXN);
   for (i = FXN; i; i--, p++) {

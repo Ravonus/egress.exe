@@ -50,7 +50,7 @@ class WorldPlayer:
         self.meter=OamMeter(g);self.grid=GridObserver(g);self.look_window=LookWindow(g)
         self.tick0=g.tick;g.tick=self.tick
         at=g.sym['_frame_wait'];g.pb.hook_register(at>>16,at&65535,self.completed,None)
-        g.pb.memory[0xddd0:0xddf0]=[0xa7]*32
+        g.pb.memory[1,0xddd0:0xddf0]=[0xa7]*32
         self.observe()
     def xy(self,u,v):return (v,u) if self.vertical else (u,v)
     def raw_pos(self):
@@ -255,7 +255,7 @@ class WorldPlayer:
                 'missing_floor':self.missing[:30],'missing_body':self.body[:30],
                 'oam_max':self.meter.max_line,'oam_over':self.meter.over,'grid':self.grid.report(),
                 'presentation_window':self.look_window.report(),
-                'stack_canary':bytes(g.pb.memory[0xddd0:0xddf0])==bytes([0xa7]*32)}
+                'stack_canary':bytes(g.pb.memory[1,0xddd0:0xddf0])==bytes([0xa7]*32)}
 
 def run(rom,out,tool,seeds,rule=None,size=None,biome=0):
     out.mkdir(parents=True,exist_ok=True);reports=[]

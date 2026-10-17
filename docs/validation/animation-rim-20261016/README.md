@@ -12,4 +12,10 @@ The common byte-coordinate overlap primitive uses the same strict absolute dista
 
 Regression observers check actual composed/uploaded pixels, requested-pose progress, visible sprite buffers, complete layer counts, central-view terrain and camera-rim animation. Camera combat timing observes completed updates against real VBlank epochs and rejects late completion; raw line-zero counter samples are retained because ISR-return phase can pair a zero and two without skipping an update.
 
+The stress trace also exposed an EI/HALT boundary race: VBlank could be serviced, then execution returned to HALT and slept until the next speech-timer interrupt. The wait now halts with IME disabled, uses a harmless NOP for the pending-at-HALT duplicate fetch, and enables/services interrupts before checking the epoch again. This retains low-power waiting. The behavior is documented in [Pan Docs](https://github.com/gbdev/pandocs/blob/master/src/halt.md). The regression checks input-start phase as well as completed-update deadlines.
+
+Preparation avoids decoding a multi-tick pose that will advance in the same update, while terminal and one-tick frames remain eligible. The HUD copies fixed rows in a bounded VBlank handler. Periodic clock arithmetic runs after complete actors when enough time remains; an observer verifies exact elapsed-VBlank arithmetic and bounded polling lag. Late particles advance through a register-only path, checked against their original lifetime, position and velocity rules. Complete mob overlays use the same allocator and coordinates through a register-only common path; partial overlays retain C. A read-only observer compares every marker/overlay sprite request against the art rules.
+
+Harness accesses to game data in D000-DFFF explicitly select WRAM bank 1: an emulator display boundary can pause inside a stack-free pose-cache copy with another bank selected. This changes inspection/fixture addressing, without writing the CPU's bank register or advancing extra frames to normalize observations.
+
 Validation and deployment are pending. No physical cartridge has been written.

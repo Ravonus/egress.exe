@@ -26,6 +26,9 @@
 #include "world_play.h"
 #include "ui.h"
 void sprites_budget(void) NONBANKED;
+void heir_cache_flush(void) BANKED;
+extern volatile uint8_t video_epoch;
+extern uint8_t frame_epoch;
 
 uint8_t tokens, keys_held, door_open, board_busy, cam_x, cam_y;
 uint8_t freeze, shake, hud_dirty, grav_t, boss_floor;
@@ -273,6 +276,7 @@ static uint8_t floor_play(void) {
     frame_wait();
     input_poll(); /* sample before variable-cost VRAM/audio work can cross a display boundary */
     DISABLE_OAM_DMA;
+    if(freeze && !world_on)heir_cache_flush();
     streamed=world_on ? world_frame_begin() : 0u;
     if(!streamed)heir_prepare();
     if(world_on && !streamed)world_prefetch();
@@ -382,6 +386,9 @@ static uint8_t floor_play(void) {
     draw_sprites();
     if(world_on && !streamed)world_frame_end();
     if(late && !streamed) look_frame_end();
+    /* Cache population is optional: publish complete visible actors first.
+     * The next composition discards an offer that did not fit this frame. */
+    if(!world_on && video_epoch==frame_epoch && LY_REG<100u)heir_cache_flush();
   }
 }
 

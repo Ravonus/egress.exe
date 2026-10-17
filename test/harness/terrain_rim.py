@@ -13,12 +13,15 @@ class TerrainRim:
         g=self.g
         if g.peek('game_mode')!=2 or g.peek('pl_state') in (5,6):return
         self.samples+=1;cx,cy=g.peek('cam_x'),g.peek('cam_y');m=g.pb.memory;rim=False
+        def read(name,k):
+            a=self.addr[name]+k
+            return m[1,a] if a>=0xd000 else m[a]
         for k in range(8):
-            kind=m[self.addr['_c_kind']+k]
-            if not kind or m[self.addr['_c_brk']+k]:continue
+            kind=read('_c_kind',k)
+            if not kind or read('_c_brk',k):continue
             a=39-2*k
             if not (m[0xc000+4*a] or m[0xc000+4*(a-1)]):continue
-            cell=m[self.addr['_c_cell']+k];x=(cell%16)*16-cx;y=(cell//16)*16-cy
+            cell=read('_c_cell',k);x=(cell%16)*16-cx;y=(cell//16)*16-cy
             if x+16<=0 or x>=160 or y+16<=0 or y>=128:continue
             rim=True
             if x<144 and x+16>16 and y<112 and y+16>16 and len(self.bad)<20:

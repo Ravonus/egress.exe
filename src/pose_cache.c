@@ -8,7 +8,10 @@
 #include "heir.h"
 extern uint8_t eg_window_packet[9];
 extern uint8_t heir_cache_enabled;
-static uint8_t way;
+#define pending_pose eg_window_packet[5]
+#define pending_dd eg_window_packet[6]
+#define pending_mask eg_window_packet[7]
+#define pending eg_window_packet[8]
 
 static void clear_keys(void) NAKED {
   __asm
@@ -29,7 +32,7 @@ static void clear_keys(void) NAKED {
   __endasm;
 }
 
-/* packet: pose, direction, slot, mask; 4..8 remain available to their owner. */
+/* The inactive world's packet carries pose, direction, slot, mask and SVBK. */
 static uint8_t read_pose(void) NAKED {
   __asm
     ldh a,(_SVBK_REG)
@@ -50,6 +53,19 @@ static uint8_t read_pose(void) NAKED {
     res 7,l
     ld a,(hl)
     ld (#_eg_window_packet+3),a
+    ld a,(#_eg_window_packet+2)
+    cp a,#60
+    jr c,3$
+    sub a,#60
+    or a,#128
+    ld l,a
+    ld (hl),#1
+    jr 4$
+  3$:
+    or a,#128
+    ld l,a
+    ld (hl),#0
+  4$:
     ld a,(#_eg_window_packet+2)
     ld c,a
     srl a
@@ -97,6 +113,22 @@ static void write_pose(void) NAKED {
     ld (#_eg_window_packet+4),a
     ld a,#5
     ldh (_SVBK_REG),a
+    ld a,(#_eg_window_packet+2)
+    or a,#128
+    ld l,a
+    ld h,#0xdf
+    ld a,(hl)
+    and a,#1
+    jr nz,3$
+    ld (hl),#1
+    ld a,(#_eg_window_packet+2)
+    add a,#60
+    jr 4$
+  3$:
+    ld (hl),#0
+    ld a,(#_eg_window_packet+2)
+  4$:
+    ld (#_eg_window_packet+2),a
     ld a,(#_eg_window_packet+2)
     ld l,a
     ld h,#0xde
@@ -148,11 +180,12 @@ static uint8_t slot_for(uint8_t pose,uint8_t dd) {
   return slot>=60u ? (uint8_t)(slot-60u) : slot;
 }
 void heir_cache_reset(uint8_t on) BANKED {
-  heir_cache_enabled=on;way=0u;
-  if(on) {CRITICAL {clear_keys();}}
+  heir_cache_enabled=on;
+  if(on) {pending=0u;CRITICAL {clear_keys();}}
 }
 uint8_t heir_cache_get(uint8_t pose,uint8_t dd) BANKED {
   uint8_t hit;
+  pending=0u; /* a new composition replaces the canonical WRAM buffer */
   if(!heir_cache_enabled)return 0u;
   eg_window_packet[0]=pose;eg_window_packet[1]=dd;eg_window_packet[2]=slot_for(pose,dd);
   CRITICAL {
@@ -163,8 +196,12 @@ uint8_t heir_cache_get(uint8_t pose,uint8_t dd) BANKED {
 }
 void heir_cache_put(uint8_t pose,uint8_t dd,uint8_t mask) BANKED {
   if(!heir_cache_enabled)return;
-  way^=1u;
-  eg_window_packet[0]=pose;eg_window_packet[1]=dd;
-  eg_window_packet[2]=(uint8_t)(slot_for(pose,dd)+(way ? 60u : 0u));eg_window_packet[3]=mask;
+  pending_pose=pose;pending_dd=dd;pending_mask=mask;pending=1u;
+}
+void heir_cache_flush(void) BANKED {
+  if(!heir_cache_enabled || !pending)return;
+  eg_window_packet[0]=pending_pose;eg_window_packet[1]=pending_dd;
+  eg_window_packet[2]=slot_for(pending_pose,pending_dd);eg_window_packet[3]=pending_mask;
   CRITICAL {write_pose();}
+  pending=0u;
 }
