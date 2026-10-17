@@ -277,11 +277,13 @@ static void roam_raise(uint8_t i) {
   look_busy_n=(uint8_t)(q_n+n_flying);obj_want=1u;
 }
 static void roam_probe(uint8_t i) {
-  if(look_void_cell(i) || cell_type(i)==T_PIT || roam_pending(i))return;
+  if(roam_pending(i))return;
   if(roam_hidden[i>>3]&BIT(i)) {
-    if(look_here(i))roam_hidden[i>>3]&=(uint8_t)~BIT(i);
-    else if(roam_wants(i))roam_raise(i);
+    if(look_here(i)) {
+      if(!look_void_cell(i) && cell_type(i)!=T_PIT)roam_hidden[i>>3]&=(uint8_t)~BIT(i);
+    } else if(roam_wants(i) && !look_void_cell(i) && cell_type(i)!=T_PIT)roam_raise(i);
   } else if(look_here(i) && !roam_wants(i) && (uint8_t)(q_n+n_flying)<12u) {
+    if(look_void_cell(i) || cell_type(i)==T_PIT)return;
     roam_hidden[i>>3]|=BIT(i);look_drop_cell(i);
   }
 }
@@ -321,7 +323,10 @@ void look_roam_tick(void) BANKED {
   }
   if(!roam_late || (LY_REG>=(enemies_alive ? 48u : 80u) && LY_REG<144u)) return;
   /* Bounded inspection, never a whole-room scan during a game frame. */
-  probes=enemies_alive ? 0u : 2u;
+  /* Resting office turns reconcile the whole backing board promptly;
+   * retain the existing scanline cutoff and moving/combat/world allowance. */
+  probes=enemies_alive ? 0u : (!(joy&(J_LEFT|J_RIGHT|J_UP|J_DOWN)) && pl_state==PS_FREE &&
+    !world_on && stage_type==SG_PUZZLE) ? 4u : 2u;
   /* Backpressure pauses inspection instead of permanently skipping a slab
    * while the flight queue is full. Urgent approaching floor is independent. */
   for(k=0u;k!=probes && roam_left && (uint8_t)(q_n+n_flying)<12u;k++) {
@@ -400,7 +405,12 @@ static uint8_t launch(uint8_t i) {
   if(!cached)for(k=0u;k<LOOK_MAX_CARDS-1u;k++)if(!c_kind[k])break;
   if(k==LOOK_MAX_CARDS-1u || ((!cached || !roam_on) && budget<2u))return 0u;
   if(!cached) {
-    if(roam_on && game_mode==MODE_PLAY && LY_REG>=12u && LY_REG<144u)return 0u;
+    /* A stationary quiet room can finish one bounded cold-card upload after
+     * heir preparation. Moving, attacking, combat and world turns keep the
+     * original cutoff; a cold rim card cannot lock a resting queue forever. */
+    if(roam_on && game_mode==MODE_PLAY && LY_REG>=
+       (!(joy&(J_LEFT|J_RIGHT|J_UP|J_DOWN)) && pl_state==PS_FREE && !world_on &&
+        !enemies_alive && stage_type==SG_PUZZLE ? 32u : 12u) && LY_REG<144u)return 0u;
     look_art_card(h,k);budget=0u;
   }
   c_kind[k]=fall ? K_FALL : K_DROP;c_cell[k]=i;c_meta[k]=h;c_t[k]=0u;
@@ -968,7 +978,10 @@ static void look_update(uint8_t prepare) {
       roam_hidden[i>>3]&=(uint8_t)~BIT(i);queued[i>>3]&=(uint8_t)~BIT(i);q_head++;q_n--;continue;
     }
     if (!on_screen(i) && !(roam_on && roam_wants(i))) {
-      if (look_here(i)) look_present[i >> 3] &= (uint8_t)~BIT(i);
+      if(roam_on) {
+        /* A queued arrival abandoned by a reversal stays hidden. */
+        look_present[i>>3]&=(uint8_t)~BIT(i);roam_hidden[i>>3]|=BIT(i);
+      } else if (look_here(i)) look_present[i >> 3] &= (uint8_t)~BIT(i);
       else look_present[i >> 3] |= BIT(i);
       settle(i);
     } else {
@@ -982,7 +995,15 @@ static void look_update(uint8_t prepare) {
           break;
         }
       }
-      if (!found) break;
+      if (!found) {
+        /* A cold visible head must not block departures behind it forever.
+         * Rotate one retry on resting office turns; no extra upload or draw. */
+        if(!(joy&(J_LEFT|J_RIGHT|J_UP|J_DOWN)) && pl_state==PS_FREE &&
+           roam_on && !world_on && !enemies_alive && stage_type==SG_PUZZLE && q_n>1u) {
+          q[(uint8_t)(q_head+q_n)]=i;q_head++;
+        }
+        break;
+      }
       q[(uint8_t)(q_head + j)] = i;
       i = ii;
       launches++;
