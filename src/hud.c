@@ -37,7 +37,7 @@ static void hud_copy20(uint8_t *dst,const uint8_t *src) __sdcccall(1) NONBANKED 
     .rept 20
       ld a,(hl+)
       ld (de),a
-      inc de
+      inc e /* a 20-byte window row never crosses its 32-byte/page boundary */
     .endm
     ret
   __endasm;

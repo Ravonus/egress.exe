@@ -62,7 +62,20 @@ void frame_wait(void) {
   /* Publish only a complete actor/card list. A slow frame keeps the previous
    * hardware OAM instead of DMA copying a half-written body or stale cards. */
   ENABLE_OAM_DMA;
-  vsync();
+  if(game_mode==MODE_PLAY && (LCDC_REG&LCDCF_ON)) {
+    /* GBDK vsync clears its flag on entry. A VBlank between the call and
+     * that clear can be lost at the frame boundary. Wait for our monotonic
+     * epoch instead; EI/HALT is atomic with respect to the wakeup check. */
+    while(1) {
+      disable_interrupts();
+      if(video_epoch!=frame_epoch) {enable_interrupts();break;}
+      __asm
+        ei
+        halt
+        nop
+      __endasm;
+    }
+  } else vsync();
   frame_epoch=video_epoch;
   frame_count++;
   if (((uint8_t)frame_count & 63u)==32u) clock_poll(); /* stagger with narration; elapsed VBlanks remain exact */

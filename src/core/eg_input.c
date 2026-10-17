@@ -35,6 +35,7 @@ static uint8_t sat_inc(uint8_t v) { return v == 255u ? v : (uint8_t)(v + 1u); }
 /* near versions for the step itself (on the cartridge the public ones are banked calls) */
 static const eg_frames_t *frames_of(const eg_input_t *s, uint8_t move) {
   static eg_frames_t tuned;
+  static uint8_t tuned_move,tuned_weapon;
   int8_t ds,dr;
   if (move == EG_MV_DODGE) {
     static const eg_frames_t side={1u,6u,5u,4u,10u}, back={1u,5u,6u,4u,10u};
@@ -43,6 +44,10 @@ static const eg_frames_t *frames_of(const eg_input_t *s, uint8_t move) {
     return &eg_dodge_fd[s->style];
   }
   if (s->weapon && s->weapon < 5u && move >= EG_MV_LUNGE && move <= EG_MV_CHARGED && move != EG_MV_CHARGE) {
+    /* Step, refresh and the native attack all ask for this same immutable
+     * weapon/move profile. Reuse its five bytes until either input changes. */
+    if(tuned_move==move && tuned_weapon==s->weapon)return &tuned;
+    tuned_move=move;tuned_weapon=s->weapon;
     tuned=eg_input_fd[move];
     ds=s->weapon==1u ? 3 : s->weapon==2u ? 1 : s->weapon==3u ? -2 : 2;
     dr=s->weapon==1u ? 6 : s->weapon==2u ? 2 : s->weapon==3u ? -4 : 4;

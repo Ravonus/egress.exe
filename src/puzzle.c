@@ -21,6 +21,8 @@
 #include "tutorial.h"
 #include "world.h"
 #include "world_dead.h"
+#include "ui.h"
+void items_bench_tick(uint8_t a,uint8_t b,uint8_t result) BANKED;
 void items_tick(void) BANKED;
 extern volatile uint8_t video_epoch;
 extern uint8_t frame_epoch;
@@ -37,6 +39,7 @@ uint8_t dead_t; /* the dead-room hint: 0 none, counting down, 1 shown (the harne
 uint8_t dead_run; /* the sliced dead-room check is under way (the harness reads it) */
 #define DEAD_SLICE 4u /* queue pops a frame (~3.5 lines each): a whole check is one or two floods, about a second */
 static uint8_t frag_t[4][3]; /* global x/y, ticks of 8 frames left (0: free) */
+uint8_t bench_phase; /* 0 select, 1 approach, 2 contact, 3 reaction, 4 reveal */
 uint8_t bench_on, bench_cur, last_rx; /* 1 listening, 2 use, 3 combination, 4 paused redraw */
 static uint8_t sock[2], told;
 static char buf[20];
@@ -267,92 +270,97 @@ static void bench_card(uint8_t x,uint8_t y,uint8_t m) {
   VBK_REG=1u;set_win_tiles(x,y,2u,2u,a);
   VBK_REG=0u;set_win_tiles(x,y,2u,2u,meta_tile[m]);
 }
-static void bench_icon(uint8_t y,uint8_t p) {
+static void bench_icon(uint8_t x,uint8_t y,uint8_t p,uint8_t chosen) {
   uint8_t t=(uint8_t)(LOOK_ICON_BASE+p-1u),a=(uint8_t)(meta_pal[M_ITEM0+p-1u]&7u);
-  VBK_REG=1u;set_win_tiles(1u,y,1u,1u,&a);
-  VBK_REG=0u;set_win_tiles(1u,y,1u,1u,&t);
+  VBK_REG=1u;set_win_tiles(x,y,1u,1u,&a);
+  VBK_REG=0u;set_win_tiles(x,y,1u,1u,&t);
+  if(chosen)text_at(1u,x-1u,y,">",HP);
 }
 static void bench_scene(uint8_t phase,uint8_t result) {
   uint8_t y;
-  for(y=1u;y!=6u;y++) text_at(1,10u,y,"          ",BP);
-  bench_card(14u,3u,M_BENCH);
+  for(y=1u;y!=3u;y++)text_at(1u,1u,y,"                  ",BP);
   if(result) {
-    bench_card(14u,1u,(uint8_t)(M_ITEM0+result-1u));
-    text_at(1,11u,2u,"+",HP);text_at(1,18u,2u,"+",HP);
+    bench_card(9u,1u,(uint8_t)(M_ITEM0+result-1u));
+    text_at(1u,6u,1u,"+",HP);text_at(1u,13u,2u,"+",HP);
   } else {
-    if(sock[0]!=255u) bench_card((uint8_t)(11u+phase),1u,(uint8_t)(M_ITEM0+pocket[sock[0]]-1u));
-    if(sock[1]!=255u) bench_card((uint8_t)(17u-phase),1u,(uint8_t)(M_ITEM0+pocket[sock[1]]-1u));
-    if(!phase) text_at(1,15u,1u,"+",HP);
+    if(sock[0]!=255u)bench_card((uint8_t)(2u+phase),1u,(uint8_t)(M_ITEM0+pocket[sock[0]]-1u));
+    else text_at(1u,2u,1u,"[ ]",BP);
+    if(sock[1]!=255u)bench_card((uint8_t)(14u-phase),1u,(uint8_t)(M_ITEM0+pocket[sock[1]]-1u));
+    else text_at(1u,14u,1u,"[ ]",BP);
+    if(!phase)text_at(1u,9u,1u,"+",HP);
+  }
+}
+static void bench_wait(uint8_t n,uint8_t r) {
+  while(n--) {
+    frame_wait();sound_tick();
+    items_bench_tick(pocket[sock[0]],pocket[sock[1]],r);
+    draw_sprites();
   }
 }
 static void bench_combine(uint8_t result) {
-  uint8_t phase,t;
-  text_at(1,10u,0u,"COMBINING ",HP);
-  for(phase=0u;phase!=3u;phase++) {
-    bench_scene(phase,0u);sfx(phase==2u ? SFX_CHARGED : SFX_PUSH);
-    for(t=0u;t!=8u;t++) {frame_wait();sound_tick();draw_sprites();}
+  uint8_t phase;
+  line(3u,"    BRING TOGETHER");line(4u,"");line(5u,"");
+  bench_phase=1u;
+  for(phase=0u;phase!=6u;phase++) {
+    bench_scene(phase,0u);
+    if(!(phase&1u))sfx(SFX_PUSH);
+    bench_wait(6u,0u);
   }
-  bench_scene(0u,result);sfx(SFX_KEY);
-  for(t=0u;t!=18u;t++) {frame_wait();sound_tick();draw_sprites();}
+  bench_phase=2u;bench_scene(6u,0u);sfx(SFX_CHARGED);
+  line(3u,"      REACTING");
+  bench_wait(8u,0u);
+  bench_phase=3u;
+  for(phase=0u;phase!=4u;phase++) {
+    bench_scene(6u,0u);
+    text_at(1u,(uint8_t)(6u+phase),1u,"+",HP);
+    text_at(1u,(uint8_t)(13u-phase),2u,"+",HP);
+    bench_wait(4u,0u);
+  }
+  bench_phase=4u;bench_scene(0u,result);sfx(SFX_KEY);
+  eg_piece_name(result,buf);line(3u,buf);
+  eg_tags_text(result,buf);line(4u,buf);line(5u,"    A NEW MATERIAL");
+  bench_wait(24u,result);
 }
-
-static const char *const target_names[T_TYPES] = {
-  "FLOOR","FOAM","CONCRETE","CRACK WALL","CRT","TOKEN","KEYCARD","DOOR",
-  "CARPET","GAP","PLATE","GATE","OPEN GATE","WATER","GLITCH","PAPER",
-  "PLANK","ITEM","SOCKET","POWERED","DEAD GATE","CRATE","LOADED",
-  "CARPET","WORN","TORN","CEILING","CRACKED","GLASS","ICE","THIN ICE","PARTITION"
+static const char *const piece_hint[P_COUNT]={
+  "PICK TWO MATERIALS","BURNS PAPER / ICE","WETS / PUTS OUT FIRE","PUSHES LIGHT CRATES",
+  "MIX WITH WATER","MIX WITH ENERGY","MIX WITH METAL","WETS YOUR TARGET",
+  "SLOWS A MOB","FREEZES WATER / MOBS","FREEZES WATER / MOBS","WEIGHS DOWN PLATES",
+  "POWERS WET CIRCUITS","HOT MIST BLINDS","BURNS PAPER / ICE","DUST BLINDS A MOB","WETS YOUR TARGET"
 };
-
 static void bench_draw(void) {
-  uint8_t k, j, row, count, rx, cell, r = 0, ordinal=0u, page;
-  if(pocket_n) bench_cur=first_slot(bench_cur);
-  for(k=0u;k<bench_cur;k++) if(first_slot(k)==k) ordinal++;
+  uint8_t k,j,row,count,r=0u,ordinal=0u,page,x,p;
+  bench_phase=0u;
+  if(pocket_n)bench_cur=first_slot(bench_cur);
+  for(k=0u;k<bench_cur;k++)if(first_slot(k)==k)ordinal++;
   page=(uint8_t)((ordinal/6u)*6u);
-  text_at(1, 0, 0, "BAG       BENCH      ", BP);
-  num_at(1, 4, 0, pocket_n, 2u, BP);
-  text_at(1, 6, 0, "/24", BP);
-  k=0u; ordinal=0u;
-  for (row = 1u; row != 7u; row++) {
+  ui_fill(1u,0u,0u,20u,8u,BP);ui_frame(1u,0u,0u,20u,8u,BP);
+  text_at(1u,2u,0u,"BENCH",BP);num_at(1u,13u,0u,pocket_n,2u,BP);text_at(1u,15u,0u,"/24",BP);
+  if(sock[1]!=255u)r=eg_recipe(pocket[sock[0]],pocket[sock[1]]);
+  if(r) {
+    /* The complete recipe reads left to right, as in the reference panel. */
+    bench_card(2u,1u,(uint8_t)(M_ITEM0+pocket[sock[0]]-1u));
+    bench_card(8u,1u,(uint8_t)(M_ITEM0+pocket[sock[1]]-1u));
+    bench_card(15u,1u,(uint8_t)(M_ITEM0+r-1u));
+    text_at(1u,6u,1u,"+",HP);text_at(1u,12u,1u,">",HP);
+  } else bench_scene(0u,0u);
+  p=r ? r : pocket_n ? pocket[bench_cur] : 0u;
+  eg_piece_name(p,buf);text_at(1u,1u,3u,buf,HP);
+  eg_tags_text(p,buf);text_at(1u,1u,4u,buf,BP);
+  text_at(1u,1u,5u,piece_hint[p],BP);
+  k=0u;ordinal=0u;
+  for(row=0u;row!=6u;row++) {
     while(k<pocket_n && (first_slot(k)!=k || ordinal<page)) {
-      if(first_slot(k)==k) ordinal++;
+      if(first_slot(k)==k)ordinal++;
       k++;
     }
-    text_at(1, 0, row, "          ", BP);
-    if (k >= pocket_n) {
-      if (!pocket_n && row == 1u) text_at(1, 1, row, "EMPTY", BP);
-      continue;
-    }
-    count = 0u;
-    for (j = 0u; j != pocket_n; j++) if (pocket[j] == pocket[k]) count++;
-    eg_piece_abbr(pocket[k], buf);
-    bench_icon(row,pocket[k]);
-    text_at(1, 2, row, buf, (uint8_t)(sock[0] == k || sock[1] == k ? HP : BP));
-    text_at(1, 6, row, "x", BP);
-    num_at(1, 7, row, count, 2u, BP);
-    if (k == bench_cur) text_at(1, 0, row, ">", HP);
+    if(k>=pocket_n)continue;
+    count=0u;for(j=0u;j<pocket_n;j++)if(pocket[j]==pocket[k])count++;
+    x=(uint8_t)(2u+row*3u);
+    bench_icon(x,6u,pocket[k],(uint8_t)(k==bench_cur));
+    num_at(1u,x-1u,7u,count,2u,(uint8_t)(k==bench_cur ? HP : BP));
     k++;
   }
-  bench_scene(0u,0u);
-  if (sock[1] != 255u) {
-    r = eg_recipe(pocket[sock[0]], pocket[sock[1]]);
-    if (r) {
-      eg_piece_name(r, buf);
-      text_at(1, 11, 5, buf, HP);
-    } else
-      text_at(1, 11, 5, "NOTHING", BP);
-  }
-  text_at(1, 10, 6, "          ", BP);
-  cell = (uint8_t)(cell_at(pl_x,pl_y) + (uint8_t)(fdy[pl_face] * (int8_t)EG_W) + (uint8_t)fdx[pl_face]);
-  rx = EG_ABYSS(room.c[cell]) ? RX_NONE : eg_use_rx(pocket_n ? pocket[bench_cur] : 0u, cell_type(cell));
-  if (enemy_in_cell(cell)) { text_at(1,10,6,"MOB: TOOL",HP); }
-  else {
-    if (rx) { eg_rx_name(rx, buf); buf[10] = 0; text_at(1, 10, 6, buf, HP); }
-    else text_at(1,10,6,EG_ABYSS(room.c[cell]) ? "OPEN VOID" : target_names[cell_type(cell)],BP);
-  }
-  eg_piece_name(r ? r : (pocket_n ? pocket[bench_cur] : 0u), buf);
-  line(7, buf);
-  if (pocket_n) text_at(1,10,7,"START USE",HP);
-  line(8, sock[1] != 255u ? "A MAKE B UNDO > DROP" : "A ADD B BACK > DROP");
+  line(8u,sock[1]!=255u ? "A MAKE B UNDO ST USE" : "A ADD  B BACK ST USE");
 }
 
 static void bench_close(void) {
@@ -364,7 +372,7 @@ static void bench_close(void) {
   move_win(7, 128);
   hud_line = 128u;
   frame_wait(); /* finish the paused redraw before active play resumes */
-  bench_on = 0u;
+  bench_on = bench_phase = 0u;
 }
 
 void bench_run(void) BANKED {
@@ -376,7 +384,7 @@ void bench_run(void) BANKED {
   cam_y=pl_y>40u ? (uint8_t)(pl_y-40u) : 0u;
   if(cam_y>152u) cam_y=152u;
   move_bkg(BG_SCROLL_X(cam_x),BG_SCROLL_Y(cam_y));
-  clear_map(1, BP);
+  ui_load();clear_map(1, BP);
   bench_draw();
   hud_line = BENCH_Y;
   move_win(7, BENCH_Y);
@@ -386,7 +394,8 @@ void bench_run(void) BANKED {
   while (1) {
     frame_wait(); /* no hud_tick here: a toast closing would move the window under the bench */
     sound_tick();
-    items_tick();
+    items_bench_tick(sock[0]!=255u ? pocket[sock[0]] : pocket_n ? pocket[bench_cur] : 0u,
+      sock[1]!=255u ? pocket[sock[1]] : 0u,sock[1]!=255u ? eg_recipe(pocket[sock[0]],pocket[sock[1]]) : 0u);
     if (!(frame_count&31u)) {
       uint8_t target=(uint8_t)(cell_at(pl_x,pl_y)+(uint8_t)(fdy[pl_face]*(int8_t)EG_W)+(uint8_t)fdx[pl_face]);
       puff((uint8_t)(EG_X(target)*16u+8u),(uint8_t)(EG_Y(target)*16u+8u),4u,ST_SPARK);
@@ -420,7 +429,7 @@ void bench_run(void) BANKED {
         if (!r) {
           narrator_event(NE_REFUSED,0u);
           sfx(SFX_DENY);
-          text_at(1,10,6,"ITEMS KEPT",BP);
+          line(5u,"NO RECIPE: BOTH KEPT");
           continue;
         }
         bench_on=3u;bench_combine(r);

@@ -27,6 +27,12 @@ uint8_t eg_gene_dodge(const eg_genome *g) EG_BANKED {
   if (!g->dodge[0] || !g->dodge[1]) return 0u;
   return g->dodge[0] == 1u || g->dodge[1] == 1u ? 2u : 1u;
 }
+void eg_sibling_style(const eg_genome *parent,eg_genome *g,uint8_t k) EG_BANKED {
+  /* Cosmetic expression only: retain skin, alleles, stats, seed and lineage. */
+  g->look[G_LOOK]=(uint8_t)((parent->look[G_LOOK]+k)%3u);
+  g->look[G_HAIR]=(uint8_t)((parent->look[G_HAIR]+k*2u)%5u);
+  g->look[G_NECK]=(uint8_t)((parent->look[G_NECK]+k)%4u);
+}
 void eg_children(const eg_genome *parent, uint16_t seed, eg_genome *out3) EG_BANKED {
   eg_genome mate;
   uint8_t i,k,a;
@@ -53,6 +59,9 @@ void eg_children(const eg_genome *parent, uint16_t seed, eg_genome *out3) EG_BAN
     /* Authored sibling differentiation is visual only; abilities remain inherited alleles. */
     g->look[G_PATTERN] = (uint8_t)((parent->look[G_PATTERN] + k) & 7u);
     g->look[G_ACCENT] = (uint8_t)((parent->look[G_ACCENT] + k * 3u) & 7u);
+    /* Siblings share skin and inherited features, with distinct silhouettes
+     * and hair styling. Colour alone is too subtle at native resolution. */
+    eg_sibling_style(parent,g,k);
   }
 }
 void eg_family_init(eg_family *f, uint16_t seed) EG_BANKED {

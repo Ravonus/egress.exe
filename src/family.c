@@ -6,6 +6,7 @@
 #include "play.h"
 #include "family.h"
 #include "heir.h"
+#include "ui.h"
 #include "look.h"
 #include "mapper.h"
 #include "run.h"
@@ -71,84 +72,109 @@ static const char *const weapon_tell[5] = {"BALANCED ARC","SLOW HEAVY BREAK","LO
 /* Picker-only scratch overlaps floor-only look_skin (DCF0..DDCF). */
 static uint8_t __at(0xDD00) pick_pixels[16u*24u];
 uint8_t family_page,family_ready;
+/* The floor-only skin prefix is idle here; nine palette masks fit before
+ * the DD00 portrait scratch without consuming the game's remaining BSS. */
+static uint8_t __at(0xDCF0) portrait_cloth[9];
+/* Preserve body/cloth colours when a BG tile crosses the layer boundary.
+ * Each enlarged tile covers only 4x4 source pixels, reducing palette mixing. */
+static uint8_t pick_nearest(uint16_t colour,const uint16_t *pal) {
+  uint8_t k,best=1u;uint16_t score,min=65535u;int16_t r,g,b;
+  for(k=1u;k<4u;k++) {
+    r=(int16_t)(colour&31u)-(int16_t)(pal[k]&31u);
+    g=(int16_t)((colour>>5)&31u)-(int16_t)((pal[k]>>5)&31u);
+    b=(int16_t)((colour>>10)&31u)-(int16_t)((pal[k]>>10)&31u);
+    score=(uint16_t)(r*r+g*g+b*b);
+    if(score<min) {min=score;best=k;}
+  }
+  return best;
+}
 static void pick_portrait(uint8_t card) {
-  uint8_t n,k,x,y,v,c,raw[32],tile[16],map,attr,px,py,cloth;
+  uint8_t n,k,x,y,v,c,raw[32],tile[16],map,px,py,cloth,remap[2][6];
   OAM_item_t *o;
   apply_gene(&family.child[card]);heir_idle_stop();heir_play(HA_IDLE,1u);heir_reset();ha_dir=0u;
   n=heir_draw(0u,8,16);frame_wait();memset(pick_pixels,0,16u*24u);
-  pal_bg[card*8u]=pal_bg[card*8u+4u]=RGB(10,8,15);
+  pal_bg[card*8u]=pal_bg[card*8u+4u]=RGB(8,6,13);
   for(k=1u;k!=4u;k++) {pal_bg[card*8u+k]=pal_sp[k];pal_bg[card*8u+4u+k]=pal_sp[4u+k];}
+  for(k=0u;k<2u;k++)for(v=0u;v<6u;v++) {
+    remap[k][v]=v ? pick_nearest(pal_sp[v>=4u ? v+2u : v],&pal_bg[card*8u+k*4u]) : 0u;
+  }
   while(n) {
-    o=&shadow_OAM[--n];get_sprite_data(o->tile,2u,raw);
+    o=&shadow_OAM[--n];memcpy(raw,heir_pixels+((uint8_t)(o->tile&7u)<<4),32u);
     px=(uint8_t)(o->x-8u);py=(uint8_t)(o->y-16u);
-    for(y=0u;y!=16u;y++) for(x=0u;x!=8u;x++) {
+    for(y=0u;y!=16u;y++)for(x=0u;x!=8u;x++) {
       v=(uint8_t)(((raw[y*2u]>>(7u-x))&1u)|(((raw[y*2u+1u]>>(7u-x))&1u)<<1));
-      if(v && px+x<16u && py+y<24u) pick_pixels[(uint16_t)(py+y)*16u+px+x]=(uint8_t)(v+(v>1u && (o->prop&7u)==1u ? 2u : 0u));
+      if(v && px+x<16u && py+y<24u)pick_pixels[(uint16_t)(py+y)*16u+px+x]=(uint8_t)(v+(v>1u && (o->prop&7u)==1u ? 2u : 0u));
     }
   }
-  VBK_REG=0u;
-  for(k=0u;k!=6u;k++) {
-    cloth=0u;px=(uint8_t)((k&1u)*8u);py=(uint8_t)((k>>1)*8u);
-    for(y=0u;y!=8u;y++) for(x=0u;x!=8u;x++) if(pick_pixels[(uint16_t)(py+y)*16u+px+x]>=4u) cloth++;
-    cloth=(uint8_t)(cloth>=16u);
-    memset(tile,0,sizeof tile);
-    for(y=0u;y!=8u;y++) for(x=0u;x!=8u;x++) {
-      v=pick_pixels[(uint16_t)(py+y)*16u+px+x];if(v>=4u) v-=2u;
-      if(v&1u) tile[y*2u]|=(uint8_t)(128u>>x);
-      if(v&2u) tile[y*2u+1u]|=(uint8_t)(128u>>x);
+  /* Cache pixels in BG VRAM and palette choices in nine WRAM bytes. Never
+   * read active VRAM: real hardware and binjgb enforce its access windows. */
+  memset(portrait_cloth+card*3u,0,3u);
+  for(k=0u;k!=24u;k++) {
+    cloth=0u;px=(uint8_t)((k&3u)*4u);py=(uint8_t)((k>>2)*4u);
+    for(y=0u;y<4u;y++)for(x=0u;x<4u;x++)if(pick_pixels[(uint16_t)(py+y)*16u+px+x]>=4u)cloth++;
+    cloth=(uint8_t)(cloth>=4u);memset(tile,0,sizeof tile);
+    for(y=0u;y!=8u;y++)for(x=0u;x!=8u;x++) {
+      v=remap[cloth][pick_pixels[(uint16_t)(py+(y>>1))*16u+px+(x>>1)]];
+      if(v&1u)tile[y*2u]|=(uint8_t)(128u>>x);
+      if(v&2u)tile[y*2u+1u]|=(uint8_t)(128u>>x);
     }
-    map=(uint8_t)(80u+card*6u+k);set_bkg_data(map,1u,tile);
-    attr=(uint8_t)(card*2u+cloth);VBK_REG=1u;set_bkg_tiles((uint8_t)(card*7u+2u+(k&1u)),(uint8_t)(5u+(k>>1)),1u,1u,&attr);
-    VBK_REG=0u;set_bkg_tiles((uint8_t)(card*7u+2u+(k&1u)),(uint8_t)(5u+(k>>1)),1u,1u,&map);
+    map=(uint8_t)(32u+card*24u+k);VBK_REG=0u;set_bkg_data(map,1u,tile);
+    if(cloth)portrait_cloth[card*3u+(k>>3)]|=look_bits[k&7u];
   }
-  for(c=0u;c!=40u;c++) move_sprite(c,0u,0u);
+  for(c=0u;c!=40u;c++)move_sprite(c,0u,0u);
 }
-static void pick_box(uint8_t x,uint8_t selected) {
-  uint8_t y;
-  text_at(0,x,3u,"+----+",selected ? 6u : 7u);
-  for(y=4u;y!=10u;y++) {text_at(0,x,y,"+",selected ? 6u : 7u);text_at(0,(uint8_t)(x+5u),y,"+",selected ? 6u : 7u);}
-  text_at(0,x,10u,"+----+",selected ? 6u : 7u);
+static void pick_show(uint8_t card,uint8_t x,uint8_t y) {
+  uint8_t k,r,attr[4],tile[4];
+  for(r=0u;r<6u;r++) {
+    for(k=0u;k<4u;k++) {
+      uint8_t n=(uint8_t)(r*4u+k);
+      attr[k]=(uint8_t)(card*2u+((portrait_cloth[card*3u+(n>>3)]&look_bits[n&7u]) ? 1u : 0u));
+      tile[k]=(uint8_t)(32u+card*24u+n);
+    }
+    VBK_REG=1u;set_bkg_tiles(x,y+r,4u,1u,attr);
+    VBK_REG=0u;set_bkg_tiles(x,y+r,4u,1u,tile);
+  }
+}
+static void pick_box(uint8_t k) {
+  uint8_t pal=k==family_cur ? UI_LIGHT : UI_DARK,x=(uint8_t)(k*7u);
+  ui_frame(0u,x,4u,6u,9u,pal);ui_fill(0u,x+1u,11u,4u,1u,pal);
+  text_at(0u,x+1u,11u,k==family_cur ? ">" : " ",pal);num_at(0u,x+2u,11u,k+1u,2u,pal);
+}
+static void pick_summary(void) {
+  apply_gene(&family.child[family_cur]);
+  ui_fill(0u,0u,13u,20u,4u,UI_LIGHT);ui_frame(0u,0u,13u,20u,4u,UI_LIGHT);
+  text_at(0u,1u,14u,weapon_name[heir.weapon],UI_LIGHT);text_at(0u,12u,14u,dodge_name[heir.dodge],UI_LIGHT);
+  text_at(0u,1u,15u,"HP",UI_LIGHT);num_at(0u,4u,15u,6u+family_stat[G_VIGOR],1u,UI_LIGHT);
+  text_at(0u,7u,15u,"PWR",UI_LIGHT);num_at(0u,11u,15u,family_stat[G_POWER],1u,UI_LIGHT);
+  text_at(0u,13u,15u,"PACE",UI_LIGHT);num_at(0u,18u,15u,family_stat[G_PACE],1u,UI_LIGHT);
 }
 static void draw_pick_cards(void) {
   uint8_t k;
-  clear_map(0,6u);text_at(0,2u,1u,"THE NEXT HEIR",6u);
-  text_at(0,2u,2u,"GENERATION",6u);num_at(0,13u,2u,family.generation,3u,6u);
-  for(k=0u;k!=3u;k++) {
-    pick_box((uint8_t)(k*7u),(uint8_t)(k==family_cur));pick_portrait(k);
-    num_at(0,(uint8_t)(k*7u+2u),4u,k+1u,2u,6u);
-    text_at(0,(uint8_t)(k*7u+2u),11u,k==family_cur ? ">" : " ",6u);
-  }
-  apply_gene(&family.child[family_cur]);
-  text_at(0,1u,13u,weapon_name[heir.weapon],6u);text_at(0,12u,13u,dodge_name[heir.dodge],6u);
-  text_at(0,1u,14u,"HP",6u);num_at(0,4u,14u,6u+family_stat[G_VIGOR],1u,6u);
-  text_at(0,7u,14u,"PWR",6u);num_at(0,11u,14u,family_stat[G_POWER],1u,6u);
-  text_at(0,1u,16u,"L/R CHOOSE A DETAILS",6u);
-  pal_bg[24]=pal_bg[28]=RGB(7,5,11);pal_bg[25]=pal_bg[29]=RGB(10,8,15);
-  pal_bg[26]=RGB(25,20,31);pal_bg[27]=RGB(30,28,31);pal_bg[30]=RGB(15,12,20);pal_bg[31]=RGB(22,19,27);
-  HIDE_SPRITES;
+  HIDE_SPRITES;ui_page("CHOOSE YOUR HEIR","L/R CHOOSE A DETAILS");
+  ui_fill(0u,0u,3u,20u,1u,UI_DARK);text_at(0u,2u,3u,"GENERATION",UI_DARK);num_at(0u,14u,3u,family.generation,3u,UI_DARK);
+  for(k=0u;k!=3u;k++) {pick_box(k);pick_show(k,(uint8_t)(k*7u+1u),5u);}
+  pick_summary();
 }
 static void draw_pick_detail(void) {
   uint8_t k;
-  apply_gene(&family.child[family_cur]);look_load(BIOME_OFFICE);clear_map(0,4u);
-  text_at(0,2u,1u,"YOUR NEXT HEIR",4u);num_at(0,16u,1u,family_cur+1u,1u,4u);
-  text_at(0,2u,7u,weapon_name[heir.weapon],4u);text_at(0,12u,7u,dodge_name[heir.dodge],4u);
-  text_at(0,1u,9u,weapon_tell[heir.weapon],4u);
-  text_at(0,2u,11u,"HP",4u);num_at(0,7u,11u,6u+family_stat[G_VIGOR],1u,4u);
-  text_at(0,2u,12u,"POWER",4u);num_at(0,7u,12u,family_stat[G_POWER],1u,4u);
-  text_at(0,10u,11u,"FOCUS",4u);num_at(0,17u,11u,family_stat[G_FOCUS],1u,4u);
-  text_at(0,10u,12u,"PACE",4u);num_at(0,17u,12u,family_stat[G_PACE],1u,4u);
-  text_at(0,1u,14u,"A HIT  B SHOT",4u);text_at(0,1u,15u,"HOLD EITHER: CHARGE",4u);
-  text_at(0,1u,17u,"B BACK     A BEGIN",4u);
-  for(k=0u;k!=40u;k++) move_sprite(k,0u,0u);
-  ha_dir=0u;heir_idle_stop();heir_play(HA_IDLE,1u);heir_reset();SHOW_SPRITES;heir_draw(0u,80,48);frame_wait();
+  apply_gene(&family.child[family_cur]);set_sprite_palette(0u,2u,pal_sp);
+  ui_page("YOUR NEXT HEIR","B BACK     A BEGIN");
+  ui_frame(0u,0u,3u,6u,10u,UI_DARK);pick_show(family_cur,1u,4u);num_at(0u,2u,11u,family_cur+1u,2u,UI_DARK);
+  text_at(0u,8u,4u,weapon_name[heir.weapon],UI_DARK);text_at(0u,8u,6u,dodge_name[heir.dodge],UI_DARK);
+  text_at(0u,8u,8u,"HP",UI_DARK);num_at(0u,18u,8u,6u+family_stat[G_VIGOR],1u,UI_DARK);
+  text_at(0u,8u,9u,"POWER",UI_DARK);num_at(0u,18u,9u,family_stat[G_POWER],1u,UI_DARK);
+  text_at(0u,8u,10u,"FOCUS",UI_DARK);num_at(0u,18u,10u,family_stat[G_FOCUS],1u,UI_DARK);
+  text_at(0u,8u,11u,"PACE",UI_DARK);num_at(0u,18u,11u,family_stat[G_PACE],1u,UI_DARK);
+  ui_fill(0u,0u,13u,20u,3u,UI_LIGHT);
+  text_at(0u,1u,13u,weapon_tell[heir.weapon],UI_LIGHT);
+  text_at(0u,1u,14u,"A STRIKE  B SHOT",UI_LIGHT);text_at(0u,1u,15u,"HOLD EITHER: CHARGE",UI_LIGHT);
+  for(k=0u;k!=40u;k++)move_sprite(k,0u,0u);
+  ha_dir=0u;heir_idle_stop();heir_play(HA_IDLE,1u);heir_reset();SHOW_SPRITES;heir_draw(0u,144,54);frame_wait();
 }
 static void draw_choice(void) {
-  family_ready=0u;pal_commit(0u);DISPLAY_ON;
-  if(family_page) draw_pick_detail();else draw_pick_cards();
-  pal_commit(8u);SHOW_BKG;DISPLAY_ON;frame_wait();
-  /* Establish the pad after the page finishes drawing: a released clock/menu
-   * confirmation must not remain latched through portrait preparation. */
-  input_poll();joy_pressed=0u;family_ready=1u;
+  family_ready=0u;
+  if(family_page)draw_pick_detail();else draw_pick_cards();
+  SHOW_BKG;frame_wait();input_poll();joy_pressed=0u;family_ready=1u;
 }
 
 void family_begin(void) BANKED {
@@ -156,16 +182,22 @@ void family_begin(void) BANKED {
   if (dbg_heir) { family_apply(); return; }
   load_family();
   if (!family.active) {
+    /* Upgrade only unchosen candidates from older saves. The active heir and
+     * every recorded ancestor keep their exact genome. */
+    for(k=0u;k<3u;k++)eg_sibling_style(&family.parent,&family.child[k],k);
     game_mode=MODE_HEIR;
     pal_commit(0u);DISPLAY_ON;HIDE_WIN;HIDE_SPRITES;SPRITES_8x16;
     hud_line=144u; move_bkg(0,0);
-    art_load_game(); look_load(BIOME_OFFICE);
-    family_cur=family_page=0u;draw_choice();
+    art_load_game();look_load(BIOME_OFFICE);ui_load();ui_colours();
+    family_cur=family_page=0u;
+    for(k=0u;k<3u;k++)pick_portrait(k);
+    draw_choice();pal_commit(8u);
     while(1) {
       frame_wait(); sound_tick(); input_poll();
       if(!family_page && (joy_pressed & (J_LEFT|J_RIGHT))) {
+        uint8_t old=family_cur;
         family_cur=(joy_pressed&J_LEFT) ? (family_cur ? family_cur-1u : 2u) : (family_cur+1u)%3u;
-        draw_choice(); sfx(SFX_STEP);
+        pick_box(old);pick_box(family_cur);pick_summary();sfx(SFX_STEP);
       }
       if(family_page && (joy_pressed&J_B)) {family_page=0u;draw_choice();continue;}
       if(joy_pressed & (J_A|J_START)) {
@@ -173,7 +205,7 @@ void family_begin(void) BANKED {
         family_page=1u;draw_choice();continue;
       }
       if(!family_page) continue;
-      heir_tick(); n=heir_draw(0u,80,48);
+      heir_tick(); n=heir_draw(0u,144,54);
       for(k=n;k!=40u;k++) move_sprite(k,0,0);
     }
     eg_family_choose(&family,family_cur); write_family(); fade_to(8u,0u); HIDE_SPRITES;

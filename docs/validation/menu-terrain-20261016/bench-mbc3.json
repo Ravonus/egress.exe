@@ -1,0 +1,26 @@
+{
+  "sha256": "d38616c07410e9dd7d13c55f6c1ed69996072c9fb2d08f8b77125c78ac092db0",
+  "results": {
+    "real_ingredients_picked": true,
+    "bag_has_native_item_icons": true,
+    "combination_scene_plays": true,
+    "ingredients_contact_react_and_reveal": true,
+    "ingredients_remain_until_reaction_finishes": true,
+    "craft_consumes_exactly_two_units": true,
+    "bench_closes_and_restores_hud": true,
+    "bench_restores_meter_tiles_and_palettes": true
+  },
+  "phases": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "scene_frames": 90,
+  "icons": [
+    115,
+    113
+  ],
+  "log": []
+}

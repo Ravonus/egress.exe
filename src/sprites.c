@@ -18,6 +18,8 @@
 #include "core/eg_move.h"
 #include "gen/diag_arc.inc"
 extern eg_mover_t pmv;
+extern volatile uint8_t video_epoch;
+extern uint8_t frame_epoch;
 
 uint8_t oam_n, oam_cap = 40u, oam_spin, oam_refused;
 static uint8_t oam_last, was_busy;
@@ -548,7 +550,10 @@ void draw_sprites(void) BANKED {
   heir_tick();
   if ((pl_state!=PS_FALL || pl_t<24u) && (!pl_hp || !(pl_inv && (pl_inv & 4u)) || pl_state == PS_HURT || ha_state == HA_SPAWN)) {
     /* heir_draw writes hardware OAM coordinates; its X already includes the hardware's 8-pixel bias. */
-    oam_n = (uint8_t)(oam_n + heir_draw(oam_n, (int16_t)pl_x-cam_x, (int16_t)pl_y-7-cam_y-pl_z));
+    /* heir_draw accepts hardware Y (the LCD subtracts 16). With the WEAR
+     * layer at +6, +1 puts the feet at centre+6, on the 12x12 footprint.
+     * The old -7 lifted the entire character eight pixels off its collider. */
+    oam_n = (uint8_t)(oam_n + heir_draw(oam_n, (int16_t)pl_x-cam_x, (int16_t)pl_y+1-cam_y-pl_z));
     oam_count(0);
   }
   /* OP_WEAPON: aim and arc share all eight directions. */
@@ -616,7 +621,7 @@ void draw_sprites(void) BANKED {
       if (p->t) {
         p->t--;
         py = (int16_t)p->y - (int16_t)((14u - p->t) >> 2);
-        if(quota && !(LY_REG>=118u && LY_REG<144u)) {
+        if(quota && video_epoch==frame_epoch && !(LY_REG>=88u && LY_REG<144u)) {
           spr8((int16_t)p->x, py, p->tile, p->pal);
           quota--;
         }

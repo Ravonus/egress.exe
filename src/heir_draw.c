@@ -9,7 +9,7 @@
 #include "mapper.h"
 #include "heir.h"
 
-static uint8_t buf[128];
+uint8_t heir_pixels[128];
 static uint8_t want[7], nwant; /* six selected slots and a sentinel */
 static uint8_t chunk_bank[HEIR_CHUNKS];
 static volatile uint8_t up_pending, up_tile;
@@ -37,6 +37,26 @@ static void copy128(void *dst,const void *src) NONBANKED NAKED {
   __endasm;
 }
 
+/* Sprite buffers start at tile 0 or 8: their 128 bytes never cross a page.
+ * The VBlank upload can use byte increments, saving 512 CPU cycles. */
+static void upload128(void *dst,const void *src) NONBANKED NAKED {
+  dst;src;
+  __asm
+    ld h,b
+    ld l,c
+    ld b,#16
+  1$:
+    .rept 8
+      ld a,(hl+)
+      ld (de),a
+      inc e
+    .endm
+    dec b
+    jr nz,1$
+    ret
+  __endasm;
+}
+
 /* ap_n patches from ap_p into buf: per patch (row, mask, plane 0, plane 1) -> buf[row * 2 + 0/1] = (b & ~mask) | p.
  * Hand-written: SDCC's loop costs ~6x this. Leaves ap_p past the patches. */
 static void apply_patches(void) NAKED {
@@ -50,9 +70,9 @@ static void apply_patches(void) NAKED {
   1$:
     ld a, (hl+)
     add a, a
-    add a, #<_buf
+    add a, #<_heir_pixels
     ld e, a
-    ld a, #>_buf
+    ld a, #>_heir_pixels
     adc a, #0
     ld d, a
     ld a, (hl+)
@@ -148,7 +168,7 @@ static void heir_vbl(void) NONBANKED {
   if (!up_pending) return;
   v = VBK_REG;
   VBK_REG = 0;
-  copy128((uint8_t *)(0x8000u + ((uint16_t)up_tile << 4)),buf);
+  upload128((uint8_t *)(0x8000u + ((uint16_t)up_tile << 4)),heir_pixels);
   VBK_REG = v;
   up_pending = 0;
 }
@@ -199,7 +219,7 @@ uint8_t heir_compose(uint8_t pose, uint8_t dd, uint8_t tile0) NONBANKED {
     if (!(LCDC_REG & LCDCF_ON)) {
       k = VBK_REG;
       VBK_REG = 0;
-      copy128((uint8_t *)(0x8000u + ((uint16_t)up_tile << 4)),buf);
+      copy128((uint8_t *)(0x8000u + ((uint16_t)up_tile << 4)),heir_pixels);
       VBK_REG = k;
       up_pending = 0;
     }
@@ -210,7 +230,7 @@ uint8_t heir_compose(uint8_t pose, uint8_t dd, uint8_t tile0) NONBANKED {
   EG_ROM_BANK(chunk_bank[r.chunk]);
   p = heir_chunk_ptr[r.chunk] + (uint16_t)(r.lo | ((uint16_t)r.hi << 8));
   delta_mask = *p++; /* a selected delta may draw into an initially empty sprite */
-  copy128(buf,p);
+  copy128(heir_pixels,p);
   p += 128u;
   ap_p=p;
   mask=compose_deltas();

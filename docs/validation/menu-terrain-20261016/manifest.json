@@ -1,0 +1,78 @@
+{
+  "sourceCommit": "511d90faae6c5af190604ffb789840c89c71dd48",
+  "pullRequest": "https://github.com/Ravonus/egress.exe/pull/2",
+  "status": "validated candidate; deployment pending",
+  "roms": {
+    "standard": {
+      "sha256": "6840760b170f3be198f3d609d1d8e61f71e9fdd299b936c2dbf1a813c8edc76e",
+      "bytes": 1228800,
+      "mapper": "MBC5 + RAM + battery"
+    },
+    "rtc": {
+      "sha256": "d38616c07410e9dd7d13c55f6c1ed69996072c9fb2d08f8b77125c78ac092db0",
+      "bytes": 1228800,
+      "mapper": "MBC3 + RTC + RAM + battery"
+    }
+  },
+  "fullNativeGate": {
+    "command": "make -j1 test",
+    "exitCode": 0,
+    "logSha256": "d2adf3667b47a22bdc93811b0c163bb1c0eecb4ff5bd234a9438f4bd6ed5e2c2",
+    "generatedRoomChecks": 10724,
+    "bakedRooms": 768,
+    "plannerRuns": 1000,
+    "inputChecks": 2100640
+  },
+  "worldReplays": {
+    "cases": 42,
+    "minimumUpdatesPer120Displays": 120,
+    "maximumStreamWaitFrames": 9,
+    "maximumOamPerLine": 10
+  },
+  "survivalCombat": {
+    "levels": [
+      0,
+      5,
+      10
+    ],
+    "mappers": [
+      "mbc5",
+      "mbc3"
+    ],
+    "completedUpdatesPer120Vblanks": 120,
+    "lateCompletions": 0,
+    "maxSimultaneousMobs": 3,
+    "killsByDifficulty": [
+      3,
+      9,
+      26
+    ]
+  },
+  "browser": {
+    "viewportWidths": [
+      1280,
+      768,
+      390,
+      320
+    ],
+    "exactDownloadsAndEmulatorRom": true,
+    "realFloorPickupsAndCrafting": true,
+    "mergePhases": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "nativePortraitReference": true,
+    "legacyGenomeCarryover": true
+  },
+  "websiteValidation": {
+    "unitTests": 33,
+    "typecheck": true,
+    "assetCheck": true,
+    "staticBuild": true
+  },
+  "scope": "Ten-floor office development cartridge and quiet generated worlds. Full campaign milestones remain in docs/SPRINTS.md. No physical cartridge was written.",
+  "sourceInputsUnchanged": true,
+  "preservedSiteFiles": 65
+}

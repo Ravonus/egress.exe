@@ -24,6 +24,7 @@
 #include "tutorial.h"
 #include "world.h"
 #include "world_play.h"
+#include "ui.h"
 void sprites_budget(void) NONBANKED;
 
 uint8_t tokens, keys_held, door_open, board_busy, cam_x, cam_y;
@@ -39,14 +40,14 @@ static void controls_pause(void) {
   cam_y=pl_y>40u ? (uint8_t)(pl_y-40u) : 0u;
   if(cam_y>144u) cam_y=144u;
   move_bkg(BG_SCROLL_X(cam_x),BG_SCROLL_Y(cam_y));
-  clear_map(1,LOOK_PAL_HUD);
-  text_at(1,0,0,"A HIT / HOLD CHARGE",LOOK_PAL_HUD);
-  text_at(1,0,1,"B SHOT / HOLD CHARGE",LOOK_PAL_HUD);
-  text_at(1,0,2,"A>B COUNTER B>A RUSH",LOOK_PAL_HUD);
-  text_at(1,0,3,"DIR x2 DODGE/STEP",LOOK_PAL_HUD);
-  text_at(1,0,4,"HOLD DIR TO RUN",LOOK_PAL_HUD);
-  text_at(1,0,5,"SELECT BENCH/TOOLS",LOOK_PAL_HUD);
-  text_at(1,0,7,"START/B RESUME",LOOK_PAL_HUD);
+  ui_load();clear_map(1,LOOK_PAL_HUD);ui_frame(1u,0u,0u,20u,8u,LOOK_PAL_HUD);
+  text_at(1,6,0,"PAUSED",LOOK_PAL_HUD);
+  text_at(1,1,1,"A HIT   B SHOT",LOOK_PAL_HUD);
+  text_at(1,1,2,"HOLD EITHER: CHARGE",LOOK_PAL_HUD);
+  text_at(1,1,3,"A>B PARRY B>A RUSH",LOOK_PAL_HUD);
+  text_at(1,1,4,"DIR x2 EVADE / RUN",LOOK_PAL_HUD);
+  text_at(1,1,5,"SELECT BENCH/TOOLS",LOOK_PAL_HUD);
+  text_at(1,2,7,"START / B RESUME",LOOK_PAL_HUD);
   hud_line=80u;move_win(7,80);
   while(1) {
     frame_wait();look_tick();flush_cells(8u);sound_tick();draw_sprites();input_poll();
@@ -358,11 +359,15 @@ static uint8_t floor_play(void) {
     stage_tick(); /* B2 */
     puzzle_tick(); /* B1: fragile floor, the beat, the dead-room hint */
     obstacle_tick();
-    enemies_update();
-    orbs_update();
-    if (!--grav_t) {
-      grav_t = GRAVITY_FRAMES;
-      gravity_tick();
+    /* An impact starts hitstop immediately. Publish the new hit/pose below,
+     * rather than moving every live actor once more before the frozen ticks. */
+    if(!freeze) {
+      enemies_update();
+      if(!freeze)orbs_update();
+      if (!freeze && !--grav_t) {
+        grav_t = GRAVITY_FRAMES;
+        gravity_tick();
+      }
     }
     if (door_open && cell_at(pl_x, pl_y) == room.door) {
       pl_state = PS_EXIT;

@@ -18,6 +18,8 @@ int main(void) {
       assert(kids[k].dodge[0]<3 && kids[k].dodge[1]<3 && eg_gene_dodge(&kids[k])<3);
       for(j=0;j<G_STATS;j++) assert(kids[k].stat[j]<4);
       assert(kids[k].look[G_PATTERN]!=(kids[(k+1)%3].look[G_PATTERN]));
+      assert(kids[k].look[G_LOOK]!=kids[(k+1)%3].look[G_LOOK]);
+      assert(kids[k].look[G_HAIR]!=kids[(k+1)%3].look[G_HAIR]);
       traits+=kids[k].traits[0]!=0;
     }
     variants+=kids[0].weapon[0]!=kids[1].weapon[0] || kids[1].weapon[0]!=kids[2].weapon[0];

@@ -5,6 +5,9 @@
 #include <gb/gb.h>
 #include <stdint.h>
 #include "gen/heir_gen.h"
+/* Canonical composed pose in WRAM, also used by native menu portraits.
+ * Reading sprite VRAM while the LCD is active is not portable to hardware. */
+extern uint8_t heir_pixels[128];
 #include "core/eg_idle.h"
 
 typedef struct {

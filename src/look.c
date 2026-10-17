@@ -25,7 +25,8 @@ uint8_t look_dbg_cell, look_dbg_kind;
 
 static uint8_t queued[EG_N / 8u],in_flight[EG_N/8u];
 static uint8_t q[256], q_head, q_n; /* the wave: cells in order, a ring */
-static uint8_t roam_hidden[EG_N/8u],roam_on,roam_scan,roam_left,roam_x,roam_y;
+uint8_t roam_hidden[EG_N/8u];
+static uint8_t roam_on,roam_scan,roam_left,roam_x,roam_y,near_cursor;
 static uint8_t roam_late,prep_cursor;
 static int8_t roam_dx,roam_dy;
 
@@ -242,7 +243,7 @@ void look_raise_cell(uint8_t i) BANKED {
 
 void look_roam_begin(uint8_t enabled) BANKED {
   uint8_t i;
-  roam_on=enabled;roam_scan=0u;roam_left=EG_N;roam_x=pl_x;roam_y=pl_y;roam_dx=roam_dy=0;
+  roam_on=enabled;roam_scan=near_cursor=0u;roam_left=EG_N;roam_x=pl_x;roam_y=pl_y;roam_dx=roam_dy=0;
   memset(roam_hidden,0,sizeof roam_hidden);
   if(!enabled) return;
   for(i=0u;i!=EG_N;i++) if(!on_screen(i) && !look_void_cell(i) && cell_type(i)!=T_PIT) {
@@ -255,6 +256,10 @@ static uint8_t roam_pending(uint8_t i) {
 }
 static uint8_t roam_wants(uint8_t i) {
   uint8_t x=(uint8_t)(EG_X(i)<<4),y=(uint8_t)(EG_Y(i)<<4);
+  int8_t dx=(int8_t)EG_X(i)-(int8_t)(pl_x>>4),dy=(int8_t)EG_Y(i)-(int8_t)(pl_y>>4);
+  if(dx>=-5 && dx<=5 && dy>=-5 && dy<=5 &&
+     ((roam_dx>0 && dx>=0) || (roam_dx<0 && dx<=0) ||
+      (roam_dy>0 && dy>=0) || (roam_dy<0 && dy<=0)))return 1u;
   if(absdiff(EG_X(i),pl_x>>4)<=3u && absdiff(EG_Y(i),pl_y>>4)<=3u) return 1u;
   if(!on_screen(i)) return 0u;
   if(roam_dx>0 && (uint16_t)x+16u<=(uint16_t)cam_x+16u) return 0u;
@@ -282,26 +287,33 @@ void look_roam_tick(void) BANKED {
   dy=pl_y>roam_y ? 1 : pl_y<roam_y ? -1 : 0;
   if(dx || dy) {roam_dx=dx;roam_dy=dy;roam_left=EG_N;}
   roam_x=pl_x;roam_y=pl_y;
-  if(world_on && (video_epoch!=frame_epoch || (LY_REG>=80u && LY_REG<144u)))return;
+  if((world_on || enemies_alive) && (video_epoch!=frame_epoch || (LY_REG>=80u && LY_REG<144u)))return;
   if(dx && dy) {
-    roam_ahead((int16_t)(pl_x>>4)+dx*3,(int16_t)(pl_y>>4)+dy*2);
-    roam_ahead((int16_t)(pl_x>>4)+dx*2,(int16_t)(pl_y>>4)+dy*3);
-    roam_ahead((int16_t)(pl_x>>4)+dx*3,(int16_t)(pl_y>>4)+dy*3);
+    roam_ahead((int16_t)(pl_x>>4)+dx*4,(int16_t)(pl_y>>4)+dy*3);
+    roam_ahead((int16_t)(pl_x>>4)+dx*3,(int16_t)(pl_y>>4)+dy*4);
+    roam_ahead((int16_t)(pl_x>>4)+dx*4,(int16_t)(pl_y>>4)+dy*4);
   } else if(dx) {
-    roam_ahead((int16_t)(pl_x>>4)+dx*3,(int16_t)(pl_y>>4)-1);
-    roam_ahead((int16_t)(pl_x>>4)+dx*3,(int16_t)(pl_y>>4)+1);
-    roam_ahead((int16_t)(pl_x>>4)+dx*3,pl_y>>4);
+    roam_ahead((int16_t)(pl_x>>4)+dx*4,(int16_t)(pl_y>>4)-2);
+    roam_ahead((int16_t)(pl_x>>4)+dx*4,(int16_t)(pl_y>>4)+2);
+    roam_ahead((int16_t)(pl_x>>4)+dx*4,(int16_t)(pl_y>>4)-1);
+    roam_ahead((int16_t)(pl_x>>4)+dx*4,(int16_t)(pl_y>>4)+1);
+    roam_ahead((int16_t)(pl_x>>4)+dx*4,pl_y>>4);
   } else if(dy) {
-    roam_ahead((int16_t)(pl_x>>4)-1,(int16_t)(pl_y>>4)+dy*3);
-    roam_ahead((int16_t)(pl_x>>4)+1,(int16_t)(pl_y>>4)+dy*3);
-    roam_ahead(pl_x>>4,(int16_t)(pl_y>>4)+dy*3);
+    roam_ahead((int16_t)(pl_x>>4)-2,(int16_t)(pl_y>>4)+dy*4);
+    roam_ahead((int16_t)(pl_x>>4)+2,(int16_t)(pl_y>>4)+dy*4);
+    roam_ahead((int16_t)(pl_x>>4)-1,(int16_t)(pl_y>>4)+dy*4);
+    roam_ahead((int16_t)(pl_x>>4)+1,(int16_t)(pl_y>>4)+dy*4);
+    roam_ahead(pl_x>>4,(int16_t)(pl_y>>4)+dy*4);
   }
   if(LY_REG>=(enemies_alive ? 48u : 80u) && LY_REG<144u) return;
   /* Bounded inspection, never a whole-room scan during a game frame. */
-  probes=2u;
+  probes=enemies_alive ? 2u : 6u;
   /* Backpressure pauses inspection instead of permanently skipping a slab
    * while the flight queue is full. Urgent approaching floor is independent. */
   for(k=0u;k!=probes && roam_left && (uint8_t)(q_n+n_flying)<12u;k++) {
+    /* A probe can touch a banked structure. Recheck the deadline inside the
+     * scan instead of admitting six probes on its final available line. */
+    if(video_epoch!=frame_epoch || (LY_REG>=(enemies_alive ? 48u : 64u) && LY_REG<144u))break;
     roam_left--;
     i=roam_scan;if(++roam_scan==EG_N) roam_scan=0u;
     if(look_void_cell(i) || cell_type(i)==T_PIT || roam_pending(i)) continue;
@@ -880,19 +892,45 @@ void look_anchor(uint8_t i) BANKED {
   if(EG_X(i)) mark((uint8_t)(i-1u));
   if(EG_X(i)<EG_W-1u) mark((uint8_t)(i+1u));
 }
-static uint8_t ground_ahead(void) {
-  uint8_t i=cell_at(pl_x,pl_y);
-  int16_t x=(int16_t)(pl_x>>4)+roam_dx,y=(int16_t)(pl_y>>4)+roam_dy;
-  if(look_here(i) || !(roam_hidden[i>>3]&BIT(i))) {
-    if((uint16_t)x>=EG_W || (uint16_t)y>=EG_H) return 0u;
-    i=EG_IDX(x,y);
-    if(look_here(i) || !(roam_hidden[i>>3]&BIT(i))) return 0u;
-  }
-  /* A fast approach lands the slab before collision can carry the feet onto
-   * it. Only camera-owned presentation is affected, never conditional floor. */
-  look_anchor(i);
-  return 1u;
+static uint8_t anchor_at(uint8_t x,uint8_t y) {
+  uint8_t i;
+  if(x>=EG_W || y>=EG_H)return 0u;
+  i=EG_IDX(x,y);
+  if(look_here(i) || !(roam_hidden[i>>3]&BIT(i)))return 0u;
+  look_anchor(i);return 1u;
 }
+static uint8_t ground_ahead(void) {
+  static const int8_t near_x[16]={0,1,-1,0,2,2,2,1,0,-1,-2,-2,-2,-1,0,1};
+  static const int8_t near_y[16]={-1,0,0,1,-1,0,1,2,2,2,1,0,-1,-2,-2,-2};
+  int16_t x=pl_x,y=pl_y;int8_t dx=0,dy=0;uint8_t n=0u,k,c,x0,x1,y0,y1;
+  /* A blink travels at most 6.5px/tick. Prepare a 14px swept lead plus the
+   * complete 12x12 foot box, including diagonal corners and released rolls. */
+  if(pl_state==PS_ROLL) {dx=roll_dx;dy=roll_dy;}
+  else {
+    if((joy&(J_LEFT|J_RIGHT))!= (J_LEFT|J_RIGHT))dx=joy&J_RIGHT ? 1 : joy&J_LEFT ? -1 : 0;
+    if((joy&(J_UP|J_DOWN))!= (J_UP|J_DOWN))dy=joy&J_DOWN ? 1 : joy&J_UP ? -1 : 0;
+  }
+  x+=dx*14;y+=dy*14;
+  x0=(uint8_t)((x-6)>>4);x1=(uint8_t)((x+5)>>4);
+  y0=(uint8_t)((y-6)>>4);y1=(uint8_t)((y+5)>>4);
+  n+=anchor_at(x0,y0);
+  if(n<2u && x1!=x0)n+=anchor_at(x1,y0);
+  if(n<2u && y1!=y0)n+=anchor_at(x0,y1);
+  if(n<2u && y1!=y0 && x1!=x0)n+=anchor_at(x1,y1);
+  /* The previous footprint is already protected by mstep. Do not probe its
+   * same four cells again, or spend a second cosmetic commit after a repair. */
+  if(n || video_epoch!=frame_epoch)return n;
+  if(enemies_alive>=2u && (pl_state==PS_LASH || pl_state==PS_SPIN))return n;
+  if(LY_REG<144u && LY_REG>=(world_on ? 24u : 32u))return 0u;
+  /* Nearby structures settle before contact instead of waiting behind the
+   * whole-room cosmetic scan. Four probes and one cosmetic commit at most. */
+  for(k=0u;k<4u && !n;k++) {
+    c=near_cursor;if(++near_cursor==16u)near_cursor=0u;
+    n+=anchor_at((int16_t)(pl_x>>4)+near_x[c],(int16_t)(pl_y>>4)+near_y[c]);
+  }
+  return n;
+}
+
 void look_frame_begin(void) BANKED {
   uint8_t k;
   if (!on) return;
@@ -1005,5 +1043,11 @@ static void look_update(uint8_t prepare) {
   look_busy_n = (uint8_t)(q_n + n_flying);
 }
 
-void look_frame_end(void) BANKED {roam_late=1u;look_update(0u);}
+void look_frame_end(void) BANKED {
+  roam_late=1u;
+  /* Actors already hide the late card slots. Keep their animation/queue
+   * state intact when only the VBlank publication margin remains. */
+  if(roam_on && (video_epoch!=frame_epoch || (LY_REG>=108u && LY_REG<144u)))return;
+  look_update(0u);
+}
 void look_tick(void) BANKED {roam_late=0u;look_frame_begin();look_update(0u);}

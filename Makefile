@@ -31,6 +31,7 @@ SRC += src/gen/world_art.c
 SRC += src/world.c src/core/eg_land.c src/core/eg_land_bind.c
 SRC += src/world_dead.c src/core/eg_land_dead.c
 SRC += src/world_play.c
+SRC += src/ui.c
 SRC += src/core/eg_family.c
 SRC += src/items.c
 SRC += src/core/eg_combat.c src/core/eg_stamina.c src/stamina.c
@@ -58,6 +59,10 @@ ifeq ($(ROM_$(MAPPER)),)
 $(error MAPPER must be mbc5 or mbc3)
 endif
 CFLAGS := -c -Isrc -Wf--Werror -Wf--disable-warning -Wf110 -Wf--disable-warning -Wf126
+# Native simulation/rendering spends the frame budget here. Prefer SDCC's
+# faster instruction choices; generated art/data keep their normal build.
+HOT_SRC := play player actors grid mob mob_draw sprites look stage fx heir hud puzzle world_play core/eg_input core/eg_move core/eg_combat core/eg_stamina
+$(addprefix build/obj/,$(addsuffix .o,$(HOT_SRC))): CFLAGS += -Wf--opt-code-speed
 # RAM + battery, CGB only, 2 MiB declared (trimmed afterwards), 8 KiB SRAM declared on both mappers. Autobank stops at
 # bank 114: bank 115 would end past the 1,900,000-byte gate. MBC3 addresses 128 banks of 16 KiB, so the same gate holds.
 LDFLAGS := -Wm-yC -Wm-ya1 -Wm-yo128 -autobank -Wb-ext=.rel -Wb-max=114 -Wl-j -Wl-m
@@ -519,6 +524,12 @@ test-island-edges: build/host/test_edges
 	build/host/test_edges
 
 test-runtime: all test-runtime-core
+	$(PY) test/harness/waves.py build/egress.gbc build/sprints/waves-mbc5
+	$(PY) test/harness/waves.py build/egress-rtc.gbc build/sprints/waves-mbc3
+	$(PY) test/harness/picker_collision.py build/egress.gbc build/sprints/picker-collision-mbc5
+	$(PY) test/harness/picker_collision.py build/egress-rtc.gbc build/sprints/picker-collision-mbc3
+	$(PY) test/harness/terrain_boundary.py build/egress.gbc build/sprints/terrain-boundary-mbc5
+	$(PY) test/harness/terrain_boundary.py build/egress-rtc.gbc build/sprints/terrain-boundary-mbc3
 	$(PY) test/harness/menu.py build/egress.gbc build/sprints/menu-mbc5
 	$(PY) test/harness/menu.py build/egress-rtc.gbc build/sprints/menu-mbc3
 	$(PY) test/harness/stamina.py build/egress.gbc build/sprints/stamina-mbc5
@@ -537,6 +548,7 @@ test-runtime: all test-runtime-core
 	$(PY) test/harness/voice_game.py build/egress-rtc.gbc build/sprints/voice-mbc3
 	$(PY) test/harness/seated.py build/egress.gbc build/sprints/seated-native
 	$(PY) test/harness/bench_scene.py build/egress.gbc build/sprints/bench-native
+	$(PY) test/harness/bench_scene.py build/egress-rtc.gbc build/sprints/bench-native-rtc
 
 test-gameplay: build/egress.gbc build/egress-rtc.gbc build/host/egtool
 	$(PY) test/harness/gameplay_rebuild.py build/egress.gbc build/gameplay-rebuild/native

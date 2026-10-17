@@ -1,0 +1,506 @@
+[
+  {
+    "mapper": "mbc3",
+    "seed": 24557,
+    "size": [
+      24,
+      14
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 8,
+    "solved": true
+  },
+  {
+    "mapper": "mbc3",
+    "seed": 24557,
+    "size": [
+      24,
+      14
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 8,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 24557,
+    "size": [
+      32,
+      14
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 20736,
+    "size": [
+      28,
+      18
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 8,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 20745,
+    "size": [
+      36,
+      18
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 20739,
+    "size": [
+      52,
+      26
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 20740,
+    "size": [
+      92,
+      38
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 9,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 20764,
+    "size": [
+      100,
+      50
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 20743,
+    "size": [
+      56,
+      34
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 20738,
+    "size": [
+      104,
+      54
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 9,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 20776,
+    "size": [
+      92,
+      34
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 20737,
+    "size": [
+      44,
+      18
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 1,
+    "oam_max": 9,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 20741,
+    "size": [
+      128,
+      46
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 9,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 20742,
+    "size": [
+      92,
+      34
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc3",
+    "seed": 24557,
+    "size": [
+      24,
+      14
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc3",
+    "seed": 24557,
+    "size": [
+      24,
+      14
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc3",
+    "seed": 24557,
+    "size": [
+      32,
+      14
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 9,
+    "solved": true
+  },
+  {
+    "mapper": "mbc3",
+    "seed": 20736,
+    "size": [
+      28,
+      18
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc3",
+    "seed": 20745,
+    "size": [
+      36,
+      18
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc3",
+    "seed": 20739,
+    "size": [
+      52,
+      26
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc3",
+    "seed": 20740,
+    "size": [
+      92,
+      38
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc3",
+    "seed": 20764,
+    "size": [
+      100,
+      50
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc3",
+    "seed": 20743,
+    "size": [
+      56,
+      34
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc3",
+    "seed": 20738,
+    "size": [
+      104,
+      54
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 8,
+    "solved": true
+  },
+  {
+    "mapper": "mbc3",
+    "seed": 20776,
+    "size": [
+      92,
+      34
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc3",
+    "seed": 20737,
+    "size": [
+      44,
+      18
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 1,
+    "oam_max": 8,
+    "solved": true
+  },
+  {
+    "mapper": "mbc3",
+    "seed": 20741,
+    "size": [
+      128,
+      46
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 9,
+    "oam_max": 8,
+    "solved": true
+  },
+  {
+    "mapper": "mbc3",
+    "seed": 20742,
+    "size": [
+      92,
+      34
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 8,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 24557,
+    "size": [
+      16,
+      14
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 9,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 24557,
+    "size": [
+      24,
+      14
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 24557,
+    "size": [
+      24,
+      14
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 24557,
+    "size": [
+      24,
+      14
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 24557,
+    "size": [
+      24,
+      14
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc3",
+    "seed": 24557,
+    "size": [
+      24,
+      14
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc3",
+    "seed": 24557,
+    "size": [
+      24,
+      14
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 8,
+    "solved": true
+  },
+  {
+    "mapper": "mbc3",
+    "seed": 24557,
+    "size": [
+      24,
+      14
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 8,
+    "solved": true
+  },
+  {
+    "mapper": "mbc3",
+    "seed": 24557,
+    "size": [
+      24,
+      14
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc3",
+    "seed": 24557,
+    "size": [
+      16,
+      14
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 9,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 24557,
+    "size": [
+      24,
+      14
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 24557,
+    "size": [
+      24,
+      14
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 24557,
+    "size": [
+      24,
+      14
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  },
+  {
+    "mapper": "mbc5",
+    "seed": 24557,
+    "size": [
+      24,
+      14
+    ],
+    "updates_per_120": 120,
+    "max_stream_wait": 0,
+    "oam_max": 10,
+    "solved": true
+  }
+]
