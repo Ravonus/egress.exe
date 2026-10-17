@@ -209,3 +209,7 @@ hints and finite inventory icons. Survival encounters now require defeating fini
 escalating waves, with replenishment and later enemy roles instead of standing in
 a ring. The release evidence is in `validation/menu-terrain-20261016`.
 This checkpoint does not mark the full campaign or the remaining milestones complete.
+
+## Native menus, crafting and survival release
+
+The framed menus and distinct inherited portrait cards, corrected feet/tile boundaries, ahead-of-motion terrain preparation, visible finite-inventory bench merge and escalating enemy survival waves are merged and published. Both mapper images passed the complete native regression, real-input wave combat and world frame gates. The live website fetched those exact ROM bytes, preserved a legacy family/genome and crafted using real pickups. See `validation/menu-terrain-20261016/site-release.json`. This release does not complete the campaign ledger above.

@@ -1,7 +1,7 @@
 {
   "sourceCommit": "511d90faae6c5af190604ffb789840c89c71dd48",
   "pullRequest": "https://github.com/Ravonus/egress.exe/pull/2",
-  "status": "validated candidate; deployment pending",
+  "status": "merged and deployed; exact public ROMs and live browser verified",
   "roms": {
     "standard": {
       "sha256": "6840760b170f3be198f3d609d1d8e61f71e9fdd299b936c2dbf1a813c8edc76e",
@@ -74,5 +74,9 @@
   },
   "scope": "Ten-floor office development cartridge and quiet generated worlds. Full campaign milestones remain in docs/SPRINTS.md. No physical cartridge was written.",
   "sourceInputsUnchanged": true,
-  "preservedSiteFiles": 65
+  "preservedSiteFiles": 65,
+  "mergeCommit": "82f5ef395fe7e7101aa9025da7abdc2d79ba061b",
+  "site": "https://egress.onkeel.io",
+  "siteCommit": "f7c5ccb82653a235ff968d20f89a23782dd72d03",
+  "deploymentEvidence": "site-release.json"
 }

@@ -80,3 +80,5 @@ without a skipped update; those raw samples are preserved as diagnostics. All si
 level/mapper cases require 120 completed updates over exactly 120 VBlanks and zero
 late completions. Existing camera/world timing and presentation checks remain
 separate release gates.
+
+Merged through PR #2 and published at https://egress.onkeel.io. Both ROM downloads and all 27 changed static files were read back by SHA-256. The live browser repeated actual pickup/crafting, inherited portrait, legacy family-save and four-width download/layout checks. See `site-release.json` and the `*-live.json` reports. The separate site repository has no remote; its scoped release commit preserves all 65 preexisting modified files. Temporary validation checkouts and the merged task branch were removed.
