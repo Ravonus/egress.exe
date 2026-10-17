@@ -16,14 +16,13 @@ uint8_t game_mode;
 uint16_t run_seed;
 uint8_t floor_no;
 uint16_t floor_seed;
-/* Runtime DATA uses seventeen bytes before this module. These fifteen bytes
- * place the pose on a GDMA boundary without adding padding or WRAM use. */
-uint8_t heir_pixels[128];
 uint8_t world_mask_packet[9],world_pre_x[9],world_pre_y[9];
 eg_stage_scratch eg_stage_work;
-uint8_t room_origin_x,room_origin_y,bg_origin_x,bg_origin_y,room_width,room_height;
-
 uint8_t floor_tier;
+/* Existing fields fill the first page after Runtime's seventeen DATA bytes.
+ * Page alignment saves per-patch address arithmetic without adding WRAM. */
+uint8_t heir_pixels[128];
+uint8_t room_origin_x,room_origin_y,bg_origin_x,bg_origin_y,room_width,room_height;
 /* Floor-only state lives in bank 1 above the title's mirrored window. The title
  * never reads it, and leaves bank 1 untouched while using its bank 2 buffers. */
 eg_room __at(0xD800) room;

@@ -6,6 +6,7 @@
 #pragma bank 255
 #include <gb/gb.h>
 #include <gb/cgb.h>
+#include <stddef.h>
 #include "play.h"
 #include "boss_api.h" /* B2 bosses */
 #include "heir.h"
@@ -619,6 +620,136 @@ static void draw_boss(enemy_t *e) {
   spr32(x, y, base, pal);
 }
 
+/* Projectiles retain their full twelve-bit pixel coordinates. The stack packet
+ * avoids spilling each source member and projection through the outer loop. */
+static void draw_orbs(void) NAKED {
+  __asm
+    add sp,#-8
+    ld de,#_orbs
+    ldhl sp,#0
+    ld (hl),e
+    inc hl
+    ld (hl),d
+    inc hl
+    ld (hl),#8
+  1$:
+    ldhl sp,#0
+    ld a,(hl+)
+    ld h,(hl)
+    ld l,a
+    ld a,(hl+)
+    or a,a
+    jp z,8$
+    ld a,(hl)
+    ld b,#4
+    or a,a
+    jr nz,2$
+    inc b
+  2$:
+    inc hl
+    inc hl
+    inc hl
+    ld a,(hl+)
+    ld e,a
+    ld d,(hl)
+    inc hl
+    ld c,l
+    ld a,h
+    ldhl sp,#3
+    ld (hl),b
+    ld b,a
+    .rept 4
+      srl d
+      rr e
+    .endm
+    ld a,e
+    sub a,#4
+    ld e,a
+    ld a,d
+    sbc a,#0
+    ld d,a
+    ld a,e
+    ld hl,#_cam_x
+    sub a,(hl)
+    ld e,a
+    ld a,d
+    sbc a,#0
+    ld d,a
+    ldhl sp,#4
+    ld (hl),e
+    inc hl
+    ld (hl),d
+    ld h,b
+    ld l,c
+    ld a,(hl+)
+    ld e,a
+    ld d,(hl)
+    .rept 4
+      srl d
+      rr e
+    .endm
+    ld a,e
+    sub a,#4
+    ld e,a
+    ld a,d
+    sbc a,#0
+    ld d,a
+    ld a,e
+    ld hl,#_cam_y
+    sub a,(hl)
+    ld e,a
+    ld a,d
+    sbc a,#0
+    ld d,a
+    ldhl sp,#6
+    ld (hl),e
+    inc hl
+    ld (hl),d
+    ldhl sp,#3
+    ld a,(hl)
+    push af
+    inc sp
+    xor a,a
+    push af
+    inc sp
+    ld a,#132
+    push af
+    inc sp
+    ld a,#1
+    push af
+    inc sp
+    ldhl sp,#8
+    ld a,(hl+)
+    ld e,a
+    ld d,(hl)
+    inc hl
+    ld a,(hl+)
+    ld c,a
+    ld b,(hl)
+    call _oam_group
+  8$:
+    ldhl sp,#0
+    ld a,(hl+)
+    ld h,(hl)
+    ld l,a
+    ld de,#10
+    add hl,de
+    ld e,l
+    ld d,h
+    ldhl sp,#0
+    ld (hl),e
+    inc hl
+    ld (hl),d
+    inc hl
+    dec (hl)
+    jp nz,1$
+    add sp,#8
+    ret
+  __endasm;
+}
+typedef char native_orb_draw_layout[(MAXO==8u && sizeof(orb_t)==10u && offsetof(orb_t,live)==0u &&
+  offsetof(orb_t,friendly)==1u && offsetof(orb_t,x)==4u && offsetof(orb_t,y)==6u && ST_ORB==132u) ? 1 : -1];
+
 void draw_sprites(void) BANKED {
   uint8_t k, fr, start;
   int16_t x, y;
@@ -672,12 +803,8 @@ void draw_sprites(void) BANKED {
   if (boss_floor) boss_draw_body();
   else for (k = 0; k != nen; k++)
     if (en[k].kind == SPAWN_BOSS && en[k].st != ES_DEAD) draw_boss(&en[k]);
-  /* OP_SHOT: orbs (pointers, not orbs[k]: SDCC multiplies the index on every access) */
-  if(orbs[0].live|orbs[1].live|orbs[2].live|orbs[3].live|orbs[4].live|orbs[5].live|orbs[6].live|orbs[7].live) {
-    orb_t *o = orbs;
-    for (k = MAXO; k; k--, o++)
-      if (o->live) spr8((int16_t)(o->x >> 4), (int16_t)(o->y >> 4), ST_ORB, o->friendly ? 4u : 5u);
-  }
+  /* OP_SHOT: projectiles keep their priority ahead of mob bodies. */
+  if(orbs[0].live|orbs[1].live|orbs[2].live|orbs[3].live|orbs[4].live|orbs[5].live|orbs[6].live|orbs[7].live)draw_orbs();
   /* OP_MOB: bodies, from a rotating start so a crowded line flickers fairly */
   if (room.nob) obstacle_draw();
   if (nen && !(boss_floor && nen == 1u)) {

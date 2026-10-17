@@ -91,7 +91,7 @@ static uint8_t read_pose(void) NAKED {
     .rept 8
       ld a,(hl+)
       ld (de),a
-      inc de
+      inc e
     .endm
     dec b
     jr nz,2$

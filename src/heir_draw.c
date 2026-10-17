@@ -33,7 +33,7 @@ static void copy128(void *dst,const void *src) NONBANKED NAKED {
     .rept 8
       ld a,(hl+)
       ld (de),a
-      inc de
+      inc e
     .endm
     dec b
     jr nz,1$
@@ -71,14 +71,11 @@ static void apply_patches(void) NAKED {
     ld a, (hl+)
     ld h, (hl)
     ld l, a
+    ld d,#>_heir_pixels
   1$:
     ld a, (hl+)
     add a, a
-    add a, #<_heir_pixels
     ld e, a
-    ld a, #>_heir_pixels
-    adc a, #0
-    ld d, a
     ld a, (hl+)
     cpl
     ld b, a
@@ -87,7 +84,7 @@ static void apply_patches(void) NAKED {
     or a, (hl)
     inc hl
     ld (de), a
-    inc de
+    inc e
     ld a, (de)
     and a, b
     or a, (hl)

@@ -11,11 +11,12 @@ def signed(v):
 
 
 class OamObserver:
-    def __init__(self,g):
+    def __init__(self,g,register=True):
         self.g=g;self.calls=Counter();self.errors=[];self.pending=None;self.returns=set()
         # band follows oam_n/spin/refused/last/was_busy in the module's DATA.
         self.band=g.addr('oam_n')+5
-        a=g.sym['_oam_group'];g.pb.hook_register(a>>16,a&65535,self.enter,None)
+        if register:
+            a=g.sym['_oam_group'];g.pb.hook_register(a>>16,a&65535,self.enter,None)
 
     def enter(self,_):
         g=self.g;m=g.pb.memory;r=g.pb.register_file;sp=r.SP
