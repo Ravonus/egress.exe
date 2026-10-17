@@ -13,3 +13,18 @@ Constructor version bits occupy the existing saved slice byte. Journals from the
 The 24-run sample also compares floor-versus-void masks: 22 distinct playable outlines, with 22 nonrectangular footprints. This is separate from changed object placement or map dimensions. The [shape atlas](generated-shape-atlas.png) shows nine actual generated material boards at the same cell scale.
 
 The clean-link object order places main's existing prefix before the fixed upload state, keeping the GDMA pixel buffer page aligned on both mappers without extra WRAM. The full campaign remains in development; this release does not declare all sprints complete.
+
+## Validated release candidate
+
+Tested source: `6241c3d41f103ec5d58c7b29bfda6574b7bddff2`. Full serial `PYTHONUNBUFFERED=1 make -j1 test` passed with zero failures, including the 1,000-run curriculum audit. All 261 source-file hashes and both ROMs still match the frozen candidate. The full raw log is retained in `build/candidates/visible-edges-fresh-runs-20261017/native-full-test.log`; its SHA-256 is in [native-full-gate.json](native-full-gate.json).
+
+| ROM | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Standard MBC5 | 1228800 | `75fe5e766b762445b8d0db40535a826a65135d55de1b8f2a4cbe3ce73c6a1391` |
+| MBC3 + RTC | 1245184 | `5f94ccf9a7af9909fa259a13b82cd562a08ae94d59f18663ecaa1260141c5abe` |
+
+Both mapper versions pass the normal opening fight, puzzle, survival waves and following puzzle through inputs, plus real enemy deaths and new family generations. Both reject seed reuse when abandoning a run and preserve the current map on Continue. Native migration compares the preceding public ROM’s complete opening, survival and spatial maps.
+
+The twelve normal late-floor world routes on each mapper solve without missing bodies, pixel errors, unbuilt foot cells or frame hitches. The maximum recorded seam wait is one frame on either mapper. Both office-camera routes retain visible leading assembly and trailing falls with no unbuilt central cells; generated-opening observers also require both visible effects.
+
+The exact-ROM private browser checks verify advancing sprite buffers, three portraits matching native pixel structure, a real old-save heir carried over unchanged, actual floor pickups merging through four painted phases and finite material consumption, and both ROM downloads on desktop and narrow screens. Prior hashed ROM assets and browser save identities are retained.
