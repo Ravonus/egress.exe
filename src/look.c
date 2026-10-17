@@ -609,6 +609,13 @@ static uint8_t roam_bg_time(void) {
   if(video_epoch!=frame_epoch) return 0u;
   return (uint8_t)(roam_late ? ly<(world_on ? 100u : 80u) : (ly>=144u || ly<40u));
 }
+static uint8_t prepare_time(void) {
+  uint8_t ly=LY_REG;
+  /* A single candidate can include metadata, a cache lookup and a BG commit.
+   * Stop admitting that work early enough for an attack plus wave completion.
+   * Quiet streamed worlds retain their measured wider preparation window. */
+  return (uint8_t)(ly>=144u || ly<(world_on ? 24u : 8u));
+}
 static const int8_t wobble[8] = {1, -1, 1, -1, 1, 0, -1, 0};
 #define WOBBLE_FRAMES 8u
 #define SHATTER_FRAMES 16u
@@ -974,6 +981,7 @@ static void look_update(uint8_t prepare) {
   for (k = 0; k != LOOK_MAX_CARDS; k++)
     if (c_kind[k]) {
       if(prepare) {
+        if(!prepare_time())break;
         if(budget>=1u && !c_brk[k]) {
           if((c_kind[k]<=K_GLITCH && c_t[k]>=(c_kind[k]==K_GLITCH ? 5u : EASE_FRAMES)) ||
              (c_kind[k]==K_CRACK && c_t[k]+1u>=CRACK_FRAMES)) {
@@ -990,7 +998,7 @@ static void look_update(uint8_t prepare) {
     }
   /* the wave: off-screen cells at once, cards on screen as there is room for them */
   scan = prepare ? 4u : 12u;
-  while (q_n && budget >= 2u && scan-- && roam_bg_time() && (!prepare || LY_REG<24u || LY_REG>=144u)) {
+  while (q_n && budget >= 2u && scan-- && roam_bg_time() && (!prepare || prepare_time())) {
     i = q[q_head];
     if(!(queued[i>>3]&BIT(i))) {q_head++;q_n--;continue;}
     if(roam_on && (roam_hidden[i>>3]&BIT(i)) && look_here(i) && roam_wants(i)) {
@@ -1004,7 +1012,7 @@ static void look_update(uint8_t prepare) {
       /* the head, or one of the next few if the head's band is full (the wave keeps its order, roughly) */
       uint8_t j, ii = 0, found = 0;
       if (launches == (prepare ? 2u : 3u)) break;
-      for (j = 0; j != (prepare ? 2u : 4u) && j < q_n && roam_bg_time(); j++) {
+      for (j = 0; j != (prepare ? 2u : 4u) && j < q_n && roam_bg_time() && (!prepare || prepare_time()); j++) {
         ii = q[(uint8_t)(q_head + j)];
         if ((on_screen(ii) || (roam_on && roam_wants(ii))) && look_here(ii) == look_here(i) && launch(ii)) {
           found = 1u;
@@ -1022,12 +1030,12 @@ static void look_update(uint8_t prepare) {
     if(prepare && !budget)break;
   }
   /* skins and stages changed: redraw with what is left of the budget */
-  if (rd_any && budget && roam_bg_time()) {
+  if (rd_any && budget && roam_bg_time() && (!prepare || prepare_time())) {
     /* A queued cell can consume a dirty bit without drawing, so the BG budget
      * alone does not bound this walk. Inspect four bytes / two marked cells
      * at most, retaining the cursor until every pending byte is visited. */
     scan=4u;launches=prepare ? 1u : 2u;
-    while(scan-- && rd_left && budget && roam_bg_time()) {
+    while(scan-- && rd_left && budget && roam_bg_time() && (!prepare || prepare_time())) {
       uint8_t bit=0u;
       k=rd_cursor;
       if(redraw[k]) {
