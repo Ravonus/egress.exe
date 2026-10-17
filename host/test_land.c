@@ -261,6 +261,25 @@ int main(void) {
       if(a.flags&EL_PROTECTED)assert(a.design==EL_FLOOR || a.design==EL_PAD || a.design==EL_RIVER);
     }
   }
+  /* New runs use versioned interior hazards. Replay both finite-resource
+   * strategies through every admitted size/rule, preserving all old plans. */
+  unsigned hazard_plans=0,interior_holes=0,brittle=0;
+  for(unsigned rule=0;rule<EL_RULES;rule++)for(unsigned size=0;size<EL_SIZES;size++)for(unsigned seed=0;seed<16;seed++) {
+    if(!eg_land_plan(&p,(uint16_t)(seed*997u),rule|EL_HAZARDS,size,0))continue;
+    for(unsigned y=1;y<p.height-1;y++)for(unsigned x=1;x<p.width-1;x++) {
+      eg_land_cell a;eg_land_at(&p,x,y,&a);
+      if(EG_ABYSS(a.material)) {
+        eg_land_cell left,right,up,down;eg_land_at(&p,x-1,y,&left);eg_land_at(&p,x+1,y,&right);
+        eg_land_at(&p,x,y-1,&up);eg_land_at(&p,x,y+1,&down);
+        if(EG_PASSABLE(left.material&T_MASK) && EG_PASSABLE(right.material&T_MASK) &&
+           EG_PASSABLE(up.material&T_MASK) && EG_PASSABLE(down.material&T_MASK))interior_holes++;
+      }
+      if((a.material&T_MASK)==T_GLASS || (a.material&T_MASK)==T_CEIL)brittle++;
+    }
+    solve(0);solve(1);hazard_plans++;
+  }
+  assert(hazard_plans && interior_holes && brittle);
+  printf("hazards: %u plans, %u interior holes, %u brittle cells, both resource strategies replayed\n",hazard_plans,interior_holes,brittle);
   for(unsigned i=0;i<6;i++)assert(counts[i]);for(unsigned i=0;i<5;i++)assert(goals[i]);
   for(unsigned i=0;i<4;i++)assert(conds[i] && shapes[i]);for(unsigned i=0;i<EL_DESIGNS;i++)assert(designs[i]);assert(vertical);
   printf("land codec: %u plans, %u finite-resource global replays, %u pushes, %u recipes, %u powered crossings; 6 sizes, 4 shapes, 8 biomes, all conditions and environment families\n",plans,replays,pushes,crafts,portals);

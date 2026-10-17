@@ -392,7 +392,7 @@ def solve_here(g: Game, egtool: Path, log: list[str]) -> str:
 
 
 def room_command(g: Game, egtool: Path, verb: str) -> list[str]:
-    motif = g.peek("slice",22)&63  # eg_deck 16 bytes, six slice fields, physical
+    motif = g.peek("slice",22)&31  # eg_deck 16 bytes, six slice fields, physical
     if motif:
         seed = g.peek16("run_seed") ^ ((g.peek("floor_no") * 0x9e37) & 65535) ^ 0x51a7
         return [str(egtool),"phys-"+verb,str(seed or 1),str(motif),str(g.peek("slice",19))]
@@ -629,7 +629,7 @@ def read_save(sram: bytes) -> dict | None:
     best = None
     for off in (0, 32):
         r = sram[off:off + 22]
-        if r[:3] != b"EG\x01" or crc16(r[:20]) != (r[20] | r[21] << 8):
+        if r[:3] != b"EG\x02" or crc16(r[:20]) != (r[20] | r[21] << 8):
             continue
         m = r[4:20]
         rec = {"gen": r[3], "runs": m[0] | m[1] << 8, "wins": m[2], "best_floor": m[3], "unlocked": m[4],

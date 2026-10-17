@@ -10,10 +10,12 @@
 #include <string.h>
 #include "play.h"
 #include "run.h"
+#include "tutorial.h"
 #include "mapper.h"
 #include "clock.h"
 #include "family.h"
 #include "resume.h"
+#include "save_map.h"
 #include "narrator.h"
 #include "boss_api.h"
 
@@ -48,7 +50,6 @@ uint8_t truth_leader(uint8_t axis) BANKED {
 /* --- the save: two records, CRC-16/CCITT, the newer valid one wins --- */
 #define SAVE_MAGIC0 'E'
 #define SAVE_MAGIC1 'G'
-#define SAVE_VER 1u
 #define SLOT_SIZE 32u
 typedef struct {
   uint8_t magic0, magic1, ver, gen;
@@ -69,7 +70,7 @@ static uint16_t crc16(const uint8_t *p, uint8_t n) {
 }
 
 static uint8_t record_ok(const record_t *r) {
-  return (uint8_t)(r->magic0 == SAVE_MAGIC0 && r->magic1 == SAVE_MAGIC1 && r->ver == SAVE_VER &&
+  return (uint8_t)(r->magic0 == SAVE_MAGIC0 && r->magic1 == SAVE_MAGIC1 && r->ver == SAVE_META_VERSION &&
                    r->crc == crc16((const uint8_t *)r, (uint8_t)(sizeof(record_t) - 2u)));
 }
 
@@ -104,7 +105,7 @@ void save_write(void) BANKED {
   save_gen++;
   r.magic0 = SAVE_MAGIC0;
   r.magic1 = SAVE_MAGIC1;
-  r.ver = SAVE_VER;
+  r.ver = SAVE_META_VERSION;
   r.gen = save_gen;
   r.m = meta;
   r.crc = crc16((const uint8_t *)&r, (uint8_t)(sizeof(record_t) - 2u));
@@ -202,7 +203,7 @@ void run_end(uint8_t won) BANKED {
 }
 
 void run_record_end(uint8_t won) BANKED {
-  if(run_finished) return;
+  if(run_finished || tutorial_on==2u) return;
   run_finished=1u;
   narrator_event(won ? NE_CLEAR : NE_DEATH,0u);
   resume_save(won ? RES_WON : RES_DEAD);

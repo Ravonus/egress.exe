@@ -53,7 +53,7 @@ static void controls_pause(void) {
   text_at(1,2,7,"START / B RESUME",LOOK_PAL_HUD);
   hud_line=80u;move_win(7,80);
   while(1) {
-    frame_wait();look_tick();flush_cells(8u);sound_tick();draw_sprites();input_poll();
+    frame_wait();look_pause_tick();flush_cells(8u);sound_tick();draw_sprites();input_poll();
     if(joy_pressed&(J_START|J_B)) break;
   }
   cam_y=old_y;move_bkg(BG_SCROLL_X(cam_x),BG_SCROLL_Y(cam_y));
@@ -74,7 +74,8 @@ static void floor_build(void) {
   memset(cracked, 0, sizeof cracked);
   memset(orbs, 0, sizeof orbs);
   memset(puffs, 0, sizeof puffs);
-  if (boss_floor) {
+  if(tutorial_on==2u) {boss_floor=0u;tutorial_build();}
+  else if (boss_floor) {
     floor_tier = 5u;
     floor_seed = 0;
     boss_setup(boss_floor, BIOME_OFFICE);
@@ -234,7 +235,11 @@ static void gravity_tick(void) {
 /* look: the room falls into place around the player; nothing moves until it has (the floor's enemies glitch in
  * once it is whole) */
 static void assemble_wait(void) {
-  uint8_t keep = nen, inv = pl_inv, k;
+  uint8_t keep = nen, inv = pl_inv, k,previous_mode=game_mode;
+  /* A manual reset also enters this loading phase from active play. It must
+   * assemble the whole initial view, not inherit the roaming upload deadline
+   * and strand its first cold texture forever. */
+  game_mode=MODE_CLEAR;
   nen = 0;
   pl_inv = 0; /* no blinking while the world arrives */
   while (look_busy()) {
@@ -244,6 +249,7 @@ static void assemble_wait(void) {
     input_poll();
     draw_sprites();
   }
+  game_mode=previous_mode;
   nen = keep;
   pl_inv = inv;
   for (k = 0; k != nen; k++) puff((uint8_t)(en[k].x >> 4), (uint8_t)(en[k].y >> 4), 4u, ST_PUFF);
@@ -254,7 +260,8 @@ static uint8_t floor_play(void) {
   uint8_t end_t = 0,roaming,late,streamed;
   floor_tokens0 = tokens;
   pocket_enter();
-  if(restored_floor) {stage_resume_floor();restored_floor=0u;narrator_event(NE_RETURN,0u);}
+  if(tutorial_on==2u) {}
+  else if(restored_floor) {stage_resume_floor();restored_floor=0u;narrator_event(NE_RETURN,0u);}
   else {
     if (floor_no < RUN_FLOORS) stage_plan_floor(); /* B1, B2: the slot, the stage type, the room */
     if(family.nrecord && !family.history[0].won && family.history[0].floor==floor_no) narrator_event(NE_ANCESTOR,0u);
@@ -294,7 +301,11 @@ static uint8_t floor_play(void) {
     if(streamed) {}
     else if(late) {
       /* Combat renders actors before spending spare time on cosmetic terrain. */
-      if(!world_on)look_frame_begin();flush_cells(2u);
+      if(!world_on)look_frame_begin();
+      /* Dirty BG cells share the early budget with terrain and heir uploads.
+       * A busy office turn publishes one, rather than stacking two metadata
+       * draws on a fresh pose before attacks, wave completion and live AI. */
+      if(world_on || LY_REG>=144u || LY_REG<16u)flush_cells(world_on ? 2u : 1u);
     } else if(roaming) {flush_cells(2u);look_tick();}
     else {look_tick();flush_cells(8u);}
     scroll();
@@ -331,6 +342,7 @@ static uint8_t floor_play(void) {
       continue;
     }
     if (joy_pressed & J_START) {
+      if(tutorial_on==2u) {look_end();return 0u;}
       controls_pause();
       continue;
     }
@@ -379,7 +391,7 @@ static uint8_t floor_play(void) {
         gravity_tick();
       }
     }
-    if (door_open && cell_at(pl_x, pl_y) == room.door) {
+    if (door_open && cell_at(pl_x, pl_y) == room.door && (tutorial_on!=2u || tutorial_ready())) {
       pl_state = PS_EXIT;
       sfx(SFX_EXIT);
       hud_msg("EGRESS");
@@ -390,7 +402,7 @@ static uint8_t floor_play(void) {
     if(!(frame_count&63u)) narrator_tick();
     draw_sprites();
     if(world_on && !streamed)world_frame_end();
-    if(late && !streamed) look_frame_end();
+    if(late && !streamed && video_epoch==frame_epoch && LY_REG<108u) look_frame_end();
     /* Publish complete visible actors first. An offer that does not fit here
      * gets the next frame's early allowance before another composition. */
     if(!world_on && video_epoch==frame_epoch && LY_REG<100u)heir_cache_flush();
@@ -399,6 +411,15 @@ static uint8_t floor_play(void) {
 
 void play_run(void) BANKED {
   uint16_t new_seed=run_seed;
+  if(tutorial_on==1u) {
+    tutorial_on=2u;run_loading=1u;
+    art_copy_tables(&meta_tile[0][0],meta_pal,pal_bg,pal_sp,people);
+    run_begin();narrator_begin();heir_roll(0x600du);heir.weapon=0u;heir.dodge=0u;heir_colours();
+    memset(family_stat,0,sizeof family_stat);stamina_begin();pocket_begin();stage_run_begin();
+    floor_no=1u;floor_seed=0x600du;floor_tier=0u;tokens=0u;restored_floor=0u;run_loading=0u;
+    if(floor_play()) {tutorial_seen|=0x8000u;tutorial_save();}
+    HIDE_WIN;hud_line=144u;tutorial_on=0u;return;
+  }
   run_loading=1u;
   art_copy_tables(&meta_tile[0][0], meta_pal, pal_bg, pal_sp, people);
   run_begin();

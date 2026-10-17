@@ -33,7 +33,7 @@ static uint8_t roam_on,roam_scan,roam_left,roam_x,roam_y,near_cursor,roam_dir;
 static uint8_t roam_late,prep_cursor;
 
 /* cards in flight (assembly) and pieces falling (collapse) */
-enum { K_FREE = 0, K_DROP, K_RISE, K_SLIDE_L, K_SLIDE_R, K_GLITCH, K_CRACK, K_FALL, K_WOBBLE, K_SHATTER };
+enum { K_FREE = 0, K_DROP = 1, K_FALL = 7, K_WOBBLE = 8, K_SHATTER = 9 };
 static uint8_t c_kind[LOOK_MAX_CARDS], c_cell[LOOK_MAX_CARDS], c_t[LOOK_MAX_CARDS], c_meta[LOOK_MAX_CARDS];
 static uint8_t c_brk[LOOK_MAX_CARDS]; /* a break's fragile kind (LOOK_FRAG_*), 0 for the wave's cards */
 static uint8_t n_break;
@@ -52,13 +52,12 @@ static uint16_t hum[2]; /* the open door's pulse: the HUD/door palette's accent,
 static uint16_t lk_rs;
 static uint8_t flick_next, flick_t;
 
-/* the entrance curve: 7 frames from 18 px out, a 2 px overshoot, a 1 px settle (the squash), then commit */
-static const int8_t ease_in[7] = {-18, -13, -8, -3, 0, 2, 1};
-#define EASE_FRAMES 7u
+/* A fixed downward arrival: drop, decelerate, one-pixel settle, commit. */
+static const int8_t ease_in[5] = {-16, -9, -3, 1, 0};
+#define EASE_FRAMES 5u
 /* the fall: crack, split, accelerate, drift apart */
 static const uint8_t fall_dy[12] = {0, 1, 2, 4, 6, 9, 12, 16, 21, 26, 32, 38};
 #define FALL_FRAMES 12u
-#define CRACK_FRAMES 3u
 
 static uint8_t lk_rnd(void) {
   lk_rs = (uint16_t)(lk_rs * 25173u + 13849u);
@@ -97,6 +96,7 @@ void look_load(uint8_t biome) BANKED {
   memset(queued, 0, sizeof queued);
   memset(in_flight,0,sizeof in_flight);
   memset(c_kind, 0, sizeof c_kind);
+  memset(c_meta,255,sizeof c_meta);
   memset(c_brk, 0, sizeof c_brk);
   memset(look_skin, 0, sizeof look_skin);
   memset(redraw, 0, sizeof redraw);
@@ -259,13 +259,13 @@ static uint8_t roam_pending(uint8_t i) {
 static uint8_t roam_wants(uint8_t i) {
   int16_t x=(int16_t)(EG_X(i)<<4)-(int16_t)cam_x;
   int16_t y=(int16_t)(EG_Y(i)<<4)-(int16_t)cam_y;
-  /* Incoming slabs fly in as they enter the view. The trailing slab cracks
-   * while its last sixteen pixels are still visible, then falls away. */
-  if((roam_dir&J_RIGHT) && x<=0)return 0u;
-  if((roam_dir&J_LEFT) && x>=144)return 0u;
-  if((roam_dir&J_DOWN) && y<=0)return 0u;
-  if((roam_dir&J_UP) && y>=112)return 0u;
-  return (uint8_t)(x>-16 && x<160 && y>-16 && y<128);
+  /* Incoming slabs start just outside view. The trailing slab starts falling
+   * while its last sixteen pixels are still visible. */
+  if((roam_dir&J_RIGHT) && x<=8)return 0u;
+  if((roam_dir&J_LEFT) && x>=136)return 0u;
+  if((roam_dir&J_DOWN) && y<=8)return 0u;
+  if((roam_dir&J_UP) && y>=104)return 0u;
+  return (uint8_t)(x>-24 && x<168 && y>-24 && y<136);
 }
 static void roam_raise(uint8_t i) {
   if(!(roam_hidden[i>>3]&BIT(i)) || look_here(i) || roam_pending(i)) return;
@@ -295,25 +295,31 @@ void look_roam_tick(void) BANKED {
     roam_dir=(uint8_t)((dx>0 ? J_RIGHT : dx<0 ? J_LEFT : 0u)|(dy>0 ? J_DOWN : dy<0 ? J_UP : 0u));
   }
   roam_x=cam_x;roam_y=cam_y;
-  if(heir_pending && enemies_alive)return;
+
   if((world_on || enemies_alive) && (video_epoch!=frame_epoch || (LY_REG>=80u && LY_REG<144u)))return;
   /* Sweep both visible edges instead of letting a whole-room scan discover
    * the trailing slab only after it has disappeared. Keep the old six-probe
    * ceiling; a diagonal alternates its horizontal and vertical edges. */
   vertical=(uint8_t)((roam_dir&(J_UP|J_DOWN)) && (!(roam_dir&(J_LEFT|J_RIGHT)) || (frame_count&1u)));
   limit=vertical ? 11u : 9u;
-  if(near_cursor>=limit)near_cursor=0u;
-  a=(vertical ? cam_y : cam_x)>>4;
-  b=(uint8_t)(((uint16_t)(vertical ? cam_y : cam_x)+(vertical ? 127u : 159u))>>4);
+  if(prep_cursor>=limit)prep_cursor=0u;
+  a=vertical ? cam_y : cam_x;
+  /* Discover an approaching card half a slab before it enters the screen,
+   * rather than discovering it and safety-landing it on the same edge row. */
+  if(roam_dir&(vertical ? J_UP : J_LEFT))a=a>=8u ? (uint8_t)(a-8u) : 0u;
+  a>>=4;
+  b=(uint8_t)(((uint16_t)(vertical ? cam_y : cam_x)+
+    (vertical ? ((roam_dir&J_DOWN) ? 135u : 127u) : ((roam_dir&J_RIGHT) ? 167u : 159u)))>>4);
   cross=(vertical ? cam_x : cam_y)>>4;
-  for(k=0u;roam_dir && k<4u && (uint8_t)(q_n+n_flying)<12u;k++) {
+  for(k=0u;roam_dir && k<(roam_late ? 4u : 2u) && (uint8_t)(q_n+n_flying)<12u;k++) {
     if(video_epoch!=frame_epoch || (LY_REG>=(enemies_alive ? 48u : 64u) && LY_REG<144u))break;
-    c=(uint8_t)(cross+near_cursor);
-    if(vertical) {if(c<EG_W)roam_probe(EG_IDX(c,(k&1u) ? a : b));}
-    else if(c<EG_H)roam_probe(EG_IDX((k&1u) ? a : b,c));
-    if(k&1u) {if(++near_cursor==limit)near_cursor=0u;}
+    c=(uint8_t)(cross+prep_cursor);
+    i=(k&1u) ? a : b;
+    if(vertical) {if(c<EG_W && i<EG_H)roam_probe(EG_IDX(c,i));}
+    else if(c<EG_H && i<EG_W)roam_probe(EG_IDX(i,c));
+    if(k&1u) {if(++prep_cursor==limit)prep_cursor=0u;}
   }
-  if(LY_REG>=(enemies_alive ? 48u : 80u) && LY_REG<144u) return;
+  if(!roam_late || (LY_REG>=(enemies_alive ? 48u : 80u) && LY_REG<144u)) return;
   /* Bounded inspection, never a whole-room scan during a game frame. */
   probes=enemies_alive ? 0u : 2u;
   /* Backpressure pauses inspection instead of permanently skipping a slab
@@ -380,74 +386,44 @@ static uint8_t band_ok(int16_t top, int16_t bot) {
 }
 
 static uint8_t launch(uint8_t i) {
-  uint8_t k, h, kind;
-  int16_t y = (int16_t)((uint16_t)EG_Y(i) << 4), top, bot;
-  /* Keep room for approaching floor when trailing cards are still falling. */
-  if(game_mode==MODE_PLAY && roam_on &&
-     n_flying>=(enemies_alive ? (look_here(i) ? 1u : 3u) : (look_here(i) ? 4u : 6u))) return 0u;
-  for (k = 0; k != LOOK_MAX_CARDS; k++)
-    if (!c_kind[k]) break;
-  if (k == LOOK_MAX_CARDS) return 0;
-  if (look_here(i)) {
-    kind = K_CRACK;
-    top = y;
-    bot = y + 16 + 38;
-  } else {
-    h = (uint8_t)((uint8_t)(i * 29u + (uint8_t)(floor_seed >> 3)) ^ (uint8_t)(i >> 2)) & 15u;
-    if (h < 9u) {
-      kind = K_DROP;
-      top = y - 18;
-      bot = y + 18;
-    } else if (h < 12u) {
-      kind = EG_X(i) < (EG_W / 2u) ? K_SLIDE_L : K_SLIDE_R;
-      top = y;
-      bot = y + 16;
-    } else if (h < 14u) {
-      kind = K_RISE;
-      top = y - 2;
-      bot = y + 34;
-    } else {
-      kind = K_GLITCH;
-      top = y;
-      bot = y + 16;
-    }
+  uint8_t k,h,cached=0u,fall=(uint8_t)(look_here(i)!=0u);
+  int16_t y=(int16_t)((uint16_t)EG_Y(i)<<4),top=y-(fall ? 0 : 16),bot=y+16+(fall ? 38 : 1);
+  /* Seven reusable OBJ cards. The eighth slot remains available to a real
+   * fragile-floor break, which uses its resident bank-0 art. */
+  if(!band_ok(top,bot))return 0u;
+  if(!fall)look_present[i>>3]|=BIT(i);
+  h=cell_meta(i);
+  if(!fall)look_present[i>>3]&=(uint8_t)~BIT(i);
+  /* Reuse a resident card before uploading another 64-byte texture. Ground
+   * repeatedly uses the same small set; the seven slots are also its cache. */
+  for(k=0u;k<LOOK_MAX_CARDS-1u;k++)if(!c_kind[k] && c_meta[k]==h) {cached=1u;break;}
+  if(!cached)for(k=0u;k<LOOK_MAX_CARDS-1u;k++)if(!c_kind[k])break;
+  if(k==LOOK_MAX_CARDS-1u || ((!cached || !roam_on) && budget<2u))return 0u;
+  if(!cached) {
+    if(roam_on && game_mode==MODE_PLAY && LY_REG>=12u && LY_REG<144u)return 0u;
+    look_art_card(h,k);budget=0u;
   }
-  if (!band_ok(top, bot)) return 0;
-  c_kind[k] = kind;
-  c_cell[k] = i;
-  in_flight[i>>3]|=BIT(i);
-  c_t[k] = 0;
-  c_top[k] = top;
-  c_bot[k] = bot;
-  n_flying++;
-  if (kind == K_CRACK) {
-    c_meta[k] = is_wallish(cell_meta(i)) ? M_WALL_TOP : M_SLAB_A;
-    draw_meta(i, c_meta[k] == M_WALL_TOP ? M_DRY_CRACK : M_SLAB_CRACK);
-  } else {
-    look_present[i >> 3] |= BIT(i); /* what it will be */
-    h = cell_meta(i);
-    look_present[i >> 3] &= (uint8_t)~BIT(i);
-    if ((meta_pal[h] & LOOK_META_BANK0) && ((meta_pal[h] & 7u) == LOOK_PAL_FLOOR || (meta_pal[h] & 7u) == LOOK_PAL_WALL ||
-                                             (meta_pal[h] & 7u) == LOOK_PAL_VOID)) {
-      /* a card in bank 0 flies as itself (worn carpet, a ceiling tile); glass glitches in unseen (its palette is
-       * not one of the assembly's two). Items and thin ice fly in as a slab (their palettes aren't either). */
-      c_meta[k] = h;
-      if ((meta_pal[h] & 7u) == LOOK_PAL_VOID) c_kind[k] = K_GLITCH;
-    } else
-      c_meta[k] = is_wallish(h) ? M_WALL_TOP : M_SLAB_A;
-    draw_meta(i, M_VOID_OUTLINE);
+  c_kind[k]=fall ? K_FALL : K_DROP;c_cell[k]=i;c_meta[k]=h;c_t[k]=0u;
+  c_top[k]=top;c_bot[k]=bot;in_flight[i>>3]|=BIT(i);n_flying++;
+  if(fall) {
+    /* Cosmetic departures do not wait in a crack state for a second BG
+     * transaction. Remove the grounded card and start its downward motion
+     * together, while it is still visible at the trailing edge. */
+    look_present[i>>3]&=(uint8_t)~BIT(i);
+    if(!cached) {budget=2u;settle(i);budget=0u;}else settle(i);
   }
-  budget--;
+  /* Incoming cells already show void. Their flight needs no placeholder
+   * rewrite; the real map/art commits only when this same card settles. */
   return 1u;
 }
 
 static void finish(uint8_t k) {
   uint8_t i=c_cell[k];
   in_flight[i>>3]&=(uint8_t)~BIT(i);
-  if(c_kind[k]>=K_DROP && c_kind[k]<=K_GLITCH && !c_brk[k])
+  if(c_kind[k]==K_DROP && !c_brk[k])
     roam_hidden[i>>3]&=(uint8_t)~BIT(i);
   if (c_brk[k]) {
-    c_brk[k] = 0;
+    c_brk[k] = 0;c_meta[k]=255u;
     n_break--;
   }
   c_kind[k] = K_FREE;
@@ -632,6 +608,13 @@ static uint8_t roam_bg_time(void) {
   if(video_epoch!=frame_epoch) return 0u;
   return (uint8_t)(roam_late ? ly<(world_on ? 100u : 80u) : (ly>=144u || ly<40u));
 }
+static uint8_t prepare_time(void) {
+  uint8_t ly=LY_REG;
+  /* A single candidate can include metadata, a cache lookup and a BG commit.
+   * Stop admitting that work early enough for an attack plus wave completion.
+   * Quiet streamed worlds retain their measured wider preparation window. */
+  return (uint8_t)(ly>=144u || ly<(world_on ? 24u : 8u));
+}
 static const int8_t wobble[8] = {1, -1, 1, -1, 1, 0, -1, 0};
 #define WOBBLE_FRAMES 8u
 #define SHATTER_FRAMES 16u
@@ -687,31 +670,12 @@ static void step_break(uint8_t k, int16_t wx, int16_t wy, uint8_t tile) {
 
 static void step_card(uint8_t k) {
   uint8_t i = c_cell[k], t = c_t[k], kind = c_kind[k];
-  uint8_t tile = meta_tile[c_meta[k]][0], prop;
+  uint8_t tile = c_brk[k] ? meta_tile[c_meta[k]][0] : (k<3u ? (uint8_t)(4u+(k<<2)) : (uint8_t)(100u+(k<<2))), prop;
   int16_t wx = (int16_t)((uint16_t)EG_X(i) << 4), wy = (int16_t)((uint16_t)EG_Y(i) << 4);
-  if((kind==K_CRACK || kind==K_FALL) && roam_on && !c_brk[k] && (roam_hidden[i>>3]&BIT(i)) && roam_wants(i)) {
-    if(kind==K_CRACK) {
-      /* A turn toward a still-grounded trailing slab cancels its collapse. */
-      if(budget>=2u && roam_bg_time()) {
-        roam_hidden[i>>3]&=(uint8_t)~BIT(i);settle(i);finish(k);
-      }
-      return;
-    }
-    if(kind==K_FALL) {kind=c_kind[k]=K_DROP;t=c_t[k]=0u;}
-  }
+  if(kind==K_FALL && roam_on && !c_brk[k] && (roam_hidden[i>>3]&BIT(i)) && roam_wants(i))
+    {kind=c_kind[k]=K_DROP;t=c_t[k]=0u;}
   if (kind >= K_WOBBLE) {
     step_break(k, wx, wy, tile);
-    return;
-  }
-  if (kind == K_CRACK) {
-    if (t + 1u >= CRACK_FRAMES) {
-      if (budget < 2u || !roam_bg_time()) return; /* reserve time for movement and actors */
-      look_present[i >> 3] &= (uint8_t)~BIT(i);
-      settle(i);
-      c_kind[k] = K_FALL;
-      c_t[k] = 0;
-    } else
-      c_t[k]++;
     return;
   }
   if (kind == K_FALL) {
@@ -719,19 +683,19 @@ static void step_card(uint8_t k) {
       finish(k);
       return;
     }
-    if (t >= 9u && (t & 1u)) {
+    if (c_brk[k] && t >= 9u && (t & 1u)) {
       hide_card(k); /* the last frames flicker out */
     } else {
-      prop = (uint8_t)(t < 5u ? 6u : 7u);
-      sprite_pair(k, wx, wy + fall_dy[t], tile, prop, (uint8_t)(t >> 2));
+      prop = c_brk[k] ? (uint8_t)(t < 5u ? 6u : 7u) : (uint8_t)(S_BANK|(meta_pal[c_meta[k]]&LOOK_META_FLIP)|(is_wallish(c_meta[k]) ? 7u : 6u));
+      sprite_pair(k, wx, wy + fall_dy[t], tile, prop, c_brk[k] ? (uint8_t)(t >> 2) : 0u);
     }
     c_t[k]++;
     return;
   }
   /* assembly */
-  if ((kind == K_GLITCH && t >= 5u) || (kind != K_GLITCH && t >= EASE_FRAMES)) {
-    if (budget < 2u || !roam_bg_time()) {
-      sprite_pair(k,wx,wy,tile,(uint8_t)(is_wallish(c_meta[k]) ? 7u : 6u),0u);
+  if (t >= EASE_FRAMES) {
+    if (budget < (roam_on ? 1u : 2u) || !roam_bg_time()) {
+      sprite_pair(k,wx,wy,tile,(uint8_t)(S_BANK|(meta_pal[c_meta[k]]&LOOK_META_FLIP)|(is_wallish(c_meta[k]) ? 7u : 6u)),0u);
       return;
     }
     look_present[i >> 3] |= BIT(i);
@@ -739,29 +703,8 @@ static void step_card(uint8_t k) {
     finish(k);
     return;
   }
-  prop = (uint8_t)(is_wallish(c_meta[k]) ? 7u : 6u);
-  switch (kind) {
-    case K_DROP:
-      wy += ease_in[t];
-      break;
-    case K_RISE:
-      wy -= ease_in[t];
-      break;
-    case K_SLIDE_L:
-      wx += ease_in[t];
-      break;
-    case K_SLIDE_R:
-      wx -= ease_in[t];
-      break;
-    default: /* glitching in: torn, gone, torn the other way, gone, there (glass: unseen, then there) */
-      if ((t & 1u) || (meta_pal[c_meta[k]] & 7u) == LOOK_PAL_VOID) {
-        hide_card(k);
-        c_t[k]++;
-        return;
-      }
-      wx += t == 0u ? 3 : (t == 2u ? -2 : 0);
-      break;
-  }
+  prop = (uint8_t)(S_BANK|(meta_pal[c_meta[k]]&LOOK_META_FLIP)|(is_wallish(c_meta[k]) ? 7u : 6u));
+  wy += ease_in[t];
   sprite_pair(k, wx, wy, tile, prop, 0);
   c_t[k]++;
 }
@@ -901,7 +844,7 @@ static uint8_t anchor_at(uint8_t x,uint8_t y) {
   look_anchor(i);return 1u;
 }
 static uint8_t ground_ahead(void) {
-  int16_t x=pl_x,y=pl_y;int8_t dx=0,dy=0;uint8_t n=0u,k,c,x0,x1,y0,y1,vertical,limit;
+  int16_t x=pl_x,y=pl_y;int8_t dx=0,dy=0;uint8_t n=0u,k,c,x0,x1,y0,y1,vertical,limit,wide;
   /* A blink travels at most 6.5px/tick. Prepare the next 7px step's complete
    * 12x12 foot box, including diagonal corners and released rolls. A farther
    * point can skip the two adjacent cells crossed by a diagonal step. */
@@ -920,7 +863,7 @@ static uint8_t ground_ahead(void) {
   if(n<2u && x1!=x0)n+=anchor_at(x1,y0);
   if(n<2u && y1!=y0)n+=anchor_at(x0,y1);
   if(n<2u && y1!=y0 && x1!=x0)n+=anchor_at(x1,y1);
-  if(n || video_epoch!=frame_epoch || heir_pending)return n;
+  if(n || video_epoch!=frame_epoch)return n;
   if(enemies_alive>=2u && (pl_state==PS_LASH || pl_state==PS_SPIN))return n;
   if(LY_REG<144u && LY_REG>=(world_on ? 24u : 32u))return 0u;
   /* Easing continues after a turn. Prepare the camera's residual axis too. */
@@ -937,10 +880,11 @@ static uint8_t ground_ahead(void) {
   if(near_cursor>=limit)near_cursor=0u;
   x=vertical ? cam_x>>4 : ((uint16_t)cam_x+(dx>0 ? 152u : 8u))>>4;
   y=vertical ? ((uint16_t)cam_y+(dy>0 ? 120u : 8u))>>4 : cam_y>>4;
-  /* A streamed camera can ease by four pixels in one tick. Inspect a whole
-   * edge and land up to two slabs, so its nine rows cannot outrun a single
-   * repair per frame. Office combat retains the smaller allowance. */
-  for(k=0u;k<(world_on ? limit : 4u) && n<(world_on ? 2u : 1u);k++) {
+  /* Quiet puzzles can ease just as fast as streamed worlds. Inspect their
+   * complete edge and land up to two slabs; a single repair cannot cover all
+   * nine rows during a fast reversal. Combat retains its smaller allowance. */
+  wide=(uint8_t)(world_on || (stage_type==SG_PUZZLE && !enemies_alive));
+  for(k=0u;k<(wide ? limit : 4u) && n<(wide ? 2u : 1u);k++) {
     c=near_cursor;if(++near_cursor==limit)near_cursor=0u;
     n+=anchor_at((uint8_t)(x+(vertical ? c : 0u)),(uint8_t)(y+(vertical ? 0u : c)));
   }
@@ -952,7 +896,7 @@ void look_frame_begin(void) BANKED {
   uint8_t k;
   if (!on) return;
   /* palettes first, while VBlank lasts (a break in the air takes OBJ 6/7 for its card's colours) */
-  k = n_break ? 3u : obj_want;
+  k = n_break ? 3u : look_busy_n ? (roam_on ? 1u : obj_want) : 0u;
   if (k && k != obj_mode) {
     set_sprite_palette(6, 2, k == 3u ? brk_obj : (k == 1u ? obj_pal[0] : obj_pal[2]));
     obj_mode = k;
@@ -972,33 +916,38 @@ void look_frame_begin(void) BANKED {
      * bounded ready card / launch here; animation stays after the actors. */
     roam_late=0u;
     k=ground_ahead();
-    if(!heir_pending && (world_on || enemies_alive || stage_type!=SG_PUZZLE) && !k && enemies_alive<3u && grav_t!=1u && !push_t &&
-       (!world_on || LY_REG<16u || LY_REG>=144u) &&
-       !(world_on && (frame_count&3u) && world_work_pending())) look_update(1u);
+    /* A multi-target swing can spend another thirty scanlines before the
+     * complete actor list is drawn. Keep its speculative terrain admission
+     * free; swept feet above and existing flying cards still advance. */
+    if(k<2u && prepare_time() && grav_t!=1u && !push_t &&
+       !(enemies_alive>=2u && (pl_state==PS_LASH || pl_state==PS_SPIN)) &&
+       (stage_type==SG_PUZZLE || (frame_count&3u))) {
+      if(!(frame_count&1u))look_roam_tick();
+      look_update((uint8_t)(1u+k));
+    }
+    roam_late=1u;
   }
 }
 
 static void look_update(uint8_t prepare) {
-  uint8_t k, i, launches = 0, scan,chosen=prep_cursor;
+  uint8_t k, i, launches = 0, scan;
   if(!on) return;
   /* Gravity, obstacles and actor composition share the frame. Defer BG commits
    * on that heavy tick; moving/falling cards still animate, and a settled card
    * waits for the next tick's bounded two-cell commit. */
-  budget = roam_late && roam_on && !prepare ? 0u : game_mode == MODE_PLAY ? (grav_t==1u || (roam_on && push_t) ? 0u : 2u) : LOOK_COMMITS_PER_FRAME;
+  budget = roam_late && roam_on && !prepare ? 0u : game_mode == MODE_PLAY ? (grav_t==1u || (roam_on && push_t) ? 0u : prepare==2u ? 1u : 2u) : LOOK_COMMITS_PER_FRAME;
   if (look_dbg_kind) { /* the harness: 0x80 applies a poked skin, else a break of that kind */
     if (look_dbg_kind == 0x80u) look_skin_set(look_dbg_cell, (uint8_t)(look_skin[look_dbg_cell] - 1u));
     else look_break_tile(look_dbg_cell, look_dbg_kind);
     look_dbg_kind = 0;
   }
   if (!prepare && gl_any && look_glitch_period) glitch_tick();
-  if(prepare && ++prep_cursor==LOOK_MAX_CARDS) prep_cursor=0u;
   for (k = 0; k != LOOK_MAX_CARDS; k++)
     if (c_kind[k]) {
       if(prepare) {
-        if(k!=chosen) continue;
-        if(budget>=2u && !c_brk[k]) {
-          if((c_kind[k]<=K_GLITCH && c_t[k]>=(c_kind[k]==K_GLITCH ? 5u : EASE_FRAMES)) ||
-             (c_kind[k]==K_CRACK && c_t[k]+1u>=CRACK_FRAMES)) {
+        if(!prepare_time())break;
+        if(budget>=1u && !c_brk[k]) {
+          if(c_kind[k]==K_DROP && c_t[k]>=EASE_FRAMES) {
             step_card(k);
             if(budget<2u) {budget=0u;break;}
           }
@@ -1011,24 +960,24 @@ static void look_update(uint8_t prepare) {
       else step_card(k);
     }
   /* the wave: off-screen cells at once, cards on screen as there is room for them */
-  scan = prepare ? 1u : 12u;
-  while (q_n && budget >= 2u && scan-- && roam_bg_time()) {
+  scan = prepare ? 4u : 12u;
+  while (q_n && budget >= 2u && scan-- && roam_bg_time() && (!prepare || prepare_time())) {
     i = q[q_head];
     if(!(queued[i>>3]&BIT(i))) {q_head++;q_n--;continue;}
     if(roam_on && (roam_hidden[i>>3]&BIT(i)) && look_here(i) && roam_wants(i)) {
       roam_hidden[i>>3]&=(uint8_t)~BIT(i);queued[i>>3]&=(uint8_t)~BIT(i);q_head++;q_n--;continue;
     }
-    if (!on_screen(i)) {
+    if (!on_screen(i) && !(roam_on && roam_wants(i))) {
       if (look_here(i)) look_present[i >> 3] &= (uint8_t)~BIT(i);
       else look_present[i >> 3] |= BIT(i);
       settle(i);
     } else {
       /* the head, or one of the next few if the head's band is full (the wave keeps its order, roughly) */
       uint8_t j, ii = 0, found = 0;
-      if (launches == (prepare ? 1u : 3u)) break;
-      for (j = 0; j != (prepare ? 1u : 4u) && j < q_n && roam_bg_time(); j++) {
+      if (launches == (prepare ? 2u : 3u)) break;
+      for (j = 0; j != (prepare ? 2u : 4u) && j < q_n && roam_bg_time() && (!prepare || prepare_time()); j++) {
         ii = q[(uint8_t)(q_head + j)];
-        if (on_screen(ii) && look_here(ii) == look_here(i) && launch(ii)) {
+        if ((on_screen(ii) || (roam_on && roam_wants(ii))) && look_here(ii) == look_here(i) && launch(ii)) {
           found = 1u;
           break;
         }
@@ -1041,15 +990,15 @@ static void look_update(uint8_t prepare) {
     queued[i >> 3] &= (uint8_t)~BIT(i);
     q_head++;
     q_n--;
-    if(prepare) budget=0u;
+    if(prepare && !budget)break;
   }
   /* skins and stages changed: redraw with what is left of the budget */
-  if (rd_any && budget && roam_bg_time()) {
+  if (rd_any && budget && roam_bg_time() && (!prepare || prepare_time())) {
     /* A queued cell can consume a dirty bit without drawing, so the BG budget
      * alone does not bound this walk. Inspect four bytes / two marked cells
      * at most, retaining the cursor until every pending byte is visited. */
     scan=4u;launches=prepare ? 1u : 2u;
-    while(scan-- && rd_left && budget && roam_bg_time()) {
+    while(scan-- && rd_left && budget && roam_bg_time() && (!prepare || prepare_time())) {
       uint8_t bit=0u;
       k=rd_cursor;
       if(redraw[k]) {
@@ -1069,7 +1018,24 @@ void look_frame_end(void) BANKED {
   roam_late=1u;
   /* Actors already hide the late card slots. Keep their animation/queue
    * state intact when only the VBlank publication margin remains. */
-  if(roam_on && (video_epoch!=frame_epoch || (LY_REG>=108u && LY_REG<144u)))return;
+  if(roam_on && (video_epoch!=frame_epoch || LY_REG>=108u))return;
   look_update(0u);
 }
-void look_tick(void) BANKED {roam_late=0u;look_frame_begin();look_update(0u);}
+void look_tick(void) BANKED {
+  roam_late=0u;look_frame_begin();
+  /* Quiet-room work is still in the early phase. frame_begin leaves the
+   * split combat path ready for its tail; do not inherit that zero budget. */
+  roam_late=0u;look_update(0u);
+  roam_late=1u; /* the later camera sweep may now reconcile trailing cells */
+}
+
+/* The controls scene stops physics but keeps presentation alive. A suspended
+ * gravity/push turn must not reserve the BG budget forever. Its temporary
+ * camera framing must not discover new roaming terrain either. */
+void look_pause_tick(void) BANKED {
+  uint8_t previous_mode=game_mode;
+  game_mode=MODE_CLEAR;
+  look_tick();
+  game_mode=previous_mode;
+  if(game_mode==MODE_PLAY && !look_busy_n)items_tick();
+}

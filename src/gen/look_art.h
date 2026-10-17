@@ -140,4 +140,5 @@ extern const uint8_t look_ambient_kind[];
 /* loads the cards into VRAM banks 1 and 0, a biome's 8 BG palettes into pal_out[32], each card's palette into
  * meta_pal[M_COUNT] (| LOOK_META_BANK0) and its 2x2 map tiles into meta_tile[M_COUNT * 4] */
 void look_art_load(uint8_t biome, uint16_t *pal_out, uint8_t *meta_pal, uint8_t *meta_tile) BANKED;
+void look_art_card(uint8_t meta, uint8_t slot) BANKED;
 #endif

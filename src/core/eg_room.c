@@ -528,8 +528,10 @@ static uint8_t dd_weight_tools(const eg_room *r,const uint8_t *pocket,uint8_t n)
     if(i<n) p=pocket[i];
     else {t=(uint8_t)(i-n);if((r->c[r->item_cell[t]]&T_MASK)!=T_ITEM) continue;p=r->item_piece[t];}
     if(p==P_BRICK) return 1u;
-    if(p==P_FIRE) tools|=1u;if(p==P_MUD) tools|=2u;
-    if(p==P_EARTH) tools|=4u;if(p==P_WATER) tools|=8u;
+    if(p==P_FIRE) tools|=1u;
+    if(p==P_MUD) tools|=2u;
+    if(p==P_EARTH) tools|=4u;
+    if(p==P_WATER) tools|=8u;
   }
   return (uint8_t)((tools&1u) && ((tools&2u) || (tools&12u)==12u));
 }

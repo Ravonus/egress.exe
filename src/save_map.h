@@ -1,6 +1,10 @@
 #ifndef EG_SAVE_MAP_H
 #define EG_SAVE_MAP_H
 /* Native 8 KiB SRAM allocation. Keep these boundaries in step with redesign.md 9.5. */
+#define SAVE_META_VERSION 2u
+#define SAVE_CONT_VERSION 2u
+#define SAVE_FAMILY_VERSION 3u
+#define SAVE_PREF_VERSION 2u
 #define SAVE_META_A 0xA000u
 #define SAVE_META_B 0xA020u
 #define SAVE_CONT_A 0xA040u
@@ -22,7 +26,4 @@
 #define SAVE_STATS_A 0xBC00u
 #define SAVE_STATS_B 0xBD80u
 #define SAVE_STATS_BYTES 384u
-/* Read-only migration sources from the office checkpoint. */
-#define SAVE_OLD_FAMILY_A 0xA100u
-#define SAVE_OLD_FAMILY_B 0xA300u
 #endif

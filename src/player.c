@@ -128,12 +128,12 @@ void player_hurt(uint8_t n, uint8_t fromx, uint8_t fromy) BANKED {
   else if(!dbg_god) {if(pl_hp<=2u) narrator_event(NE_CLOSE,0u);resume_damage();}
 }
 
-/* A void fall ignores dodge/guard immunity. Charge once, animate down into the void,
- * then restore the last firm tile; power-off retains the already-paid damage. */
+/* A fall ignores guard/evade immunity. Open abyss is lethal; enclosed one-cell
+ * pits cost a heart and return to the last firm tile. Damage is journaled first. */
 void player_fall(uint8_t safe) BANKED {
   if(pl_state==PS_FALL || pl_state==PS_EXIT || !pl_hp) return;
   pl_inv=pl_iframe=0u;pin.flags=0u;pl_air=0u;pl_z=0;fall_safe=safe;
-  player_hurt(1u,pl_x,pl_y);
+  player_hurt(EG_ABYSS(room.c[cell_at(pl_x,pl_y)]) ? pl_hp : 1u,pl_x,pl_y);
   pl_state=PS_FALL;pl_t=0u;freeze=0u;pl_arc=pl_charge=0u;air_void=0u;
   narrator_event(NE_FALL,0u);
 }
@@ -417,12 +417,22 @@ static void guard(void) {
 /* Attack the complete tile rectangle touched by the visible arc. A single
  * point at centre+12 misses the lower side and diagonal corners of a wall. */
 static void strike_bricks(uint8_t spin,uint8_t force) {
-  strike_box b;int16_t l,r,t,d;uint8_t x,y;
+  strike_box b;int16_t l,r,t,d;uint8_t x0,x1,y,y1,i,end;
   strike_bounds(spin,&b);l=b.x-b.rx;r=b.x+b.rx-1;t=b.y-b.ry;d=b.y+b.ry-1;
   if(r<0 || d<0 || l>=256 || t>=224)return;
   if(l<0)l=0;if(t<0)t=0;if(r>255)r=255;if(d>223)d=223;
-  for(y=(uint8_t)(t>>4);y<=(uint8_t)(d>>4);y++)
-    for(x=(uint8_t)(l>>4);x<=(uint8_t)(r>>4);x++)break_brick(EG_IDX(x,y),force);
+  /* Resolve the clipped rectangle once. Contact frames also run live AI and
+   * sprite composition: do not repeat signed shifts or call the brick handler
+   * for every empty tile in the arc. The touched cells remain identical. */
+  x0=(uint8_t)(l>>4);x1=(uint8_t)(r>>4);y1=(uint8_t)(d>>4);
+  for(y=(uint8_t)(t>>4);y<=y1;y++) {
+    i=EG_IDX(x0,y);end=EG_IDX(x1,y);
+    for(;;) {
+      if(cell_type(i)==T_BRICK)break_brick(i,force);
+      if(i==end)break;
+      i++;
+    }
+  }
 }
 
 /* d-pad bits as the mover would resolve them (opposites cancel; 4-way: the newest held press) */
@@ -766,7 +776,13 @@ void player_update(void) BANKED {
       if (ph == EG_PH_ACTIVE) {
         dmg = mv == EG_MV_HIT3 ? ((mods & MOD_SURGE) ? 3u : 2u) : 1u;
         strike(0, dmg);
-        if (pin.frame == fd.startup) strike_bricks(0u,(uint8_t)(mv == EG_MV_HIT3 || heir.weapon == 1u));
+        if (pin.frame == fd.startup) {
+          strike_bricks(0u,(uint8_t)(mv == EG_MV_HIT3 || heir.weapon == 1u));
+          if(heir.weapon==1u) {
+            shake=3u;sfx(SFX_THUD);
+            puff((uint8_t)(pl_x+f8x[pmv.facing]*14),(uint8_t)(pl_y+f8y[pmv.facing]*14+5u),4u,ST_PUFF);
+          }
+        }
       }
       if (pin.frame >= 2u && pin.frame < (uint8_t)(fd.startup + fd.active + 3u)) pl_arc = 1;
       break;

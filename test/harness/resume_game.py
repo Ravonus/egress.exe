@@ -1,4 +1,4 @@
-"""Native continue/migration acceptance. Gameplay actions are controller input; corruption and transaction cuts are explicit save fixtures."""
+"""Native current-epoch continue acceptance. Gameplay actions are controller input; corruption and transaction cuts are explicit save fixtures."""
 import argparse,hashlib,json,sys
 from pathlib import Path
 from play import Game,start_run,step,solve_here,pocket,MODE_TITLE
@@ -57,17 +57,7 @@ def run(rom,out,tool):
         assert started,(cut,g.peek('game_mode'),g.peek('floor_no'),g.peek16('meta'),g.peek16_at('family',279),g.peek('family',283),g.peek('resume_state'))
         res['end_transaction_'+cut]=g.peek16('meta')==1 and g.peek16_at('family',279)==generation+1 and g.peek('family',284)==1
         g.stop()
-    # Make a byte-for-byte FA1 checkpoint journal in its old overlapping slot.
-    old=bytearray(save);pos=newest(save,FAMILY,3);legacy=bytearray(save[pos:pos+294]);legacy[2]=1;seal(legacy)
-    for pos in FAMILY:old[pos]=0
-    for pos in CONT:old[pos]=0
-    old[0x300:0x300+294]=legacy
-    g=Game(rom,sram=bytes(old));assert start_run(g,True,True)
-    res['checkpoint_family_migrated']=bytes(g.peek('family',k) for k in range(19))==gene and g.peek16_at('family',279)==generation
-    migrated=g.stop()
-    res['new_family_regions_versioned']=any(migrated[pos:pos+3]==b'FA\x02' for pos in FAMILY)
-    res['legacy_meta_untouched_by_migration']=migrated[:64]==old[:64]
-    res['clock_regions_preserved']=migrated[0x14e0:0x1500]==old[0x14e0:0x1500]
+    res['current_save_epoch_written']=any(dead_save[pos:pos+3]==b'FA\x03' for pos in FAMILY) and any(dead_save[pos]==2 for pos in CONT) and any(dead_save[pos:pos+3]==b'EG\x02' for pos in (0,32))
     # Invalid newest floor record must leave the preceding valid checkpoint usable.
     damaged=bytearray(save);pos=newest(save,CONT,1);damaged[pos+100]^=128
     g=Game(rom,sram=bytes(damaged));assert start_run(g,True,False)

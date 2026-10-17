@@ -15,9 +15,17 @@ def run(rom,out,measure=False):
     mask_offset=int(re.search(r'^\s*2\s+_spr_mask\s+([0-9A-F]+)',heir_symbols.read_text(),re.M)[1],16)
     mask_addr=g.addr('heir')+mask_offset
     g.pb.memory[1,0xddd0:0xddf0]=[0xa7]*32
-    timing=[];late=[];epochs=[]
+    timing=[];late=[];epochs=[];emitted=[];partial=[]
+    symbols=heir_symbols.read_text()
+    fields={m[1]:int(m[2],16) for m in re.finditer(r'^\s*2\s+(_\w+)\s+([0-9A-F]+)',symbols,re.M)}
+    draw_count=g.addr('ha_dir')-fields['_ha_dir']+fields['_d_n']
     def completed(_):
         if g.peek('game_mode')!=2:return
+        m=g.pb.memory;n=m[1,draw_count] if draw_count>=0xd000 else m[draw_count]
+        shadow=sum(bool(m[0xc000+k*4]) and m[0xc002+k*4]<16 and not (m[0xc003+k*4]&8) for k in range(40))
+        if shadow and shadow!=n:partial.append([g.frames,shadow,n])
+        emitted.append(shadow)
+        if len(emitted)>3:emitted.pop(0)
         epoch=g.peek('frame_epoch')
         epochs.append(epoch if not epochs else epochs[-1]+((epoch-epochs[-1])&255))
         if g.peek('video_epoch')!=epoch:
@@ -38,7 +46,7 @@ def run(rom,out,measure=False):
             # already be one invulnerability tick ahead of that full list.
             blink=(inv and inv&4) or (before_inv and before_inv&4)
             expected_body=g.pb.memory[1,mask_addr].bit_count()
-            if body_count not in (0,before_body,expected_body) or (not body_count and before_body and expected_body and not blink and state!=6 and before_state!=6):bodies.append((len(fc),body_count,before_body,expected_body,inv,before_inv,state,before_state))
+            if body_count not in (0,before_body,expected_body,*emitted) or (not body_count and before_body and expected_body and not blink and state!=6 and before_state!=6):bodies.append((len(fc),body_count,before_body,expected_body,inv,before_inv,state,before_state))
             if len(fc)%6==0:frames.append(g.pb.screen.image.convert('RGB'))
     g.tick=record
     assert walk(g,g.peek('stg',8),log);g.hold(set());g.tick(g.peek16_at('stg',10)+60)
@@ -60,13 +68,14 @@ def run(rom,out,measure=False):
     r={'real_wave_mobs_present':max_alive>=2,'both_action_buttons_used':5 in moves and 11 in moves,
        'actual_player_kills':g.peek('kills_run')>0,'sprite_line_budget':meter.over==0,
        'combat_and_travel_120_per_120':bool(windows) and min(windows)==max(windows)==120 and not late,
-       'floor_under_feet_stays_present':not missing,'complete_body_retained':not bodies,
+       'floor_under_feet_stays_present':not missing,'complete_body_retained':not bodies and not partial,
        'floor_stack_canary':bytes(g.pb.memory[1,0xddd0:0xddf0])==bytes([0xa7]*32)}
     anim=animation.report();r['visible_animation_keeps_advancing']=anim['animation_keeps_advancing']
     if frames:frames[0].save(out/'camera-combat.gif',save_all=True,append_images=frames[1:],duration=102,loop=0)
     g.shot(out/'combat.png');allocations=observer.report();r['native_allocator_matches_reference']=allocations['all_allocations_match'];quads=grid.report();r['native_map_and_attributes_match']=quads['all_map_and_attributes_match'];g.stop();report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':r,'frames':len(fc),'minimum_game_frames_per_120':min(spans) if spans else None,'oam_max':meter.max_line,'max_enemies':max_alive,'allocator':allocations,'grid':quads,'moves':sorted(moves),'missing_floor':missing[:20],'missing_body':bodies[:20],'log':log}
     # A line-zero sample may precede/follow ISR return, pairing a raw 0/2.
     # Require complete updates at the real VBlank epoch, including deadlines.
+    report['partial_emitted_poses']=partial[:20]
     report['raw_counter_minimum_at_lcd_boundary']=report['minimum_game_frames_per_120']
     report['minimum_game_frames_per_120']=min(windows) if windows else None
     report['vblank_span_for_120_completed_updates']=[min(windows),max(windows)] if windows else None
