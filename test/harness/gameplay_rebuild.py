@@ -51,6 +51,7 @@ def run(rom,out,tool):
     result['invalid_target_keeps_units']=pocket(g)==[4,2]
     assert bench_act(g,'Cdb',log)
     result['finite_recipe_consumption']=pocket(g)==[8]
+    assert walk(g,g.room()[224],log)  # replay the authored solver route from its entry
     moves=solve_here(g,tool,log);g.tick(240)
     result['normal_floor2_wave_stage']=g.peek('floor_no')==2 and g.peek('stage_type')==1
     result['inventory_carried_into_combat']=pocket(g)==[8]

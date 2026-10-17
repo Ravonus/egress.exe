@@ -7,18 +7,24 @@ from pathlib import Path
 import re
 from heir import OamMeter
 from play import Game,start_run,step,pocket,bench_open,bench_cursor,bench_act,solve_here
+from gameplay_rebuild import walk
 
 
 def run(rom,out,tool):
  out.mkdir(parents=True,exist_ok=True);r={};log=[];g=Game(rom)
  assert start_run(g,True,True,physical_fixture=1)
+ origin=g.player()
  for d in 'URDL':assert step(g,d,log)
  r['pickup_equips_first_material']=pocket(g)==[4,2] and g.peek('tool_piece')==4
  assert bench_act(g,'Cdb',log)
  r['recipe_equips_result_and_consumes_two']=pocket(g)==[8] and g.peek('tool_piece')==8
  # Invalid use is a real tap with the same finite unit and stamina intact.
+ x,y=g.player();c=y//16*16+x//16
+ face=next(d for d,n in [('up',-16),('down',16),('left',-1),('right',1)] if 0<=c+n<224 and g.peek('room',c+n)==34)
+ g.press(face,1);g.tick(4)
  value=g.peek('stamina');g.press('select',3);g.tick(12)
  r['invalid_target_keeps_item_and_stamina']=pocket(g)==[8] and g.peek('stamina')>=value
+ assert walk(g,origin[1]//16*16+origin[0]//16,log)
  solve_here(g,tool,log);g.tick(220)
  r['slot_survives_next_floor']=g.peek('floor_no')==2 and g.peek('tool_piece')==8
  save=g.stop();g=Game(rom,sram=save);assert start_run(g,True,True)
