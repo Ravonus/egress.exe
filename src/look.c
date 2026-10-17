@@ -613,8 +613,9 @@ static uint8_t prepare_time(void) {
   uint8_t ly=LY_REG;
   /* A single candidate can include metadata, a cache lookup and a BG commit.
    * Stop admitting that work early enough for an attack plus wave completion.
-   * Quiet streamed worlds retain their measured wider preparation window. */
-  return (uint8_t)(ly>=144u || ly<(world_on ? 24u : 8u));
+   * Quiet puzzles and streamed worlds need enough room to drain the edge
+   * queue after item presentation; combat keeps its tighter admission limit. */
+  return (uint8_t)(ly>=144u || ly<((world_on || (stage_type==SG_PUZZLE && !enemies_alive)) ? 24u : 8u));
 }
 static const int8_t wobble[8] = {1, -1, 1, -1, 1, 0, -1, 0};
 #define WOBBLE_FRAMES 8u
