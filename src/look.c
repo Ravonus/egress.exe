@@ -11,6 +11,8 @@
 #include "world.h"
 #include "world_play.h"
 #include "heir.h"
+#include "core/eg_input.h"
+extern eg_input_t pin;
 void items_tick(void) BANKED;
 extern volatile uint8_t video_epoch;
 extern uint8_t frame_epoch;
@@ -882,7 +884,10 @@ static uint8_t ground_ahead(void) {
   /* A blink travels at most 6.5px/tick. Prepare the next 7px step's complete
    * 12x12 foot box, including diagonal corners and released rolls. A farther
    * point can skip the two adjacent cells crossed by a diagonal step. */
-  if(pl_state==PS_ROLL) {dx=roll_dx;dy=roll_dy;}
+  /* Sprint also presents as PS_ROLL, but follows the held direction rather
+   * than the last evade vector (which may still be zero). Only an actual
+   * evade retains its vector after the direction is released. */
+  if(pl_state==PS_ROLL && pin.move==EG_MV_DODGE) {dx=roll_dx;dy=roll_dy;}
   else {
     if((joy&(J_LEFT|J_RIGHT))!= (J_LEFT|J_RIGHT))dx=joy&J_RIGHT ? 1 : joy&J_LEFT ? -1 : 0;
     if((joy&(J_UP|J_DOWN))!= (J_UP|J_DOWN))dy=joy&J_DOWN ? 1 : joy&J_UP ? -1 : 0;

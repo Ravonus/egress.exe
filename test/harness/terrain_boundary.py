@@ -53,6 +53,25 @@ def run(rom,out):
         spans=[(b-a)&65535 for a,b in zip(fc,fc[1:])]
         results[name+'_keeps_one_update_per_display']=min(spans)==max(spans)==1
         g.shot(out/(name+'.png'));detail.append({'direction':name,'missing':misses[:8],'max_step_px':max(speeds),'frame_steps':sorted(set(spans))});g.stop()
+        # A held sprint shares PS_ROLL with evades, but has no evade vector.
+        # It must prepare the held direction through a cold incoming strip.
+        g=fresh(rom,0);g.tick(30);arena(g);teleport(g,120,104)
+        for k in range(28):g.poke('look_present',0,k);g.poke('roam_hidden',255,k)
+        c=6*16+7;g.poke('look_present',1<<(c&7),c>>3)
+        start=g.player();misses=[];moves=set()
+        def sprint_completed(_):
+            if g.peek('game_mode')==2 and not g.peek('pl_air'):
+                bad=missing_body(g)
+                if bad:misses.append((g.frames,g.player(),bad))
+        at=g.sym['_frame_wait'];g.pb.hook_register(at>>16,at&65535,sprint_completed,None)
+        g.hold(buttons)
+        for _ in range(48):g.tick();moves.add(g.peek('pin',2))
+        end=g.player()
+        results[name+'_held_sprint_crosses_cold_strip']=all((b-a)*d>40 for a,b,d in zip(start,end,(dx,dy)) if d)
+        results[name+'_sprint_whole_footprint_is_built']=not misses
+        results[name+'_sprint_without_an_evade_vector']=g.peek('roll_dx')==g.peek('roll_dy')==0 and 2 in moves
+        detail[-1]['sprint']={'from':start,'to':end,'missing':misses[:8],'moves':sorted(moves)}
+        g.stop()
     # Approach all four faces of drywall, including both off-centre sides.
     # The blade arc should hit the whole tile, independent of its top row.
     for name,dx,dy,buttons in [DIRS[i] for i in (0,2,4,6)]:

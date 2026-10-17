@@ -10,6 +10,8 @@ The central camera view and two cells outside it stay warm, including during rev
 
 The mandatory sweep covers the next 7px step (the fastest blink moves 6.5px per tick). The previous 14px point could skip adjacent cells in a diagonal crossing and make the safe mover stall. Cold-strip tests now exercise 7px cardinal and 5px diagonal blink steps in all eight directions with every foot corner built and one update per display.
 
+Sprint and evade share the player presentation state. Preparation now checks the actual input move before retaining an evade vector; a held sprint uses the held direction even when no evade has happened. Eight additional cold-strip cases exercise uninterrupted held sprints with zero evade vectors. The generated-world portal route for seed 0x5100 also catches this stall through ordinary play.
+
 The common byte-coordinate overlap primitive uses the same strict absolute distances in register-only SM83 code. The exceptional wide-coordinate path remains separate in a ROM bank. A native test checks all ordered byte-coordinate pairs along both axes at ten radii, plus mixed boxes: 1,314,816 comparisons. Late particle drawing retains lifetime updates without calculating unused projections.
 
 Regression observers check actual composed/uploaded pixels, requested-pose progress, visible sprite buffers, complete layer counts, central-view terrain and camera-rim animation. Camera combat timing observes completed updates against real VBlank epochs and rejects late completion; raw line-zero counter samples are retained because ISR-return phase can pair a zero and two without skipping an update.
