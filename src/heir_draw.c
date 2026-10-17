@@ -12,7 +12,6 @@ extern uint8_t world_on,game_mode;
 uint8_t heir_cache_get(uint8_t pose,uint8_t dd) BANKED;
 void heir_cache_put(uint8_t pose,uint8_t dd,uint8_t mask) BANKED;
 
-uint8_t heir_pixels[128];
 uint8_t heir_cache_enabled;
 static uint8_t want[7], nwant; /* six selected slots and a sentinel */
 static uint8_t chunk_bank[HEIR_CHUNKS];
@@ -181,7 +180,15 @@ static void heir_vbl(void) NONBANKED {
   if (!heir_pending) return;
   v = VBK_REG;
   VBK_REG = 0;
-  upload128((uint8_t *)(0x8000u + ((uint16_t)up_tile << 4)),heir_pixels);
+  /* The linker aligns this fixed-WRAM source. Eight CGB general-DMA blocks
+   * publish the same 128 bytes with far less VBlank CPU time than a byte loop. */
+  if(!((uint16_t)heir_pixels&15u)) {
+    HDMA1_REG=(uint8_t)((uint16_t)heir_pixels>>8);
+    HDMA2_REG=(uint8_t)(uint16_t)heir_pixels;
+    HDMA3_REG=0u;
+    HDMA4_REG=(uint8_t)(up_tile<<4);
+    HDMA5_REG=7u;
+  } else upload128((uint8_t *)(0x8000u + ((uint16_t)up_tile << 4)),heir_pixels);
   VBK_REG = v;
   heir_pending = 0;
 }

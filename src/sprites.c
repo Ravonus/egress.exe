@@ -226,8 +226,9 @@ static uint8_t oam_clipped(int16_t sx, int16_t sy, uint8_t n, uint8_t tile0, uin
   return 1u;
 }
 
-/* Register-only common path. Keep the portable clipping path for groups that
- * cross a screen edge; most mob/overlay/particle groups fit entirely on screen.
+/* Register-only common path, including clipping for one to four columns.
+ * Larger unusual groups retain the portable path. Every visible column still
+ * reserves the same bands and contiguous range before any sprite is written.
  * sdcccall(1): DE=x, BC=y; n/tile/step/prop are four callee-popped stack bytes. */
 uint8_t oam_group(int16_t sx, int16_t sy, uint8_t n, uint8_t tile0, uint8_t tstep, uint8_t prop) NONBANKED NAKED {
   sx;sy;n;tile0;tstep;prop;
@@ -236,21 +237,78 @@ uint8_t oam_group(int16_t sx, int16_t sy, uint8_t n, uint8_t tile0, uint8_t tste
     add hl,bc
     ld a,h
     or a,a
-    jr nz,8$
+    jp nz,8$
     ld a,l
     cp a,#159
-    jr nc,8$
-    ld a,d
-    or a,a
-    jp nz,_oam_clipped
+    jp nc,8$
     ld a,c
     add a,#16
     ld (#_emit_y),a
     ldhl sp,#2
     ld a,(hl)
     or a,a
-    jr z,8$
-    ld (#_emit_n),a
+    jp z,8$
+    cp a,#5
+    jr nc,20$
+    ld a,d
+    or a,a
+    jr z,21$
+    cp a,#255
+    jp nz,_oam_clipped
+    ld a,e
+    or a,a
+    jp z,8$
+    cpl
+    inc a
+    srl a
+    srl a
+    srl a
+    ld c,a
+    ld a,(hl)
+    sub a,c
+    jp z,8$
+    jp c,8$
+    ld (hl),a
+    ld a,c
+    add a,a
+    add a,a
+    add a,a
+    add a,e
+    ld e,a
+    ldhl sp,#4
+    ld d,(hl)
+    dec hl
+    ld a,(hl)
+    ld b,c
+    inc b
+  22$:
+    dec b
+    jr z,23$
+    add a,d
+    jr 22$
+  23$:
+    ld (hl),a
+    jr 24$
+  21$:
+    ld a,e
+    cp a,#160
+    jp nc,8$
+    ld a,#167
+    sub a,e
+    srl a
+    srl a
+    srl a
+    ld c,a
+    ld a,(hl)
+    cp a,c
+    jr c,24$
+    ld (hl),c
+    jr 24$
+  20$:
+    ld a,d
+    or a,a
+    jp nz,_oam_clipped
+    ld a,(hl)
     add a,a
     add a,a
     add a,a
@@ -259,6 +317,10 @@ uint8_t oam_group(int16_t sx, int16_t sy, uint8_t n, uint8_t tile0, uint8_t tste
     sub a,l
     cp a,e
     jp c,_oam_clipped
+  24$:
+    ldhl sp,#2
+    ld a,(hl)
+    ld (#_emit_n),a
     ld a,e
     add a,#8
     ld (#_emit_x),a

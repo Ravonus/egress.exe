@@ -26,7 +26,7 @@
 #include "world_play.h"
 #include "ui.h"
 void sprites_budget(void) NONBANKED;
-void heir_cache_flush(void) BANKED;
+uint8_t heir_cache_flush(void) BANKED;
 extern volatile uint8_t video_epoch;
 extern uint8_t frame_epoch;
 
@@ -276,9 +276,12 @@ static uint8_t floor_play(void) {
     frame_wait();
     input_poll(); /* sample before variable-cost VRAM/audio work can cross a display boundary */
     DISABLE_OAM_DMA;
-    if(freeze && !world_on)heir_cache_flush();
-    streamed=world_on ? world_frame_begin() : 0u;
-    if(!streamed)heir_prepare();
+    /* A busy previous frame may have offered a complete pose without spare
+     * time to cache it. Preserve it before another composition replaces the
+     * buffer, and give that copy this frame's early composition allowance. */
+    late=world_on ? world_frame_begin() : heir_cache_flush();
+    streamed=world_on ? late : 0u;
+    if(!late)heir_prepare();
     if(world_on && !streamed)world_prefetch();
     late=(uint8_t)(roaming && (world_on || enemies_alive || stage_type!=SG_PUZZLE));
     if (boss_floor) boss_vblank(); /* B2 bosses: in VBlank, before the look's writes */
@@ -386,8 +389,8 @@ static uint8_t floor_play(void) {
     draw_sprites();
     if(world_on && !streamed)world_frame_end();
     if(late && !streamed) look_frame_end();
-    /* Cache population is optional: publish complete visible actors first.
-     * The next composition discards an offer that did not fit this frame. */
+    /* Publish complete visible actors first. An offer that does not fit here
+     * gets the next frame's early allowance before another composition. */
     if(!world_on && video_epoch==frame_epoch && LY_REG<100u)heir_cache_flush();
   }
 }

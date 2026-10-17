@@ -6,6 +6,7 @@ prevent later hair, clothing, marks or weapons from being applied.
 import argparse,hashlib,json,re,sys
 from pathlib import Path
 from heir import boot_heir,ha_states
+from return_observer import watch_return
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'tools'))
@@ -20,8 +21,11 @@ class Pixels:
         symbols=(ROOT/f'build/obj-{mapper}/heir_draw.sym').read_text()
         offsets={m[1]:int(m[2],16) for m in re.finditer(r'^\s*5\s+(_\w+)\s+([0-9A-F]+)\s+\w+',symbols,re.M)}
         base=g.sym['_heir_compose']-offsets['_heir_compose']
-        for name in ('_copy128','_upload128'):
+        for name in ('_copy128',):
             if name in offsets:g.pb.hook_register(0,base+offsets[name],self.copy,None)
+        data={m[1]:int(m[2],16) for m in re.finditer(r'^\s*2\s+(_\w+)\s+([0-9A-F]+)\s+\w+',symbols,re.M)}
+        self.tile_addr=g.sym['_heir_pending']-data['_heir_pending']+data['_up_tile']
+        g.pb.hook_register(0,base+offsets['_heir_vbl'],self.vblank,None)
     def read(self,addr,n):
         bank=addr>>16;off=(bank*16384+(addr&16383)) if bank else addr
         return self.rom[off:off+n]
@@ -54,7 +58,16 @@ class Pixels:
         assert dest==0x8000+self.active[0]*16,(dest,self.active[0])
         ret=m[r.SP]|(m[r.SP+1]<<8)
         if ret not in self.returns:
-            self.g.pb.hook_register(0,ret,self.upload,None);self.returns.add(ret)
+            watch_return(self.g,(0,ret),self.upload);self.returns.add(ret)
+    def vblank(self,_):
+        g=self.g;m=g.pb.memory;r=g.pb.register_file
+        if not g.peek('heir_pending'):return
+        assert self.pending,'native VBlank upload without an observed composition'
+        self.active=self.pending.pop(0)
+        assert m[self.tile_addr]==self.active[0]
+        ret=m[r.SP]|m[r.SP+1]<<8
+        if ret not in self.returns:
+            watch_return(g,(0,ret),self.upload);self.returns.add(ret)
     def upload(self,_):
         if self.active is None:return
         tile,want,pose,dd,sh=self.active;got=bytes(self.g.pb.memory[0,0x8000+tile*16:0x8000+tile*16+128]);self.samples+=1

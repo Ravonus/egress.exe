@@ -198,10 +198,11 @@ void heir_cache_put(uint8_t pose,uint8_t dd,uint8_t mask) BANKED {
   if(!heir_cache_enabled)return;
   pending_pose=pose;pending_dd=dd;pending_mask=mask;pending=1u;
 }
-void heir_cache_flush(void) BANKED {
-  if(!heir_cache_enabled || !pending)return;
+uint8_t heir_cache_flush(void) BANKED {
+  if(!heir_cache_enabled || !pending)return 0u;
   eg_window_packet[0]=pending_pose;eg_window_packet[1]=pending_dd;
   eg_window_packet[2]=slot_for(pending_pose,pending_dd);eg_window_packet[3]=pending_mask;
   CRITICAL {write_pose();}
   pending=0u;
+  return 1u;
 }

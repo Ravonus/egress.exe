@@ -15,9 +15,9 @@ static const int8_t bob2[4] = {0, -1, 0, 0};
  * biased by 16 fit in bytes, including partially clipped edge sprites. */
 static uint8_t draw_x[MAXE],draw_y[MAXE];
 
-/* Complete overlays share one allocator call. Handle this common path without
- * SDCC spilling every pointer/member to its stack; partial columns retain the
- * portable path below. This leaf never switches WRAM or bypasses OAM budgets. */
+/* Overlay columns share the body coordinates and the normal allocator. Keep
+ * pointers and members in registers instead of spilling them for each column.
+ * This leaf never switches WRAM or bypasses OAM budgets. */
 static uint8_t overlay_pair(uint8_t k) NAKED {
   k;
   __asm
@@ -63,8 +63,12 @@ static uint8_t overlay_pair(uint8_t k) NAKED {
   2$:
     and a,#3
     jp z,8$
-    cp a,#3
-    jp nz,9$
+    ld e,a
+    sla e
+    sla e
+    ld a,c
+    or a,e
+    ld c,a
     ldhl sp,#1
     ld a,(hl)
     swap a
@@ -127,6 +131,9 @@ static uint8_t overlay_pair(uint8_t k) NAKED {
     ld a,(hl+)
     ld e,a
     ld d,(hl)
+    and a,#12
+    cp a,#12
+    jr nz,10$
     bit 7,e
     jr z,4$
     ld a,#37
@@ -145,6 +152,47 @@ static uint8_t overlay_pair(uint8_t k) NAKED {
     ld a,#2
     push af
     inc sp
+    jr 6$
+  10$:
+    bit 3,e
+    jr z,11$
+    inc d
+    inc d
+  11$:
+    bit 7,e
+    jr z,12$
+    bit 2,e
+    jr nz,13$
+    jr 14$
+  12$:
+    bit 3,e
+    jr z,14$
+  13$:
+    ldhl sp,#0
+    ld a,(hl)
+    add a,#8
+    ld (hl+),a
+    ld a,(hl)
+    adc a,#0
+    ld (hl),a
+  14$:
+    ld a,#5
+    bit 7,e
+    jr z,15$
+    or a,#32
+  15$:
+    push af
+    inc sp
+    xor a,a
+    push af
+    inc sp
+    ld a,d
+    push af
+    inc sp
+    ld a,#1
+    push af
+    inc sp
+  6$:
     ld a,d
   5$:
     push af
@@ -164,15 +212,12 @@ static uint8_t overlay_pair(uint8_t k) NAKED {
     add sp,#2
     ld a,#1
     ret
-  9$:
-    add sp,#2
-    xor a,a
-    ret
   __endasm;
 }
 typedef char native_overlay_layout[(sizeof(mob_t)==19u && offsetof(mob_t,drawn)==15u &&
   offsetof(mob_t,status)==10u && offsetof(mob_t,slot)==9u && sizeof(enemy_t)==16u &&
-  offsetof(enemy_t,face)==5u && MOB_TILE0==16u && MOB_SLOT_TILES==24u && MS_UNDER==64u) ? 1 : -1];
+  offsetof(enemy_t,face)==5u && MOB_TILE0==16u && MOB_SLOT_TILES==24u && MS_UNDER==64u &&
+  SPAWN_MOB==3u && ES_DEAD==6u && F_LEFT==2u && S_FLIPX==32u && MAXE<=16u) ? 1 : -1];
 
 void mob_draw(uint8_t k) BANKED {
   enemy_t *e = &en[k];
@@ -224,42 +269,10 @@ static void mob_marks(void) {
   }
 }
 
-/* One body's overlay does not keep the outer loop's two pointers alive across
- * every allocator call. Positions are the exact transformed body coordinates. */
-static void mob_overlay(uint8_t k) {
-  if(overlay_pair(k))return;
-  mob_t *m=&mob[k];
-  uint8_t f,b,tile,flip;
-  int16_t sx,sy;
-  if(!m->drawn || m->drawn>3u || (m->status&MS_UNDER) ||
-     en[k].kind!=SPAWN_MOB || en[k].st==ES_DEAD)return;
-  f=(uint8_t)(m->drawn-1u);
-  if(f==2u)f=1u;
-  b=mob_slot_bmask[m->slot];
-  if(f)b>>=2;
-  b&=3u;
-  if(!b)return;
-  tile=(uint8_t)(MOB_TILE0+m->slot*MOB_SLOT_TILES+16u+(f<<2));
-  flip=(uint8_t)(en[k].face==F_LEFT);
-  sx=(int16_t)draw_x[k]-16;sy=(int16_t)draw_y[k]-16;
-  if(b==3u) {
-    if(flip)oam_group(sx,sy,2u,(uint8_t)(tile+2u),254u,5u|S_FLIPX);
-    else oam_group(sx,sy,2u,tile,2u,5u);
-    return;
-  }
-  if(flip) {
-    if(b&2u)oam_group(sx,sy,1u,(uint8_t)(tile+2u),0u,5u|S_FLIPX);
-    if(b&1u)oam_group(sx+8,sy,1u,tile,0u,5u|S_FLIPX);
-  } else {
-    if(b&1u)oam_group(sx,sy,1u,tile,0u,5u);
-    if(b&2u)oam_group(sx+8,sy,1u,(uint8_t)(tile+2u),0u,5u);
-  }
-}
-
 void mobs_draw(uint8_t pass) BANKED {
   uint8_t k;
   if(pass==OP_MARK) {mob_marks();return;}
-  for(k=0u;k!=nen;k++)mob_overlay(k);
+  for(k=0u;k!=nen;k++)overlay_pair(k);
 }
 
 uint8_t mob_look_draw(uint8_t slot, uint8_t f, int16_t sx, int16_t sy, uint8_t prop_or) BANKED {

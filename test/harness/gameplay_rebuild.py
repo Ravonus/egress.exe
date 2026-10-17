@@ -91,10 +91,23 @@ def run(rom,out,tool):
     result['heir_choice_survives_poweroff']=bytes(g.peek('family',k) for k in range(19))==selected and g.peek('family',283)==1
     solve_here(g,tool,log);g.tick(240)
     g.poke('dbg_god',0)
-    for _ in range(16000):
+    # Approach actual enemies instead of assuming this input route leaves the
+    # heir somewhere they can reach. Rendering timing can change that final
+    # position; standing safely behind room geometry is not a death test.
+    death_hunt_steps=0
+    for _ in range(1600):
         if g.peek('game_mode')==4:break
-        g.tick()
+        live=[k for k in range(g.peek('nen')) if g.peek('en',k*16+1)!=6]
+        x,y=g.player()
+        if live:
+            k=min(live,key=lambda k:abs(g.peek16_at('en',k*16+8)//16-x)+abs(g.peek16_at('en',k*16+10)//16-y))
+            ex=g.peek16_at('en',k*16+8)//16;ey=g.peek16_at('en',k*16+10)//16
+            if max(abs(ex-x),abs(ey-y))>18:
+                walk(g,(ey//16)*16+ex//16,log,2);death_hunt_steps+=1
+        g.hold(set());g.tick(10)
+    report['death_hunt_steps']=death_hunt_steps
     result['death_creates_actual_parent_record']=g.peek('game_mode')==4 and g.peek16_at('family',279)==2 and bytes(g.peek('family',19+k) for k in range(19))==selected
+    assert result['death_creates_actual_parent_record'],'real enemy damage must create the next generation before testing its picker'
     dead_save=g.stop()
     g=Game(rom,sram=dead_save);assert g.wait_mode(MODE_TITLE)
     g.tick(40)

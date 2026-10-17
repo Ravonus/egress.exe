@@ -4,7 +4,7 @@ from return_observer import watch_return
 
 class MobRender:
     def __init__(self,g):
-        self.g=g;self.pending=None;self.returns=set();self.passes=0;self.groups=0;self.errors=[]
+        self.g=g;self.pending=None;self.returns=set();self.passes=0;self.groups=0;self.errors=[];self.columns={};self.flips=set()
         for name,fn in [('_mobs_draw',self.enter),('_oam_group',self.group)]:
             a=g.sym[name];g.pb.hook_register(a>>16,a&65535,fn,None)
     def enter(self,_):
@@ -24,6 +24,7 @@ class MobRender:
             f=a[15]-1
             if f==2:f=1
             b=(g.peek('mob_slot_bmask',a[9])>>(2*f))&3
+            self.columns[b]=self.columns.get(b,0)+1;self.flips.add(e[5]==2)
             sx=x-cx-16;sy=y-cy-16
             if e[1]==1:sx+=1 if e[2]&2 else -1
             elif e[1]==2:
@@ -50,5 +51,5 @@ class MobRender:
         _,_,want,got=self.pending;self.pending=None;self.passes+=1;self.groups+=len(got)
         if want!=got and len(self.errors)<8:self.errors.append({'frame':self.g.frames,'expected':want,'actual':got})
     def report(self):
-        return {'passes':self.passes,'groups':self.groups,'mismatches':self.errors,
+        return {'passes':self.passes,'groups':self.groups,'column_masks':self.columns,'flips':sorted(self.flips),'mismatches':self.errors,
                 'mob_art_requests_match':self.passes>100 and self.groups>10 and not self.errors}
