@@ -281,7 +281,15 @@ def bench_visit(g: Game,log: list[str]) -> bool:
     while prev[target] is not None:route.append(route_dir[target]);target=prev[target]
     for d in reversed(route):
         if not step(g,d,log):return False
-    g.hold(set());g.tick(8);return True
+    # Grid steps can double-tap into a real roll. Land and finish recovery
+    # before interacting; airborne A remains a combat input.
+    g.hold(set())
+    for _ in range(96):
+        if not g.peek('pl_air') and g.peek('pl_state')==0:
+            g.tick(2)
+            if not g.peek('pl_air') and g.peek('pl_state')==0:return True
+        g.tick()
+    log.append('the bench approach never landed');return False
 
 
 def bench_open(g: Game,log: list[str],*,craft: bool=False) -> bool:
