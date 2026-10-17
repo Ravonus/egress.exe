@@ -846,6 +846,7 @@ void player_update(void) BANKED {
   st=cell_type(cell_at(pl_x,pl_y));
   if(pl_air && (st==T_PIT || (st==T_GLITCH && !eg_beat_on(frame_count)))) air_void=1u;
   if(was_air && !pl_air) {
+    collect(); /* landing on a key/material counts even after the d-pad is released */
     if(air_void && EG_PASSABLE(st) && (st!=T_GLITCH || eg_beat_on(frame_count))) narrator_event(NE_JUMP,0u);
     air_void=0u;
   }

@@ -46,6 +46,7 @@ def run(rom,out):
  g.hold(set());g.tick(150);g.press('up',1);g.tick(24)
  for held,n in [({'up'},2),(set(),3),({'up'},12),(set(),32)]:g.hold(held);g.tick(n)
  done(9);g.shot(out/'03-gap-crossed.png')
+ r['landing_collects_the_course_key']=g.peek('keys_held')==1
  assert walk(g,2*16+12,log);assert walk(g,2*16+13,log)
  for _ in range(600):
   g.tick()

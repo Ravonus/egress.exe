@@ -82,7 +82,7 @@ static uint8_t generate_one(preparation *p,uint8_t vertical,uint8_t *packet) {
   if(!p->dir || p->n>=(vertical ? 16u : 14u))return 0u;
   chunk(p,vertical,&x,&y);
   if(!p->part && world_cached(x,y)) {p->n++;return 1u;}
-  if(!spare(24u))return 0u;
+  if(!spare(45u))return 0u;
   k=p->part;if(!k)packet[8]=0u;
   eg_land_at(&world_plan,(uint8_t)(x+k),y,&c);packet[k]=c.material;packet[k+4u]=world_skin(c.design,c.variant);
   if(c.flags&EL_PROTECTED)packet[8]|=look_bits[k];
