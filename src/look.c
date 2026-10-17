@@ -33,7 +33,7 @@ static uint8_t roam_on,roam_scan,roam_left,roam_x,roam_y,near_cursor,roam_dir;
 static uint8_t roam_late,prep_cursor;
 
 /* cards in flight (assembly) and pieces falling (collapse) */
-enum { K_FREE = 0, K_DROP, K_RISE, K_SLIDE_L, K_SLIDE_R, K_GLITCH, K_CRACK, K_FALL, K_WOBBLE, K_SHATTER };
+enum { K_FREE = 0, K_DROP = 1, K_FALL = 7, K_WOBBLE = 8, K_SHATTER = 9 };
 static uint8_t c_kind[LOOK_MAX_CARDS], c_cell[LOOK_MAX_CARDS], c_t[LOOK_MAX_CARDS], c_meta[LOOK_MAX_CARDS];
 static uint8_t c_brk[LOOK_MAX_CARDS]; /* a break's fragile kind (LOOK_FRAG_*), 0 for the wave's cards */
 static uint8_t n_break;
@@ -58,7 +58,6 @@ static const int8_t ease_in[5] = {-16, -9, -3, 1, 0};
 /* the fall: crack, split, accelerate, drift apart */
 static const uint8_t fall_dy[12] = {0, 1, 2, 4, 6, 9, 12, 16, 21, 26, 32, 38};
 #define FALL_FRAMES 12u
-#define CRACK_FRAMES 3u
 
 static uint8_t lk_rnd(void) {
   lk_rs = (uint16_t)(lk_rs * 25173u + 13849u);
@@ -421,7 +420,7 @@ static uint8_t launch(uint8_t i) {
 static void finish(uint8_t k) {
   uint8_t i=c_cell[k];
   in_flight[i>>3]&=(uint8_t)~BIT(i);
-  if(c_kind[k]>=K_DROP && c_kind[k]<=K_GLITCH && !c_brk[k])
+  if(c_kind[k]==K_DROP && !c_brk[k])
     roam_hidden[i>>3]&=(uint8_t)~BIT(i);
   if (c_brk[k]) {
     c_brk[k] = 0;c_meta[k]=255u;
@@ -673,29 +672,10 @@ static void step_card(uint8_t k) {
   uint8_t i = c_cell[k], t = c_t[k], kind = c_kind[k];
   uint8_t tile = c_brk[k] ? meta_tile[c_meta[k]][0] : (k<3u ? (uint8_t)(4u+(k<<2)) : (uint8_t)(100u+(k<<2))), prop;
   int16_t wx = (int16_t)((uint16_t)EG_X(i) << 4), wy = (int16_t)((uint16_t)EG_Y(i) << 4);
-  if((kind==K_CRACK || kind==K_FALL) && roam_on && !c_brk[k] && (roam_hidden[i>>3]&BIT(i)) && roam_wants(i)) {
-    if(kind==K_CRACK) {
-      /* A turn toward a still-grounded trailing slab cancels its collapse. */
-      if(budget>=1u && roam_bg_time()) {
-        roam_hidden[i>>3]&=(uint8_t)~BIT(i);settle(i);finish(k);
-      }
-      return;
-    }
-    if(kind==K_FALL) {kind=c_kind[k]=K_DROP;t=c_t[k]=0u;}
-  }
+  if(kind==K_FALL && roam_on && !c_brk[k] && (roam_hidden[i>>3]&BIT(i)) && roam_wants(i))
+    {kind=c_kind[k]=K_DROP;t=c_t[k]=0u;}
   if (kind >= K_WOBBLE) {
     step_break(k, wx, wy, tile);
-    return;
-  }
-  if (kind == K_CRACK) {
-    if (t + 1u >= CRACK_FRAMES) {
-      if (budget < (roam_on ? 1u : 2u) || !roam_bg_time()) return; /* reserve time for movement and actors */
-      look_present[i >> 3] &= (uint8_t)~BIT(i);
-      settle(i);
-      c_kind[k] = K_FALL;
-      c_t[k] = 0;
-    } else
-      c_t[k]++;
     return;
   }
   if (kind == K_FALL) {
@@ -713,7 +693,7 @@ static void step_card(uint8_t k) {
     return;
   }
   /* assembly */
-  if ((kind == K_GLITCH && t >= 5u) || (kind != K_GLITCH && t >= EASE_FRAMES)) {
+  if (t >= EASE_FRAMES) {
     if (budget < (roam_on ? 1u : 2u) || !roam_bg_time()) {
       sprite_pair(k,wx,wy,tile,(uint8_t)(S_BANK|(meta_pal[c_meta[k]]&LOOK_META_FLIP)|(is_wallish(c_meta[k]) ? 7u : 6u)),0u);
       return;
@@ -724,28 +704,7 @@ static void step_card(uint8_t k) {
     return;
   }
   prop = (uint8_t)(S_BANK|(meta_pal[c_meta[k]]&LOOK_META_FLIP)|(is_wallish(c_meta[k]) ? 7u : 6u));
-  switch (kind) {
-    case K_DROP:
-      wy += ease_in[t];
-      break;
-    case K_RISE:
-      wy -= ease_in[t];
-      break;
-    case K_SLIDE_L:
-      wx += ease_in[t];
-      break;
-    case K_SLIDE_R:
-      wx -= ease_in[t];
-      break;
-    default: /* glitching in: torn, gone, torn the other way, gone, there (glass: unseen, then there) */
-      if ((t & 1u) || (meta_pal[c_meta[k]] & 7u) == LOOK_PAL_VOID) {
-        hide_card(k);
-        c_t[k]++;
-        return;
-      }
-      wx += t == 0u ? 3 : (t == 2u ? -2 : 0);
-      break;
-  }
+  wy += ease_in[t];
   sprite_pair(k, wx, wy, tile, prop, 0);
   c_t[k]++;
 }
@@ -988,8 +947,7 @@ static void look_update(uint8_t prepare) {
       if(prepare) {
         if(!prepare_time())break;
         if(budget>=1u && !c_brk[k]) {
-          if((c_kind[k]<=K_GLITCH && c_t[k]>=(c_kind[k]==K_GLITCH ? 5u : EASE_FRAMES)) ||
-             (c_kind[k]==K_CRACK && c_t[k]+1u>=CRACK_FRAMES)) {
+          if(c_kind[k]==K_DROP && c_t[k]>=EASE_FRAMES) {
             step_card(k);
             if(budget<2u) {budget=0u;break;}
           }
