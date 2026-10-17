@@ -629,7 +629,7 @@ def read_save(sram: bytes) -> dict | None:
     best = None
     for off in (0, 32):
         r = sram[off:off + 22]
-        if r[:3] != b"EG\x01" or crc16(r[:20]) != (r[20] | r[21] << 8):
+        if r[:3] != b"EG\x02" or crc16(r[:20]) != (r[20] | r[21] << 8):
             continue
         m = r[4:20]
         rec = {"gen": r[3], "runs": m[0] | m[1] << 8, "wins": m[2], "best_floor": m[3], "unlocked": m[4],
