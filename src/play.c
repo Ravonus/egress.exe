@@ -389,8 +389,8 @@ static uint8_t floor_play(void) {
     tutorial_tick();
     if(!(frame_count&63u)) narrator_tick();
     draw_sprites();
-    if(late && !streamed) look_frame_end();
     if(world_on && !streamed)world_frame_end();
+    if(late && !streamed) look_frame_end();
     /* Publish complete visible actors first. An offer that does not fit here
      * gets the next frame's early allowance before another composition. */
     if(!world_on && video_epoch==frame_epoch && LY_REG<100u)heir_cache_flush();
