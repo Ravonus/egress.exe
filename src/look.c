@@ -879,14 +879,15 @@ static uint8_t anchor_at(uint8_t x,uint8_t y) {
 }
 static uint8_t ground_ahead(void) {
   int16_t x=pl_x,y=pl_y;int8_t dx=0,dy=0;uint8_t n=0u,k,c,x0,x1,y0,y1,vertical,limit;
-  /* A blink travels at most 6.5px/tick. Prepare a 14px swept lead plus the
-   * complete 12x12 foot box, including diagonal corners and released rolls. */
+  /* A blink travels at most 6.5px/tick. Prepare the next 7px step's complete
+   * 12x12 foot box, including diagonal corners and released rolls. A farther
+   * point can skip the two adjacent cells crossed by a diagonal step. */
   if(pl_state==PS_ROLL) {dx=roll_dx;dy=roll_dy;}
   else {
     if((joy&(J_LEFT|J_RIGHT))!= (J_LEFT|J_RIGHT))dx=joy&J_RIGHT ? 1 : joy&J_LEFT ? -1 : 0;
     if((joy&(J_UP|J_DOWN))!= (J_UP|J_DOWN))dy=joy&J_DOWN ? 1 : joy&J_UP ? -1 : 0;
   }
-  x+=dx*14;y+=dy*14;
+  x+=dx*7;y+=dy*7;
   x0=(uint8_t)((x-6)>>4);x1=(uint8_t)((x+5)>>4);
   y0=(uint8_t)((y-6)>>4);y1=(uint8_t)((y+5)>>4);
   n+=anchor_at(x0,y0);
