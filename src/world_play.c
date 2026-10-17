@@ -39,7 +39,9 @@ static void bind_requested(void) {
 }
 uint8_t world_work_pending(void) BANKED {
   preparation *p;uint8_t n;
-  if(!world_on)return 0u;
+  /* Presentation yields only to work that can run this frame. A fight or
+   * fall suspends prefetch; its pending strips must not starve rim arrivals. */
+  if(!world_on || !pl_hp || pl_state==PS_FALL || pl_state==PS_EXIT || enemies_alive || player_portal_pending())return 0u;
   if((px.dir && px.n<14u) || (py.dir && py.n<16u))return 1u;
   n=priority_axis();p=n ? &py : &px;
   return p->dir && !world_binding_ready(n ? 0 : p->dir*4,n ? p->dir*4 : 0);
