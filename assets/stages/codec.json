@@ -9,7 +9,7 @@
     {"name":"xxl", "width":[100,128],"height":[42,54], "goals":[2,4]}
   ],
   "stages": [
-    {"name":"first_load", "goals":["load"], "conditions":["hold"], "shapes":["terraces","basins","bend"], "sizes":["xs","s"], "alternatives":["push","craft"]},
+    {"name":"first_load", "goals":["load"], "conditions":["hold","latch","either","both"], "shapes":["terraces","basins","bend","courts"], "sizes":["xs","s","m"], "alternatives":["push","craft"]},
     {"name":"heat_route", "goals":["heat","load"], "conditions":["hold","latch"], "shapes":["terraces","basins","bend","courts"], "sizes":["xs","s","m","l"], "alternatives":["push","craft"]},
     {"name":"cold_route", "goals":["cold","load"], "conditions":["hold","either"], "shapes":["terraces","basins","bend","courts"], "sizes":["xs","s","m","l"], "alternatives":["push","craft","jump"]},
     {"name":"power_route", "goals":["power","load"], "conditions":["hold","latch","both"], "shapes":["terraces","basins","bend","courts"], "sizes":["s","m","l","xl"], "alternatives":["push","craft"]},

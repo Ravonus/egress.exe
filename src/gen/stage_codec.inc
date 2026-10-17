@@ -8,7 +8,7 @@ static const uint8_t land_sizes[6][6] = {
   {100u,128u,42u,54u,2u,4u},
 };
 static const uint8_t land_rules[6][6] = {
-  {1u,1u,7u,3u,3u,0u},
+  {1u,15u,15u,7u,3u,0u},
   {3u,3u,15u,15u,3u,0u},
   {5u,5u,15u,15u,7u,0u},
   {9u,11u,15u,30u,3u,0u},

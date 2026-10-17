@@ -1,0 +1,33 @@
+{
+  "previous_sha256": "2faab26f0f34edbf82e52ee4c05bde69cd1b10f6851f21a0090e1a45a2719a92",
+  "sha256": "5f94ccf9a7af9909fa259a13b82cd562a08ae94d59f18663ecaa1260141c5abe",
+  "cases": [
+    {
+      "case": "physical-opening",
+      "results": {
+        "same_run_seed": true,
+        "same_native_room": true,
+        "same_world_mode": true,
+        "same_spatial_plan": true
+      }
+    },
+    {
+      "case": "survival-arena",
+      "results": {
+        "same_run_seed": true,
+        "same_native_room": true,
+        "same_world_mode": true,
+        "same_spatial_plan": true
+      }
+    },
+    {
+      "case": "spatial-portal",
+      "results": {
+        "same_run_seed": true,
+        "same_native_room": true,
+        "same_world_mode": true,
+        "same_spatial_plan": true
+      }
+    }
+  ]
+}

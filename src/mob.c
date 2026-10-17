@@ -18,6 +18,7 @@
  * cabinet BB_MOB_HEAVY (weight 2), the mole BB_MOB_BURROWER (breaks the cell it dives through). Protected cells are
  * never worn by mobs. */
 #pragma bank 255
+#include "world.h"
 #include <gb/gb.h>
 #include <gb/cgb.h>
 #include <string.h>
@@ -361,6 +362,13 @@ void mobs_floor(void) BANKED {
     if (ground[1] == ground[0]) ground[1] = ground[0] == FAM_INTERN ? FAM_MEMO : FAM_INTERN;
     ng = 2u;
     ranged = (r & 0x80u) ? FAM_LAMP : FAM_FAX;
+  }
+  /* Spatial puzzle encounters use the same full matrix actors, with two
+   * native slots. Swarms and conditional crush-only rosters belong to their
+   * generated combat/hunt stages rather than an unloaded world boundary. */
+  if(world_on) {
+    ground[0]=floor_no<=1u || (r&1u) ? FAM_INTERN : FAM_MEMO;
+    ng=1u;ranged=FAM_FAX;
   }
   /* fair by construction (7.3): a crush-only cabinet needs a CRT or a pit in the room; a mole needs foam to cross */
   for (k = 0; k != ng; k++) {

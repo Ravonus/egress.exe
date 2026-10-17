@@ -48,10 +48,12 @@ TB_HOST := build/t3d_bake/v160x104
 -include $(TB_GEN)/chunks.mk
 TB_OBJ := $(patsubst %,build/obj/tb/%.o,$(TB_CHUNKS) tb_index)
 OBJ := $(patsubst src/%.c,build/obj/%.o,$(SRC)) $(TB_OBJ)
-# Keep the fixed upload module before banked sources. The linker also gates
+# Keep the page-aligned pixel module first, then the fixed upload state before
+# banked sources. Clean links must not depend on a previous autobank rewrite.
+# The linker also gates
 # the shared pose's GDMA alignment and the fixed-WRAM stream packets below.
-OBJ_mbc5 := build/obj-mbc5/heir_draw.o $(OBJ) $(patsubst src/%.c,build/obj-mbc5/%.o,$(filter-out src/heir_draw.c,$(MAPPER_SRC)))
-OBJ_mbc3 := build/obj-mbc3/heir_draw.o $(OBJ) $(patsubst src/%.c,build/obj-mbc3/%.o,$(filter-out src/heir_draw.c,$(MAPPER_SRC)))
+OBJ_mbc5 := build/obj/main.o build/obj-mbc5/heir_draw.o $(filter-out build/obj/main.o,$(OBJ)) $(patsubst src/%.c,build/obj-mbc5/%.o,$(filter-out src/heir_draw.c,$(MAPPER_SRC)))
+OBJ_mbc3 := build/obj/main.o build/obj-mbc3/heir_draw.o $(filter-out build/obj/main.o,$(OBJ)) $(patsubst src/%.c,build/obj-mbc3/%.o,$(filter-out src/heir_draw.c,$(MAPPER_SRC)))
 ROM_mbc5 := build/egress.gbc
 ROM_mbc3 := build/egress-rtc.gbc
 CART_mbc5 := 0x1B
@@ -627,7 +629,11 @@ test-rtc: build/host/test_clock build/egress.gbc build/egress-rtc.gbc
 	$(PY) tools/mapper_audit.py build/linked-mbc5.map build/linked-mbc3.map
 	$(PY) test/rtc_test.py build/egress.gbc build/egress-rtc.gbc
 
-test: build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-physics test-island-edges test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-runtime test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera test-linked-puzzles test-native-links test-native-linked-puzzles test-window test-native-window test-land test-native-land test-view test-native-view test-native-land-bind test-native-world test-native-world-art test-world-play test-world-environments test-world-failure
+test-procedural: all build/host/land_one
+	$(PY) test/harness/procedural_runs.py build/egress.gbc build/fresh-runs/mbc5
+	$(PY) test/harness/procedural_runs.py build/egress-rtc.gbc build/fresh-runs/mbc3
+
+test: build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-physics test-island-edges test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-runtime test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera test-linked-puzzles test-native-links test-native-linked-puzzles test-window test-native-window test-land test-native-land test-view test-native-view test-native-land-bind test-native-world test-native-world-art test-world-play test-world-environments test-world-failure test-procedural
 	build/host/test_obst
 	build/host/test_room src/gen/eg_seeds.c
 	build/host/egplan check 1000
@@ -646,5 +652,6 @@ clean:
 .PHONY: test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera test-links test-linked-puzzles test-native-links test-native-linked-puzzles
 .PHONY: test-window test-native-window test-land test-native-land
 .PHONY: test-view test-native-view test-native-land-bind test-native-world test-native-world-art test-world-play test-world-environments test-world-failure
+.PHONY: test-procedural
 
 .PHONY: test-native-overlap

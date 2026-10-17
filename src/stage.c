@@ -96,6 +96,14 @@ void stage_plan_floor(void) BANKED {
   floor_resets = 0;
   st_seed = (uint16_t)(run_seed ^ ((uint16_t)floor_no * 0x9e37u) ^ 0x51a7u);
   if (!st_seed) st_seed = 1u;
+  /* Explicit legacy-motif fixtures for isolated interaction regressions.
+   * Ordinary runs never set this debug flag and use the spatial codec. */
+  if(dbg_stage>=129u && dbg_stage<=132u) {
+    slice.kind=stage_kind=SK_STAGE;slice.type=stage_type=SG_PUZZLE;
+    slice.planned=0u;slice.physical=dbg_stage;slice.m=255u;
+    slice.level=eg_plan_target(&plan,floor_no);dbg_stage=0u;
+    return;
+  }
   if (dbg_fseed) { /* the harness: this exact room (a puzzle, unless a type is forced too) */
     floor_seed = dbg_fseed;
     floor_tier = dbg_ftier;
@@ -111,6 +119,9 @@ void stage_plan_floor(void) BANKED {
   }
   stage_kind = eg_slice_floor(&slice, &plan, floor_no, RUN_FLOORS, &e, force);
   stage_type = slice.type;
+  /* Version the constructor in the existing journal byte. Plain PH_* and
+   * zero from older saves retain their exact original floor on Continue. */
+  if(force==255u)slice.physical|=64u;
   if (slice.planned) {
     floor_seed = e.seed;
     floor_tier = e.tier;
@@ -123,18 +134,43 @@ void stage_resume_floor(void) BANKED {
   stage_kind=slice.kind;stage_type=slice.type;
 }
 
+static void world_encounter(void) {
+  uint8_t k,c,n,tries,x,y,sx=EG_X(room.start),sy=EG_Y(room.start),d;
+  eg_stage_flood(&room,room.start);
+  n=(uint8_t)(floor_no>=3u ? 2u : 1u+(st_seed&1u));
+  for(k=0u;k<n;k++)for(tries=0u;tries<128u;tries++) {
+    c=(uint8_t)(st_seed+k*67u+tries*37u);if(c>=EG_N)continue;
+    x=EG_X(c);y=EG_Y(c);d=absdiff(x,sx)+absdiff(y,sy);
+    if(room.c[c]!=T_EMPTY || !EG_REACHED(c) || d<4u || d>7u || absdiff(x,sx)>5u || absdiff(y,sy)>5u)continue;
+    if(k && c==room.spawn[0])continue;
+    room.spawn[room.nspawn]=c;room.spawn_kind[room.nspawn]=(uint8_t)(k && floor_no>=3u ? SPAWN_EYE : SPAWN_MITE);room.nspawn++;
+    break;
+  }
+}
 uint8_t stage_build(void) BANKED {
+  uint8_t rule;
+  if(slice.physical&128u) {eg_physics_gen(&room,slice.physical&127u,st_seed,slice.level);return 1u;}
   if(dbg_world_rule && dbg_world_rule<=EL_RULES && dbg_world_size<=EL_SIZES && dbg_world_biome<EL_BIOMES) {
     stage_type=SG_PUZZLE;
     return world_begin(st_seed,dbg_world_rule-1u,dbg_world_size ? dbg_world_size-1u : 255u,dbg_world_biome);
   }
-  if(slice.physical && floor_no==7u && (run_seed&0x0100u))return world_begin(st_seed,4u,255u,BIOME_OFFICE);
-  if (slice.physical) {
-    eg_physics_gen(&room, slice.physical, st_seed, slice.level);
-    return 1u;
+  if((slice.physical&63u) && !(slice.physical&64u)) {
+    if(floor_no==7u && (run_seed&0x0100u))return world_begin(st_seed,4u,255u,BIOME_OFFICE);
+    eg_physics_gen(&room,slice.physical,st_seed,slice.level);return 1u;
+  }
+  if (slice.physical&63u) {
+    /* Falling-load chutes remain in the ordinary deal alongside the spatial
+     * cold/power routes, rather than disappearing into test-only fixtures. */
+    if(floor_no==3u && !(st_seed&3u)) {eg_physics_gen(&room,PH_DROP,st_seed,slice.level);return 1u;}
+    /* The floor keeps its mechanical role; its dimensions, topology, goal
+     * conditions and apparatus are constructed anew from this run's seed. */
+    rule=floor_no==1u ? 0u : floor_no==3u ? (uint8_t)(2u+(st_seed&1u)) : (uint8_t)(4u+(st_seed&1u));
+    if(!world_begin(st_seed,rule,255u,BIOME_OFFICE))return 0u;
+    world_encounter();return 1u;
   }
   if (stage_type == SG_PUZZLE || stage_type >= EG_DECK_TYPES) return 0u;
-  if (!eg_stage_gen(&room, &stg, stage_type, st_seed, slice.level, slice.m)) {
+  if (!(slice.physical&64u ? eg_stage_gen(&room,&stg,stage_type,st_seed,slice.level,slice.m) :
+        eg_stage_gen_legacy(&room,&stg,stage_type,st_seed,slice.level,slice.m))) {
     stage_type = SG_PUZZLE; /* never seen in the host sim; the puzzle room stands in */
     return 0u;
   }
@@ -578,8 +614,8 @@ void stage_show(void) BANKED {
 }
 
 uint8_t stage_announce(void) BANKED {
-  if(world_on) {hud_msg("LOAD. CROSS. EXIT.");return 1u;}
-  if (slice.physical) { eg_physics_goal(slice.physical, sbuf); hud_msg(sbuf); return 1u; }
+  if(world_on) {hud_msg(enemies_alive ? "FIGHT. SOLVE. EXIT." : "LOAD. CROSS. EXIT.");return 1u;}
+  if (slice.physical&63u) { eg_physics_goal(slice.physical&63u, sbuf); hud_msg(sbuf); return 1u; }
   if (!stage_goal[0]) return 0u;
   hud_msg(stage_goal);
   return 1u;

@@ -9,7 +9,9 @@ def run(rom,out,tool):
     try:
         assert g.wait_mode(1,1500)
         g.poke('dbg_world_rule',1);g.poke('dbg_world_size',1)
-        assert start_run(g,True,True,seed=0x5fed,floor=7)
+        # Explicit hold-switch fixture; ordinary openings also deal latch,
+        # either and both conditions and are covered by procedural_runs.py.
+        assert start_run(g,True,True,seed=0x5feb,floor=7)
         p=WorldPlayer(g,tool,rom);p.out=out;g.tick(160)
         original=p.plan;kind,u,v,condition,*_=p.nodes[0]
         assert kind==0 and condition==0 and len(p.nodes)==1

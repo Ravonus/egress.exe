@@ -74,6 +74,8 @@ uint8_t eg_wave_count(const eg_stage *s,uint8_t wave) EG_BANKED;
  * (|score - level| <= 1) or the tries run out (the closest so far is kept). Returns the seed it settled on (never 0
  * when a stage was made; 0 only if no layout passed its own checks, which the host sim shows never happens). */
 uint16_t eg_stage_gen(eg_room *r, eg_stage *s, uint8_t type, uint16_t seed, uint8_t level, uint8_t m) EG_BANKED;
+/* Existing continue journals retain the pre-island constructor exactly. */
+uint16_t eg_stage_gen_legacy(eg_room *r,eg_stage *s,uint8_t type,uint16_t seed,uint8_t level,uint8_t m) EG_BANKED;
 #define EG_STAGE_TRIES 8u
 #define EG_CHASE_WALK 16u /* frames a cell the chase assumes the player walks (they walk ~11: the slack is real) */
 

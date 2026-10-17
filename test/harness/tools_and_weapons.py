@@ -53,7 +53,7 @@ def run(rom,out):
     res['whip_and_launcher_reach_farther']=profiles[2][0]>0 and profiles[4][0]>0 and profiles[0][0]==0 and profiles[3][0]==0
     res['hammer_has_force']=profiles[1][2]>profiles[0][2]>0
     res['long_weapons_have_narrower_arc']=profiles[0][1]>0 and profiles[2][1]==0 and profiles[4][1]==0
-    g=Game(rom);assert start_run(g,True,True)
+    g=Game(rom);assert start_run(g,True,True,physical_fixture=1)
     g.poke('pocket',5);g.poke('pocket',2,1);g.poke('pocket_n',2)
     assert bench_open(g,log)
     bench_cursor(g,0);g.press('a',4);g.tick(12)
@@ -90,7 +90,7 @@ def run(rom,out):
     # Native signed BG tile upload for every card and phase, with the original canonical pose retained.
     data=[int(v) for v in re.findall(r'\d+',Path('src/gen/item_idle.inc').read_text().split('= {',1)[1])]
     assert len(data)==4096
-    g=Game(rom);assert start_run(g,True,True)
+    g=Game(rom);assert start_run(g,True,True,physical_fixture=1)
     g.press('start');g.tick(10) # pause AI, retaining the look's VBlank animation loop
     g.poke('room',1,241)
     frames=[Image.new('RGB',(16*32,32)) for _ in range(4)]

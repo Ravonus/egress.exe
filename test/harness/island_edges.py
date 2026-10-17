@@ -5,7 +5,7 @@ from play import Game,start_run
 from gameplay_rebuild import walk
 
 def run(rom,out):
-    out.mkdir(parents=True,exist_ok=True);r={};log=[];g=Game(rom);assert start_run(g,False,True)
+    out.mkdir(parents=True,exist_ok=True);r={};log=[];g=Game(rom);assert start_run(g,False,True,physical_fixture=1)
     r['generated_boundary_is_real_abyss']=g.room()[192]==41 and g.room()[210]==41
     hp=g.peek('pl_hp');g.hold({'left'});states=[];frames=[]
     for i in range(80):
@@ -15,7 +15,7 @@ def run(rom,out):
     r['walking_off_actual_edge_falls']=6 in states
     r['real_edge_fall_costs_one_and_recovers']=g.peek('pl_hp')==hp-1 and g.peek('pl_state')!=6 and g.peek('pl_x')>=16
     frames[0].save(out/'generated-edge-fall.gif',save_all=True,append_images=frames[1:],duration=34,loop=0);g.stop()
-    g=Game(rom);assert start_run(g,False,True)
+    g=Game(rom);assert start_run(g,False,True,physical_fixture=1)
     crate=next(i for i,v in enumerate(g.room()[:224]) if v&31==21)
     assert walk(g,crate+1,log);g.hold({'left'})
     for _ in range(450):

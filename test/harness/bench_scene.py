@@ -5,7 +5,7 @@ from PIL import Image
 from play import Game,start_run,step,bench_act,pocket
 
 def run(rom,out):
-    out.mkdir(parents=True,exist_ok=True);g=Game(rom);log=[];assert start_run(g,True,True)
+    out.mkdir(parents=True,exist_ok=True);g=Game(rom);log=[];assert start_run(g,True,True,physical_fixture=1)
     for d in 'URDL':assert step(g,d,log)
     before=pocket(g);frames=[];list_icons=[];phases=set();early_consumption=[];tick=g.tick
     def record(n=1):

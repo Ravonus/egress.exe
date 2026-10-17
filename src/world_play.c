@@ -6,6 +6,7 @@
 #include "look.h"
 #include "world.h"
 #include "world_play.h"
+#include "stage.h"
 extern volatile uint8_t video_epoch;
 extern uint8_t frame_epoch;
 uint8_t player_portal_pending(void) BANKED;
@@ -30,6 +31,11 @@ static uint8_t priority_axis(void) {
    * rebuilding it must not consume the approaching edge's generation time. */
   if(!p->dir || (!(horizontal|vertical) && p->n!=(n ? 16u : 14u)))n^=1u;
   return n;
+}
+static void bind_requested(void) {
+  uint8_t n=priority_axis();preparation *p=n ? &py : &px;
+  if(p->dir && p->n==(n ? 16u : 14u) && !world_binding_ready(n ? 0 : p->dir*4,n ? p->dir*4 : 0))
+    world_prepare_binding(n ? 0 : p->dir*4,n ? p->dir*4 : 0);
 }
 uint8_t world_work_pending(void) BANKED {
   preparation *p;uint8_t n;
@@ -143,9 +149,14 @@ uint8_t world_frame_begin(void) BANKED {
   /* Clock polling and pending VBlank uploads sometimes consume the start of
    * this frame. Publish a prepared seam only while its complete budget fits. */
   if(LY_REG<144u || LY_REG>149u)return 0u;
-  /* These first integrated codec stages are quiet. The full-run actor stream
-   * must replace this guard before larger combat stages can be accepted. */
-  if(enemies_alive)return 0u;
+  /* A generated encounter owns this window until its native actor pool is
+   * cleared. Keep its art/physics budget ahead of speculative map work. */
+  if(enemies_alive) {
+    if(stage_goal[0]!='F' && (((joy&J_RIGHT) && pl_x>208u && world_view.x<world_view.width-EG_W) ||
+       ((joy&J_LEFT) && pl_x<48u && world_view.x) || ((joy&J_DOWN) && pl_y>176u && world_view.y<world_view.height-EG_H) ||
+       ((joy&J_UP) && pl_y<64u && world_view.y))) {hud_msg("CLEAR THIS FIGHT");stage_goal[0]='F';}
+    return 0u;
+  }
   mx=pl_x<128u ? pl_x : (uint8_t)(255u-pl_x);
   my=pl_y<112u ? pl_y : (uint8_t)(223u-pl_y);
   /* A warm orthogonal strip does not imply a requested camera move. Among
@@ -153,11 +164,11 @@ uint8_t world_frame_begin(void) BANKED {
   if(my<mx) {
     if(ready(&py,1u))dy=(int8_t)(py.dir*4);
     else if(ready(&px,0u))dx=(int8_t)(px.dir*4);
-    else return 0u;
+    else {bind_requested();return 0u;}
   } else {
     if(ready(&px,0u))dx=(int8_t)(px.dir*4);
     else if(ready(&py,1u))dy=(int8_t)(py.dir*4);
-    else return 0u;
+    else {bind_requested();return 0u;}
   }
   if(!world_shift_prepared(dx,dy))return 0u;
   retained=dx ? py : px;
@@ -189,7 +200,7 @@ static void goal_hint(void) {
 }
 void world_prefetch(void) BANKED {
   uint8_t n,did,axes=0u,mx,my;int8_t x,y;
-  if(!world_on || !pl_hp || pl_state==PS_FALL || pl_state==PS_EXIT)return;
+  if(!world_on || !pl_hp || pl_state==PS_FALL || pl_state==PS_EXIT || enemies_alive)return;
   if(player_portal_pending())return;
   x=wanted(0u);y=wanted(1u);choose(&px,x);choose(&py,y);
   if(joy&(J_LEFT|J_RIGHT))axes|=1u;
@@ -197,23 +208,25 @@ void world_prefetch(void) BANKED {
   if(!axes)axes=3u;
   mx=pl_x<128u ? pl_x : (uint8_t)(255u-pl_x);
   my=pl_y<112u ? pl_y : (uint8_t)(223u-pl_y);
+  /* Retire one already-offscreen quad early near a requested boundary.
+   * This work must progress even while late actors/cards use their margin. */
+  if(spare(24u)) {
+    n=priority_axis();
+    if((n ? my : mx)<48u)clear_one(n ? &py : &px,n);
+  }
   /* Resolve a ready transfer before spending its spare time on a different
    * strip. A tight vertical edge must not starve after a horizontal turn. */
-  if(spare(15u)) {
-    preparation *p;
-    n=priority_axis();p=n ? &py : &px;
-    if(p->dir && p->n==(n ? 16u : 14u))world_prepare_binding(n ? 0 : p->dir*4,n ? p->dir*4 : 0);
-  }
+  if(spare(15u))bind_requested();
   /* Finish both started strips across a direction change. New orthogonal
    * preparations still require movement on that axis (wanted() above). */
   if(axes==3u)axes=my<32u && my<mx ? 2u : mx<32u && mx<=my ? 1u : 3u;
   /* Seed queries touch only the inactive backing store. Reserve their time
    * before simulation; a late collision/render pass must not starve a seam. */
-  for(n=0u;n<6u && spare(40u);n++) {
-    /* Finish publishing the requested strip before speculative work on the
-     * other axis. Otherwise that extra generation can starve its BG/save pass. */
-    if(axes==1u && px.dir && px.n==14u && (px.bg!=56u || !world_preserved(px.dir,0) || !world_binding_ready(px.dir*4,0)))break;
-    if(axes==2u && py.dir && py.n==16u && (py.bg!=64u || !world_preserved(0,py.dir) || !world_binding_ready(0,py.dir*4)))break;
+  for(n=0u;n<6u && spare(55u);n++) {
+    /* Once the requested strip is generated, warm the other axis while its
+     * outgoing BG/save work finishes. A turn must not start from cold data. */
+    if(axes==1u && px.dir && px.n==14u) {generate_one(&py,1u,world_pre_y);continue;}
+    if(axes==2u && py.dir && py.n==16u) {generate_one(&px,0u,world_pre_x);continue;}
     turn^=1u;
     did=axes==1u || (axes==3u && turn) ? generate_one(&px,0u,world_pre_x) : generate_one(&py,1u,world_pre_y);
     if(!did) {
@@ -223,17 +236,24 @@ void world_prefetch(void) BANKED {
   }
 }
 void world_frame_end(void) BANKED {
-  uint8_t n,did;
-  if(!world_on || !pl_hp || pl_state==PS_FALL || pl_state==PS_EXIT)return;
-  if(!spare(110u))return;
-  for(n=0u;n<4u && spare(110u);n++) {
-    did=(n&1u) ? clear_one(&px,0u) : clear_one(&py,1u);
-    if(!did) {if(n&1u)clear_one(&py,1u);else clear_one(&px,0u);}
+  uint8_t n,did,axis;
+  if(!world_on || !pl_hp || pl_state==PS_FALL || pl_state==PS_EXIT || enemies_alive)return;
+  if(!spare(116u))return;
+  axis=priority_axis();
+  for(n=0u;n<4u && spare(116u);n++) {
+    did=axis ? clear_one(&py,1u) : clear_one(&px,0u);
+    if(!did) {
+      /* Do not spend the save allowance clearing a speculative strip while
+       * the requested transfer still needs its outgoing packets. */
+      if(!world_preserved(axis ? 0 : px.dir,axis ? py.dir : 0))break;
+      if(axis)clear_one(&px,0u);else clear_one(&py,1u);
+    }
   }
   /* Save a single outgoing packet during the approach. Every later material,
    * skin or crack change invalidates its certificate through world_touch. */
-  for(n=0u;n<4u && spare(110u);n++) {
-    uint8_t axis=n&1u;
+  for(n=0u;n<4u && spare(116u);n++) {
+    uint8_t axis=priority_axis();
+    if(n==3u)axis^=1u;
     preparation *p=axis ? &py : &px;
     uint8_t a,b,limit=axis ? 16u : 14u;
     if(!p->dir)continue;

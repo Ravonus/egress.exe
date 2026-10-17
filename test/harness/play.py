@@ -24,8 +24,10 @@ import argparse
 import io
 import json
 import re
+import struct
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from PIL import Image
@@ -49,8 +51,12 @@ SEED = 0x5EED
 class Game:
     def __init__(self, rom: Path, audio: bool = False, sram: bytes | None = None) -> None:
         self.ram = io.BytesIO(sram if sram is not None else bytes(8192))
+        # Each gameplay instance owns its clock as well as its SRAM. PyBoy's
+        # implicit ROM-adjacent .rtc file races across concurrent observers.
+        # Dedicated rtc_test.py covers chip persistence and power-off time.
+        self.rtc = io.BytesIO(struct.pack('dBB',time.time(),0,0))
         self.pb = PyBoy(str(rom), window="null", cgb=True, sound_emulated=audio, log_level="ERROR",
-                        ram_file=self.ram)
+                        ram_file=self.ram,rtc_file=self.rtc)
         self.pb.set_emulation_speed(0)
         noi = rom.with_suffix(".noi").read_text(encoding="latin-1")
         self.sym = {m[1]: int(m[2], 16) for m in re.finditer(r"DEF (\S+) 0x([0-9A-Fa-f]+)", noi)}
@@ -125,17 +131,18 @@ class Game:
     def stop(self) -> bytes:
         """stops the emulator; returns the cartridge RAM as the battery would keep it"""
         out = io.BytesIO()
-        self.pb.stop(save=True, ram_file=out)
+        self.pb.stop(save=True, ram_file=out,rtc_file=io.BytesIO())
         return out.getvalue()[:8192]
 
 
-def start_run(g: Game, god: bool, no_enemies: bool, seed: int = SEED, floor: int = 0, fade: int = 40) -> bool:
+def start_run(g: Game, god: bool, no_enemies: bool, seed: int = SEED, floor: int = 0, fade: int = 40, physical_fixture: int | None = None) -> bool:
     if not g.wait_mode(MODE_TITLE, 1500):
         return False
     g.tick(30)
     g.poke("dbg_god", int(god))
     g.poke("dbg_no_enemies", int(no_enemies))
-    g.poke16("dbg_seed", seed)
+    if physical_fixture is not None:g.poke('dbg_stage',128+physical_fixture)
+    g.poke16("dbg_seed", seed or 0)
     g.poke("dbg_floor", floor)
     g.poke("floor_no", 0)  # play_run sets it: the sign the title took the press
     for _ in range(40):  # the title polls once its fade-in is done: press until the run starts
@@ -385,7 +392,7 @@ def solve_here(g: Game, egtool: Path, log: list[str]) -> str:
 
 
 def room_command(g: Game, egtool: Path, verb: str) -> list[str]:
-    motif = g.peek("slice",22)  # eg_deck 16 bytes, six slice fields, physical
+    motif = g.peek("slice",22)&63  # eg_deck 16 bytes, six slice fields, physical
     if motif:
         seed = g.peek16("run_seed") ^ ((g.peek("floor_no") * 0x9e37) & 65535) ^ 0x51a7
         return [str(egtool),"phys-"+verb,str(seed or 1),str(motif),str(g.peek("slice",19))]
