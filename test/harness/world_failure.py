@@ -40,7 +40,7 @@ def run(rom,out,tool):
         cx,cy=p.xy(u-3,v+1);local=(cy-oy)*16+cx-ox
         assert 0<=cx-ox<16 and 0<=cy-oy<14 and g.peek('room',local)&31==21
         assert all(g.peek('room',(iv-oy)*16+iu-ox)&31==17 for iu,iv,_ in p.items)
-        assert bytes(g.pb.memory[0xddd0:0xddf0])==bytes([0xa7]*32)
+        assert bytes(g.pb.memory[1,0xddd0:0xddf0])==bytes([0xa7]*32)
         g.shot(out/'reset.png')
         report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'crate_stopped_or_lost_at':crate,
                 'warning_wait_frames':waited,'finite_alternatives_discarded':True,

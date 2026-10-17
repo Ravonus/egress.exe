@@ -75,9 +75,9 @@ def run(rom,out):
     wear=[g.pb.memory[0xc000+i*4] for i in range(4) if g.pb.memory[0xc003+i*4]&7==1]
     r['feet_match_collision_footprint']=bool(wear) and max(wear)-1==g.peek('pl_y')-g.peek('cam_y')+6
     g.shot(out/'04-centered-passage.png')
-    before=bytes(g.pb.memory[0xD940+i] for i in range(256))
+    before=bytes(g.pb.memory[1,0xD940+i] for i in range(256))
     g.poke('door_open',1);g.hold({'up'});g.tick(3);g.hold(set())
-    after=bytes(g.pb.memory[0xD940+i] for i in range(256))
+    after=bytes(g.pb.memory[1,0xD940+i] for i in range(256))
     r['door_state_does_not_change_carpet_collision']=all(a==b for i,(a,b) in enumerate(zip(before,after)) if (i&31)!=7) and after[23]==0
     g.stop();report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':r}
     (out/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2));return all(r.values())
