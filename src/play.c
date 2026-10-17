@@ -235,7 +235,11 @@ static void gravity_tick(void) {
 /* look: the room falls into place around the player; nothing moves until it has (the floor's enemies glitch in
  * once it is whole) */
 static void assemble_wait(void) {
-  uint8_t keep = nen, inv = pl_inv, k;
+  uint8_t keep = nen, inv = pl_inv, k,previous_mode=game_mode;
+  /* A manual reset also enters this loading phase from active play. It must
+   * assemble the whole initial view, not inherit the roaming upload deadline
+   * and strand its first cold texture forever. */
+  game_mode=MODE_CLEAR;
   nen = 0;
   pl_inv = 0; /* no blinking while the world arrives */
   while (look_busy()) {
@@ -245,6 +249,7 @@ static void assemble_wait(void) {
     input_poll();
     draw_sprites();
   }
+  game_mode=previous_mode;
   nen = keep;
   pl_inv = inv;
   for (k = 0; k != nen; k++) puff((uint8_t)(en[k].x >> 4), (uint8_t)(en[k].y >> 4), 4u, ST_PUFF);

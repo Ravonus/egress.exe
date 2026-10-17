@@ -14,8 +14,8 @@ def run(previous,rom,out,tool):
                  'same_world_mode':n.peek('world_on')==world,
                  'same_spatial_plan':not world or bytes(n.peek('world_plan',k) for k in range(83))==plan}
         n.shot(out/(label+'-continued.png'));n.stop();cases.append({'case':label,'results':results})
-    g=Game(previous);assert start_run(g,True,True);compare(g,'physical-opening')
-    g=Game(previous);assert start_run(g,True,True);solve_here(g,tool,[]);g.tick(240)
+    g=Game(previous);assert start_run(g,True,True);compare(g,'procedural-opening')
+    g=Game(previous);assert start_run(g,True,True,floor=2)
     assert g.peek('floor_no')==2;compare(g,'survival-arena')
     g=Game(previous);assert start_run(g,True,True,seed=0x5fed,floor=7);assert g.peek('world_on');compare(g,'spatial-portal')
     report={'previous_sha256':hashlib.sha256(previous.read_bytes()).hexdigest(),'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'cases':cases}
