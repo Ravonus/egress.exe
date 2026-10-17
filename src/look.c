@@ -957,7 +957,11 @@ void look_frame_begin(void) BANKED {
      * bounded ready card / launch here; animation stays after the actors. */
     roam_late=0u;
     k=ground_ahead();
+    /* A multi-target swing can spend another thirty scanlines before the
+     * complete actor list is drawn. Keep its speculative terrain admission
+     * free; swept feet above and existing flying cards still advance. */
     if(k<2u && prepare_time() && grav_t!=1u && !push_t &&
+       !(enemies_alive>=2u && (pl_state==PS_LASH || pl_state==PS_SPIN)) &&
        (stage_type==SG_PUZZLE || (frame_count&3u))) {
       if(!(frame_count&1u))look_roam_tick();
       look_update((uint8_t)(1u+k));
