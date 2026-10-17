@@ -18,7 +18,7 @@ static uint8_t serial,slot,pending,cool;
 static uint16_t queued_at;
 uint8_t hud_narr_ready(void) BANKED;
 void hud_narrate(const char *s) BANKED;
-static const char *const cues[10]={"WALK UP TO ITEMS","TAP A: STRIKE","HOLD A THEN RELEASE","TAP B: ONE SHOT","HOLD B THEN RELEASE","DIR TWICE: EVADE","PUSH BOX ONTO PLATE","START+A BENCH: MIX","FACE GAP. DIR TWICE","TAKE KEY. USE DOOR"};
+static const char *const cues[10]={"WALK UP TO ITEMS","TAP A: STRIKE","HOLD A THEN RELEASE","TAP B: ONE SHOT","HOLD B THEN RELEASE","DIR TWICE: EVADE","PUSH BOX ONTO PLATE","BENCH: A TO MIX","FACE GAP. DIR TWICE","TAKE KEY. USE DOOR"};
 #define TSLOT(k) ((uint8_t *)((k) ? SAVE_PREF_B : SAVE_PREF_A))
 void tutorial_init(void) BANKED {
   uint8_t *p,*a=TSLOT(0u),*b=TSLOT(1u),va,vb;
@@ -54,6 +54,7 @@ void tutorial_build(void) BANKED {
   room.item_piece[0]=P_FIRE;room.item_piece[1]=P_WATER;
   for(x=9u;x<15u;x++)room.c[EG_IDX(x,4u)]=T_PIT;
   room.c[EG_IDX(11u,7u)]=T_GLASS;room.c[EG_IDX(12u,7u)]=T_CEIL;
+  room.c[EG_IDX(8u,8u)]=T_WALL|F_BENCH;
   pending=0u;cool=0u;queued_at=0u;
 }
 uint8_t tutorial_ready(void) BANKED {return (uint8_t)(pending>=9u);}

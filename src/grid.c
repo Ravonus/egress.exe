@@ -114,6 +114,7 @@ void queue_cell(uint8_t i) NONBANKED {
 /* the room's outer ring of wall is the void the floor floats in */
 /* (near helpers inside this bank: a BANKED call per drawn cell would cost scan lines every frame) */
 static uint8_t void_ring(uint8_t i) {
+  if(EG_BENCH(room.c[i]))return 0u;
   uint8_t x = EG_X(i), y = EG_Y(i);
   uint8_t t=cell_type(i);
   if(room_width>EG_W || room_height>EG_H) return EG_ABYSS(room.c[i]);
@@ -144,6 +145,7 @@ static uint8_t meta_for(uint8_t i) {
   uint8_t t = cell_type(i), x = EG_X(i), y = EG_Y(i), b;
   uint8_t gx=(uint8_t)(x+room_origin_x),gy=(uint8_t)(y+room_origin_y);
   uint8_t h = (uint8_t)(gx * 7u + gy * 13u + (gx ^ gy) + (uint8_t)floor_seed);
+  if(EG_BENCH(room.c[i]))return M_BENCH;
   if (!solid_ground(i)) {
     /* the void: under ground the slab's dithered underside, beside it the slab's side face (B2: the left card, or
      * the same tiles X-flipped for ground on the right), the two together in an inside corner, and at an outside

@@ -693,6 +693,9 @@ void player_update(void) BANKED {
     }
     default: break;
   }
+  if((joy_pressed&J_A) && pl_state==PS_FREE && !pl_air && puzzle_bench_interact()) {
+    eg_input_init(&pin,heir.dodge);pin.weapon=heir.weapon;pin.prev=joy;return;
+  }
   pin.facing=pmv.facing;
   st = eg_input_step(&pin, (uint8_t)(joy & (J_A | J_B | 0x0fu)));
   mv = pin.move;

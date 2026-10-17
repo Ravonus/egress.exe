@@ -3,7 +3,7 @@ No enemy-health writes, teleportation, or simulated kills. All spawn art is nati
 """
 import argparse,hashlib,json
 from pathlib import Path
-from play import Game,start_run
+from play import Game,start_run,bench_open
 from gameplay_rebuild import walk
 from heir import OamMeter
 from clock_progress import ClockProgress
@@ -96,6 +96,11 @@ def run(rom,out):
             'vblank_span_for_120_completed_updates':[min(windows),max(windows)] if windows else None,
             'maximum_input_start_scanlines_after_vblank':max(starts) if starts else None,
             'raw_counter_minimum_at_lcd_boundary':min(spans) if spans else None,'hitches':hitches[:30],'late_frames':late[:30],'clock':clock.report(),'hud':hud.report(),'fx':fx.report(),'mob_art':art.report(),'shots':shots.report(),'spawn_view':spawn.report(),'oam_max':meter.max_line,'log':log[:8]})
+        # Combat metrics above cover active play only. After real victory, walk
+        # to the generated solid bench and open it with A, rather than a menu.
+        g.tick=original
+        results[f'level_{level}_cleared_waves_unlock_physical_bench']=bench_open(g,log,craft=True) and g.peek('bench_mode')==1
+        g.shot(out/f'level-{level}-bench.png')
         g.stop()
     results['later_stages_spawn_more_enemies']=cases[-1]['kills']>cases[0]['kills']
     results['entry_positions_follow_the_moving_camera']=len({tuple(c) for case in cases for c in case['spawn_view']['camera_positions']})>1

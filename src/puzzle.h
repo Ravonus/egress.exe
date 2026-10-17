@@ -8,6 +8,8 @@
 #define POCKET_CAP 24u
 extern uint8_t __at(0xDBC0) pocket[POCKET_CAP]; /* finite carried units, insertion order */
 extern uint8_t pocket_n,tool_piece,tool_cd;
+extern uint8_t __at(0xDBA5) bench_mode; /* 0 satchel/equip, 1 physical crafting bench */
+uint8_t puzzle_bench_interact(void) BANKED;
 uint8_t pocket_count(uint8_t piece) BANKED;
 void puzzle_tool_use(void) BANKED;
 void pocket_begin(void) BANKED;
@@ -18,7 +20,7 @@ void pocket_reset(void) BANKED;
 void puzzle_shift_view(int8_t dx,int8_t dy) BANKED;
 void puzzle_pick(uint8_t cell) BANKED; /* the player walked into a T_ITEM cell */
 uint8_t puzzle_meta(uint8_t i) BANKED;    /* the card a cell of type T_CRUMBLE and up shows */
-void bench_run(void) BANKED;           /* START, A: bench; SELECT equips the highlighted item */
+void bench_run(void) BANKED;           /* shared window: inventory from menu, crafting only through physical interaction */
 
 /* fragile floor, the dead-room hint and the run planner */
 #include "core/eg_plan.h"

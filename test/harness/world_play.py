@@ -221,6 +221,9 @@ class WorldPlayer:
             elif kind in (1,2,3):
                 for iu,iv,piece in self.items:
                     if iu==u-5:self.walk(self.xy(iu,iv))
+                if kind in (2,3):
+                    side=1 if (int.from_bytes(self.plan[:2],'little')>>self.nodes.index([kind,u,v,condition,needs,alts]))&1 else -1
+                    self.walk(self.xy(u-2,v+side))
                 if kind==2:
                     assert bench_act(g,'Ccg',self.log,prepare_use=self.face_tool),self.log
                     piece=9;target=(u,v)

@@ -14,7 +14,7 @@
  *             pocket. Made: the door opens.
  *   dark      unlit cells show the void; light reaches 1 cell around you (2 with a GLOWS piece, the tealight, in the
  *             pocket) and 1 around each lamp; the door is lit. Keycards open the door as usual.
- *   heist     the shopkeeper behind the counter; START, A at the desk buys the goods. Walk in and take them: the door
+ *   heist     the shopkeeper behind the counter; START at the desk buys the goods. Walk in and take them: the door
  *             seals and waves come (a holdout without the ring); the last one down, the door opens again.
  * Per-frame work is sliced: at most one spawn probe batch, four dropped cells, one neighbourhood relight a frame. */
 #pragma bank 255
@@ -420,13 +420,17 @@ static void escort_tick(void) {
 /* ---------------- mix under pressure ---------------- */
 static void mixp_tick(void) {
   uint8_t k;
-  for (k = 0; k != pocket_n; k++)
-    if (pocket[k] == stg.piece) {
-      win("MADE. GET OUT");
-      return;
-    }
   ring_spark(in_ring());
-  if (st_t >= st_next) {
+  if(stage_wave>=stg.waves && !wv_pend && !mobs_alive()) {
+    for(k=0u;k!=pocket_n;k++)if(pocket[k]==stg.piece) {win("MADE. GET OUT");return;}
+    if(stage_goal[0]!='M') {
+      eg_piece_name(stg.piece,sbuf);strcpy(stage_goal,"MAKE ");
+      for(k=0u;sbuf[k] && k<8u;k++)stage_goal[5u+k]=sbuf[k];stage_goal[5u+k]=0u;
+      hud_set("CRAFT ");hud_msg("MOBS CLEAR. BENCH: A");sfx(SFX_DOOR);
+    }
+    return;
+  }
+  if (stage_wave<stg.waves && !wv_pend && !mobs_alive() && st_t >= st_next) {
     wave_begin(stg.per_wave, (uint8_t)(stg.shooters != 255u && (stage_wave & 1u)));
     st_next = (uint16_t)(st_next + (uint16_t)stg.speed * 4u);
   }
@@ -510,7 +514,7 @@ static void heist_tick(void) {
   }
   if (!st_paid && pcell() == desk && !st_told) {
     st_told = 1u;
-    strcpy(sbuf, "START+A BUYS:");
+    strcpy(sbuf, "MENU: BUY    ");
     k = 13u;
     if (stg.price >= 10u) sbuf[k++] = (char)('0' + stg.price / 10u);
     sbuf[k++] = (char)('0' + stg.price % 10u);
@@ -559,13 +563,7 @@ void stage_start(void) BANKED {
       hud_numset("TEMP", stage_thp, "");
       break;
     case SG_MIXP:
-      eg_piece_name(stg.piece, sbuf);
-      strcpy(stage_goal, "MAKE ");
-      for (k = 0; sbuf[k] && k != 8u; k++) stage_goal[5u + k] = sbuf[k];
-      strcpy(&stage_goal[5u + k], " FAST");
-      eg_piece_abbr(stg.piece, sbuf);
-      hud_set(sbuf);
-      st_next = 180u;
+      strcpy(stage_goal,"CLEAR WAVES. CRAFT");hud_set("FIGHT ");st_next=180u;
       break;
     case SG_DARK:
       break; /* the keycards on the HUD */
@@ -661,12 +659,15 @@ void stage_tick(void) BANKED {
   }
 }
 
+uint8_t stage_bench_ready(void) BANKED {
+  if(boss_floor || enemies_alive || mobs_alive() || wv_pend)return 0u;
+  if(stage_type==SG_MIXP)return (uint8_t)(stage_wave>=stg.waves);
+  if(stage_type==SG_HOLDOUT || stage_type==SG_HUNT || stage_type==SG_ESCORT)return stage_won;
+  if(stage_type==SG_HEIST && st_theft)return stage_won;
+  return 1u;
+}
+
 uint8_t stage_select(void) BANKED {
-  if (stage_type == SG_MIXP && !stage_won && !in_ring()) {
-    sfx(SFX_DENY);
-    hud_msg("THE BENCH: IN RING");
-    return 1u;
-  }
   if (stage_type == SG_HEIST && !st_paid && !st_theft && pcell() == (uint8_t)(stg.spot + EG_W) &&
       cell_type(stg.spot) == T_ITEM) {
     if (tokens < stg.price) {

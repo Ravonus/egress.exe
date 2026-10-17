@@ -492,7 +492,7 @@ static uint8_t build_mixp(eg_stage *s, uint8_t aim, uint8_t m) {
   s->ring_r = (uint8_t)(2u - r1);
   prot_around(s->spot, s->ring_r);
   prot_around(R->start, 1u);
-  C[s->spot] = T_BLOCK; /* the bench: solid, the ring around it is where it works */
+  C[s->spot]=T_WALL|F_BENCH; /* real solid workbench, usable after its waves */
   pillars((uint8_t)(3u + eg_rndn(3u)), 2u, 11u);
   foam((uint8_t)(1u + eg_rndn(2u)));
   /* the pieces, then herrings: anything found, plausible, wrong */
@@ -514,8 +514,8 @@ static uint8_t build_mixp(eg_stage *s, uint8_t aim, uint8_t m) {
   s->per_wave = (uint8_t)(1u + p);
   sh = take(&rem, 1u, 1u);
   s->shooters = sh ? 1u : 255u;
-  s->waves = 9u; /* until it is made */
-  s->budget = (uint8_t)(4u * (s->per_wave * EG_COST_CHASER) + sh * 4u); /* about four waves */
+  s->waves=(uint8_t)(2u+aim/6u); /* finite fight, then crafting */
+  s->budget=(uint8_t)(s->waves*(s->per_wave*EG_COST_CHASER)+sh*s->waves);
   s->conds = d;
   s->score = clamp15((int16_t)(2u * (d - 1u) + h + iv + 2u * p + sh + r1));
   eg_stage_flood(R, R->start);

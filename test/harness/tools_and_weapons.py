@@ -55,7 +55,7 @@ def run(rom,out):
     res['long_weapons_have_narrower_arc']=profiles[0][1]>0 and profiles[2][1]==0 and profiles[4][1]==0
     g=Game(rom);assert start_run(g,True,True,physical_fixture=1)
     g.poke('pocket',5);g.poke('pocket',2,1);g.poke('pocket_n',2)
-    assert bench_open(g,log)
+    assert bench_open(g,log,craft=True)
     bench_cursor(g,0);g.press('a',4);g.tick(12)
     bench_cursor(g,1);g.press('a',4);g.tick(12);g.press('a',4);g.tick(12)
     res['invalid_recipe_keeps_both_units']=pocket(g)==[5,2]

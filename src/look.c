@@ -853,7 +853,7 @@ static uint8_t anchor_at(uint8_t x,uint8_t y) {
   if(look_here(i) || !(roam_hidden[i>>3]&BIT(i)))return 0u;
   look_anchor(i);return 1u;
 }
-static uint8_t ground_ahead(void) {
+static uint8_t ground_ahead(uint8_t essential) {
   int16_t x=pl_x,y=pl_y;int8_t dx=0,dy=0;uint8_t n=0u,k,c,x0,x1,y0,y1,vertical,limit,wide;
   /* A blink travels at most 6.5px/tick. Prepare the next 7px step's complete
    * 12x12 foot box, including diagonal corners and released rolls. A farther
@@ -873,7 +873,7 @@ static uint8_t ground_ahead(void) {
   if(n<2u && x1!=x0)n+=anchor_at(x1,y0);
   if(n<2u && y1!=y0)n+=anchor_at(x0,y1);
   if(n<2u && y1!=y0 && x1!=x0)n+=anchor_at(x1,y1);
-  if(n || video_epoch!=frame_epoch)return n;
+  if(n || essential || video_epoch!=frame_epoch)return n;
   if(enemies_alive>=2u && (pl_state==PS_LASH || pl_state==PS_SPIN))return n;
   if(LY_REG<144u && LY_REG>=(world_on ? 24u : 32u))return 0u;
   /* Easing continues after a turn. Prepare the camera's residual axis too. */
@@ -903,7 +903,7 @@ static uint8_t ground_ahead(void) {
 }
 
 void look_frame_begin(void) BANKED {
-  uint8_t k;
+  uint8_t k,waiting;
   if (!on) return;
   /* palettes first, while VBlank lasts (a break in the air takes OBJ 6/7 for its card's colours) */
   k = n_break ? 3u : look_busy_n ? (roam_on ? 1u : obj_want) : 0u;
@@ -914,10 +914,11 @@ void look_frame_begin(void) BANKED {
     set_sprite_palette(6, 2, &pal_sp[24]);
     obj_mode = obj_want = 0;
   }
+  waiting=(uint8_t)(world_on && game_mode==MODE_PLAY && world_work_pending());
   /* Upload cosmetic palettes/cards while there is an early VRAM window.
    * Office combat cannot pay their STAT waits after a periodic clock/HUD
    * update. Quiet generated worlds have their separate wider allowance. */
-  if(!roam_on || game_mode!=MODE_PLAY || LY_REG>=144u || LY_REG<(world_on ? 40u : 8u)) {
+  if(!waiting && (!roam_on || game_mode!=MODE_PLAY || LY_REG>=144u || LY_REG<(world_on ? 40u : 8u))) {
     ambient();
     if (game_mode == MODE_PLAY && !look_busy_n) items_tick();
   }
@@ -925,15 +926,18 @@ void look_frame_begin(void) BANKED {
     /* Incoming terrain must not starve behind actor rendering. Commit a
      * bounded ready card / launch here; animation stays after the actors. */
     roam_late=0u;
-    k=ground_ahead();
+    k=ground_ahead(waiting);
     /* A multi-target swing can spend another thirty scanlines before the
      * complete actor list is drawn. Keep its speculative terrain admission
      * free; swept feet above and existing flying cards still advance. */
     if(k<2u && prepare_time() && grav_t!=1u && !push_t &&
        !(enemies_alive>=2u && (pl_state==PS_LASH || pl_state==PS_SPIN)) &&
        (stage_type==SG_PUZZLE || (frame_count&3u))) {
-      if(!(frame_count&1u))look_roam_tick();
-      look_update((uint8_t)(1u+k));
+      /* A cold incoming world strip needs a generation turn before new
+       * cosmetic launches. Existing flights still animate in the tail;
+       * swept feet and one ready-card landing retain their early allowance. */
+      if(waiting)look_update(2u);
+      else {if(!(frame_count&1u))look_roam_tick();look_update((uint8_t)(1u+k));}
     }
     roam_late=1u;
   }

@@ -215,6 +215,7 @@ void eg_land_at(const eg_land *p,uint8_t x,uint8_t y,eg_land_cell *o) EG_BANKED 
           if(o->material==T_WATER) {o->design=EL_RIVER;o->variant=b[3];}
         }
       }
+      if(n->kind!=EL_PORTAL && u==n->at-1u && v==(uint8_t)(n->lane+((p->seed>>k)&1u ? 1 : -1)))o->material=T_WALL|F_BENCH;
       return;
     }
     if(n->kind==EL_LOAD) {

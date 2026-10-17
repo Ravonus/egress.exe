@@ -45,7 +45,7 @@ uint8_t menu_active,menu_cursor;
 static void menu_controls(uint8_t page) {
   uint8_t k;
   static const char *const actions[6]={"TAP A: STRIKE","HOLD A: CHARGE","TAP B: SHOOT","HOLD B: CHARGE","A>B: COUNTER","B>A: RUSH"};
-  static const char *const movement[6]={"DIR TWICE: EVADE","HOLD DIR: RUN","SELECT: ELEMENT","HOLD SELECT: RESET","START A: BENCH","REST: STAMINA"};
+  static const char *const movement[6]={"DIR TWICE: EVADE","HOLD DIR: RUN","SELECT: ELEMENT","HOLD SELECT: RESET","START: MENU / BAG","REST: STAMINA"};
   ui_page(page ? "MOVEMENT / TOOLS" : "A / B ACTIONS","L/R PAGE    B BACK");
   ui_fill(0u,0u,4u,20u,12u,UI_DARK);ui_frame(0u,0u,3u,20u,14u,UI_DARK);
   for(k=0u;k<6u;k++)text_at(0u,1u,(uint8_t)(4u+k*2u),page ? movement[k] : actions[k],UI_DARK);

@@ -1,4 +1,4 @@
-/* B1 puzzle rooms on the cartridge: the pocket, the portable bench (START, A), using a piece on the cell you face, the
+/* B1 puzzle rooms on the cartridge: the pocket, physical seeded benches (A), using a piece on the cell you face, the
  * reaction as it spreads, and how the reaction tiles are drawn until the look branch's tileset lands.
  *
  * The rules are the shared core's (src/core/eg_piece.c: eg_recipe, eg_apply), so the cartridge does exactly what the
@@ -23,6 +23,7 @@
 #include "world_dead.h"
 #include "ui.h"
 #include "stamina.h"
+#include "stage.h"
 #include "core/eg_move.h"
 extern eg_mover_t pmv;
 void items_bench_tick(uint8_t a,uint8_t b,uint8_t result) BANKED;
@@ -39,6 +40,9 @@ static uint8_t entry_n;
 static uint8_t __at(0xDBA4) entry_tool;
 typedef char tool_entry_spare[(sizeof(eg_stamina)==4u) ? 1 : -1];
 uint8_t tool_piece,tool_cd;
+uint8_t __at(0xDBA5) bench_mode;
+static uint8_t __at(0xDBA6) bench_hint;
+static uint8_t __at(0xDBA7) bench_ready;
 uint8_t puzzle_dirty, frag_skip, floor_resets;
 eg_plan_state plan;
 static uint8_t pl_cell, pl_safe, beat_was, frag_pend, has_glitch;
@@ -64,7 +68,7 @@ void pocket_reset(void) BANKED {
   puzzle_dirty = frag_skip = dead_t = dead_run = 0;
   beat_was = 255u;
   look_glitch_period = 0; /* the puzzle drives the beat (frame-based, EG_BEAT_LEN; the solver's model is a window) */
-  bench_on = tool_cd = 0;
+  bench_on=tool_cd=bench_mode=0u;bench_hint=bench_ready=255u;
   bench_cur = 0;
   last_rx = 0;
   has_glitch = 0;
@@ -111,7 +115,7 @@ void puzzle_pick(uint8_t cell) BANKED {
   if (acts.picked != 255u) acts.picked++;
   if (!told) {
     told = 1;
-    hud_msg("START+A: BENCH");
+    hud_msg("FIND A BENCH TO MIX");
   } else {
     eg_piece_name(p, buf);
     hud_msg(buf);
@@ -229,9 +233,9 @@ void puzzle_tool_use(void) BANKED {
   uint8_t order[EG_DIRTY_MAX];
   int16_t x=(int16_t)EG_X(here)+dx[pmv.facing],y=(int16_t)EG_Y(here)+dy[pmv.facing];
   if(tool_cd || pl_state!=PS_FREE || pl_air || freeze)return;
-  if(!p || p>=P_COUNT) {sfx(SFX_DENY);hud_msg("START+A: EQUIP ITEM");return;}
+  if(!p || p>=P_COUNT) {sfx(SFX_DENY);hud_msg("START: INVENTORY");return;}
   for(slot=0u;slot<pocket_n;slot++)if(pocket[slot]==p)break;
-  if(slot==pocket_n) {sfx(SFX_DENY);hud_msg("EMPTY: START+A BENCH");return;}
+  if(slot==pocket_n) {sfx(SFX_DENY);hud_msg("EMPTY: EQUIP AN ITEM");return;}
   if(stamina.value<cost[p]) {sfx(SFX_DENY);hud_msg("REST: LOW STAMINA");return;}
   if(x<0 || x>=EG_W || y<0 || y>=EG_H) {sfx(SFX_DENY);hud_msg("NO TARGET: KEPT");return;}
   cell=EG_IDX((uint8_t)x,(uint8_t)y);
@@ -267,6 +271,35 @@ void puzzle_tool_use(void) BANKED {
   bench_on=0u;
   if(rx==RX_SHORT)shake=6u;
   puzzle_dirty=grav_t=1u;
+}
+
+/* Benches are solid generator cells. A nearby locked bench never steals an
+ * attack: combat continues, with a short cue explaining the lock. */
+static uint8_t near_bench(void) {
+  uint8_t c=cell_at(pl_x,pl_y),k;int16_t n;
+  static const int8_t delta[4]={-16,16,-1,1};
+  for(k=0u;k<4u;k++) {
+    if((k==0u && !EG_Y(c)) || (k==1u && EG_Y(c)==13u) || (k==2u && !EG_X(c)) || (k==3u && EG_X(c)==15u))continue;
+    n=(int16_t)c+delta[k];if(EG_BENCH(room.c[n]))return (uint8_t)n;
+  }
+  return 255u;
+}
+uint8_t puzzle_bench_interact(void) BANKED {
+  if(near_bench()==255u)return 0u;
+  if(!stage_bench_ready()) {hud_msg("BENCH: CLEAR MOBS");sfx(SFX_DENY);return 0u;}
+  if(board_busy) {hud_msg("BENCH: WAIT FOR LOAD");return 0u;}
+  bench_mode=1u;bench_run();return 1u;
+}
+static void bench_near_tick(void) {
+  uint8_t c,ready;
+  if(frame_count&15u)return;
+  c=near_bench();
+  if(c==255u) {bench_hint=255u;return;}
+  ready=stage_bench_ready();
+  if(c==bench_hint && ready==bench_ready)return;
+  bench_hint=c;bench_ready=ready;
+  if(ready) {hud_msg("BENCH: A TO COMBINE");puff((uint8_t)(EG_X(c)*16u+8u),(uint8_t)(EG_Y(c)*16u),4u,ST_SPARK);}
+  else hud_msg("BENCH: CLEAR MOBS");
 }
 
 /* --- the bench: an overlay on the window, over the bottom of the room --- */
@@ -363,7 +396,7 @@ static void bench_draw(void) {
   for(k=0u;k<bench_cur;k++)if(first_slot(k)==k)ordinal++;
   page=(uint8_t)((ordinal/6u)*6u);
   ui_fill(1u,0u,0u,20u,8u,BP);ui_frame(1u,0u,0u,20u,8u,BP);
-  text_at(1u,2u,0u,"BENCH",BP);num_at(1u,13u,0u,pocket_n,2u,BP);text_at(1u,15u,0u,"/24",BP);
+  text_at(1u,1u,0u,bench_mode ? "BENCH" : "BAG",BP);text_at(1u,7u,0u,"SEL EQ",pocket_n && pocket[bench_cur]==tool_piece ? HP : BP);num_at(1u,13u,0u,pocket_n,2u,BP);text_at(1u,15u,0u,"/24",BP);
   if(sock[1]!=255u)r=eg_recipe(pocket[sock[0]],pocket[sock[1]]);
   if(r) {
     /* The complete recipe reads left to right, as in the reference panel. */
@@ -371,7 +404,8 @@ static void bench_draw(void) {
     bench_card(8u,1u,(uint8_t)(M_ITEM0+pocket[sock[1]]-1u));
     bench_card(15u,1u,(uint8_t)(M_ITEM0+r-1u));
     text_at(1u,6u,1u,"+",HP);text_at(1u,12u,1u,">",HP);
-  } else bench_scene(0u,0u);
+  } else if(bench_mode)bench_scene(0u,0u);
+  else if(pocket_n)bench_card(9u,1u,(uint8_t)(M_ITEM0+pocket[bench_cur]-1u));
   p=r ? r : pocket_n ? pocket[bench_cur] : 0u;
   eg_piece_name(p,buf);text_at(1u,1u,3u,buf,HP);
   eg_tags_text(p,buf);text_at(1u,1u,4u,buf,BP);
@@ -389,8 +423,7 @@ static void bench_draw(void) {
     num_at(1u,x-1u,7u,count,2u,(uint8_t)(k==bench_cur ? HP : BP));
     k++;
   }
-  line(8u,sock[1]!=255u ? "A MAKE B UNDO SEL EQ" : "A ADD B BACK SEL EQ");
-  if(pocket_n && pocket[bench_cur]==tool_piece)text_at(1u,8u,0u,"SEL",HP);
+  line(8u,!bench_mode ? "SEL EQUIP B BACK" : sock[1]!=255u ? "A MIX B UNDO ST MENU" : "A ADD B BACK ST MENU");
 }
 
 static void bench_close(void) {
@@ -406,7 +439,8 @@ static void bench_close(void) {
 }
 
 void bench_run(void) BANKED {
-  uint8_t a, b, r, drop_t=0u;
+  uint8_t a,b,r,drop_t=0u,menu=0u;
+
   bench_on=4u; /* opening: gameplay is paused while the existing scene draws */
   sock[0] = sock[1] = 255u;
   if (bench_cur >= pocket_n) bench_cur = 0;
@@ -420,7 +454,7 @@ void bench_run(void) BANKED {
   move_win(7, BENCH_Y);
   sfx(SFX_STEP);
   bench_on = 1; /* up and listening (the harness waits for this) */
-  heir_idle_stop(); heir_play(HA_BENCH,1u);
+  heir_idle_stop();heir_play(bench_mode ? HA_BENCH : HA_PICKUP,1u);
   while (1) {
     frame_wait(); /* no hud_tick here: a toast closing would move the window under the bench */
     sound_tick();
@@ -446,7 +480,7 @@ void bench_run(void) BANKED {
     if(drop_t) { drop_t=0u;bench_draw(); }
     if ((joy_pressed & J_SELECT) && pocket_n) {
       tool_piece=pocket[bench_cur];hud_dirty=1u;
-      sfx(SFX_KEY);bench_close();hud_msg("SELECT: ITEM READY");return;
+      sfx(SFX_KEY);bench_close();hud_msg("SELECT: ITEM READY");bench_on=6u;return;
     }
     if (joy_pressed & (J_UP | J_DOWN)) {
       if (pocket_n) {
@@ -455,7 +489,10 @@ void bench_run(void) BANKED {
         bench_draw();
       }
     } else if (joy_pressed & J_A) {
+      if(!bench_mode) {sfx(SFX_DENY);line(5u,"CRAFT AT A BENCH");continue;}
+      if(!stage_bench_ready()) {sfx(SFX_DENY);line(5u,"CLEAR THE MOBS FIRST");continue;}
       if (sock[1] != 255u) { /* make it */
+
         a = sock[0];
         b = sock[1];
         r = eg_recipe(pocket[a], pocket[b]);
@@ -489,10 +526,11 @@ void bench_run(void) BANKED {
       sfx(SFX_STEP);
       bench_draw();
     } else if (joy_pressed & J_START) {
-      break;
+      menu=1u;break;
     }
   }
   bench_close();
+  bench_on=menu ? 5u : 6u; /* menu request or closed: suppress its held SELECT release */
 }
 
 /* --- the run planner: the curriculum picks every generated floor's room (src/core/eg_plan.h) --- */
@@ -564,6 +602,7 @@ static uint8_t body_on(uint8_t cell) {
 void puzzle_tick(void) BANKED {
   uint8_t c = cell_at(pl_x, pl_y), t, on = (uint8_t)eg_beat_on(frame_count), j;
   if(tool_cd)tool_cd--;
+  if(!boss_floor && !bench_on && !enemies_alive)bench_near_tick();
   if(pl_state==PS_FALL) return;
   on = beat_phase();
   if(world_on && world_glitch)has_glitch=1u;

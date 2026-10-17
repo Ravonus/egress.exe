@@ -138,6 +138,18 @@ static int region(const uint8_t *c, uint8_t p, uint8_t *out, uint8_t *prev) {
   return n;
 }
 
+/* Free-walk recipes require a real bench in that same component. */
+static uint8_t bench_from(const uint8_t *c,const uint8_t *reg,int count) {
+  uint8_t reached[EG_N/8u]={0};
+  for(int j=0;j<count;j++)reached[reg[j]>>3]|=(uint8_t)(1u<<(reg[j]&7));
+  for(int i=0;i<(int)EG_N;i++)if(EG_BENCH(c[i]))for(int d=0;d<4;d++) {
+    if((d==0 && i<16) || (d==1 && i>=208) || (d==2 && !(i&15)) || (d==3 && (i&15)==15))continue;
+    int n=i+step4[d];if(reached[n>>3]&(1u<<(n&7)))return (uint8_t)n;
+  }
+  return 255;
+}
+static int at_bench(const uint8_t *c,uint8_t p) {return bench_from(c,&p,1)!=255;}
+
 /* the player can't walk freely: holding a CRT up, or standing on fragile floor (every step off it counts) */
 static int pinned(const uint8_t *c, uint8_t p) {
   return EG_FRAGILE(c[p] & T_MASK) || (room0->nlink && c[p]==T_PLATE) ||
@@ -514,11 +526,6 @@ static size_t act(const node *before, const node *a, char *moves, size_t m, size
     return put(moves, m, cap, (char)('a' + a->b - 1));
   }
   if (a->kind == ACT_USE) {
-    for (int k = 0; k < a->nc; k++) {
-      m = put(moves, m, cap, 'C');
-      m = put(moves, m, cap, (char)('a' + a->comb[k][0] - 1));
-      m = put(moves, m, cap, (char)('a' + a->comb[k][1] - 1));
-    }
     m = put(moves, m, cap, 'P');
     m = put(moves, m, cap, (char)('a' + a->a - 1));
     return put(moves, m, cap, step_ch[a->dir]);
@@ -536,6 +543,14 @@ static size_t emit_plan(const eg_room *r0, const node *nodes, int last, uint8_t 
   uint8_t at = r0->start;
   for (int k = n - 2; k >= 0; k--) {
     const node *before = &nodes[chain[k + 1]], *a = &nodes[chain[k]];
+    if(a->kind==ACT_USE && a->nc) {
+      uint8_t reg[EG_N];int nr=region(before->c,at,reg,NULL);uint8_t b=bench_from(before->c,reg,nr);
+      if(b==255)return 0;
+      m=walk(before->c,at,b,moves,m,cap);at=b;
+      for(int q=0;q<a->nc;q++) {
+        m=put(moves,m,cap,'C');m=put(moves,m,cap,(char)('a'+a->comb[q][0]-1));m=put(moves,m,cap,(char)('a'+a->comb[q][1]-1));
+      }
+    }
     m = walk(before->c, at, a->from, moves, m, cap);
     m = act(before, a, moves, m, cap);
     at = a->land;
@@ -623,7 +638,16 @@ int eg_solve_ban(const eg_room *r, int budget, uint64_t ban, char *moves, size_t
     static node kids[KIDS];
     int nk = 0;
     pocket_q pq[48];
-    int npq = s.np ? closure(s.pk, s.np, pq, 48) : 0;
+    uint8_t bench=bench_from(s.c,reg,rn);
+    int npq = s.np ? closure(s.pk,s.np,pq,bench==255 ? 1 : 48) : 0;
+    /* Craft before leaving a bench's component when a later crossing is
+     * one-way. Macros still avoid unnecessary inventory-only expansion. */
+    if(bench!=255)for(int a=0;a<s.np;a++)for(int b=a+1;b<s.np && nk<KIDS;b++) {
+      uint8_t result=eg_recipe(s.pk[a],s.pk[b]);if(!result)continue;
+      kids[nk]=s;kids[nk].a=s.pk[a];kids[nk].b=s.pk[b];
+      pk_del(kids[nk].pk,&kids[nk].np,b);pk_del(kids[nk].pk,&kids[nk].np,a);pk_add(kids[nk].pk,&kids[nk].np,result);
+      kids[nk].kind=ACT_COMBINE;kids[nk].nc=0;kids[nk].from=kids[nk].land=bench;kids[nk].p=canon(s.c,bench);nk++;meaningful++;
+    }
     memset(tried, 0, sizeof(tried[0]) * (size_t)(npq ? npq : 1));
     for (int i = 0; i < rn && !solved; i++) {
       for (int d = 0; d < 4; d++) {
@@ -867,6 +891,7 @@ int eg_replay(const eg_room *r0, const char *moves) {
   memset(pk, 0, sizeof pk);
   for (const char *m = moves; *m; m++) {
     if (*m == 'C') {
+      if(!at_bench(r.c,p))return 0;
       if (!m[1] || !m[2]) return 0;
       uint8_t a = (uint8_t)(m[1] - 'a' + 1), b = (uint8_t)(m[2] - 'a' + 1), res = eg_recipe(a, b);
       int ia = pk_find(pk, np, a, -1);

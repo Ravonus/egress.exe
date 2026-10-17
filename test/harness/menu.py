@@ -48,6 +48,7 @@ def run(rom,out):
     board=bytes(g.room()[:224]);position=g.player();palettes=bytes(g.pb.memory[g.addr('pal_bg'):g.addr('pal_bg')+64])
     g.press('start',3);g.tick(8);g.shot(out/'06-pause.png')
     r['pause_uses_framed_in_world_window']=g.peek('hud_line')==80
+    r['pause_marks_suspended_redraw']=g.peek('bench_on')==4
     g.hold({'right'});g.tick(12);g.hold(set());g.tick(3)
     r['pause_freezes_gameplay']=g.player()==position and bytes(g.room()[:224])==board
     g.press('b',3);g.tick(4)

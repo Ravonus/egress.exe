@@ -72,8 +72,9 @@ three related successors and the last eight actual ancestors. Clock records are 
 Heirs inherit appearance, stats, weapon and dodge alleles; blade, hammer, whip, gauntlet and launcher have different
 timing, reach, force and secondary attacks. THE TREE on a landing shows the real family history.
 
-The satchel carries 24 finite units between floors. START then A opens the two-slot, eleven-recipe bench with inventory
-icons and quantities, animated ingredients/result and SELECT-to-equip. Invalid recipes and targets keep the items. A valid use
+The satchel carries 24 finite units between floors. Walk beside a seeded physical bench and press A after clearing
+the mobs and all waves. Its two-slot, eleven-recipe scene has inventory icons and quantities, animated
+ingredients/result and SELECT-to-equip. START then A opens the bag for equipping or discarding; it cannot craft. Invalid recipes and targets keep the items. A valid use
 consumes one unit; a valid recipe consumes two and creates one. Hold RIGHT in the bench to discard one unit, then
 release before discarding another. A room reset restores its entry inventory, preventing pickup duplication.
 
@@ -92,11 +93,11 @@ key. `tools/narrator/bake_assets.py --check` reproduces their banks from the ret
 event grammar and the remaining whole-game work are described in the ledger.
 
 Controls: d-pad move (lean into a CRT or crate to push it), A lash (three-hit combo; hold to charge and release),
-B tap for the secondary attack; hold B to charge and release to execute it. B then A rushes; A then B counters. Both attacks aim in eight directions. Double-tap a direction to evade (sideways sidesteps, backward backsteps); hold the direction to run. Each action spends stamina; resting restores it. START shows controls and pauses; A opens its bench.
+B tap for the secondary attack; hold B to charge and release to execute it. B then A rushes; A then B counters. Both attacks aim in eight directions. Double-tap a direction to evade (sideways sidesteps, backward backsteps); hold the direction to run. Each action spends stamina; resting restores it. START opens the menu; A opens the bag and B resumes play. At a cleared physical bench, A opens crafting; START there opens the menu.
 
- Combine two pieces with A; SELECT equips the highlighted item and closes the bench. A new recipe equips its result automatically. Tap SELECT during play to use one equipped unit toward your eight-way facing; hold SELECT to reset for a token without using an item. The rim shows the equipped material and remaining units.
+Combine two pieces with A; SELECT equips the highlighted item and closes the bench. A new recipe equips its result automatically. Tap SELECT during play to use one equipped unit toward your eight-way facing; hold SELECT to reset for a token without using an item. The rim shows the equipped material and remaining units.
 
- Successful uses spend material-dependent stamina and share a short cooldown. Embers, droplets, ice shards, wind/dust and electrical sparks accompany the hand animation and sound. Water extinguishes/wets enemies; wet targets can freeze or conduct shock. Mud fills pits or slows mobs; air pushes crates or light enemies; brick weighs switches; hot materials burn barriers or damage vulnerable enemies. Blocked or invalid uses keep the unit.
+Successful uses spend material-dependent stamina and share a short cooldown. Embers, droplets, ice shards, wind/dust and electrical sparks accompany the hand animation and sound. Water extinguishes/wets enemies; wet targets can freeze or conduct shock. Mud fills pits or slows mobs; air pushes crates or light enemies; brick weighs switches; hot materials burn barriers or damage vulnerable enemies. Blocked or invalid uses keep the unit.
 
 ## Layout
 

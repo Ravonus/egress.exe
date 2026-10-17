@@ -262,13 +262,41 @@ def pocket(g: Game) -> list[int]:
     return [g.peek("pocket", k) for k in range(g.peek("pocket_n"))]
 
 
-def bench_open(g: Game, log: list[str]) -> bool:
-    # START opens the normal in-world pause, A opens its bench action.
-    g.press("start", 3);g.tick(12);g.press("a",3)
+def bench_visit(g: Game,log: list[str]) -> bool:
+    # Read the real marker; move through stable floor with controller input.
+    from collections import deque
+    cells=g.room()[:224];x,y=g.player();start=y//16*16+x//16
+    q=deque([start]);prev={start:None};route_dir={};target=None
+    while q:
+        c=q.popleft()
+        for name,delta in [('U',-16),('D',16),('L',-1),('R',1)]:
+            n=c+delta
+            if n<0 or n>=224 or abs(c%16-n%16)+abs(c//16-n//16)!=1:continue
+            if cells[n]==34:target=c;break
+            if n in prev or cells[n] not in (0,1,5,10,12):continue
+            prev[n]=c;route_dir[n]=name;q.append(n)
+        if target is not None:break
+    if target is None:log.append('no real bench reachable in the active stable component');return False
+    route=[]
+    while prev[target] is not None:route.append(route_dir[target]);target=prev[target]
+    for d in reversed(route):
+        if not step(g,d,log):return False
+    g.hold(set());g.tick(8);return True
+
+
+def bench_open(g: Game,log: list[str],*,craft: bool=False) -> bool:
+    if craft:
+        if not bench_visit(g,log):return False
+        g.press('a',3)
+    else:
+        g.press('start',3);g.tick(12);g.press('a',3)
     for _ in range(80):
-        if g.peek("bench_on")==1:g.tick(2);return True
+        if g.peek('bench_on')==1:
+            g.tick(2)
+            if bool(g.peek('bench_mode'))==craft:return True
+            break
         g.tick()
-    log.append("the bench did not open through START, A")
+    log.append('the physical bench did not open' if craft else 'inventory did not open through START, A')
     return False
 
 
@@ -298,7 +326,7 @@ def bench_act(g: Game, act: str, log: list[str], shot: Path | None = None, *, pr
             g.tick(2)
             if g.peek("pl_face") == want:
                 break
-    if not bench_open(g, log):
+    if not bench_open(g,log,craft=act[0]=="C"):
         return False
     inv = pocket(g)
     if a not in inv:

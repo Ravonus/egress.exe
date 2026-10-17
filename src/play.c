@@ -40,6 +40,7 @@ uint8_t floor_has_crt;
 
 static uint8_t controls_pause(void) {
   uint8_t old_y=cam_y,open_bench=0u,leave_course=0u;
+  bench_on=4u; /* explicit suspended/redraw phase, including VRAM page construction */
   cam_y=pl_y>40u ? (uint8_t)(pl_y-40u) : 0u;
   if(cam_y>144u) cam_y=144u;
   move_bkg(BG_SCROLL_X(cam_x),BG_SCROLL_Y(cam_y));
@@ -49,21 +50,34 @@ static uint8_t controls_pause(void) {
   text_at(1,1,2,"HOLD EITHER: CHARGE",LOOK_PAL_HUD);
   text_at(1,1,3,"A>B PARRY B>A RUSH",LOOK_PAL_HUD);
   text_at(1,1,4,"DIR x2 EVADE / RUN",LOOK_PAL_HUD);
-  text_at(1,1,5,"SELECT: USE ELEMENT",LOOK_PAL_HUD);
-  text_at(1,1,6,"A: BENCH / EQUIP",LOOK_PAL_HUD);
+  text_at(1,1,5,stage_type==SG_HEIST ? "SELECT: BUY AT DESK" : "SELECT: USE ELEMENT",LOOK_PAL_HUD);
+  text_at(1,1,6,"A: INVENTORY / EQUIP",LOOK_PAL_HUD);
   text_at(1,1,7,tutorial_on==2u ? "START EXIT B RESUME" : "START / B RESUME",LOOK_PAL_HUD);
   hud_line=80u;move_win(7,80);
   while(1) {
     frame_wait();look_pause_tick();flush_cells(8u);sound_tick();draw_sprites();input_poll();
+    if((joy_pressed&J_SELECT) && stage_type==SG_HEIST) {stage_select();break;}
     if(joy_pressed&J_A) {open_bench=1u;break;}
     if(joy_pressed&(J_START|J_B)) {leave_course=(uint8_t)(tutorial_on==2u && (joy_pressed&J_START));break;}
   }
   cam_y=old_y;move_bkg(BG_SCROLL_X(cam_x),BG_SCROLL_Y(cam_y));
   clear_map(1,LOOK_PAL_HUD);hud_draw();hud_charge();move_win(7,128);hud_line=128u;
-  if(open_bench) {if(!stage_select())bench_run();sel_t=60u;}
-  return leave_course;
+  frame_wait();bench_on=0u;
+  return leave_course ? 1u : open_bench ? 2u : 0u;
 }
 
+
+/* Inventory assignment is available from START; recipes require a physical
+ * cleared bench. Unwind each window before entering the next one. */
+static uint8_t system_menu(void) {
+  uint8_t next;
+  do {
+    next=controls_pause();if(next!=2u)return (uint8_t)(next==1u);
+    bench_mode=0u;bench_run();sel_t=60u;
+    next=bench_on;bench_on=0u;
+  } while(next==5u);
+  return 0u;
+}
 
 static void people_colours(void) { /* B1: the heir's palettes (heir.c), rolled from the run's seed */
   family_apply();
@@ -346,7 +360,7 @@ static uint8_t floor_play(void) {
       continue;
     }
     if (joy_pressed & J_START) {
-      if(controls_pause()) {look_end();return 0u;}
+      if(system_menu()) {look_end();return 0u;}
       continue;
     }
     /* hold SELECT to put the floor back the way it was (B1: it costs a token, never a heart) */
@@ -379,6 +393,11 @@ static uint8_t floor_play(void) {
       continue;
     }
     player_update();
+    if(bench_on==5u || bench_on==6u) {
+      uint8_t menu=(uint8_t)(bench_on==5u);bench_on=0u;sel_t=60u;
+      if(menu && system_menu()) {look_end();return 0u;}
+      continue;
+    }
     stage_tick(); /* B2 */
     puzzle_tick(); /* B1: fragile floor, the beat, the dead-room hint */
     obstacle_tick();
