@@ -96,7 +96,10 @@ build/obj-mbc3/%.o: src/%.c $(HDRS)
 
 build/obj/sound.o: src/gen/music_data.h
 build/obj/items.o: src/gen/item_idle.inc
-build/obj/sprites.o: src/gen/diag_arc.inc
+build/obj/sprites.o: src/gen/diag_arc.inc src/gen/hammer.inc
+
+src/gen/hammer.inc: tools/bake_hammer.py
+	$(PY) tools/bake_hammer.py
 build/obj/grid.o: src/overlap.inc
 
 build/overlap-check/overlap.gbc: test/native/overlap.c src/overlap.inc
@@ -537,6 +540,12 @@ test-island-edges: build/host/test_edges
 	build/host/test_edges
 
 test-runtime: all test-runtime-core test-native-overlap
+	$(PY) test/harness/terrain_effect.py build/egress.gbc build/sprints/terrain-effect-mbc5
+	$(PY) test/harness/terrain_effect.py build/egress-rtc.gbc build/sprints/terrain-effect-mbc3
+	$(PY) test/harness/tutorial_course.py build/egress.gbc build/sprints/tutorial-course-mbc5
+	$(PY) test/harness/tutorial_course.py build/egress-rtc.gbc build/sprints/tutorial-course-mbc3
+	$(PY) test/harness/hammer.py build/egress.gbc build/sprints/hammer-mbc5
+	$(PY) test/harness/hammer.py build/egress-rtc.gbc build/sprints/hammer-mbc3
 	$(PY) test/harness/mob_render_fixtures.py build/egress.gbc build/sprints/mob-render-mbc5
 	$(PY) test/harness/mob_render_fixtures.py build/egress-rtc.gbc build/sprints/mob-render-mbc3
 	$(PY) test/harness/waves.py build/egress.gbc build/sprints/waves-mbc5

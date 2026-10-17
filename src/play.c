@@ -74,7 +74,8 @@ static void floor_build(void) {
   memset(cracked, 0, sizeof cracked);
   memset(orbs, 0, sizeof orbs);
   memset(puffs, 0, sizeof puffs);
-  if (boss_floor) {
+  if(tutorial_on==2u) {boss_floor=0u;tutorial_build();}
+  else if (boss_floor) {
     floor_tier = 5u;
     floor_seed = 0;
     boss_setup(boss_floor, BIOME_OFFICE);
@@ -254,7 +255,8 @@ static uint8_t floor_play(void) {
   uint8_t end_t = 0,roaming,late,streamed;
   floor_tokens0 = tokens;
   pocket_enter();
-  if(restored_floor) {stage_resume_floor();restored_floor=0u;narrator_event(NE_RETURN,0u);}
+  if(tutorial_on==2u) {}
+  else if(restored_floor) {stage_resume_floor();restored_floor=0u;narrator_event(NE_RETURN,0u);}
   else {
     if (floor_no < RUN_FLOORS) stage_plan_floor(); /* B1, B2: the slot, the stage type, the room */
     if(family.nrecord && !family.history[0].won && family.history[0].floor==floor_no) narrator_event(NE_ANCESTOR,0u);
@@ -331,6 +333,7 @@ static uint8_t floor_play(void) {
       continue;
     }
     if (joy_pressed & J_START) {
+      if(tutorial_on==2u) {look_end();return 0u;}
       controls_pause();
       continue;
     }
@@ -379,7 +382,7 @@ static uint8_t floor_play(void) {
         gravity_tick();
       }
     }
-    if (door_open && cell_at(pl_x, pl_y) == room.door) {
+    if (door_open && cell_at(pl_x, pl_y) == room.door && (tutorial_on!=2u || tutorial_ready())) {
       pl_state = PS_EXIT;
       sfx(SFX_EXIT);
       hud_msg("EGRESS");
@@ -399,6 +402,15 @@ static uint8_t floor_play(void) {
 
 void play_run(void) BANKED {
   uint16_t new_seed=run_seed;
+  if(tutorial_on==1u) {
+    tutorial_on=2u;run_loading=1u;
+    art_copy_tables(&meta_tile[0][0],meta_pal,pal_bg,pal_sp,people);
+    run_begin();narrator_begin();heir_roll(0x600du);heir.weapon=0u;heir.dodge=0u;heir_colours();
+    memset(family_stat,0,sizeof family_stat);stamina_begin();pocket_begin();stage_run_begin();
+    floor_no=1u;floor_seed=0x600du;floor_tier=0u;tokens=0u;restored_floor=0u;run_loading=0u;
+    if(floor_play()) {tutorial_seen|=0x8000u;tutorial_save();}
+    HIDE_WIN;hud_line=144u;tutorial_on=0u;return;
+  }
   run_loading=1u;
   art_copy_tables(&meta_tile[0][0], meta_pal, pal_bg, pal_sp, people);
   run_begin();

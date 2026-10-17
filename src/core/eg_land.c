@@ -101,8 +101,8 @@ static void item(eg_land *p,uint8_t u,uint8_t v,uint8_t piece) {
 uint8_t eg_land_plan(eg_land *p,uint16_t seed,uint8_t rule,uint8_t size,uint8_t biome) EG_BANKED {
   const uint8_t *r,*s;uint8_t k,spacing,capacity,count,kind,mask,v,u,channels=0u,required,needed=0u;
   eg_land_node *n;
-  if(!p || rule>=EL_RULES || biome>=EL_BIOMES)return 0u;
-  r=land_rules[rule];
+  if(!p || (rule&127u)>=EL_RULES || biome>=EL_BIOMES)return 0u;
+  r=land_rules[rule&127u];
   if(size==255u)size=pick(r[3],hash(seed,0u,11u));
   if(size>=EL_SIZES || !(r[3]&(1u<<size)))return 0u;
   s=land_sizes[size];memset(p,0,sizeof *p);
@@ -226,6 +226,18 @@ void eg_land_at(const eg_land *p,uint8_t x,uint8_t y,eg_land_cell *o) EG_BANKED 
       }
     } else if(n->kind==EL_POWER && u==n->at-3u && v==n->lane-1u)o->material=T_SOCKET;
     else if(n->kind==EL_PORTAL && distance(u,n->at)==2u && v==n->lane) {o->design=EL_PAD;o->flags=EL_PROTECTED;}
+  }
+  if((p->rule&EL_HAZARDS) && o->material==T_EMPTY) {
+    /* Small interior voids and brittle shoulders, beside a permanent walking
+     * route. Apparatus, ingredients and all three doorway cells stay intact. */
+    for(k=0u;k<p->nnode;k++) {
+      n=&p->node[k];
+      if(u==n->at+3u && v==n->lane-2u)o->material=T_PIT|F_ABYSS;
+      else if(u==n->at+3u && v==n->lane-1u)o->material=T_GLASS;
+      else if(u==n->at-4u && v==n->lane+3u)o->material=T_CEIL;
+    }
+    if(!protected && distance(v,eg_land_lane(p,u))==1u && (u&15u)==6u && u>5u && u<EL_LENGTH(p)-5u)
+      o->material=T_PIT|F_ABYSS;
   }
   if(eg_land_item_at(p,x,y))o->material=T_ITEM;
   if(u==EL_LENGTH(p)-3u && v==eg_land_lane(p,u)) {o->material=T_DOOR;o->flags=EL_PROTECTED;}

@@ -23,9 +23,12 @@
  *   (indices 128 .. 255 are the sprites' tiles 128 .. 255: the BG addresses tiles signed on a floor, LCDC bit 4 clear)
  *   LOOK_B0_BASE .. (210 .. 241)  the fragile cards that fly (meta_pal | LOOK_META_BANK0)
  *   LOOK_SHARD .. +3 (242 .. 245) two glass shard sprites; 246, 247 spare
- *   LOOK_SPR_BASE .. +7 (248 .. 255) M_SLAB_A and M_WALL_TOP themselves: the BG draws them from here, and every card
- *                  in flight during assembly and collapse is one of these two (the real card commits to the BG when it
- *                  lands). Sprites read bank 0 only here: PyBoy 2.7 draws bank 1 sprites (S_BANK) blank.
+ *   LOOK_SPR_BASE .. +7 (248 .. 255) M_SLAB_A and M_WALL_TOP themselves: the BG draws them from here, and they remain available to the BG.
+ * VRAM bank 1 OBJ-only area (unsigned 0x8000..0x87FF, separate from the signed BG):
+ *   0..3 diagonal weapon; 4..15 and 112..127 seven pooled 16x16 terrain cards;
+ *   16..87 mobs; 88..111 mob FX. The pool caches canonical baked quadrant data,
+ *   so connected carpet and slab patterns keep their identity when landing.
+ *   The eighth flight slot is reserved for resident bank-0 fragile art.
  *   bake_look.py fails the bake if the sprite set grows past 210.
  *
  * BG palettes on a floor (LOOK_PAL_*): 0 floor slab, 1 foam (+ sprout), 2 walls / drywall / shutters, 3 void and
@@ -63,7 +66,7 @@ void look_freeze(void) BANKED;        /* stop the wave where it is and hide the 
                                          rewrites OBJ 6/7) */
 void look_end(void) BANKED;           /* leaving the floor: the screens' palettes back, OBJ 6/7 back, cards hidden */
 /* The room assembles around `origin`: every cell on screen (but the origin) leaves the world and comes back in a
- * wave by distance, dropping, rising, sliding or glitching in. Call after look_load and camera(1), before drawing. */
+ * wave by distance, dropping from above and settling into place. Call after look_load and camera(1), before drawing. */
 void look_assemble(uint8_t origin) BANKED;
 /* Camera presentation only: retain the material board and all object mutations. */
 void look_roam_begin(uint8_t enabled) BANKED;

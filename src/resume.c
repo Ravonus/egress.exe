@@ -9,6 +9,7 @@
 #include "heir.h"
 #include "mob.h"
 #include "run.h"
+#include "tutorial.h"
 #include "resume.h"
 #include "save_map.h"
 #include "mapper.h"
@@ -47,7 +48,7 @@ static void write(void) {
   resume_state=snap[2];resume_ready=(uint8_t)(resume_state==RES_FLOOR || resume_state==RES_LANDING);
 }
 void resume_save(uint8_t state) BANKED {
-  if(dbg_heir) return;
+  if(dbg_heir || tutorial_on==2u) return;
   memset(snap,0,sizeof snap);snap[2]=state;
   put(4u,run_seed);put(10u,family.generation);snap[12]=family.selected;put(13u,family.current.seed);
   snap[15]=resume_rest;put(16u,plan.seen);snap[23]=floor_no;put(24u,floor_seed);snap[26]=floor_tier;memcpy(snap+28u,&stamina,sizeof stamina);snap[34]=heart_shards;
@@ -80,11 +81,11 @@ uint8_t resume_restore(void) BANKED {
   apply();return 1u;
 }
 void resume_damage(void) BANKED {
-  if(dbg_heir || !resume_ready || resume_state!=RES_FLOOR) return;
+  if(dbg_heir || tutorial_on==2u || !resume_ready || resume_state!=RES_FLOOR) return;
   snap[64]=pl_hp;memcpy(snap+28u,&stamina,sizeof stamina);narrator_store(snap+118u);write();
 }
 void resume_clear(void) BANKED {
-  if(dbg_heir) return;
+  if(dbg_heir || tutorial_on==2u) return;
   memset(snap,0,sizeof snap);write();write();resume_rest=0u;
 }
 uint8_t resume_finish_pending(void) BANKED {

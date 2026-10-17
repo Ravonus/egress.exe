@@ -28,8 +28,16 @@ def run(rom,out):
     r['missing_continue_stays_in_menu']=bool(g.peek('menu_active')) and not g.peek('floor_no')
     cursor(g,2);g.press('a',3);g.tick(15);g.shot(out/'02-actions.png');g.press('right',3);g.tick(10);g.shot(out/'03-movement.png')
     g.press('b',3);g.tick(10);r['controls_return_to_menu']=bool(g.peek('menu_active')) and g.peek('menu_cursor')==2
-    cursor(g,3);g.press('a',3);g.tick(10);r['tutorials_toggle']=not g.peek('tutorial_on')
-    cursor(g,5);g.press('a',3);g.tick(10);r['voice_toggles']=not g.peek('voice_on');save=g.stop()
+    cursor(g,3);g.press('a',3)
+    for _ in range(600):
+        g.tick()
+        if g.peek('game_mode')==2:break
+    r['tutorial_enters_a_dedicated_fixed_stage']=g.peek('game_mode')==2 and g.peek('tutorial_on')==2 and g.peek('room',room_start:=10*16+3)==0 and g.peek('room',8*16+3)==0
+    g.shot(out/'tutorial-course.png');g.press('start',3);g.tick(20);lobby(g)
+    r['course_returns_to_lobby']=bool(g.peek('menu_active')) and not g.peek('tutorial_on')
+    cursor(g,5)
+    for _ in range(3):g.press('a',3);g.tick(10)
+    r['voice_toggles']=not g.peek('voice_on');save=g.stop()
     r['settings_do_not_write_legacy_family']=save[0x100:0x426]==bytes(0x326)
     g=Game(rom,sram=save);lobby(g)
     r['settings_survive_poweroff']=not g.peek('voice_on') and not g.peek('tutorial_on');g.stop()

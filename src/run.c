@@ -10,6 +10,7 @@
 #include <string.h>
 #include "play.h"
 #include "run.h"
+#include "tutorial.h"
 #include "mapper.h"
 #include "clock.h"
 #include "family.h"
@@ -202,7 +203,7 @@ void run_end(uint8_t won) BANKED {
 }
 
 void run_record_end(uint8_t won) BANKED {
-  if(run_finished) return;
+  if(run_finished || tutorial_on==2u) return;
   run_finished=1u;
   narrator_event(won ? NE_CLEAR : NE_DEATH,0u);
   resume_save(won ? RES_WON : RES_DEAD);

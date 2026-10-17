@@ -52,14 +52,14 @@ static void menu_controls(uint8_t page) {
 }
 static void menu_row(uint8_t k) {
   uint8_t pal=k==menu_cursor ? UI_LIGHT : UI_DARK,y=(uint8_t)(5u+k*2u);
-  static const char *const label[6]={"CONTINUE","NEW RUN","CONTROLS","TUTORIALS","CLOCK / SETTINGS","NARRATOR"};
+  static const char *const label[6]={"CONTINUE","NEW RUN","CONTROLS","TUTORIAL","CLOCK / SETTINGS","NARRATOR"};
   ui_fill(0u,1u,y,18u,1u,pal);
   text_at(0u,1u,y,k==menu_cursor ? ">" : " ",pal);text_at(0u,3u,y,label[k],pal);
   if(!k && !resume_ready)text_at(0u,16u,y,"--",pal);
-  if(k==3u || k==5u)text_at(0u,15u,y,(k==3u ? tutorial_on : voice_on) ? "ON" : "OFF",pal);
+  if(k==5u)text_at(0u,15u,y,voice_on ? "ON" : "OFF",pal);
 }
 static void menu_hint(void) {
-  static const char *const hint[6]={"RETURN TO YOUR HEIR","A NEW GENERATION","LEARN YOUR MOVES","HINTS WHILE PLAYING","TIME / DATE / CLOCK","VOICE REACTIONS"};
+  static const char *const hint[6]={"RETURN TO YOUR HEIR","A NEW GENERATION","LEARN YOUR MOVES","ENTER THE COURSE","TIME / DATE / CLOCK","VOICE REACTIONS"};
   ui_fill(0u,0u,3u,20u,1u,UI_DARK);text_at(0u,1u,3u,hint[menu_cursor],UI_DARK);
 }
 static void menu_draw(void) {
@@ -101,7 +101,7 @@ static uint8_t start_menu(void) {
         if(joy_pressed&(J_LEFT|J_RIGHT)) {page^=1u;menu_controls(page);sfx(SFX_STEP);}
       }
       menu_draw();
-    } else if(menu_cursor==3u) {tutorial_on^=1u;tutorial_save();menu_row(3u);sfx(SFX_STEP);}
+    } else if(menu_cursor==3u) {tutorial_on=1u;break;}
     else if(menu_cursor==4u) {setup_screen();tutorial_save();screen_reset();art_load_game();look_load(BIOME_OFFICE);ui_load();ui_colours();menu_draw();pal_commit(8u);SHOW_BKG;DISPLAY_ON;}
     else {voice_on^=1u;if(!voice_on) voice_stop();tutorial_save();menu_row(5u);sfx(SFX_STEP);}
   }
@@ -121,6 +121,7 @@ void title_screen(void) BANKED {
       continue;
     }
     if(!start_menu()) continue;
+    if(tutorial_on==1u)return;
     previous=run_seed;save_load();
     rolled=(uint16_t)(DIV_REG ^ (frame_count << 3) ^ (t3d_seed << 8) ^ t3d_vbl ^ previous ^ (meta.runs*0x2b9u));
     rolled^=rolled<<7;rolled^=rolled>>9;rolled^=rolled<<8;

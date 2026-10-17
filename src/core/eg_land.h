@@ -6,6 +6,7 @@
  * cell is independent of traversal order and needs no full-map allocation. */
 #define EL_SIZES 6u
 #define EL_RULES 6u
+#define EL_HAZARDS 128u /* versioned geography for newly dealt runs */
 #define EL_BIOMES 8u
 #define EL_NODES 4u
 #define EL_ITEMS 16u

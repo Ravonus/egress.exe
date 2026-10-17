@@ -128,12 +128,12 @@ void player_hurt(uint8_t n, uint8_t fromx, uint8_t fromy) BANKED {
   else if(!dbg_god) {if(pl_hp<=2u) narrator_event(NE_CLOSE,0u);resume_damage();}
 }
 
-/* A void fall ignores dodge/guard immunity. Charge once, animate down into the void,
- * then restore the last firm tile; power-off retains the already-paid damage. */
+/* A fall ignores guard/evade immunity. Open abyss is lethal; enclosed one-cell
+ * pits cost a heart and return to the last firm tile. Damage is journaled first. */
 void player_fall(uint8_t safe) BANKED {
   if(pl_state==PS_FALL || pl_state==PS_EXIT || !pl_hp) return;
   pl_inv=pl_iframe=0u;pin.flags=0u;pl_air=0u;pl_z=0;fall_safe=safe;
-  player_hurt(1u,pl_x,pl_y);
+  player_hurt(EG_ABYSS(room.c[cell_at(pl_x,pl_y)]) ? pl_hp : 1u,pl_x,pl_y);
   pl_state=PS_FALL;pl_t=0u;freeze=0u;pl_arc=pl_charge=0u;air_void=0u;
   narrator_event(NE_FALL,0u);
 }
@@ -766,7 +766,13 @@ void player_update(void) BANKED {
       if (ph == EG_PH_ACTIVE) {
         dmg = mv == EG_MV_HIT3 ? ((mods & MOD_SURGE) ? 3u : 2u) : 1u;
         strike(0, dmg);
-        if (pin.frame == fd.startup) strike_bricks(0u,(uint8_t)(mv == EG_MV_HIT3 || heir.weapon == 1u));
+        if (pin.frame == fd.startup) {
+          strike_bricks(0u,(uint8_t)(mv == EG_MV_HIT3 || heir.weapon == 1u));
+          if(heir.weapon==1u) {
+            shake=3u;sfx(SFX_THUD);
+            puff((uint8_t)(pl_x+f8x[pmv.facing]*14),(uint8_t)(pl_y+f8y[pmv.facing]*14+5u),4u,ST_PUFF);
+          }
+        }
       }
       if (pin.frame >= 2u && pin.frame < (uint8_t)(fd.startup + fd.active + 3u)) pl_arc = 1;
       break;

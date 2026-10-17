@@ -18,6 +18,9 @@
 #include "world.h"
 #include "core/eg_move.h"
 #include "gen/diag_arc.inc"
+#include "gen/hammer.inc"
+#include "core/eg_input.h"
+extern eg_input_t pin;
 extern eg_mover_t pmv;
 extern volatile uint8_t video_epoch;
 extern uint8_t frame_epoch;
@@ -96,7 +99,8 @@ void sprites_reset(void) BANKED {
   uint8_t i;
   for (i = 0; i != 40u; i++) move_sprite(i, 0, 0);
   oam_last = was_busy = 0;
-  VBK_REG=1u;set_sprite_data(0u,4u,diagonal_arc);VBK_REG=0u;
+  VBK_REG=1u;set_sprite_data(0u,4u,heir.weapon==1u ? hammer_diagonal : diagonal_arc);VBK_REG=0u;
+  if(heir.weapon==1u)set_sprite_data(ST_ARC_DOWN,24u,hammer_arc);
   heir_reset(); /* the floor's art was reloaded over the heir's tiles */
   if (!boss_floor) mobs_reload(); /* B2: and over the mobs' looks */
 }
@@ -771,10 +775,11 @@ void draw_sprites(void) BANKED {
     oam_count(0);
   }
   /* OP_WEAPON: aim and arc share all eight directions. */
-  if (pl_arc == 1u) {
+  if (pl_arc == 1u || (pl_arc==2u && heir.weapon==1u)) {
     uint8_t reach=heir.weapon==1u ? 12u : heir.weapon==2u ? 24u : heir.weapon==3u ? 10u : heir.weapon==4u ? 20u : 14u;
     if(mods&MOD_LONG) reach+=4u;
-    fr=(uint8_t)(pl_t>=5u ? 4u : 0u);
+    fr=(uint8_t)((heir.weapon==1u ? pin.phase!=EG_PH_STARTUP : pl_t>=5u) ? 4u : 0u);
+    if(heir.weapon==1u)reach=fr ? 16u : 8u;
     if(pmv.facing&1u) {
       uint8_t left=(uint8_t)(pmv.facing>=5u),down=(uint8_t)(pmv.facing==3u || pmv.facing==5u);
       reach=(uint8_t)(reach-(reach>>2));
@@ -783,10 +788,11 @@ void draw_sprites(void) BANKED {
       if(left) oam_group(x-cam_x-8,y-cam_y-8,2u,2u,254u,(uint8_t)(4u|S_BANK|S_FLIPX|(down ? S_FLIPY : 0u)));
       else oam_group(x-cam_x-8,y-cam_y-8,2u,0u,2u,(uint8_t)(4u|S_BANK|(down ? S_FLIPY : 0u)));
     } else {
-      x=(int16_t)pl_x+fdx[pl_face]*(int8_t)reach;y=(int16_t)pl_y+fdy[pl_face]*(int8_t)reach;
-      if(pl_face==F_UP) spr16(x,y,(uint8_t)(ST_ARC_UP+fr),4u,0u);
-      else if(pl_face==F_DOWN) spr16(x,y,(uint8_t)(ST_ARC_DOWN+fr),4u,0u);
-      else spr16(x,y,(uint8_t)(ST_ARC_SIDE+fr),4u,(uint8_t)(pl_face==F_LEFT));
+      k=pmv.facing==0u ? F_UP : pmv.facing==2u ? F_RIGHT : pmv.facing==4u ? F_DOWN : F_LEFT;
+      x=(int16_t)pl_x+fdx[k]*(int8_t)reach;y=(int16_t)pl_y+fdy[k]*(int8_t)reach;
+      if(k==F_UP) spr16(x,y,(uint8_t)(ST_ARC_UP+fr),4u,0u);
+      else if(k==F_DOWN) spr16(x,y,(uint8_t)(ST_ARC_DOWN+fr),4u,0u);
+      else spr16(x,y,(uint8_t)(ST_ARC_SIDE+fr),4u,(uint8_t)(k==F_LEFT));
     }
   } else if (pl_arc == 2u) {
     k = (uint8_t)((pl_t >> 1) & 3u);

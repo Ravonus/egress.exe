@@ -13,7 +13,7 @@ from terrain_rim import TerrainRim
 
 def fingerprint(g):
     plan=bytes(g.peek('world_plan',k) for k in range(83))
-    assert g.peek('world_on') and plan[6]==0
+    assert g.peek('world_on') and plan[6]&127==0
     cells=subprocess.check_output(['build/host/land_one',str(int.from_bytes(plan[:2],'little')),str(plan[6]),str(plan[4]),str(plan[5])])
     assert cells[:83]==plan
     outline=bytes(int(t&31!=9) for t in cells[83::4]);w=plan[2]

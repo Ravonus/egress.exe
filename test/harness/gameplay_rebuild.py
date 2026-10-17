@@ -39,7 +39,7 @@ def run(rom,out,tool):
     assert start_run(g,True,False,physical_fixture=1)
     dump=subprocess.check_output([str(tool),'phys-dump',str(g.peek16('run_seed')^0x9e37^0x51a7),'1',str(g.peek('slice',19))],text=True)
     result['first_room_matches_shared_generator']=bytes(g.room()[:224])==bytes.fromhex(dump.split()[0])
-    result['first_room_is_push']=g.peek('slice',22)&63==1
+    result['first_room_is_push']=g.peek('slice',22)&31==1
     g.shot(out/'01-push.png')
     for d in 'URDL': assert step(g,d,log)
     result['pickup_units']=pocket(g)==[4,2]
@@ -76,7 +76,7 @@ def run(rom,out,tool):
     report['wave_kills']=g.peek('kills_run');report['wave_count']=g.peek('stage_wave')
     if g.peek('stage_won'):
         g.poke('dbg_stage',130);walk(g,g.room()[225],log);g.tick(240)
-        result['normal_floor3_falling_puzzle']=g.peek('floor_no')==3 and g.peek('slice',22)&63==2
+        result['normal_floor3_falling_puzzle']=g.peek('floor_no')==3 and g.peek('slice',22)&31==2
         g.shot(out/'04-falling.png')
         report['drop_plan']=solve_here(g,tool,log)
         g.tick(240)

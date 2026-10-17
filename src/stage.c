@@ -121,7 +121,7 @@ void stage_plan_floor(void) BANKED {
   stage_type = slice.type;
   /* Version the constructor in the existing journal byte. Plain PH_* and
    * zero from older saves retain their exact original floor on Continue. */
-  if(force==255u)slice.physical|=64u;
+  if(force==255u)slice.physical|=96u;
   if (slice.planned) {
     floor_seed = e.seed;
     floor_tier = e.tier;
@@ -154,18 +154,18 @@ uint8_t stage_build(void) BANKED {
     stage_type=SG_PUZZLE;
     return world_begin(st_seed,dbg_world_rule-1u,dbg_world_size ? dbg_world_size-1u : 255u,dbg_world_biome);
   }
-  if((slice.physical&63u) && !(slice.physical&64u)) {
+  if((slice.physical&31u) && !(slice.physical&64u)) {
     if(floor_no==7u && (run_seed&0x0100u))return world_begin(st_seed,4u,255u,BIOME_OFFICE);
     eg_physics_gen(&room,slice.physical,st_seed,slice.level);return 1u;
   }
-  if (slice.physical&63u) {
+  if (slice.physical&31u) {
     /* Falling-load chutes remain in the ordinary deal alongside the spatial
      * cold/power routes, rather than disappearing into test-only fixtures. */
     if(floor_no==3u && !(st_seed&3u)) {eg_physics_gen(&room,PH_DROP,st_seed,slice.level);return 1u;}
     /* The floor keeps its mechanical role; its dimensions, topology, goal
      * conditions and apparatus are constructed anew from this run's seed. */
     rule=floor_no==1u ? 0u : floor_no==3u ? (uint8_t)(2u+(st_seed&1u)) : (uint8_t)(4u+(st_seed&1u));
-    if(!world_begin(st_seed,rule,255u,BIOME_OFFICE))return 0u;
+    if(!world_begin(st_seed,(uint8_t)(rule|((slice.physical&32u) ? EL_HAZARDS : 0u)),255u,BIOME_OFFICE))return 0u;
     world_encounter();return 1u;
   }
   if (stage_type == SG_PUZZLE || stage_type >= EG_DECK_TYPES) return 0u;
@@ -615,7 +615,7 @@ void stage_show(void) BANKED {
 
 uint8_t stage_announce(void) BANKED {
   if(world_on) {hud_msg(enemies_alive ? "FIGHT. SOLVE. EXIT." : "LOAD. CROSS. EXIT.");return 1u;}
-  if (slice.physical&63u) { eg_physics_goal(slice.physical&63u, sbuf); hud_msg(sbuf); return 1u; }
+  if (slice.physical&31u) { eg_physics_goal(slice.physical&31u, sbuf); hud_msg(sbuf); return 1u; }
   if (!stage_goal[0]) return 0u;
   hud_msg(stage_goal);
   return 1u;
