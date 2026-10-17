@@ -230,7 +230,6 @@ static uint8_t waves_pts(const eg_stage *s, uint8_t wmin) {
 }
 
 /* ---------------- the stage types ---------------- */
-static uint8_t legacy_geometry;
 static void arena_shape(void) {
   uint8_t x,y,c,profile=eg_rndn(4u),inset=(uint8_t)(2u+eg_rndn(2u)),phase=eg_rndn(4u),cut;
   for(y=1u;y<13u;y++)for(x=1u;x<15u;x++) {
@@ -256,11 +255,10 @@ static uint8_t build_holdout(eg_stage *s, uint8_t aim) {
   s->charge = (uint16_t)(s->waves * (360u + 120u * c));
   n = pillars((uint8_t)(3u + eg_rndn(4u)), 6u, 11u);
   foam((uint8_t)(1u + eg_rndn(2u)));
-  if(!legacy_geometry)arena_shape();
+  arena_shape();
   s->conds = 1u; /* the ring */
   s->score = clamp15((int16_t)(waves_pts(s, 2u) + c) + (n <= 3u ? 1 : (n >= 6u ? -1 : 0)));
   eg_stage_flood(R, R->start);
-  if(legacy_geometry)return (uint8_t)(EG_REACHED(s->ring)!=0u);
   if(!EG_REACHED(s->ring) || !EG_REACHED(R->door))return 0u;
   /* Every spawnable island remains connected, so a wave cannot strand a
    * required enemy on a decorative fragment across the void. */
@@ -649,11 +647,6 @@ uint16_t eg_stage_gen(eg_room *r, eg_stage *s, uint8_t type, uint16_t seed, uint
   if (best && best != sd) build(r, s, type, best, level, m);
   if(best) eg_island_edges(r);
   return best;
-}
-uint16_t eg_stage_gen_legacy(eg_room *r,eg_stage *s,uint8_t type,uint16_t seed,uint8_t level,uint8_t m) EG_BANKED {
-  uint16_t result;
-  legacy_geometry=1u;result=eg_stage_gen(r,s,type,seed,level,m);legacy_geometry=0u;
-  return result;
 }
 
 /* ---------------- the deck ---------------- */

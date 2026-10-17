@@ -96,7 +96,7 @@ void stage_plan_floor(void) BANKED {
   floor_resets = 0;
   st_seed = (uint16_t)(run_seed ^ ((uint16_t)floor_no * 0x9e37u) ^ 0x51a7u);
   if (!st_seed) st_seed = 1u;
-  /* Explicit legacy-motif fixtures for isolated interaction regressions.
+  /* Explicit authored mechanic fixtures for isolated interaction regressions.
    * Ordinary runs never set this debug flag and use the spatial codec. */
   if(dbg_stage>=129u && dbg_stage<=132u) {
     slice.kind=stage_kind=SK_STAGE;slice.type=stage_type=SG_PUZZLE;
@@ -119,9 +119,9 @@ void stage_plan_floor(void) BANKED {
   }
   stage_kind = eg_slice_floor(&slice, &plan, floor_no, RUN_FLOORS, &e, force);
   stage_type = slice.type;
-  /* Version the constructor in the existing journal byte. Plain PH_* and
-   * zero from older saves retain their exact original floor on Continue. */
-  if(force==255u)slice.physical|=96u;
+  /* Mark the current constructor in the existing journal byte. Saved floors
+   * with earlier rules are upgraded before they are played again. */
+  if(force==255u)slice.physical|=EG_SLICE_CURRENT;
   if (slice.planned) {
     floor_seed = e.seed;
     floor_tier = e.tier;
@@ -129,6 +129,14 @@ void stage_plan_floor(void) BANKED {
 }
 
 void stage_resume_floor(void) BANKED {
+  if(!(slice.physical>=129u && slice.physical<=132u) &&
+     (slice.physical&EG_SLICE_CURRENT)!=EG_SLICE_CURRENT) {
+    uint8_t resets=floor_resets;
+    /* Keep the heir, family, inventory, health and run counters. Replan this
+     * floor with today's rules; the normal floor-entry journal commits it
+     * only after construction succeeds. Authored test courses stay explicit. */
+    stage_plan_floor();floor_resets=resets;
+  }
   st_seed=(uint16_t)(run_seed^((uint16_t)floor_no*0x9e37u)^0x51a7u);
   if(!st_seed) st_seed=1u;
   stage_kind=slice.kind;stage_type=slice.type;
@@ -154,8 +162,7 @@ uint8_t stage_build(void) BANKED {
     stage_type=SG_PUZZLE;
     return world_begin(st_seed,dbg_world_rule-1u,dbg_world_size ? dbg_world_size-1u : 255u,dbg_world_biome);
   }
-  if((slice.physical&31u) && !(slice.physical&64u)) {
-    if(floor_no==7u && (run_seed&0x0100u))return world_begin(st_seed,4u,255u,BIOME_OFFICE);
+  if(slice.physical>=129u && slice.physical<=132u) {
     eg_physics_gen(&room,slice.physical,st_seed,slice.level);return 1u;
   }
   if (slice.physical&31u) {
@@ -169,8 +176,7 @@ uint8_t stage_build(void) BANKED {
     world_encounter();return 1u;
   }
   if (stage_type == SG_PUZZLE || stage_type >= EG_DECK_TYPES) return 0u;
-  if (!(slice.physical&64u ? eg_stage_gen(&room,&stg,stage_type,st_seed,slice.level,slice.m) :
-        eg_stage_gen_legacy(&room,&stg,stage_type,st_seed,slice.level,slice.m))) {
+  if (!eg_stage_gen(&room,&stg,stage_type,st_seed,slice.level,slice.m)) {
     stage_type = SG_PUZZLE; /* never seen in the host sim; the puzzle room stands in */
     return 0u;
   }
