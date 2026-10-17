@@ -24,8 +24,10 @@ import argparse
 import io
 import json
 import re
+import struct
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from PIL import Image
@@ -49,8 +51,12 @@ SEED = 0x5EED
 class Game:
     def __init__(self, rom: Path, audio: bool = False, sram: bytes | None = None) -> None:
         self.ram = io.BytesIO(sram if sram is not None else bytes(8192))
+        # Each gameplay instance owns its clock as well as its SRAM. PyBoy's
+        # implicit ROM-adjacent .rtc file races across concurrent observers.
+        # Dedicated rtc_test.py covers chip persistence and power-off time.
+        self.rtc = io.BytesIO(struct.pack('dBB',time.time(),0,0))
         self.pb = PyBoy(str(rom), window="null", cgb=True, sound_emulated=audio, log_level="ERROR",
-                        ram_file=self.ram)
+                        ram_file=self.ram,rtc_file=self.rtc)
         self.pb.set_emulation_speed(0)
         noi = rom.with_suffix(".noi").read_text(encoding="latin-1")
         self.sym = {m[1]: int(m[2], 16) for m in re.finditer(r"DEF (\S+) 0x([0-9A-Fa-f]+)", noi)}
@@ -125,7 +131,7 @@ class Game:
     def stop(self) -> bytes:
         """stops the emulator; returns the cartridge RAM as the battery would keep it"""
         out = io.BytesIO()
-        self.pb.stop(save=True, ram_file=out)
+        self.pb.stop(save=True, ram_file=out,rtc_file=io.BytesIO())
         return out.getvalue()[:8192]
 
 
