@@ -53,7 +53,7 @@ static void controls_pause(void) {
   text_at(1,2,7,"START / B RESUME",LOOK_PAL_HUD);
   hud_line=80u;move_win(7,80);
   while(1) {
-    frame_wait();look_tick();flush_cells(8u);sound_tick();draw_sprites();input_poll();
+    frame_wait();look_pause_tick();flush_cells(8u);sound_tick();draw_sprites();input_poll();
     if(joy_pressed&(J_START|J_B)) break;
   }
   cam_y=old_y;move_bkg(BG_SCROLL_X(cam_x),BG_SCROLL_Y(cam_y));

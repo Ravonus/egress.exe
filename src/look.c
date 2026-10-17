@@ -1051,3 +1051,14 @@ void look_frame_end(void) BANKED {
   look_update(0u);
 }
 void look_tick(void) BANKED {roam_late=0u;look_frame_begin();look_update(0u);}
+
+/* The controls scene stops physics but keeps presentation alive. A suspended
+ * gravity/push turn must not reserve the BG budget forever. Its temporary
+ * camera framing must not discover new roaming terrain either. */
+void look_pause_tick(void) BANKED {
+  uint8_t previous_mode=game_mode;
+  game_mode=MODE_CLEAR;
+  look_tick();
+  game_mode=previous_mode;
+  if(game_mode==MODE_PLAY && !look_busy_n)items_tick();
+}

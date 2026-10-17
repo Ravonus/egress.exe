@@ -92,6 +92,9 @@ def run(rom,out):
     assert len(data)==4096
     g=Game(rom);assert start_run(g,True,True,physical_fixture=1)
     g.press('start');g.tick(10) # pause AI, retaining the look's VBlank animation loop
+    # A paused gravity/push turn cannot monopolize the presentation budget.
+    # Keep both physics counters frozen while every actual item upload runs.
+    g.poke('grav_t',1);g.poke('push_t',2)
     g.poke('room',1,241)
     frames=[Image.new('RGB',(16*32,32)) for _ in range(4)]
     import sys
@@ -129,6 +132,7 @@ def run(rom,out):
         if not res[f'item_{p}_preserves_every_other_card']:
             details[f'item_{p}_outside_changes']=[hex(0x9000+i) for i,(a,b) in enumerate(zip(untouched,after)) if a!=b and not lo<=i<hi]
     frames[0].save(out/'all-items-native.gif',save_all=True,append_images=frames[1:],duration=180,loop=0)
+    res['paused_animation_preserves_physics_counters']=g.peek('grav_t')==1 and g.peek('push_t')==2
     g.stop()
     report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':res,'details':details,'log':log}
     (out/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))

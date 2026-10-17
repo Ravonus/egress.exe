@@ -62,6 +62,7 @@ void draw_meta(uint8_t i, uint8_t m) BANKED;
 
 /* look.c */
 void look_load(uint8_t biome) BANKED; /* after art_load_game, display off: cards to VRAM, the biome into pal_bg */
+void look_pause_tick(void) BANKED; /* finish presentation without advancing paused physics/camera discovery */
 void look_freeze(void) BANKED;        /* stop the wave where it is and hide the cards (before a fade: the fade
                                          rewrites OBJ 6/7) */
 void look_end(void) BANKED;           /* leaving the floor: the screens' palettes back, OBJ 6/7 back, cards hidden */
