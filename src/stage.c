@@ -119,9 +119,7 @@ void stage_plan_floor(void) BANKED {
   }
   stage_kind = eg_slice_floor(&slice, &plan, floor_no, RUN_FLOORS, &e, force);
   stage_type = slice.type;
-  /* Mark the current constructor in the existing journal byte. Saved floors
-   * with earlier rules are upgraded before they are played again. */
-  if(force==255u)slice.physical|=EG_SLICE_CURRENT;
+  if(force==255u)slice.physical|=EG_SLICE_HAZARDS;
   if (slice.planned) {
     floor_seed = e.seed;
     floor_tier = e.tier;
@@ -129,21 +127,6 @@ void stage_plan_floor(void) BANKED {
 }
 
 void stage_resume_floor(void) BANKED {
-  if(!(slice.physical>=129u && slice.physical<=132u) &&
-     (slice.physical&EG_SLICE_CURRENT)!=EG_SLICE_CURRENT) {
-    uint8_t resets=floor_resets,k;
-    /* The saved deck already contains this floor. Remove its pending deal
-     * before replanning, so it is not mistaken for the preceding floor. */
-    for(k=0u;k+1u<EG_DECK_HIST;k++)slice.deck.hist[k]=slice.deck.hist[k+1u];
-    slice.deck.hist[EG_DECK_HIST-1u]=255u;
-    if(slice.planned && (slice.type==SG_PUZZLE || slice.type==SG_MIXP)) {
-      for(k=0u;k+1u<EG_DECK_TRICKS;k++)slice.deck.tricks[k]=slice.deck.tricks[k+1u];
-      slice.deck.tricks[EG_DECK_TRICKS-1u]=255u;
-    }
-    /* Keep the heir, family, inventory, health and run counters. The normal
-     * floor-entry journal commits current rules after construction succeeds. */
-    stage_plan_floor();floor_resets=resets;
-  }
   st_seed=(uint16_t)(run_seed^((uint16_t)floor_no*0x9e37u)^0x51a7u);
   if(!st_seed) st_seed=1u;
   stage_kind=slice.kind;stage_type=slice.type;
@@ -168,9 +151,6 @@ uint8_t stage_build(void) BANKED {
   if(dbg_world_rule && dbg_world_rule<=EL_RULES && dbg_world_size<=EL_SIZES && dbg_world_biome<EL_BIOMES) {
     stage_type=SG_PUZZLE;
     return world_begin(st_seed,dbg_world_rule-1u,dbg_world_size ? dbg_world_size-1u : 255u,dbg_world_biome);
-  }
-  if(slice.physical>=129u && slice.physical<=132u) {
-    eg_physics_gen(&room,(uint8_t)(slice.physical&31u),st_seed,slice.level);return 1u;
   }
   if (slice.physical&31u) {
     /* Falling-load chutes remain in the ordinary deal alongside the spatial

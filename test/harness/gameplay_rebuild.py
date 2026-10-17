@@ -123,9 +123,9 @@ def run(rom,out,tool):
     result['siblings_visibly_distinct']=len(set(looks))==3
     from picker_collision import wait_ready
     g.press('a');wait_ready(g);g.press('a');assert g.wait_mode(2)
-    result['legacy_meta_preserved']=g.peek('meta_loaded')==1 and g.peek16('meta')==1
+    result['current_meta_preserved']=g.peek('meta_loaded')==1 and g.peek16('meta')==1
     g.stop()
-    # Tear the newest extension; CRC journal must retain the preceding selected heir and legacy meta.
+    # Tear the newest extension; CRC journal must retain the preceding selected heir and current meta.
     damaged=bytearray(dead_save)
     newest=max((0x570,0xa6c),key=lambda at:damaged[at+3]);damaged[newest+20]^=0x80
     g=Game(rom,sram=bytes(damaged));assert start_run(g,True,False,physical_fixture=1)

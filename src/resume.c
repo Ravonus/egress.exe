@@ -27,7 +27,7 @@ typedef char resume_acts_fits[(sizeof(floor_acts_t)<=12u) ? 1 : -1];
 static uint16_t word(uint8_t at) {return (uint16_t)(snap[at]|((uint16_t)snap[at+1u]<<8));}
 static void put(uint8_t at,uint16_t v) {snap[at]=(uint8_t)v;snap[at+1u]=(uint8_t)(v>>8);}
 static uint8_t valid(uint8_t *p) {
-  if(!eg_save_valid(p,SAVE_CONT_BYTES,1u) || p[2]>RES_WON) return 0u;
+  if(!eg_save_valid(p,SAVE_CONT_BYTES,SAVE_CONT_VERSION) || p[2]>RES_WON) return 0u;
   if(!p[2]) return 1u;
   return (uint8_t)(p[23] && p[23]<=63u && p[65]>=6u && p[65]<=20u && p[64]<=p[65] && p[70]<=POCKET_CAP);
 }
@@ -43,8 +43,8 @@ uint8_t resume_probe(void) BANKED {
 }
 static void write(void) {
   uint8_t *p;
-  snap[0]=1u;snap[1]=++serial;eg_save_seal(snap,SAVE_CONT_BYTES);slot^=1u;p=RSLOT(slot);
-  EG_SRAM_OPEN();p[0]=0u;memcpy(p+1u,snap+1u,SAVE_CONT_BYTES-1u);p[0]=1u;EG_SRAM_CLOSE();
+  snap[0]=SAVE_CONT_VERSION;snap[1]=++serial;eg_save_seal(snap,SAVE_CONT_BYTES);slot^=1u;p=RSLOT(slot);
+  EG_SRAM_OPEN();p[0]=0u;memcpy(p+1u,snap+1u,SAVE_CONT_BYTES-1u);p[0]=SAVE_CONT_VERSION;EG_SRAM_CLOSE();
   resume_state=snap[2];resume_ready=(uint8_t)(resume_state==RES_FLOOR || resume_state==RES_LANDING);
 }
 void resume_save(uint8_t state) BANKED {

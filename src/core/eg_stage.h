@@ -117,7 +117,7 @@ uint8_t eg_deck_trick_seen(const eg_deck *d, uint8_t trick) EG_BANKED; /* in the
 uint8_t eg_stage_roll(uint16_t run_seed, uint8_t floor, uint8_t salt) EG_BANKED;
 /* the mid-boss slot's level: the planner's wave target for the slot, + 2 (3.6.2) */
 #define EG_MIDBOSS_LEVEL(target) ((uint8_t)((target) + 2u > 15u ? 15u : (target) + 2u))
-#define EG_SLICE_CURRENT 96u /* current constructor plus physical hazard rules in the saved slice byte */
+#define EG_SLICE_HAZARDS 32u
 typedef struct {
   eg_deck deck;
   uint8_t kind;   /* SK_STAGE, SK_MIDBOSS, SK_BOSS */

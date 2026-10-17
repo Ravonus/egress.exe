@@ -1,4 +1,4 @@
-/* CRC family journal in the reserved tree regions. Migrate checkpoint FA1 journals before continue can write. */
+/* Current-epoch CRC family journal. Earlier saves require a fresh family. */
 #pragma bank 255
 #include <gb/gb.h>
 #include <gb/cgb.h>
@@ -20,15 +20,15 @@ static uint8_t serial;
 #define FSLOT(n) ((uint8_t *)((n) ? SAVE_FAMILY_B : SAVE_FAMILY_A))
 #define FLEN ((uint16_t)(sizeof(eg_family) + 4u))
 typedef char family_record_fits[(FLEN + 2u <= SAVE_FAMILY_BYTES) ? 1 : -1];
-static uint8_t valid(uint8_t *p, uint8_t version) {
-  return (uint8_t)(p[0]=='F' && p[1]=='A' && p[2]==version &&
+static uint8_t valid(uint8_t *p) {
+  return (uint8_t)(p[0]=='F' && p[1]=='A' && p[2]==SAVE_FAMILY_VERSION &&
     eg_save_crc(p,FLEN)==((uint16_t)p[FLEN] | ((uint16_t)p[FLEN+1u]<<8)));
 }
 static void write_family(void) {
   uint8_t *p; uint16_t c;
   serial++; p=FSLOT(serial&1u);
   EG_SRAM_OPEN();
-  p[0]=0u; p[1]='A'; p[2]=2u; p[3]=serial;
+  p[0]=0u; p[1]='A'; p[2]=SAVE_FAMILY_VERSION; p[3]=serial;
   memcpy(p+4u,&family,sizeof family);
   p[0]='F'; c=eg_save_crc(p,FLEN); p[0]=0u;
   p[FLEN]=(uint8_t)c; p[FLEN+1u]=(uint8_t)(c>>8);
@@ -36,12 +36,8 @@ static void write_family(void) {
   EG_SRAM_CLOSE();
 }
 static void load_family(void) {
-  uint8_t *a=FSLOT(0u), *b=FSLOT(1u), oka,okb,migrating=0u;
-  EG_SRAM_OPEN(); oka=valid(a,2u); okb=valid(b,2u);
-  if(!oka && !okb) {
-    a=(uint8_t *)SAVE_OLD_FAMILY_A;b=(uint8_t *)SAVE_OLD_FAMILY_B;
-    oka=valid(a,1u);okb=valid(b,1u);migrating=(uint8_t)(oka || okb);
-  }
+  uint8_t *a=FSLOT(0u), *b=FSLOT(1u), oka,okb;
+  EG_SRAM_OPEN(); oka=valid(a); okb=valid(b);
   if (oka && (!okb || (int8_t)(a[3]-b[3])>=0)) { serial=a[3]; memcpy(&family,a+4u,sizeof family); }
   else if (okb) { serial=b[3]; memcpy(&family,b+4u,sizeof family); }
   EG_SRAM_CLOSE();
@@ -49,7 +45,6 @@ static void load_family(void) {
     serial=0u;eg_family_init(&family,run_seed);
     family.generation=meta.runs==65535u ? 65535u : (uint16_t)(meta.runs+1u);
   }
-  if(migrating) write_family();
 }
 static void apply_gene(const eg_genome *g) {
   heir.skin=g->look[G_SKIN]; heir.look=g->look[G_LOOK]; heir.hair=g->look[G_HAIR];
@@ -182,9 +177,6 @@ void family_begin(void) BANKED {
   if (dbg_heir) { family_apply(); return; }
   load_family();
   if (!family.active) {
-    /* Upgrade only unchosen candidates from older saves. The active heir and
-     * every recorded ancestor keep their exact genome. */
-    for(k=0u;k<3u;k++)eg_sibling_style(&family.parent,&family.child[k],k);
     game_mode=MODE_HEIR;
     pal_commit(0u);DISPLAY_ON;HIDE_WIN;HIDE_SPRITES;SPRITES_8x16;
     hud_line=144u; move_bkg(0,0);

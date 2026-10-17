@@ -38,7 +38,7 @@ def run(rom,out):
     cursor(g,5)
     for _ in range(3):g.press('a',3);g.tick(10)
     r['voice_toggles']=not g.peek('voice_on');save=g.stop()
-    r['settings_do_not_write_legacy_family']=save[0x100:0x426]==bytes(0x326)
+    r['settings_do_not_write_family']=save[0x100:0x426]==bytes(0x326)
     g=Game(rom,sram=save);lobby(g)
     r['settings_survive_poweroff']=not g.peek('voice_on') and not g.peek('tutorial_on');g.stop()
     newest=max(PREFS,key=lambda p:save[p+1]);torn=bytearray(save);torn[newest+14]^=0x80

@@ -23,7 +23,7 @@ static const char *const cues[10]={"WALK UP TO ITEMS","TAP A: STRIKE","HOLD A TH
 void tutorial_init(void) BANKED {
   uint8_t *p,*a=TSLOT(0u),*b=TSLOT(1u),va,vb;
   tutorial_on=0u;voice_on=1u;tutorial_seen=0u;serial=slot=cool=0u;pending=255u;
-  EG_SRAM_OPEN();va=eg_save_valid(a,SAVE_PREF_BYTES,1u);vb=eg_save_valid(b,SAVE_PREF_BYTES,1u);
+  EG_SRAM_OPEN();va=eg_save_valid(a,SAVE_PREF_BYTES,SAVE_PREF_VERSION);vb=eg_save_valid(b,SAVE_PREF_BYTES,SAVE_PREF_VERSION);
   if(va || vb) {
     slot=(uint8_t)(vb && (!va || !eg_save_newer(a[1],b[1])));p=TSLOT(slot);serial=p[1];
     opt_move4=(uint8_t)(p[3]!=0u);music_volume=p[4]<=7u ? p[4] : 7u;
@@ -33,10 +33,10 @@ void tutorial_init(void) BANKED {
 }
 void tutorial_save(void) BANKED {
   uint8_t rec[SAVE_PREF_BYTES],*p;
-  memset(rec,0,sizeof rec);rec[0]=1u;rec[1]=++serial;rec[2]=0u;rec[3]=opt_move4;
+  memset(rec,0,sizeof rec);rec[0]=SAVE_PREF_VERSION;rec[1]=++serial;rec[2]=0u;rec[3]=opt_move4;
   rec[4]=music_volume;rec[5]=sfx_volume;rec[6]=voice_on;rec[7]=(uint8_t)tutorial_seen;rec[8]=(uint8_t)(tutorial_seen>>8);
   eg_save_seal(rec,sizeof rec);slot^=1u;p=TSLOT(slot);
-  EG_SRAM_OPEN();p[0]=0u;memcpy(p+1u,rec+1u,sizeof rec-1u);p[0]=1u;EG_SRAM_CLOSE();
+  EG_SRAM_OPEN();p[0]=0u;memcpy(p+1u,rec+1u,sizeof rec-1u);p[0]=SAVE_PREF_VERSION;EG_SRAM_CLOSE();
 }
 /* The course owns a fixed board and the existing hint scratch. Outside it
  * there is no tutorial switch and no first-use popup journal traffic. */
