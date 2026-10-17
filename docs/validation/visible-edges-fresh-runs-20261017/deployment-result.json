@@ -1,0 +1,130 @@
+{
+  "verified": [
+    {
+      "path": "404.html",
+      "sha256": "acef92b262f8e7efde2d069194d76f680d94675856970440ceddd0b5f6628129"
+    },
+    {
+      "path": "index.html",
+      "sha256": "bea9fcc1478d16162d8dc44682b01db48e1a716eb071022c1f8afe56c2a872bf"
+    },
+    {
+      "path": "index.txt",
+      "sha256": "6df3bd3bb5f66f57087ea9d14d7fb6e6dee16a86841868cd10627cd63bf8a957"
+    },
+    {
+      "path": "404/index.html",
+      "sha256": "acef92b262f8e7efde2d069194d76f680d94675856970440ceddd0b5f6628129"
+    },
+    {
+      "path": "_next/static/chunks/app/layout-aa0a006832ac608f.js",
+      "sha256": "6be9274148862b4357f2a22a99687714a57f80d413872e8ce21cf553716b6bcf"
+    },
+    {
+      "path": "_next/static/chunks/app/page-7ebbb20f783978c4.js",
+      "sha256": "1f0406b7774b11642105fc5c12c058a5b5088de944c19790f1fea4560ec53ac4"
+    },
+    {
+      "path": "_next/static/chunks/app/chromatic/page-16d3113632af4b80.js",
+      "sha256": "a888fbd50cbb158e01b55ecd684785a83c29bb4fde9a5d2983b80bb064fb6392"
+    },
+    {
+      "path": "_next/static/chunks/app/how-it-works/page-7e08d7fc096a169d.js",
+      "sha256": "f618298572be8efdf271ae9bb73999bebd52a9eb9a35ecef6b7d568d79102d7a"
+    },
+    {
+      "path": "_next/static/chunks/app/trailer/page-0e7257312b0d202e.js",
+      "sha256": "33b77809b74f8bd5b5b88d546c29613ed7d064ef9d3aa91b0c13f0065065b067"
+    },
+    {
+      "path": "_next/static/n9j4c6FAOw999Gsi8W8c2/_buildManifest.js",
+      "sha256": "3c74b64899457eccea97eea260480776ad5596707924b77130f83b67e3359ca4"
+    },
+    {
+      "path": "_next/static/n9j4c6FAOw999Gsi8W8c2/_ssgManifest.js",
+      "sha256": "678f6ce2cb80b1fe72fc67e7412be6e2ab6ada083111b64f7c40d35e3cba5e00"
+    },
+    {
+      "path": "chromatic/index.html",
+      "sha256": "09e2c39e427afafd037720e62902c685769431855bdd4f2b459f6236c7360037"
+    },
+    {
+      "path": "chromatic/index.txt",
+      "sha256": "066d8d94b0b3c2b53cd3291b89a394d859317a44daf25ddcf23a5de1d3d802da"
+    },
+    {
+      "path": "game/egress-75fe5e766b762445.chromatic.json",
+      "sha256": "8bda7d0e45e47edc21174ce8992e2edfb427e1e8715ea5adc0c036b027ab67f6"
+    },
+    {
+      "path": "game/egress-75fe5e766b762445.gbc",
+      "sha256": "75fe5e766b762445b8d0db40535a826a65135d55de1b8f2a4cbe3ce73c6a1391"
+    },
+    {
+      "path": "game/egress-dev.gbc",
+      "sha256": "75fe5e766b762445b8d0db40535a826a65135d55de1b8f2a4cbe3ce73c6a1391"
+    },
+    {
+      "path": "game/egress-rtc-5f94ccf9a7af9909.chromatic.json",
+      "sha256": "a869a47a70da50a0c432b00655adcdc0d35a55f8aee4447b4722e57a13b525b7"
+    },
+    {
+      "path": "game/egress-rtc-5f94ccf9a7af9909.gbc",
+      "sha256": "5f94ccf9a7af9909fa259a13b82cd562a08ae94d59f18663ecaa1260141c5abe"
+    },
+    {
+      "path": "game/releases.json",
+      "sha256": "724f06d059bb37cd466c347725028386f51996a0ed52835623fc3a0724bd5a7a"
+    },
+    {
+      "path": "game/previews/egress-75fe5e766b762445.png",
+      "sha256": "257ef11e73b6c7671f755d35db05290dbdfa32c01caae78b3a191b29ae015010"
+    },
+    {
+      "path": "game/previews/egress-rtc-5f94ccf9a7af9909.png",
+      "sha256": "257ef11e73b6c7671f755d35db05290dbdfa32c01caae78b3a191b29ae015010"
+    },
+    {
+      "path": "how-it-works/index.html",
+      "sha256": "f783e902d374a2af8a0e0937dae1861775694035263428bd2e1a614fb5585350"
+    },
+    {
+      "path": "how-it-works/index.txt",
+      "sha256": "3c285c2462294ade3105a2095ae267f84a2286ec27131ddd7f7e4def37fc7d86"
+    },
+    {
+      "path": "trailer/index.html",
+      "sha256": "b61b8076187ca33af37f85d51bb3352b447e57ab7f86b97cf3ec9bd7988db8f3"
+    },
+    {
+      "path": "trailer/index.txt",
+      "sha256": "714da8809c114cacfb1551d09cb2cb1690bff950ac2dd891d5ccbba8203d2a05"
+    }
+  ],
+  "oldRomPreserved": true,
+  "backup": "/opt/velatis-gateway/backups/egress-visible-edges-20261017T142736Z",
+  "sourceCommit": "6241c3d41f103ec5d58c7b29bfda6574b7bddff2",
+  "mergeCommit": "49562662200a3be452248b526412358bbc6212f3",
+  "site": "https://egress.onkeel.io",
+  "deployedAt": "2026-10-17T14:27:41.116951+00:00",
+  "http": [
+    {
+      "url": "https://egress.onkeel.io/game/egress-75fe5e766b762445.gbc",
+      "status": 200,
+      "bytes": 1228800,
+      "sha256": "75fe5e766b762445b8d0db40535a826a65135d55de1b8f2a4cbe3ce73c6a1391"
+    },
+    {
+      "url": "https://egress.onkeel.io/game/egress-rtc-5f94ccf9a7af9909.gbc",
+      "status": 200,
+      "bytes": 1245184,
+      "sha256": "5f94ccf9a7af9909fa259a13b82cd562a08ae94d59f18663ecaa1260141c5abe"
+    },
+    {
+      "url": "https://egress.onkeel.io/game/egress-03597246c14a74e7.gbc",
+      "status": 200,
+      "bytes": 1228800,
+      "sha256": "03597246c14a74e74e566e61bb4eb810bfe9f4d0827cf8fcc2234a17f00087d5"
+    }
+  ]
+}

@@ -14,7 +14,7 @@ The 24-run sample also compares floor-versus-void masks: 22 distinct playable ou
 
 The clean-link object order places main's existing prefix before the fixed upload state, keeping the GDMA pixel buffer page aligned on both mappers without extra WRAM. The full campaign remains in development; this release does not declare all sprints complete.
 
-## Validated release candidate
+## Verified release
 
 Tested source: `6241c3d41f103ec5d58c7b29bfda6574b7bddff2`. Full serial `PYTHONUNBUFFERED=1 make -j1 test` passed with zero failures, including the 1,000-run curriculum audit. All 261 source-file hashes and both ROMs still match the frozen candidate. The full raw log is retained in `build/candidates/visible-edges-fresh-runs-20261017/native-full-test.log`; its SHA-256 is in [native-full-gate.json](native-full-gate.json).
 
@@ -28,3 +28,9 @@ Both mapper versions pass the normal opening fight, puzzle, survival waves and f
 The twelve normal late-floor world routes on each mapper solve without missing bodies, pixel errors, unbuilt foot cells or frame hitches. The maximum recorded seam wait is one frame on either mapper. Both office-camera routes retain visible leading assembly and trailing falls with no unbuilt central cells; generated-opening observers also require both visible effects.
 
 The exact-ROM private browser checks verify advancing sprite buffers, three portraits matching native pixel structure, a real old-save heir carried over unchanged, actual floor pickups merging through four painted phases and finite material consumption, and both ROM downloads on desktop and narrow screens. Prior hashed ROM assets and browser save identities are retained.
+
+[PR #4](https://github.com/Ravonus/egress.exe/pull/4) merged as `49562662200a3be452248b526412358bbc6212f3`. Published at https://egress.onkeel.io/. All 25 changed production files match the tested export. Public HTTP readback verifies both ROM hashes above and preserves the previous standard ROM. Live browser checks confirm the exact new cartridge, advancing animation and both downloads at 1280, 768, 390 and 320 pixels, with no page errors or horizontal overflow.
+
+The site’s nine release files are committed locally as `f5dc263e7e03d07cfdc921c13a8ed93d5a0defe1`; that checkout has no remote. Its 65 preexisting changes remain byte-for-byte and status-for-status intact. The merged task branch is removed locally and remotely; only the primary game worktree remains and no game branches are unmerged. The private preview is stopped. Existing user files under `docs/chromatic/native-ui-20261015/` are preserved.
+
+Production rollback copies and a before-file manifest are at `/opt/velatis-gateway/backups/egress-visible-edges-20261017T142736Z`. Old immutable ROMs and assets were retained. No physical cartridge was written.

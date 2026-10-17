@@ -1,0 +1,15 @@
+{
+  "base": "https://egress.onkeel.io",
+  "sha256": "75fe5e766b762445b8d0db40535a826a65135d55de1b8f2a4cbe3ce73c6a1391",
+  "source": "Actual browser canvas paints and native reads during normal keyboard play; no RAM writes.",
+  "samples": 277,
+  "requestedPoses": 36,
+  "visibleSpriteBuffers": 38,
+  "maximumUnservedPosePaints": 3,
+  "results": {
+    "exactRomFetch": true,
+    "visibleAnimationAdvances": true,
+    "poseDoesNotStarve": true,
+    "pageErrors": true
+  }
+}
