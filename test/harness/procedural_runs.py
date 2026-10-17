@@ -16,8 +16,12 @@ def fingerprint(g):
     assert g.peek('world_on') and plan[6]==0
     cells=subprocess.check_output(['build/host/land_one',str(int.from_bytes(plan[:2],'little')),str(plan[6]),str(plan[4]),str(plan[5])])
     assert cells[:83]==plan
+    outline=bytes(int(t&31!=9) for t in cells[83::4]);w=plan[2]
+    ground=[i for i,t in enumerate(outline) if t]
+    bounds=(max(i%w for i in ground)-min(i%w for i in ground)+1)*(max(i//w for i in ground)-min(i//w for i in ground)+1)
     return {'run_seed':g.peek16('run_seed'),'plan_sha256':hashlib.sha256(plan).hexdigest(),
             'material_layout_sha256':hashlib.sha256(cells[83::4]).hexdigest(),
+            'playable_outline_sha256':hashlib.sha256(outline).hexdigest(),'irregular_playable_outline':sum(outline)<bounds,
             'native_entry_sha256':hashlib.sha256(bytes(g.room()[:224])).hexdigest(),
             'size':list(plan[2:4]),'profile':plan[4],'shape':plan[7],
             'conditions':[plan[14+6*k] for k in range(plan[9])],
@@ -73,6 +77,8 @@ def run(rom,out,tool):
         g.stop()
     res['all_pinned_seeds_construct_different_openings']=len({r['plan_sha256'] for r in sweep})==len(sweep)
     res['actual_complete_material_layouts_differ']=len({r['material_layout_sha256'] for r in sweep})==len(sweep)
+    res['actual_floor_and_void_outlines_vary']=len({r['playable_outline_sha256'] for r in sweep})>=20
+    res['nonrectangular_playable_stages_are_common']=sum(r['irregular_playable_outline'] for r in sweep)>=20
     res['all_opening_profiles_are_used']={r['profile'] for r in sweep}=={0,1,2}
     res['opening_dimensions_vary']=len({tuple(r['size']) for r in sweep})>=6
     res['all_geography_shapes_are_used']={r['shape'] for r in sweep}=={0,1,2,3}

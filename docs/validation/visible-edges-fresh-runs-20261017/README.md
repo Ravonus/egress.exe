@@ -10,4 +10,6 @@ Constructor version bits occupy the existing saved slice byte. Journals from the
 
 `test/harness/procedural_runs.py` compares complete generated material boards, not just seed bytes. Its pinned-seed sample checks 24 distinct maps, all three opening size profiles, multiple dimension pairs, all four shapes and multiple switch conditions. Normal combat independently checks visible animation and exact completed-update/VBlank deadlines. Camera observers require both visible leading assembly and trailing falls, reject construction outside the 24-pixel edge band, and reject unbuilt central cells.
 
+The 24-run sample also compares floor-versus-void masks: 22 distinct playable outlines, with 22 nonrectangular footprints. This is separate from changed object placement or map dimensions. The [shape atlas](generated-shape-atlas.png) shows nine actual generated material boards at the same cell scale.
+
 The clean-link object order places main's existing prefix before the fixed upload state, keeping the GDMA pixel buffer page aligned on both mappers without extra WRAM. The full campaign remains in development; this release does not declare all sprints complete.

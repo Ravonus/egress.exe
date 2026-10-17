@@ -114,7 +114,7 @@ static uint8_t negative(uint8_t which) {
   uint8_t k,x,y,u,v;eg_land_node *n;
   if(which>=20u) {
     uint16_t seed;
-    for(seed=0u;seed<1024u;seed++)if(eg_land_plan(&world_plan,seed,0u,1u,0u) && world_plan.width==24u && world_plan.nnode==1u)break;
+    for(seed=0u;seed<1024u;seed++)if(eg_land_plan(&world_plan,seed,0u,1u,0u) && world_plan.width==24u && world_plan.nnode==1u && world_plan.node[0].condition==EL_HOLD)break;
     world_begin(seed,0u,1u,0u);pocket_n=0u;n=&world_plan.node[0];
     for(k=0u;k<world_plan.nitem;k++)(void)world_write(world_plan.item[k].u,world_plan.item[k].v,T_EMPTY);
     (void)world_write(n->at-3u,n->lane+1u,T_EMPTY);
@@ -131,6 +131,11 @@ static uint8_t negative(uint8_t which) {
     return check_dead();
   }
   world_begin(17u,0u,0u,0u);pocket_n=0u;n=&world_plan.node[0];
+  /* Isolate each certificate below from the codec's now-variable switch
+   * deal. Start with one hold plate/load; later cases explicitly add BOTH. */
+  n->condition=EL_HOLD;
+  (void)world_write(n->at-4u,n->lane+2u,T_EMPTY);
+  (void)world_write(n->at-3u,n->lane+2u,T_EMPTY);
   for(k=0u;k<world_plan.nitem;k++) {
     u=world_plan.item[k].u;v=world_plan.item[k].v;(void)world_write(EL_X(&world_plan,u,v),EL_Y(&world_plan,u,v),T_EMPTY);
   }
