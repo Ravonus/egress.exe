@@ -50,9 +50,9 @@ static uint8_t controls_pause(void) {
   text_at(1,1,2,"HOLD EITHER: CHARGE",LOOK_PAL_HUD);
   text_at(1,1,3,"A>B PARRY B>A RUSH",LOOK_PAL_HUD);
   text_at(1,1,4,"DIR x2 EVADE / RUN",LOOK_PAL_HUD);
-  text_at(1,1,5,stage_type==SG_HEIST ? "SELECT: BUY AT DESK" : "SELECT: USE ELEMENT",LOOK_PAL_HUD);
-  text_at(1,1,6,"A: INVENTORY / EQUIP",LOOK_PAL_HUD);
-  text_at(1,1,7,tutorial_on==2u ? "START EXIT B RESUME" : "START / B RESUME",LOOK_PAL_HUD);
+  text_at(1,1,5,stage_type==SG_HEIST ? "SELECT: BUY HERE" : "SELECT: USE ITEM",LOOK_PAL_HUD);
+  text_at(1,1,6,"A: BAG / EQUIP",LOOK_PAL_HUD);
+  text_at(1,1,7,tutorial_on==2u ? "START EXIT B BACK" : "START / B RESUME",LOOK_PAL_HUD);
   hud_line=80u;move_win(7,80);
   while(1) {
     frame_wait();look_pause_tick();flush_cells(8u);sound_tick();draw_sprites();input_poll();
