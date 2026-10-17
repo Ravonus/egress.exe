@@ -491,6 +491,27 @@ static void spr32(int16_t wx, int16_t wy, uint8_t tile, uint8_t pal) {
 
 static const int8_t bob[8] = {0, 0, -1, -1, 0, 0, 1, 1};
 
+/* No projection or allocation is needed after the FX deadline. Age every
+ * existing puff in place, preserving its lifetime without a C pointer walk. */
+static void age_puffs(void) NAKED {
+  __asm
+    ld hl,#_puffs
+    ld de,#5
+    ld b,#6
+  1$:
+    ld a,(hl)
+    or a,a
+    jr z,2$
+    dec (hl)
+  2$:
+    add hl,de
+    dec b
+    jr nz,1$
+    ret
+  __endasm;
+}
+typedef char puff_native_stride[(sizeof(puff_t)==5u && MAXP==6u) ? 1 : -1];
+
 /* the B1 kinds: mite, eye, the Watchman (boss.c) */
 static void draw_b1(enemy_t *e) {
   uint8_t base, pal, flip;
@@ -616,12 +637,13 @@ void draw_sprites(void) BANKED {
   if(puffs[0].t|puffs[1].t|puffs[2].t|puffs[3].t|puffs[4].t|puffs[5].t) {
     puff_t *p = puffs;
     int16_t py;
-    uint8_t quota=(uint8_t)(LY_REG>=88u && LY_REG<144u ? 1u : MAXP);
-    for (k = MAXP; k; k--, p++)
+    uint8_t quota=(uint8_t)(LY_REG>=88u ? 0u : MAXP);
+    if(!quota)age_puffs();
+    else for (k = MAXP; k; k--, p++)
       if (p->t) {
         p->t--;
-        py = (int16_t)p->y - (int16_t)((14u - p->t) >> 2);
         if(quota && video_epoch==frame_epoch && !(LY_REG>=88u && LY_REG<144u)) {
+          py = (int16_t)p->y - (int16_t)((14u - p->t) >> 2);
           spr8((int16_t)p->x, py, p->tile, p->pal);
           quota--;
         }

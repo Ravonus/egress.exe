@@ -274,6 +274,7 @@ static uint8_t floor_play(void) {
     input_poll(); /* sample before variable-cost VRAM/audio work can cross a display boundary */
     DISABLE_OAM_DMA;
     streamed=world_on ? world_frame_begin() : 0u;
+    if(!streamed)heir_prepare();
     if(world_on && !streamed)world_prefetch();
     late=(uint8_t)(roaming && (world_on || enemies_alive || stage_type!=SG_PUZZLE));
     if (boss_floor) boss_vblank(); /* B2 bosses: in VBlank, before the look's writes */

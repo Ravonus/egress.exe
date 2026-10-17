@@ -10,6 +10,7 @@
 #include "core/eg_view.h"
 #include "world.h"
 #include "world_play.h"
+#include "heir.h"
 void items_tick(void) BANKED;
 extern volatile uint8_t video_epoch;
 extern uint8_t frame_epoch;
@@ -28,7 +29,6 @@ static uint8_t q[256], q_head, q_n; /* the wave: cells in order, a ring */
 uint8_t roam_hidden[EG_N/8u];
 static uint8_t roam_on,roam_scan,roam_left,roam_x,roam_y,near_cursor;
 static uint8_t roam_late,prep_cursor;
-static int8_t roam_dx,roam_dy;
 
 /* cards in flight (assembly) and pieces falling (collapse) */
 enum { K_FREE = 0, K_DROP, K_RISE, K_SLIDE_L, K_SLIDE_R, K_GLITCH, K_CRACK, K_FALL, K_WOBBLE, K_SHATTER };
@@ -243,7 +243,7 @@ void look_raise_cell(uint8_t i) BANKED {
 
 void look_roam_begin(uint8_t enabled) BANKED {
   uint8_t i;
-  roam_on=enabled;roam_scan=near_cursor=0u;roam_left=EG_N;roam_x=pl_x;roam_y=pl_y;roam_dx=roam_dy=0;
+  roam_on=enabled;roam_scan=near_cursor=0u;roam_left=EG_N;roam_x=pl_x;roam_y=pl_y;
   memset(roam_hidden,0,sizeof roam_hidden);
   if(!enabled) return;
   for(i=0u;i!=EG_N;i++) if(!on_screen(i) && !look_void_cell(i) && cell_type(i)!=T_PIT) {
@@ -255,18 +255,11 @@ static uint8_t roam_pending(uint8_t i) {
   return (uint8_t)((queued[i>>3]|in_flight[i>>3])&BIT(i));
 }
 static uint8_t roam_wants(uint8_t i) {
-  uint8_t x=(uint8_t)(EG_X(i)<<4),y=(uint8_t)(EG_Y(i)<<4);
-  int8_t dx=(int8_t)EG_X(i)-(int8_t)(pl_x>>4),dy=(int8_t)EG_Y(i)-(int8_t)(pl_y>>4);
-  if(dx>=-5 && dx<=5 && dy>=-5 && dy<=5 &&
-     ((roam_dx>0 && dx>=0) || (roam_dx<0 && dx<=0) ||
-      (roam_dy>0 && dy>=0) || (roam_dy<0 && dy<=0)))return 1u;
-  if(absdiff(EG_X(i),pl_x>>4)<=3u && absdiff(EG_Y(i),pl_y>>4)<=3u) return 1u;
-  if(!on_screen(i)) return 0u;
-  if(roam_dx>0 && (uint16_t)x+16u<=(uint16_t)cam_x+16u) return 0u;
-  if(roam_dx<0 && (uint16_t)x>=(uint16_t)cam_x+144u) return 0u;
-  if(roam_dy>0 && (uint16_t)y+16u<=(uint16_t)cam_y+16u) return 0u;
-  if(roam_dy<0 && (uint16_t)y>=(uint16_t)cam_y+112u) return 0u;
-  return 1u;
+  int16_t x=(int16_t)(EG_X(i)<<4)-(int16_t)cam_x;
+  int16_t y=(int16_t)(EG_Y(i)<<4)-(int16_t)cam_y;
+  /* Keep the complete view and two off-screen cells warm, including behind
+   * the player during a reversal. Construction belongs at the view's rim. */
+  return (uint8_t)(x>-48 && x<192 && y>-48 && y<160);
 }
 static void roam_raise(uint8_t i) {
   if(!(roam_hidden[i>>3]&BIT(i)) || look_here(i) || roam_pending(i)) return;
@@ -285,26 +278,12 @@ void look_roam_tick(void) BANKED {
   if(!roam_on || pl_state==PS_FALL || pl_state==PS_EXIT) return;
   dx=pl_x>roam_x ? 1 : pl_x<roam_x ? -1 : 0;
   dy=pl_y>roam_y ? 1 : pl_y<roam_y ? -1 : 0;
-  if(dx || dy) {roam_dx=dx;roam_dy=dy;roam_left=EG_N;}
+  if(dx || dy) roam_left=EG_N;
   roam_x=pl_x;roam_y=pl_y;
+  if(heir_pending && enemies_alive)return;
   if((world_on || enemies_alive) && (video_epoch!=frame_epoch || (LY_REG>=80u && LY_REG<144u)))return;
-  if(dx && dy) {
-    roam_ahead((int16_t)(pl_x>>4)+dx*4,(int16_t)(pl_y>>4)+dy*3);
-    roam_ahead((int16_t)(pl_x>>4)+dx*3,(int16_t)(pl_y>>4)+dy*4);
-    roam_ahead((int16_t)(pl_x>>4)+dx*4,(int16_t)(pl_y>>4)+dy*4);
-  } else if(dx) {
-    roam_ahead((int16_t)(pl_x>>4)+dx*4,(int16_t)(pl_y>>4)-2);
-    roam_ahead((int16_t)(pl_x>>4)+dx*4,(int16_t)(pl_y>>4)+2);
-    roam_ahead((int16_t)(pl_x>>4)+dx*4,(int16_t)(pl_y>>4)-1);
-    roam_ahead((int16_t)(pl_x>>4)+dx*4,(int16_t)(pl_y>>4)+1);
-    roam_ahead((int16_t)(pl_x>>4)+dx*4,pl_y>>4);
-  } else if(dy) {
-    roam_ahead((int16_t)(pl_x>>4)-2,(int16_t)(pl_y>>4)+dy*4);
-    roam_ahead((int16_t)(pl_x>>4)+2,(int16_t)(pl_y>>4)+dy*4);
-    roam_ahead((int16_t)(pl_x>>4)-1,(int16_t)(pl_y>>4)+dy*4);
-    roam_ahead((int16_t)(pl_x>>4)+1,(int16_t)(pl_y>>4)+dy*4);
-    roam_ahead(pl_x>>4,(int16_t)(pl_y>>4)+dy*4);
-  }
+  if(dx)roam_ahead(((int16_t)cam_x+(dx>0 ? 176 : -17))>>4,pl_y>>4);
+  if(dy)roam_ahead(pl_x>>4,((int16_t)cam_y+(dy>0 ? 144 : -17))>>4);
   if(LY_REG>=(enemies_alive ? 48u : 80u) && LY_REG<144u) return;
   /* Bounded inspection, never a whole-room scan during a game frame. */
   probes=enemies_alive ? 2u : 6u;
@@ -687,8 +666,7 @@ static void step_card(uint8_t k) {
   uint8_t i = c_cell[k], t = c_t[k], kind = c_kind[k];
   uint8_t tile = meta_tile[c_meta[k]][0], prop;
   int16_t wx = (int16_t)((uint16_t)EG_X(i) << 4), wy = (int16_t)((uint16_t)EG_Y(i) << 4);
-  if((kind==K_CRACK || kind==K_FALL) && roam_on && !c_brk[k] && (roam_hidden[i>>3]&BIT(i)) &&
-     absdiff(EG_X(i),pl_x>>4)<=3u && absdiff(EG_Y(i),pl_y>>4)<=3u) {
+  if((kind==K_CRACK || kind==K_FALL) && roam_on && !c_brk[k] && (roam_hidden[i>>3]&BIT(i)) && roam_wants(i)) {
     if(kind==K_CRACK) {
       /* A turn toward a still-grounded trailing slab cancels its collapse. */
       if(budget>=2u && roam_bg_time()) {
@@ -900,9 +878,7 @@ static uint8_t anchor_at(uint8_t x,uint8_t y) {
   look_anchor(i);return 1u;
 }
 static uint8_t ground_ahead(void) {
-  static const int8_t near_x[16]={0,1,-1,0,2,2,2,1,0,-1,-2,-2,-2,-1,0,1};
-  static const int8_t near_y[16]={-1,0,0,1,-1,0,1,2,2,2,1,0,-1,-2,-2,-2};
-  int16_t x=pl_x,y=pl_y;int8_t dx=0,dy=0;uint8_t n=0u,k,c,x0,x1,y0,y1;
+  int16_t x=pl_x,y=pl_y;int8_t dx=0,dy=0;uint8_t n=0u,k,c,x0,x1,y0,y1,vertical,limit;
   /* A blink travels at most 6.5px/tick. Prepare a 14px swept lead plus the
    * complete 12x12 foot box, including diagonal corners and released rolls. */
   if(pl_state==PS_ROLL) {dx=roll_dx;dy=roll_dy;}
@@ -919,14 +895,21 @@ static uint8_t ground_ahead(void) {
   if(n<2u && y1!=y0 && x1!=x0)n+=anchor_at(x1,y1);
   /* The previous footprint is already protected by mstep. Do not probe its
    * same four cells again, or spend a second cosmetic commit after a repair. */
-  if(n || video_epoch!=frame_epoch)return n;
+  if(n || video_epoch!=frame_epoch || heir_pending)return n;
   if(enemies_alive>=2u && (pl_state==PS_LASH || pl_state==PS_SPIN))return n;
   if(LY_REG<144u && LY_REG>=(world_on ? 24u : 32u))return 0u;
-  /* Nearby structures settle before contact instead of waiting behind the
-   * whole-room cosmetic scan. Four probes and one cosmetic commit at most. */
+  /* Spend the existing one-cell cosmetic allowance outside the view, rather
+   * than assembling the neighbourhood around the character. Sweep the full
+   * approaching edge; diagonal travel alternates axes. */
+  if(!dx && !dy)return 0u;
+  vertical=(uint8_t)(dy && (!dx || (frame_count&1u)));
+  limit=vertical ? 11u : 9u;
+  if(near_cursor>=limit)near_cursor=0u;
+  x=vertical ? cam_x>>4 : ((int16_t)cam_x+(dx>0 ? 176 : -17))>>4;
+  y=vertical ? ((int16_t)cam_y+(dy>0 ? 144 : -17))>>4 : cam_y>>4;
   for(k=0u;k<4u && !n;k++) {
-    c=near_cursor;if(++near_cursor==16u)near_cursor=0u;
-    n+=anchor_at((int16_t)(pl_x>>4)+near_x[c],(int16_t)(pl_y>>4)+near_y[c]);
+    c=near_cursor;if(++near_cursor==limit)near_cursor=0u;
+    n+=anchor_at((uint8_t)(x+(vertical ? c : 0u)),(uint8_t)(y+(vertical ? 0u : c)));
   }
   return n;
 }
@@ -943,14 +926,18 @@ void look_frame_begin(void) BANKED {
     set_sprite_palette(6, 2, &pal_sp[24]);
     obj_mode = obj_want = 0;
   }
-  ambient();
-  if (game_mode == MODE_PLAY && !look_busy_n) items_tick();
+  /* A deferred character pose owns this frame's cosmetic allowance. Keep
+   * palette ownership and swept-foot safety, then resume ambience next tick. */
+  if(!heir_pending || !roam_on || game_mode!=MODE_PLAY) {
+    ambient();
+    if (game_mode == MODE_PLAY && !look_busy_n) items_tick();
+  }
   if(roam_on && game_mode==MODE_PLAY) {
     /* Incoming terrain must not starve behind actor rendering. Commit a
      * bounded ready card / launch here; animation stays after the actors. */
     roam_late=0u;
     k=ground_ahead();
-    if((world_on || enemies_alive || stage_type!=SG_PUZZLE) && !k && enemies_alive<3u && grav_t!=1u && !push_t &&
+    if(!heir_pending && (world_on || enemies_alive || stage_type!=SG_PUZZLE) && !k && enemies_alive<3u && grav_t!=1u && !push_t &&
        (!world_on || LY_REG<16u || LY_REG>=144u) &&
        !(world_on && (frame_count&3u) && world_work_pending())) look_update(1u);
   }

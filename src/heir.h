@@ -51,6 +51,7 @@ void heir_play(uint8_t state, uint8_t restart) BANKED;
 void heir_idle(uint8_t ctx) BANKED; /* call every idle tick: the scheduler picks the state (EG_IC_* context) */
 void heir_idle_stop(void) BANKED;   /* any input: the next idle starts a new plan */
 void heir_tick(void) BANKED;        /* advance one tick (from draw_sprites: hitstop freezes it) */
+void heir_prepare(void) BANKED;     /* reserve early frame time for a deferred complete pose */
 void heir_reset(void) BANKED;       /* the floor's art was reloaded: compose again */
 /* draw the heir with its box's top-left at (wx, wy) screen-world coordinates (sprites.c's convention); returns the
  * OAM entries used. pal_flash: 0 own palettes, else that OBJ palette for both layers */
@@ -68,6 +69,7 @@ uint8_t heir_state_len(uint8_t state, uint8_t *loop) NONBANKED;
 /* compose a frame record for this heir into tiles tile0..tile0+7; returns a mask of the non-empty sprites */
 uint8_t heir_compose(uint8_t pose, uint8_t dd, uint8_t tile0) NONBANKED;
 void heir_compose_init(void) NONBANKED; /* the heir's delta slots and the chunks' banks */
+extern volatile uint8_t heir_pending; /* one WRAM pose awaits its VBlank upload */
 void heir_get_pal(uint8_t skin, uint8_t accent, uint16_t *out8) NONBANKED; /* BODY 0..3, cloth into 5, 6 */
 
 #endif

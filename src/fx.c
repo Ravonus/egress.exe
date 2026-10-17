@@ -60,7 +60,7 @@ void fx_burst(uint8_t x, uint8_t y, uint8_t kind, uint8_t n) BANKED {
 void fx_draw(void) BANKED {
   if(!(fx[0].t|fx[1].t|fx[2].t|fx[3].t|fx[4].t|fx[5].t|fx[6].t|fx[7].t))return;
   fx_t *p = fx;
-  uint8_t i,quota=(uint8_t)(LY_REG>=88u && LY_REG<144u ? 1u : FXN);
+  uint8_t i,quota=(uint8_t)(LY_REG>=88u ? 0u : FXN);
   for (i = FXN; i; i--, p++) {
     if (!p->t) continue;
     p->t--;

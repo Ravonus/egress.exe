@@ -52,10 +52,8 @@ uint8_t eye_free(uint8_t x, uint8_t y) NONBANKED {
                    !eye_block(cell_at(r, b)));
 }
 uint8_t absdiff(uint8_t a, uint8_t b) NONBANKED { return a > b ? (uint8_t)(a - b) : (uint8_t)(b - a); }
-uint8_t overlap(uint8_t ax, uint8_t ay, uint8_t bx, uint8_t by, uint8_t rx, uint8_t ry) NONBANKED {
-  return (uint8_t)(absdiff(ax, bx) < rx && absdiff(ay, by) < ry);
-}
-uint8_t overlap_world(int16_t ax, int16_t ay, uint8_t bx, uint8_t by, uint8_t rx, uint8_t ry) NONBANKED {
+#include "overlap.inc"
+uint8_t overlap_world(int16_t ax, int16_t ay, uint8_t bx, uint8_t by, uint8_t rx, uint8_t ry) BANKED {
   int16_t dx,dy;
   if((uint16_t)ax<=255u && (uint16_t)ay<=255u)
     return overlap((uint8_t)ax,(uint8_t)ay,bx,by,rx,ry);

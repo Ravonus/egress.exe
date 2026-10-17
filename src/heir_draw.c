@@ -8,11 +8,16 @@
 #include <string.h>
 #include "mapper.h"
 #include "heir.h"
+extern uint8_t world_on,game_mode;
+uint8_t heir_cache_get(uint8_t pose,uint8_t dd) BANKED;
+void heir_cache_put(uint8_t pose,uint8_t dd,uint8_t mask) BANKED;
 
 uint8_t heir_pixels[128];
+uint8_t heir_cache_enabled;
 static uint8_t want[7], nwant; /* six selected slots and a sentinel */
 static uint8_t chunk_bank[HEIR_CHUNKS];
-static volatile uint8_t up_pending, up_tile;
+volatile uint8_t heir_pending;
+static uint8_t up_tile;
 static uint8_t vbl_on;
 static const uint8_t *ap_p;
 static uint8_t ap_n;
@@ -109,6 +114,9 @@ static uint8_t compose_deltas(void) NONBANKED NAKED {
     ld l,a
     ld de,#_want
     ld b,#0
+    ld a,(de)
+    cp a,#27
+    jr z,6$
   1$:
     ld a,(hl+)
     ld c,a
@@ -118,7 +126,7 @@ static uint8_t compose_deltas(void) NONBANKED NAKED {
     inc de
     ld a,c
     or a,a
-    jr z,5$
+    jr z,4$
     ld a,(hl+)
     push hl
     ld hl,#_delta_mask
@@ -136,6 +144,10 @@ static uint8_t compose_deltas(void) NONBANKED NAKED {
     call _apply_patches
     pop de
     pop bc
+  4$:
+    ld a,(de)
+    cp a,#27
+    jr z,6$
     jr 5$
   3$:
     ld a,c
@@ -156,6 +168,7 @@ static uint8_t compose_deltas(void) NONBANKED NAKED {
     ld a,b
     cp a,#27
     jr nz,1$
+  6$:
     ld a,(#_delta_mask)
     ret
   __endasm;
@@ -165,12 +178,12 @@ typedef char native_heir_slot_count[(HEIR_SLOTS==27u) ? 1 : -1];
 /* the VRAM upload runs in VBlank (an add_VBL handler): composing a frame never stalls the frame on STAT waits */
 static void heir_vbl(void) NONBANKED {
   uint8_t v;
-  if (!up_pending) return;
+  if (!heir_pending) return;
   v = VBK_REG;
   VBK_REG = 0;
   upload128((uint8_t *)(0x8000u + ((uint16_t)up_tile << 4)),heir_pixels);
   VBK_REG = v;
-  up_pending = 0;
+  heir_pending = 0;
 }
 
 static void want_slot(uint8_t first, uint8_t base, uint8_t v) {
@@ -179,6 +192,7 @@ static void want_slot(uint8_t first, uint8_t base, uint8_t v) {
 }
 
 void heir_compose_init(void) NONBANKED {
+  heir_cache_enabled=0u;
   nwant = 0;
   want_slot(HEIR_SLOT_LOOK, HEIR_BASE_LOOK, heir.look);
   want_slot(HEIR_SLOT_NECK, HEIR_BASE_NECK, heir.neck);
@@ -215,16 +229,20 @@ uint8_t heir_state_len(uint8_t state, uint8_t *loop) NONBANKED {
 uint8_t heir_compose(uint8_t pose, uint8_t dd, uint8_t tile0) NONBANKED {
   uint8_t save = CURRENT_BANK, mask, k;
   uint16_t i = (uint16_t)pose * 5u + dd;
-  while (up_pending) /* the last frame's upload has not had its VBlank yet (the LCD is off): do it now */
+  while (heir_pending) /* the last frame's upload has not had its VBlank yet (the LCD is off): do it now */
     if (!(LCDC_REG & LCDCF_ON)) {
       k = VBK_REG;
       VBK_REG = 0;
       copy128((uint8_t *)(0x8000u + ((uint16_t)up_tile << 4)),heir_pixels);
       VBK_REG = k;
-      up_pending = 0;
+      heir_pending = 0;
     }
   heir_rec_t r;
   const uint8_t *p;
+  if(game_mode==2u && !world_on) {
+    mask=heir_cache_get(pose,dd);
+    if(mask&128u) {up_tile=tile0;heir_pending=1u;return (uint8_t)(mask&15u);}
+  }
   EG_ROM_BANK(BANK(heir_tab));
   r = heir_recs[i];
   EG_ROM_BANK(chunk_bank[r.chunk]);
@@ -235,8 +253,9 @@ uint8_t heir_compose(uint8_t pose, uint8_t dd, uint8_t tile0) NONBANKED {
   ap_p=p;
   mask=compose_deltas();
   EG_ROM_BANK(save);
+  if(game_mode==2u && !world_on)heir_cache_put(pose,dd,mask);
   up_tile = tile0;
-  up_pending = 1;
+  heir_pending = 1;
   return mask;
 }
 
