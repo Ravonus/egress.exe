@@ -1063,6 +1063,7 @@ void look_tick(void) BANKED {
   /* Quiet-room work is still in the early phase. frame_begin leaves the
    * split combat path ready for its tail; do not inherit that zero budget. */
   roam_late=0u;look_update(0u);
+  roam_late=1u; /* the later camera sweep may now reconcile trailing cells */
 }
 
 /* The controls scene stops physics but keeps presentation alive. A suspended
