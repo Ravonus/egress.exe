@@ -163,7 +163,7 @@ uint8_t stage_build(void) BANKED {
     return world_begin(st_seed,dbg_world_rule-1u,dbg_world_size ? dbg_world_size-1u : 255u,dbg_world_biome);
   }
   if(slice.physical>=129u && slice.physical<=132u) {
-    eg_physics_gen(&room,slice.physical,st_seed,slice.level);return 1u;
+    eg_physics_gen(&room,(uint8_t)(slice.physical&31u),st_seed,slice.level);return 1u;
   }
   if (slice.physical&31u) {
     /* Falling-load chutes remain in the ordinary deal alongside the spatial
