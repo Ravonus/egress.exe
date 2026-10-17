@@ -11,7 +11,7 @@
 /* the HUD objectives: <= 18 characters (section 12), and the hunt target's tells */
 static const char goal_txt[EG_DECK_TYPES + KC_COUNT][19] = {
     "FIND THE DOOR",     /* puzzle */
-    "HOLD THE RING",     /* holdout */
+    "SURVIVE THE WAVES", /* holdout */
     "OUTRUN THE FALL",   /* chase */
     "HUNT THE MARKED",   /* hunt */
     "WALK THE TEMP OUT", /* escort */
@@ -35,6 +35,10 @@ void eg_stage_text(uint8_t which, char *out) EG_BANKED {
 static const uint8_t win_of[EG_DECK_TYPES] = {WIN_EXIT, WIN_CHARGE, WIN_OUTRUN, WIN_KILL, WIN_ESCORT, WIN_MAKE,
                                               WIN_KEYS, WIN_LEAVE};
 uint8_t eg_stage_win(uint8_t type) EG_BANKED { return type < EG_DECK_TYPES ? win_of[type] : WIN_EXIT; }
+uint8_t eg_wave_count(const eg_stage *s,uint8_t wave) EG_BANKED {
+  uint8_t n=(uint8_t)(s->per_wave+s->level/5u+wave);
+  return n>8u ? 8u : n;
+}
 
 /* ---------------- helpers ---------------- */
 #ifndef __SDCC

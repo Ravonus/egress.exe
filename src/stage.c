@@ -1,8 +1,8 @@
 /* B2 stage types on the cartridge: the slot and the deck (core/eg_stage.c deals them), the stage room
  * (eg_stage_gen), and each type's play, written against the thin mob adapter (src/stage_spawn.h).
  *
- *   holdout   the door is shut; standing in the ring (sparks mark it) charges the egress, stepping out pauses it;
- *             waves glitch in from the void at even steps of the charge. Full: the door opens.
+ *   holdout   survive anywhere and defeat finite enemy waves. Each clear starts
+ *             a short breather; later waves replenish larger, tougher groups.
  *   chase     the door is open; after the grace the floor drops a row at a time from the bottom (the look's drop,
  *             four cells a frame). Caught: two half hearts and up onto the floor above; no floor above: dead.
  *   hunt      the marked target (sparks over it) dies only by its condition: a falling CRT, its own orb returned,
@@ -45,7 +45,7 @@ uint8_t stage_won, stage_lost, stage_wave, stage_pct, stage_row, stage_cell, sta
 
 static uint16_t st_seed; /* the stage room's seed (a reset rebuilds the same room) */
 static uint16_t st_t;    /* frames of play on this floor */
-static uint16_t st_next; /* holdout: frames in the ring to the next %; chase: the next row's drop; waves: the next */
+static uint16_t st_next; /* chase: the next row's drop; timed waves: the next */
 static uint16_t st_acc;
 static uint8_t st_cond, st_roll, st_near, st_inv, st_x, st_pc, st_paid, st_theft, st_told, st_fam, st_pend;
 static uint8_t wv_pend, wv_shoot;
@@ -150,12 +150,26 @@ static void wave_begin(uint8_t n, uint8_t shooter) {
   sfx(SFX_TELL);
 }
 static void wave_step(void) {
-  uint8_t k, c;
+  uint8_t k, c, fam,slot,rank;
   if (!wv_pend || ss_alive() >= 3u) return;
   for (k = 0; k != 2u; k++) {
     c = EG_IDX(1u + eg_rndn(14u), 1u + eg_rndn(12u));
     if (!look_here(c) || (stage_type == SG_DARK && look_skin[c]) || !ss_spawn_ok(c)) continue;
-    if (ss_spawn(wv_shoot ? SS_SHOOTER : SS_CHASER, c, 0u, frame_count) == 255u) return;
+    fam=wv_shoot ? SS_SHOOTER : SS_CHASER;
+    if(stage_type==SG_HOLDOUT) {
+      /* Three preloaded silhouettes; the third role opens after the first
+       * wave. Conditional CRT/reflect-only foes stay in their authored hunts. */
+      if(stg.level>=3u && stage_wave>1u && (wv_pend&1u))
+        fam=stg.level>=8u && (st_seed&1u) ? FAM_MEMO : FAM_STAPLES;
+      if((stage_wave>1u || stg.level>=5u) && !(wv_pend%3u))fam=SS_SHOOTER;
+    }
+    slot=ss_spawn(fam,c,0u,frame_count);
+    if(slot==255u)return;
+    if(stage_type==SG_HOLDOUT) {
+      rank=(uint8_t)(stg.level/5u+((stage_wave-1u)>>1));
+      en[slot].hp+=rank;mob[slot].hp_max=en[slot].hp;
+      mob[slot].speed+=(uint8_t)(stg.level/3u+stage_wave-1u);
+    }
     puff(px_of(c), py_of(c), 4u, ST_PUFF);
     puff(px_of(c), (uint8_t)(py_of(c) - 10u), 4u, ST_SPARK);
     wv_shoot = 0;
@@ -182,13 +196,6 @@ static void ring_spark(uint8_t fast) {
   puff((uint8_t)(px_of(stg.ring) + dx * 16), (uint8_t)(py_of(stg.ring) + dy * 16), 4u, ST_SPARK);
 }
 static uint8_t in_ring(void) { return (uint8_t)(cheb(pcell(), stg.ring) <= stg.ring_r); }
-static uint8_t wave_percent(void) {
-  if(stg.waves==2u)return (uint8_t)(stage_wave*50u);
-  if(stg.waves==3u)return stage_wave==0u ? 0u : stage_wave==1u ? 33u : stage_wave==2u ? 66u : 100u;
-  if(stg.waves==4u)return (uint8_t)(stage_wave*25u);
-  return (uint8_t)((uint16_t)stage_wave*100u/stg.waves);
-}
-
 static void win(const char *msg) {
   stage_won = 1u;
   wv_pend = 0;
@@ -488,9 +495,7 @@ void stage_start(void) BANKED {
   eg_stage_text(stage_type, stage_goal);
   switch (stage_type) {
     case SG_HOLDOUT:
-      st_next = (uint16_t)(stg.charge / 100u); /* frames in the ring per % */
-      if (!st_next) st_next = 1u;
-      hud_set("  0%   ");
+      hud_set("READY ");
       break;
     case SG_CHASE:
       door_open = 1u;
@@ -535,6 +540,9 @@ void stage_show(void) BANKED {
   if (stage_type == SG_HUNT)
     ss_preload((uint8_t)((1u << kc_fam[stg.cond[0]]) |
         (stg.conds == 2u ? 1u << kc_fam[stg.cond[1]] : 0u)));
+  else if(stage_type==SG_HOLDOUT && stg.level>=3u)
+    ss_preload((1u<<SS_CHASER)|(1u<<SS_SHOOTER)|
+      (1u<<(stg.level>=8u && (st_seed&1u) ? FAM_MEMO : FAM_STAPLES)));
   else ss_preload((1u << SS_CHASER) | (1u << SS_SHOOTER));
   if (stage_type == SG_ESCORT || stage_type == SG_HEIST) {
     VBK_REG = 0;
@@ -575,34 +583,26 @@ uint8_t stage_announce(void) BANKED {
 }
 
 void stage_tick(void) BANKED {
-  uint8_t tens,units;
+  uint8_t left;
   if (stage_type == SG_PUZZLE || pl_hp == 0u) return;
   if (st_t != 0xffffu) st_t++;
   wave_step();
   switch (stage_type) {
     case SG_HOLDOUT:
       if (stage_won) break;
-      ring_spark(in_ring());
-      if (stage_wave < stg.waves && stage_pct >= wave_percent() &&
-          (stage_wave || st_t >= 90u)) {
-        wave_begin(stg.per_wave, (uint8_t)(stage_wave >= stg.shooters));
-        hud_msg(stage_wave == stg.waves ? "LAST WAVE" : "THEY COME");
+      left=(uint8_t)(wv_pend+ss_alive());
+      if(left!=st_pc) {
+        st_pc=left;sbuf[0]='W';sbuf[1]=(char)('0'+stage_wave);sbuf[2]='/';
+        sbuf[3]=(char)('0'+stg.waves);sbuf[4]=' ';sbuf[5]=(char)('0'+left);sbuf[6]=0;hud_set(sbuf);
       }
-      if (in_ring() && ++st_acc >= st_next) {
-        st_acc = 0;
-        if (stage_pct < 100u) stage_pct++;
-        sbuf[0] = stage_pct >= 100u ? '1' : ' ';
-        units=stage_pct;tens=0u;if(units==100u)units=0u;
-        while(units>=10u) {units-=10u;tens++;}
-        sbuf[1] = stage_pct >= 10u ? (char)('0'+tens) : ' ';
-        sbuf[2] = (char)('0'+units);
-        sbuf[3] = '%';
-        sbuf[4] = ' ';
-        sbuf[5] = (char)('0' + stage_wave);
-        sbuf[6] = 0;
-        hud_set(sbuf);
+      if(left) {st_acc=0u;break;}
+      stage_pct=(uint8_t)((uint16_t)stage_wave*100u/stg.waves);
+      if(stage_wave>=stg.waves) {win("WAVES CLEARED");break;}
+      if(++st_acc>=90u) {
+        st_acc=0u;
+        wave_begin(eg_wave_count(&stg,stage_wave),(uint8_t)(stage_wave>=stg.shooters));
+        hud_msg(stage_wave==stg.waves ? "FINAL WAVE: FIGHT" : "WAVE INCOMING");
       }
-      if (stage_pct >= 100u && stage_wave >= stg.waves && !wv_pend && !ss_alive()) win("WAVES CLEARED");
       break;
     case SG_CHASE: chase_tick(); break;
     case SG_HUNT:

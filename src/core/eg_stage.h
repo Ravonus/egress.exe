@@ -22,7 +22,7 @@
 
 /* win conditions */
 enum { WIN_EXIT = 0, /* reach the open door */
-       WIN_CHARGE,   /* holdout: the egress charges while you stand in its ring; waves come */
+       WIN_CHARGE,   /* historical save ID: survive and defeat every wave */
        WIN_OUTRUN,   /* chase: reach the door before the floor that drops behind you */
        WIN_KILL,     /* hunt: the marked target dies by its condition */
        WIN_ESCORT,   /* the temp reaches the door alive */
@@ -44,10 +44,10 @@ typedef struct {
   uint8_t budget;        /* enemy budget: the sum of mob cost over the whole stage */
   uint8_t conds;         /* condition count: kill and gate conditions to meet */
   uint8_t waves;         /* holdout, heist on a theft: 2-4; escort, mixp: the waves that come while it lasts */
-  uint8_t per_wave;      /* mobs a wave, at most 3 alive (the 10-per-line budget) */
+  uint8_t per_wave;      /* base wave size; reinforcements keep at most 3 alive */
   uint8_t shooters;      /* waves from this index on bring one shooter */
   uint8_t ring, ring_r;  /* the ring's centre cell and Chebyshev radius (holdout, mixp) */
-  uint16_t charge;       /* holdout: frames in the ring to full charge */
+  uint16_t charge;       /* legacy difficulty parameter; no standing-zone requirement */
   uint8_t speed;         /* chase: frames per row of the drop; escort: frames per cell walked */
   uint8_t grace;         /* chase: frames before the floor starts to drop, x4 */
   uint8_t piece;         /* mixp: the recipe to make; heist: the goods; dark: the light */
@@ -65,6 +65,9 @@ typedef struct {
  * out (19 bytes): the strings live in this module's bank */
 void eg_stage_text(uint8_t which, char *out) EG_BANKED;
 uint8_t eg_stage_win(uint8_t type) EG_BANKED;
+/* Zero-based wave index. Finite reinforcements scale with stage level and wave,
+ * independently of the three simultaneous mob/art slots on the cartridge. */
+uint8_t eg_wave_count(const eg_stage *s,uint8_t wave) EG_BANKED;
 
 /* Build a stage room. Deterministic in (type, seed, level, m); `m` is the slot's first mechanic (mixp: the trick
  * whose object it must make; 255 none). Rerolls internally (the seed walks) until the stage scores inside the band

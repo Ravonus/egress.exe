@@ -520,6 +520,8 @@ test-island-edges: build/host/test_edges
 	build/host/test_edges
 
 test-runtime: all test-runtime-core
+	$(PY) test/harness/waves.py build/egress.gbc build/sprints/waves-mbc5
+	$(PY) test/harness/waves.py build/egress-rtc.gbc build/sprints/waves-mbc3
 	$(PY) test/harness/picker_collision.py build/egress.gbc build/sprints/picker-collision-mbc5
 	$(PY) test/harness/picker_collision.py build/egress-rtc.gbc build/sprints/picker-collision-mbc3
 	$(PY) test/harness/terrain_boundary.py build/egress.gbc build/sprints/terrain-boundary-mbc5

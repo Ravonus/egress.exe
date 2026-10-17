@@ -54,12 +54,9 @@ def run(rom,out,tool):
     moves=solve_here(g,tool,log);g.tick(240)
     result['normal_floor2_wave_stage']=g.peek('floor_no')==2 and g.peek('stage_type')==1
     result['inventory_carried_into_combat']=pocket(g)==[8]
-    for _ in range(100):
-        ring=g.peek('stg',8)
-        walk(g,ring,log)
-        g.tick(60)
-        if g.peek('stage_pct')==100:break
-    result['waves_require_fighting']=g.peek('stage_pct')==100 and not g.peek('stage_won')
+    # Staying anywhere, including the old ring, cannot complete a wave.
+    g.tick(600)
+    result['waves_require_fighting']=g.peek('stage_pct')<100 and not g.peek('stage_won') and g.peek('enemies_alive')>0
     g.shot(out/'03-waves.png')
     for _ in range(240):
         if g.peek('stage_won'):break

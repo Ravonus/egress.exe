@@ -8,6 +8,7 @@
 #include "world_play.h"
 extern volatile uint8_t video_epoch;
 extern uint8_t frame_epoch;
+uint8_t player_portal_pending(void) BANKED;
 typedef struct {int8_t dir;uint8_t n,part,bg,save;} preparation;
 static preparation px,py;
 static uint8_t turn,told;
@@ -186,6 +187,7 @@ static void goal_hint(void) {
 void world_prefetch(void) BANKED {
   uint8_t n,did,axes=0u,mx,my;int8_t x,y;
   if(!world_on || !pl_hp || pl_state==PS_FALL || pl_state==PS_EXIT)return;
+  if(player_portal_pending())return;
   x=wanted(0u);y=wanted(1u);choose(&px,x);choose(&py,y);
   if(joy&(J_LEFT|J_RIGHT))axes|=1u;
   if(joy&(J_UP|J_DOWN))axes|=2u;

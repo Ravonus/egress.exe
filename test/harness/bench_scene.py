@@ -7,19 +7,24 @@ from play import Game,start_run,step,bench_act,pocket
 def run(rom,out):
     out.mkdir(parents=True,exist_ok=True);g=Game(rom);log=[];assert start_run(g,True,True)
     for d in 'URDL':assert step(g,d,log)
-    before=pocket(g);frames=[];list_icons=[];tick=g.tick
+    before=pocket(g);frames=[];list_icons=[];phases=set();early_consumption=[];tick=g.tick
     def record(n=1):
         for _ in range(n):
             tick()
             if g.peek('bench_on')==1 and not list_icons:
                 base=0x9c00 if g.pb.memory[0xff40]&0x40 else 0x9800
-                list_icons.extend([g.pb.memory[0,base+33],g.pb.memory[0,base+65]])
+                list_icons.extend([g.pb.memory[0,base+6*32+2],g.pb.memory[0,base+6*32+5]])
             if g.peek('bench_on')==3:
+                if g.peek('bench_phase') not in phases:g.shot(out/f"phase-{g.peek('bench_phase')}.png")
+                phases.add(g.peek('bench_phase'))
+                if g.peek('bench_phase') in (1,2,3) and pocket(g)!=before:early_consumption.append(g.frames)
                 frames.append(g.pb.screen.image.convert('RGB').resize((320,288),Image.Resampling.NEAREST))
     g.tick=record
-    made=bench_act(g,'Cdb',log);del g.tick
+    made=bench_act(g,'Cdb',log,shot=out/'recipe-ready.png');del g.tick
     r={'real_ingredients_picked':before==[4,2],'bag_has_native_item_icons':list_icons==[115,113],
-       'combination_scene_plays':len(frames)>=40 and len({im.tobytes() for im in frames})>=4,
+       'combination_scene_plays':len(frames)>=80 and len({im.tobytes() for im in frames})>=8,
+       'ingredients_contact_react_and_reveal':phases>={1,2,3,4},
+       'ingredients_remain_until_reaction_finishes':not early_consumption,
        'craft_consumes_exactly_two_units':made and pocket(g)==[8],
        'bench_closes_and_restores_hud':not g.peek('bench_on') and g.pb.memory[0xff4a] in (120,128)}
     g.tick(4);base=0x9c00 if g.pb.memory[0xff40]&0x40 else 0x9800
@@ -28,7 +33,7 @@ def run(rom,out):
         g.pb.memory[1,at+k]&7==6 and g.pb.memory[1,other+k]&7==5 for k in range(3))
     if frames:frames[0].save(out/'crafting-native.gif',save_all=True,append_images=frames[1::2],duration=34,loop=0)
     g.shot(out/'after-crafting.png');g.stop()
-    report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':r,'scene_frames':len(frames),'icons':list_icons,'log':log}
+    report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':r,'phases':sorted(phases),'scene_frames':len(frames),'icons':list_icons,'log':log}
     (out/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2));return all(r.values())
 
 if __name__=='__main__':

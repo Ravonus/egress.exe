@@ -197,3 +197,14 @@ metadata/previews, browser-emulator ROM identity, phone layouts and real older-s
 in main; only the primary game worktree remains, and the temporary offloaded test checkout was removed. This
 release retains the ten-floor office campaign. The full native run and the other open milestones above remain
 required.
+
+
+## Native menu, crafting and wave correction - 2026-10-16
+
+The current candidate replaces the lobby and heir navigation, aligns feet and
+weapon/tile intersections, and prepares/guards the complete movement footprint.
+The bench has a full-width recipe scene, real animated merging, traits, functional
+hints and finite inventory icons. Survival encounters now require defeating finite,
+escalating waves, with replenishment and later enemy roles instead of standing in
+a ring. The release evidence is in `validation/menu-terrain-20261016`.
+This checkpoint does not mark the full campaign or the remaining milestones complete.

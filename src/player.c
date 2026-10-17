@@ -597,6 +597,24 @@ void player_shift_view(int8_t dx,int8_t dy) BANKED {
   push_t=pmv.push_t;
 }
 
+/* Reserve the transport frame before speculative world binding. The mover can
+ * enter the centre this tick, so testing only the current centre is too late.
+ * Arrival locks and unpowered pads must keep their normal prefetch work. */
+uint8_t player_portal_pending(void) BANKED {
+  uint8_t k,c,to;
+  if(!(room.portal_need&EG_PORTAL_ON) || room.portal[0]>=EG_N || room.portal[1]>=EG_N ||
+     pl_air || pl_state==PS_FALL || world_moved)return 0u;
+  for(k=0u;k<2u;k++) {
+    c=room.portal[k];
+    if(c==portal_lock || absdiff(pl_x,(uint8_t)(EG_X(c)*16u+8u))>10u ||
+       absdiff(pl_y,(uint8_t)(EG_Y(c)*16u+8u))>10u)continue;
+    if(!(joy&(J_UP|J_DOWN|J_LEFT|J_RIGHT)) && pl_state!=PS_ROLL &&
+       ((pl_x&15u)<5u || (pl_x&15u)>11u || (pl_y&15u)<5u || (pl_y&15u)>11u))continue;
+    to=eg_portal_target(&room,c,&c,1u);
+    if(to!=EG_LINK_NONE && !enemy_in_cell(to))return 1u;
+  }
+  return 0u;
+}
 static void portal_tick(void) {
   uint8_t c=cell_at(pl_x,pl_y),to,x,y;
   /* First publish the complete incoming view; transport can activate on the
