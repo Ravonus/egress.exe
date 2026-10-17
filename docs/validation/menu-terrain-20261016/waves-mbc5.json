@@ -1,0 +1,310 @@
+{
+  "sha256": "6840760b170f3be198f3d609d1d8e61f71e9fdd299b936c2dbf1a813c8edc76e",
+  "results": {
+    "level_0_spawns_without_standing_zone": true,
+    "level_0_waiting_cannot_win": true,
+    "level_0_victory_requires_real_kills": true,
+    "level_0_finite_complete_waves": true,
+    "level_0_pooled_three_live_enemies": true,
+    "level_0_every_wave_grows": true,
+    "level_0_combat_120_per_120": true,
+    "level_0_completes_before_vblank": true,
+    "level_5_spawns_without_standing_zone": true,
+    "level_5_waiting_cannot_win": true,
+    "level_5_victory_requires_real_kills": true,
+    "level_5_finite_complete_waves": true,
+    "level_5_pooled_three_live_enemies": true,
+    "level_5_every_wave_grows": true,
+    "level_5_combat_120_per_120": true,
+    "level_5_completes_before_vblank": true,
+    "level_5_different_enemy_roles": true,
+    "level_10_spawns_without_standing_zone": true,
+    "level_10_waiting_cannot_win": true,
+    "level_10_victory_requires_real_kills": true,
+    "level_10_finite_complete_waves": true,
+    "level_10_pooled_three_live_enemies": true,
+    "level_10_every_wave_grows": true,
+    "level_10_combat_120_per_120": true,
+    "level_10_completes_before_vblank": true,
+    "level_10_different_enemy_roles": true,
+    "later_stages_spawn_more_enemies": true
+  },
+  "cases": [
+    {
+      "level": 0,
+      "generated_level": 0,
+      "waves": 2,
+      "kills": 3,
+      "max_alive": 2,
+      "families": [
+        0,
+        3
+      ],
+      "by_wave": {
+        "1": [
+          0
+        ],
+        "2": [
+          0,
+          3
+        ]
+      },
+      "wave_kills": {
+        "1": 1,
+        "2": 2
+      },
+      "vblank_span_for_120_completed_updates": [
+        120,
+        120
+      ],
+      "raw_counter_minimum_at_lcd_boundary": 119,
+      "hitches": [
+        {
+          "display": 1076,
+          "before": 792,
+          "after": 792,
+          "pc": "0x247",
+          "line": 0,
+          "mode": 2,
+          "wave": 1,
+          "state": 0,
+          "epoch_delta": 1
+        },
+        {
+          "display": 1077,
+          "before": 792,
+          "after": 794,
+          "pc": "0x7c70",
+          "line": 0,
+          "mode": 2,
+          "wave": 1,
+          "state": 0,
+          "epoch_delta": 0
+        }
+      ],
+      "late_frames": [],
+      "oam_max": 10,
+      "log": []
+    },
+    {
+      "level": 5,
+      "generated_level": 5,
+      "waves": 2,
+      "kills": 9,
+      "max_alive": 3,
+      "families": [
+        0,
+        3,
+        4
+      ],
+      "by_wave": {
+        "1": [
+          0,
+          3
+        ],
+        "2": [
+          0,
+          3,
+          4
+        ]
+      },
+      "wave_kills": {
+        "1": 4,
+        "2": 5
+      },
+      "vblank_span_for_120_completed_updates": [
+        120,
+        120
+      ],
+      "raw_counter_minimum_at_lcd_boundary": 119,
+      "hitches": [
+        {
+          "display": 2178,
+          "before": 1889,
+          "after": 1889,
+          "pc": "0x247",
+          "line": 0,
+          "mode": 2,
+          "wave": 1,
+          "state": 0,
+          "epoch_delta": 1
+        },
+        {
+          "display": 2179,
+          "before": 1889,
+          "after": 1891,
+          "pc": "0x6b6c",
+          "line": 0,
+          "mode": 2,
+          "wave": 1,
+          "state": 0,
+          "epoch_delta": 0
+        }
+      ],
+      "late_frames": [],
+      "oam_max": 10,
+      "log": []
+    },
+    {
+      "level": 10,
+      "generated_level": 10,
+      "waves": 4,
+      "kills": 26,
+      "max_alive": 3,
+      "families": [
+        0,
+        3,
+        5
+      ],
+      "by_wave": {
+        "1": [
+          0,
+          3
+        ],
+        "2": [
+          0,
+          3,
+          5
+        ],
+        "3": [
+          0,
+          3,
+          5
+        ],
+        "4": [
+          0,
+          3,
+          5
+        ]
+      },
+      "wave_kills": {
+        "1": 5,
+        "2": 6,
+        "3": 7,
+        "4": 8
+      },
+      "vblank_span_for_120_completed_updates": [
+        120,
+        120
+      ],
+      "raw_counter_minimum_at_lcd_boundary": 119,
+      "hitches": [
+        {
+          "display": 1042,
+          "before": 765,
+          "after": 765,
+          "pc": "0x247",
+          "line": 0,
+          "mode": 2,
+          "wave": 1,
+          "state": 0,
+          "epoch_delta": 1
+        },
+        {
+          "display": 1043,
+          "before": 765,
+          "after": 767,
+          "pc": "0x3e57",
+          "line": 0,
+          "mode": 2,
+          "wave": 1,
+          "state": 0,
+          "epoch_delta": 0
+        },
+        {
+          "display": 16245,
+          "before": 15968,
+          "after": 15968,
+          "pc": "0x247",
+          "line": 0,
+          "mode": 2,
+          "wave": 3,
+          "state": 0,
+          "epoch_delta": 1
+        },
+        {
+          "display": 16246,
+          "before": 15968,
+          "after": 15970,
+          "pc": "0x7c62",
+          "line": 0,
+          "mode": 2,
+          "wave": 3,
+          "state": 0,
+          "epoch_delta": 0
+        },
+        {
+          "display": 18669,
+          "before": 18392,
+          "after": 18392,
+          "pc": "0x247",
+          "line": 0,
+          "mode": 2,
+          "wave": 3,
+          "state": 0,
+          "epoch_delta": 1
+        },
+        {
+          "display": 18670,
+          "before": 18392,
+          "after": 18394,
+          "pc": "0x7c62",
+          "line": 0,
+          "mode": 2,
+          "wave": 3,
+          "state": 0,
+          "epoch_delta": 0
+        },
+        {
+          "display": 29428,
+          "before": 29151,
+          "after": 29151,
+          "pc": "0x247",
+          "line": 0,
+          "mode": 2,
+          "wave": 4,
+          "state": 0,
+          "epoch_delta": 1
+        },
+        {
+          "display": 29429,
+          "before": 29151,
+          "after": 29153,
+          "pc": "0x7e94",
+          "line": 0,
+          "mode": 2,
+          "wave": 4,
+          "state": 0,
+          "epoch_delta": 0
+        },
+        {
+          "display": 31250,
+          "before": 30973,
+          "after": 30973,
+          "pc": "0x247",
+          "line": 0,
+          "mode": 2,
+          "wave": 4,
+          "state": 0,
+          "epoch_delta": 1
+        },
+        {
+          "display": 31251,
+          "before": 30973,
+          "after": 30975,
+          "pc": "0x3e52",
+          "line": 0,
+          "mode": 2,
+          "wave": 4,
+          "state": 0,
+          "epoch_delta": 0
+        }
+      ],
+      "late_frames": [],
+      "oam_max": 10,
+      "log": [
+        "stuck moving L from cell 129 toward 128 at (15, 136)"
+      ]
+    }
+  ]
+}

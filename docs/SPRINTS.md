@@ -1,8 +1,9 @@
 # Native game completion ledger
 
 This tracks the complete build order in `redesign.md` section 18 and the owner's later gameplay corrections.
-The public `70a9ecb` development cartridge includes native feedback, island edges, inherited-art corrections,
-camera terrain, composed circuits/portals and the first quiet generated worlds.
+The development cartridge includes native feedback, island edges, inherited-art corrections,
+camera terrain, composed circuits/portals and quiet generated worlds, plus framed menus/heir selection,
+visible bench merging and escalating finite survival waves.
 It does not complete this ledger.
 An integrated prototype, a passing host simulation, a native build and a played feature are separate evidence.
 

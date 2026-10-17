@@ -1,0 +1,26 @@
+{
+  "sha256": "d38616c07410e9dd7d13c55f6c1ed69996072c9fb2d08f8b77125c78ac092db0",
+  "results": {
+    "three_heir_cards_first": true,
+    "overview_title_and_footer_use_correct_rom_bank": true,
+    "portrait_attributes_use_cached_art": true,
+    "three_visibly_distinct_portraits": true,
+    "next_does_not_blank_the_screen": true,
+    "cursor_selects_second_card": true,
+    "selection_reuses_cached_portraits": true,
+    "previous_does_not_blank_the_screen": true,
+    "details_do_not_blank_the_screen": true,
+    "selection_opens_details_without_starting": true,
+    "back_does_not_blank_the_screen": true,
+    "details_back_retains_selection": true,
+    "confirm_starts_selected_heir": true,
+    "portraits_match_background_map_0": true,
+    "cached_selection_survives_background_map_0": true,
+    "portraits_match_background_map_1": true,
+    "cached_selection_survives_background_map_1": true,
+    "one_tile_passage_works_at_center": true,
+    "body_center_matches_collision_center": true,
+    "feet_match_collision_footprint": true,
+    "door_state_does_not_change_carpet_collision": true
+  }
+}

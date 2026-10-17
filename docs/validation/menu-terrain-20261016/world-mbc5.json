@@ -1,0 +1,1670 @@
+{
+  "sha256": "6840760b170f3be198f3d609d1d8e61f71e9fdd299b936c2dbf1a813c8edc76e",
+  "cases": [
+    {
+      "size": [
+        32,
+        14
+      ],
+      "vertical": false,
+      "nodes": [
+        [
+          0,
+          13,
+          6,
+          3,
+          0,
+          7
+        ],
+        [
+          4,
+          26,
+          7,
+          0,
+          1,
+          7
+        ]
+      ],
+      "preparation": [
+        255,
+        14,
+        0,
+        0,
+        14,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        3
+      ],
+      "view": [
+        16,
+        0,
+        32,
+        14
+      ],
+      "camera": [
+        96,
+        53
+      ],
+      "incoming_pit_presentation_checks": 138,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "stream_wait_samples": [],
+      "native_heir_uploads": 58,
+      "heir_pixel_mismatches": [],
+      "seams": 4,
+      "windows": 5,
+      "warps": [
+        [
+          [
+            392,
+            115
+          ],
+          [
+            456,
+            120
+          ]
+        ],
+        [
+          [
+            456,
+            124
+          ],
+          [
+            392,
+            120
+          ]
+        ],
+        [
+          [
+            388,
+            118
+          ],
+          [
+            456,
+            120
+          ]
+        ]
+      ],
+      "minimum_game_frames_per_120": 120,
+      "hitches": [],
+      "missing_floor": [],
+      "missing_body": [],
+      "oam_max": 10,
+      "oam_over": 0,
+      "grid": {
+        "native_quads": 872,
+        "distinct_cells": 224,
+        "attributes": [
+          0,
+          2,
+          3,
+          4,
+          8,
+          9,
+          10,
+          11,
+          13,
+          14,
+          35
+        ],
+        "max_masked_cycles": 964,
+        "all_map_and_attributes_match": true
+      },
+      "presentation_window": {
+        "native_transfers": 4,
+        "vertical_transfers": 0,
+        "maximum_cycles": 25156,
+        "all_cards_spans_queues_and_bitmaps_match": true
+      },
+      "stack_canary": true,
+      "solved": true,
+      "seed": 24557
+    },
+    {
+      "size": [
+        28,
+        18
+      ],
+      "vertical": false,
+      "nodes": [
+        [
+          0,
+          11,
+          10,
+          2,
+          0,
+          7
+        ],
+        [
+          4,
+          22,
+          10,
+          0,
+          1,
+          7
+        ]
+      ],
+      "preparation": [
+        255,
+        14,
+        0,
+        0,
+        14,
+        1,
+        16,
+        0,
+        64,
+        16,
+        1,
+        3
+      ],
+      "view": [
+        12,
+        0,
+        28,
+        18
+      ],
+      "camera": [
+        96,
+        81
+      ],
+      "incoming_pit_presentation_checks": 159,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 5,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "stream_wait_samples": [],
+      "native_heir_uploads": 45,
+      "heir_pixel_mismatches": [],
+      "seams": 5,
+      "windows": 6,
+      "warps": [
+        [
+          [
+            323,
+            168
+          ],
+          [
+            392,
+            168
+          ]
+        ],
+        [
+          [
+            394,
+            172
+          ],
+          [
+            328,
+            168
+          ]
+        ],
+        [
+          [
+            323,
+            166
+          ],
+          [
+            392,
+            168
+          ]
+        ]
+      ],
+      "minimum_game_frames_per_120": 120,
+      "hitches": [],
+      "missing_floor": [],
+      "missing_body": [],
+      "oam_max": 8,
+      "oam_over": 0,
+      "grid": {
+        "native_quads": 829,
+        "distinct_cells": 251,
+        "attributes": [
+          0,
+          2,
+          3,
+          4,
+          8,
+          9,
+          10,
+          11,
+          13,
+          14,
+          35
+        ],
+        "max_masked_cycles": 964,
+        "all_map_and_attributes_match": true
+      },
+      "presentation_window": {
+        "native_transfers": 5,
+        "vertical_transfers": 2,
+        "maximum_cycles": 25412,
+        "all_cards_spans_queues_and_bitmaps_match": true
+      },
+      "stack_canary": true,
+      "solved": true,
+      "seed": 20736
+    },
+    {
+      "size": [
+        36,
+        18
+      ],
+      "vertical": false,
+      "nodes": [
+        [
+          0,
+          15,
+          7,
+          1,
+          0,
+          7
+        ],
+        [
+          4,
+          30,
+          10,
+          0,
+          1,
+          7
+        ]
+      ],
+      "preparation": [
+        255,
+        14,
+        0,
+        0,
+        14,
+        255,
+        16,
+        0,
+        64,
+        16,
+        1,
+        3
+      ],
+      "view": [
+        20,
+        4,
+        36,
+        18
+      ],
+      "camera": [
+        96,
+        37
+      ],
+      "incoming_pit_presentation_checks": 195,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "stream_wait_samples": [],
+      "native_heir_uploads": 57,
+      "heir_pixel_mismatches": [],
+      "seams": 6,
+      "windows": 7,
+      "warps": [
+        [
+          [
+            457,
+            164
+          ],
+          [
+            520,
+            168
+          ]
+        ],
+        [
+          [
+            520,
+            172
+          ],
+          [
+            456,
+            168
+          ]
+        ],
+        [
+          [
+            452,
+            166
+          ],
+          [
+            520,
+            168
+          ]
+        ]
+      ],
+      "minimum_game_frames_per_120": 120,
+      "hitches": [],
+      "missing_floor": [],
+      "missing_body": [],
+      "oam_max": 10,
+      "oam_over": 0,
+      "grid": {
+        "native_quads": 909,
+        "distinct_cells": 256,
+        "attributes": [
+          0,
+          2,
+          3,
+          4,
+          8,
+          9,
+          10,
+          11,
+          13,
+          14,
+          35
+        ],
+        "max_masked_cycles": 964,
+        "all_map_and_attributes_match": true
+      },
+      "presentation_window": {
+        "native_transfers": 6,
+        "vertical_transfers": 1,
+        "maximum_cycles": 25084,
+        "all_cards_spans_queues_and_bitmaps_match": true
+      },
+      "stack_canary": true,
+      "solved": true,
+      "seed": 20745
+    },
+    {
+      "size": [
+        52,
+        26
+      ],
+      "vertical": false,
+      "nodes": [
+        [
+          0,
+          23,
+          19,
+          1,
+          0,
+          7
+        ],
+        [
+          4,
+          46,
+          11,
+          0,
+          1,
+          7
+        ]
+      ],
+      "preparation": [
+        255,
+        14,
+        0,
+        0,
+        14,
+        255,
+        16,
+        0,
+        64,
+        16,
+        0,
+        3
+      ],
+      "view": [
+        36,
+        4,
+        52,
+        26
+      ],
+      "camera": [
+        96,
+        33
+      ],
+      "incoming_pit_presentation_checks": 421,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "stream_wait_samples": [],
+      "native_heir_uploads": 105,
+      "heir_pixel_mismatches": [],
+      "seams": 14,
+      "windows": 15,
+      "warps": [
+        [
+          [
+            712,
+            188
+          ],
+          [
+            776,
+            184
+          ]
+        ],
+        [
+          [
+            776,
+            188
+          ],
+          [
+            712,
+            184
+          ]
+        ],
+        [
+          [
+            708,
+            182
+          ],
+          [
+            776,
+            184
+          ]
+        ]
+      ],
+      "minimum_game_frames_per_120": 120,
+      "hitches": [],
+      "missing_floor": [],
+      "missing_body": [],
+      "oam_max": 10,
+      "oam_over": 0,
+      "grid": {
+        "native_quads": 1937,
+        "distinct_cells": 256,
+        "attributes": [
+          0,
+          2,
+          3,
+          4,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          13,
+          14,
+          35
+        ],
+        "max_masked_cycles": 964,
+        "all_map_and_attributes_match": true
+      },
+      "presentation_window": {
+        "native_transfers": 14,
+        "vertical_transfers": 5,
+        "maximum_cycles": 25496,
+        "all_cards_spans_queues_and_bitmaps_match": true
+      },
+      "stack_canary": true,
+      "solved": true,
+      "seed": 20739
+    },
+    {
+      "size": [
+        92,
+        38
+      ],
+      "vertical": false,
+      "nodes": [
+        [
+          0,
+          43,
+          28,
+          3,
+          0,
+          7
+        ],
+        [
+          4,
+          86,
+          8,
+          0,
+          1,
+          7
+        ]
+      ],
+      "preparation": [
+        255,
+        14,
+        0,
+        0,
+        14,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        3
+      ],
+      "view": [
+        76,
+        0,
+        92,
+        38
+      ],
+      "camera": [
+        96,
+        80
+      ],
+      "incoming_pit_presentation_checks": 1467,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "stream_wait_samples": [],
+      "native_heir_uploads": 127,
+      "heir_pixel_mismatches": [],
+      "seams": 34,
+      "windows": 31,
+      "warps": [
+        [
+          [
+            1352,
+            140
+          ],
+          [
+            1416,
+            136
+          ]
+        ],
+        [
+          [
+            1416,
+            140
+          ],
+          [
+            1352,
+            136
+          ]
+        ],
+        [
+          [
+            1348,
+            134
+          ],
+          [
+            1416,
+            136
+          ]
+        ]
+      ],
+      "minimum_game_frames_per_120": 120,
+      "hitches": [],
+      "missing_floor": [],
+      "missing_body": [],
+      "oam_max": 9,
+      "oam_over": 0,
+      "grid": {
+        "native_quads": 3394,
+        "distinct_cells": 256,
+        "attributes": [
+          0,
+          2,
+          3,
+          4,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          13,
+          14,
+          35
+        ],
+        "max_masked_cycles": 964,
+        "all_map_and_attributes_match": true
+      },
+      "presentation_window": {
+        "native_transfers": 34,
+        "vertical_transfers": 15,
+        "maximum_cycles": 25380,
+        "all_cards_spans_queues_and_bitmaps_match": true
+      },
+      "stack_canary": true,
+      "solved": true,
+      "seed": 20740
+    },
+    {
+      "size": [
+        100,
+        50
+      ],
+      "vertical": false,
+      "nodes": [
+        [
+          0,
+          47,
+          15,
+          1,
+          0,
+          7
+        ],
+        [
+          4,
+          94,
+          34,
+          0,
+          1,
+          7
+        ]
+      ],
+      "preparation": [
+        255,
+        14,
+        0,
+        0,
+        14,
+        255,
+        16,
+        0,
+        64,
+        16,
+        1,
+        3
+      ],
+      "view": [
+        84,
+        28,
+        100,
+        50
+      ],
+      "camera": [
+        96,
+        37
+      ],
+      "incoming_pit_presentation_checks": 899,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "stream_wait_samples": [],
+      "native_heir_uploads": 152,
+      "heir_pixel_mismatches": [],
+      "seams": 30,
+      "windows": 31,
+      "warps": [
+        [
+          [
+            1480,
+            548
+          ],
+          [
+            1544,
+            552
+          ]
+        ],
+        [
+          [
+            1544,
+            556
+          ],
+          [
+            1480,
+            552
+          ]
+        ],
+        [
+          [
+            1476,
+            550
+          ],
+          [
+            1544,
+            552
+          ]
+        ]
+      ],
+      "minimum_game_frames_per_120": 120,
+      "hitches": [],
+      "missing_floor": [],
+      "missing_body": [],
+      "oam_max": 10,
+      "oam_over": 0,
+      "grid": {
+        "native_quads": 3457,
+        "distinct_cells": 256,
+        "attributes": [
+          0,
+          2,
+          3,
+          4,
+          8,
+          9,
+          10,
+          11,
+          13,
+          14,
+          35
+        ],
+        "max_masked_cycles": 964,
+        "all_map_and_attributes_match": true
+      },
+      "presentation_window": {
+        "native_transfers": 30,
+        "vertical_transfers": 9,
+        "maximum_cycles": 25484,
+        "all_cards_spans_queues_and_bitmaps_match": true
+      },
+      "stack_canary": true,
+      "solved": true,
+      "seed": 20764
+    },
+    {
+      "size": [
+        56,
+        34
+      ],
+      "vertical": true,
+      "nodes": [
+        [
+          0,
+          14,
+          19,
+          0,
+          0,
+          7
+        ],
+        [
+          4,
+          28,
+          20,
+          0,
+          1,
+          7
+        ]
+      ],
+      "preparation": [
+        1,
+        14,
+        0,
+        56,
+        14,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        3
+      ],
+      "view": [
+        12,
+        20,
+        56,
+        34
+      ],
+      "camera": [
+        72,
+        96
+      ],
+      "incoming_pit_presentation_checks": 80,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 5,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "stream_wait_samples": [],
+      "native_heir_uploads": 71,
+      "heir_pixel_mismatches": [],
+      "seams": 8,
+      "windows": 7,
+      "warps": [
+        [
+          [
+            327,
+            420
+          ],
+          [
+            328,
+            488
+          ]
+        ],
+        [
+          [
+            333,
+            490
+          ],
+          [
+            328,
+            424
+          ]
+        ],
+        [
+          [
+            326,
+            420
+          ],
+          [
+            328,
+            488
+          ]
+        ]
+      ],
+      "minimum_game_frames_per_120": 120,
+      "hitches": [],
+      "missing_floor": [],
+      "missing_body": [],
+      "oam_max": 10,
+      "oam_over": 0,
+      "grid": {
+        "native_quads": 1081,
+        "distinct_cells": 256,
+        "attributes": [
+          0,
+          2,
+          3,
+          4,
+          8,
+          9,
+          10,
+          11,
+          13,
+          14,
+          35
+        ],
+        "max_masked_cycles": 964,
+        "all_map_and_attributes_match": true
+      },
+      "presentation_window": {
+        "native_transfers": 8,
+        "vertical_transfers": 7,
+        "maximum_cycles": 25344,
+        "all_cards_spans_queues_and_bitmaps_match": true
+      },
+      "stack_canary": true,
+      "solved": true,
+      "seed": 20743
+    },
+    {
+      "size": [
+        104,
+        54
+      ],
+      "vertical": true,
+      "nodes": [
+        [
+          0,
+          24,
+          54,
+          0,
+          0,
+          7
+        ],
+        [
+          4,
+          48,
+          62,
+          0,
+          1,
+          7
+        ]
+      ],
+      "preparation": [
+        255,
+        3,
+        0,
+        0,
+        6,
+        255,
+        16,
+        0,
+        0,
+        16,
+        1,
+        3
+      ],
+      "view": [
+        52,
+        40,
+        104,
+        54
+      ],
+      "camera": [
+        66,
+        96
+      ],
+      "incoming_pit_presentation_checks": 128,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 5,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "stream_wait_samples": [],
+      "native_heir_uploads": 110,
+      "heir_pixel_mismatches": [],
+      "seams": 19,
+      "windows": 18,
+      "warps": [
+        [
+          [
+            1000,
+            739
+          ],
+          [
+            1000,
+            808
+          ]
+        ],
+        [
+          [
+            1004,
+            810
+          ],
+          [
+            1000,
+            744
+          ]
+        ],
+        [
+          [
+            998,
+            739
+          ],
+          [
+            1000,
+            808
+          ]
+        ]
+      ],
+      "minimum_game_frames_per_120": 120,
+      "hitches": [],
+      "missing_floor": [],
+      "missing_body": [],
+      "oam_max": 9,
+      "oam_over": 0,
+      "grid": {
+        "native_quads": 1784,
+        "distinct_cells": 256,
+        "attributes": [
+          0,
+          2,
+          3,
+          4,
+          7,
+          8,
+          9,
+          10,
+          11,
+          13,
+          14,
+          35
+        ],
+        "max_masked_cycles": 964,
+        "all_map_and_attributes_match": true
+      },
+      "presentation_window": {
+        "native_transfers": 19,
+        "vertical_transfers": 12,
+        "maximum_cycles": 25388,
+        "all_cards_spans_queues_and_bitmaps_match": true
+      },
+      "stack_canary": true,
+      "solved": true,
+      "seed": 20738
+    },
+    {
+      "size": [
+        92,
+        34
+      ],
+      "vertical": true,
+      "nodes": [
+        [
+          0,
+          14,
+          41,
+          0,
+          0,
+          7
+        ],
+        [
+          4,
+          28,
+          36,
+          0,
+          1,
+          7
+        ]
+      ],
+      "preparation": [
+        255,
+        14,
+        0,
+        0,
+        14,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        3
+      ],
+      "view": [
+        28,
+        20,
+        92,
+        34
+      ],
+      "camera": [
+        64,
+        96
+      ],
+      "incoming_pit_presentation_checks": 112,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "stream_wait_samples": [],
+      "native_heir_uploads": 83,
+      "heir_pixel_mismatches": [],
+      "seams": 9,
+      "windows": 9,
+      "warps": [
+        [
+          [
+            588,
+            424
+          ],
+          [
+            584,
+            488
+          ]
+        ],
+        [
+          [
+            588,
+            488
+          ],
+          [
+            584,
+            424
+          ]
+        ],
+        [
+          [
+            582,
+            420
+          ],
+          [
+            584,
+            488
+          ]
+        ]
+      ],
+      "minimum_game_frames_per_120": 120,
+      "hitches": [],
+      "missing_floor": [],
+      "missing_body": [],
+      "oam_max": 10,
+      "oam_over": 0,
+      "grid": {
+        "native_quads": 1234,
+        "distinct_cells": 256,
+        "attributes": [
+          0,
+          2,
+          3,
+          4,
+          6,
+          8,
+          9,
+          10,
+          11,
+          13,
+          14,
+          35
+        ],
+        "max_masked_cycles": 964,
+        "all_map_and_attributes_match": true
+      },
+      "presentation_window": {
+        "native_transfers": 9,
+        "vertical_transfers": 7,
+        "maximum_cycles": 26832,
+        "all_cards_spans_queues_and_bitmaps_match": true
+      },
+      "stack_canary": true,
+      "solved": true,
+      "seed": 20776
+    },
+    {
+      "size": [
+        44,
+        18
+      ],
+      "vertical": false,
+      "nodes": [
+        [
+          0,
+          12,
+          11,
+          3,
+          0,
+          7
+        ],
+        [
+          4,
+          24,
+          8,
+          0,
+          1,
+          7
+        ],
+        [
+          1,
+          36,
+          8,
+          0,
+          2,
+          7
+        ]
+      ],
+      "preparation": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        255,
+        16,
+        0,
+        64,
+        16,
+        1,
+        7
+      ],
+      "view": [
+        28,
+        4,
+        44,
+        18
+      ],
+      "camera": [
+        96,
+        40
+      ],
+      "incoming_pit_presentation_checks": 501,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "maximum_stream_wait_frames": 1,
+      "total_stream_wait_frames": 1,
+      "stream_wait_samples": [
+        {
+          "frame": 1626,
+          "waiting": 1,
+          "position": [
+            424,
+            136
+          ],
+          "view": [
+            12,
+            0
+          ],
+          "preparation": [
+            1,
+            14,
+            0,
+            33,
+            14,
+            1,
+            16,
+            0,
+            64,
+            16
+          ],
+          "joy": 1
+        }
+      ],
+      "native_heir_uploads": 85,
+      "heir_pixel_mismatches": [],
+      "seams": 12,
+      "windows": 12,
+      "warps": [
+        [
+          [
+            360,
+            140
+          ],
+          [
+            424,
+            136
+          ]
+        ],
+        [
+          [
+            424,
+            140
+          ],
+          [
+            360,
+            136
+          ]
+        ],
+        [
+          [
+            355,
+            134
+          ],
+          [
+            424,
+            136
+          ]
+        ]
+      ],
+      "minimum_game_frames_per_120": 120,
+      "hitches": [],
+      "missing_floor": [],
+      "missing_body": [],
+      "oam_max": 9,
+      "oam_over": 0,
+      "grid": {
+        "native_quads": 1477,
+        "distinct_cells": 256,
+        "attributes": [
+          0,
+          2,
+          3,
+          4,
+          7,
+          8,
+          9,
+          10,
+          11,
+          13,
+          14,
+          35
+        ],
+        "max_masked_cycles": 964,
+        "all_map_and_attributes_match": true
+      },
+      "presentation_window": {
+        "native_transfers": 12,
+        "vertical_transfers": 5,
+        "maximum_cycles": 25420,
+        "all_cards_spans_queues_and_bitmaps_match": true
+      },
+      "stack_canary": true,
+      "solved": true,
+      "seed": 20737
+    },
+    {
+      "size": [
+        128,
+        46
+      ],
+      "vertical": false,
+      "nodes": [
+        [
+          0,
+          30,
+          14,
+          2,
+          0,
+          7
+        ],
+        [
+          4,
+          60,
+          29,
+          0,
+          1,
+          7
+        ],
+        [
+          0,
+          90,
+          26,
+          1,
+          2,
+          7
+        ],
+        [
+          2,
+          120,
+          11,
+          0,
+          4,
+          7
+        ]
+      ],
+      "preparation": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        16,
+        0,
+        64,
+        16,
+        0,
+        15
+      ],
+      "view": [
+        112,
+        4,
+        128,
+        46
+      ],
+      "camera": [
+        96,
+        90
+      ],
+      "incoming_pit_presentation_checks": 907,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "maximum_stream_wait_frames": 9,
+      "total_stream_wait_frames": 10,
+      "stream_wait_samples": [
+        {
+          "frame": 2139,
+          "waiting": 1,
+          "position": [
+            1000,
+            472
+          ],
+          "view": [
+            48,
+            20
+          ],
+          "preparation": [
+            1,
+            14,
+            0,
+            36,
+            14,
+            1,
+            16,
+            0,
+            64,
+            16
+          ],
+          "joy": 1
+        },
+        {
+          "frame": 3132,
+          "waiting": 1,
+          "position": [
+            1832,
+            360
+          ],
+          "view": [
+            104,
+            20
+          ],
+          "preparation": [
+            1,
+            14,
+            0,
+            46,
+            14,
+            255,
+            12,
+            2,
+            64,
+            16
+          ],
+          "joy": 4
+        },
+        {
+          "frame": 3139,
+          "waiting": 8,
+          "position": [
+            1832,
+            360
+          ],
+          "view": [
+            104,
+            20
+          ],
+          "preparation": [
+            1,
+            14,
+            0,
+            56,
+            14,
+            255,
+            16,
+            0,
+            64,
+            16
+          ],
+          "joy": 4
+        }
+      ],
+      "native_heir_uploads": 240,
+      "heir_pixel_mismatches": [],
+      "seams": 42,
+      "windows": 40,
+      "warps": [
+        [
+          [
+            936,
+            468
+          ],
+          [
+            1000,
+            472
+          ]
+        ],
+        [
+          [
+            1000,
+            476
+          ],
+          [
+            936,
+            472
+          ]
+        ],
+        [
+          [
+            932,
+            470
+          ],
+          [
+            1000,
+            472
+          ]
+        ]
+      ],
+      "minimum_game_frames_per_120": 120,
+      "hitches": [
+        [
+          3670,
+          0,
+          41
+        ],
+        [
+          3671,
+          2,
+          41
+        ]
+      ],
+      "missing_floor": [],
+      "missing_body": [],
+      "oam_max": 10,
+      "oam_over": 0,
+      "grid": {
+        "native_quads": 4082,
+        "distinct_cells": 256,
+        "attributes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          6,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          35
+        ],
+        "max_masked_cycles": 964,
+        "all_map_and_attributes_match": true
+      },
+      "presentation_window": {
+        "native_transfers": 42,
+        "vertical_transfers": 14,
+        "maximum_cycles": 26124,
+        "all_cards_spans_queues_and_bitmaps_match": true
+      },
+      "stack_canary": true,
+      "solved": true,
+      "seed": 20741
+    },
+    {
+      "size": [
+        92,
+        34
+      ],
+      "vertical": false,
+      "nodes": [
+        [
+          0,
+          21,
+          22,
+          1,
+          0,
+          7
+        ],
+        [
+          4,
+          42,
+          25,
+          0,
+          1,
+          7
+        ],
+        [
+          3,
+          63,
+          14,
+          0,
+          2,
+          7
+        ],
+        [
+          1,
+          84,
+          7,
+          0,
+          4,
+          7
+        ]
+      ],
+      "preparation": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        16,
+        0,
+        64,
+        16,
+        1,
+        15
+      ],
+      "view": [
+        76,
+        0,
+        92,
+        34
+      ],
+      "camera": [
+        96,
+        73
+      ],
+      "incoming_pit_presentation_checks": 1027,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 6,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "stream_wait_samples": [],
+      "native_heir_uploads": 186,
+      "heir_pixel_mismatches": [],
+      "seams": 32,
+      "windows": 31,
+      "warps": [
+        [
+          [
+            648,
+            403
+          ],
+          [
+            712,
+            408
+          ]
+        ],
+        [
+          [
+            712,
+            412
+          ],
+          [
+            648,
+            408
+          ]
+        ],
+        [
+          [
+            644,
+            406
+          ],
+          [
+            712,
+            408
+          ]
+        ]
+      ],
+      "minimum_game_frames_per_120": 120,
+      "hitches": [],
+      "missing_floor": [],
+      "missing_body": [],
+      "oam_max": 10,
+      "oam_over": 0,
+      "grid": {
+        "native_quads": 3284,
+        "distinct_cells": 256,
+        "attributes": [
+          0,
+          2,
+          3,
+          4,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          13,
+          14,
+          35
+        ],
+        "max_masked_cycles": 964,
+        "all_map_and_attributes_match": true
+      },
+      "presentation_window": {
+        "native_transfers": 32,
+        "vertical_transfers": 13,
+        "maximum_cycles": 25468,
+        "all_cards_spans_queues_and_bitmaps_match": true
+      },
+      "stack_canary": true,
+      "solved": true,
+      "seed": 20742
+    }
+  ]
+}

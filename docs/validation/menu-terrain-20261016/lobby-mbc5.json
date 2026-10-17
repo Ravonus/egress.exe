@@ -1,0 +1,21 @@
+{
+  "sha256": "6840760b170f3be198f3d609d1d8e61f71e9fdd299b936c2dbf1a813c8edc76e",
+  "results": {
+    "new_save_defaults_to_new_run": true,
+    "lobby_title_and_footer_use_correct_rom_bank": true,
+    "missing_continue_stays_in_menu": true,
+    "controls_return_to_menu": true,
+    "tutorials_toggle": true,
+    "voice_toggles": true,
+    "settings_do_not_write_legacy_family": true,
+    "settings_survive_poweroff": true,
+    "torn_settings_keep_previous_record": true,
+    "pause_uses_framed_in_world_window": true,
+    "pause_freezes_gameplay": true,
+    "pause_restores_field_and_palette": true,
+    "saved_run_defaults_to_continue": true,
+    "new_run_does_not_silently_discard_heir": true,
+    "new_run_can_be_cancelled": true,
+    "confirmed_new_run_records_lineage_once": true
+  }
+}
