@@ -233,7 +233,7 @@ void world_prefetch(void) BANKED {
    * before simulation; a late collision/render pass must not starve a seam. */
   /* A seed query near apparatus can consume roughly forty scanlines.
    * Admit it early enough to retain the mover, audio and complete actor list. */
-  for(n=0u;n<6u && spare(55u);n++) {
+  for(n=0u;n<8u && spare(55u);n++) {
     /* Once the requested strip is generated, warm the other axis while its
      * outgoing BG/save work finishes. A turn must not start from cold data. */
     if(axes==1u && px.dir && px.n==14u) {generate_one(&py,1u,world_pre_y);continue;}
