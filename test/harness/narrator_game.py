@@ -4,7 +4,7 @@ from pathlib import Path
 from play import Game,start_run,step,bench_act,bench_open,bench_cursor,pocket
 
 def run(rom,out):
-    out.mkdir(parents=True,exist_ok=True);g=Game(rom);log=[];res={};assert start_run(g,True,True)
+    out.mkdir(parents=True,exist_ok=True);g=Game(rom);log=[];res={};assert start_run(g,True,True,physical_fixture=1)
     g.tick(220)
     footprint=[]
     for _ in range(2100):

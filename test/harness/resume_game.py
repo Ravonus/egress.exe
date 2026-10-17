@@ -19,7 +19,7 @@ def seal(block):
 
 def run(rom,out,tool):
     out.mkdir(parents=True,exist_ok=True);res={};log=[]
-    g=Game(rom);assert start_run(g,True,False)
+    g=Game(rom);assert start_run(g,True,False,physical_fixture=1)
     for d in 'URDL':assert step(g,d,log)
     solve_here(g,tool,log);g.tick(240)
     assert g.peek('floor_no')==2
@@ -74,7 +74,7 @@ def run(rom,out,tool):
     res['torn_continue_falls_back']=g.peek('floor_no')==2 and pocket(g)==[4,2]
     g.stop()
     # Explicit floor-three fixture; solve the real drop puzzle, then use the actual talk/trade/rest controls.
-    g=Game(rom);assert start_run(g,True,True,floor=3);g.poke('tokens',40)
+    g=Game(rom);assert start_run(g,True,True,floor=3,physical_fixture=2);g.poke('tokens',40)
     solve_here(g,tool,log);g.tick(220)
     res['landing_entry_checkpoint']=g.peek('floor_no')==3 and g.peek('resume_state')==2 and not g.peek('resume_rest')
     at_landing=g.stop()

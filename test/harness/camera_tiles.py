@@ -1,4 +1,4 @@
-"""Native camera travel/backtracking with real pickups; no board or player-position fixtures."""
+"""Native travel through an explicit push motif; pickups/input are real, with no board or position writes."""
 import argparse,hashlib,json,re
 from pathlib import Path
 from play import Game,start_run,pocket
@@ -9,8 +9,8 @@ from terrain_rim import TerrainRim
 def present(g,c):return bool(g.peek('look_present',c>>3)&(1<<(c&7)))
 
 def run(rom,out,measure=False):
-    out.mkdir(parents=True,exist_ok=True);g=Game(rom);assert start_run(g,True,True);g.tick(40)
-    log=[];r={};meter=OamMeter(g);rim=TerrainRim(g);tick=g.tick;frames=[];fc=[];missing=[];body_missing=[];moves=set()
+    out.mkdir(parents=True,exist_ok=True);g=Game(rom);assert start_run(g,True,True,physical_fixture=1);g.tick(40)
+    log=[];r={};meter=OamMeter(g);rim=TerrainRim(g,out);tick=g.tick;frames=[];fc=[];missing=[];body_missing=[];moves=set()
     symbols=(Path(__file__).resolve().parents[2]/'build/obj/heir.sym').read_text()
     offsets={m[1]:int(m[2],16) for m in re.finditer(r'^\s*2\s+(_\w+)\s+([0-9A-F]+)',symbols,re.M)}
     mask_addr=g.addr('ha_dir')-offsets['_ha_dir']+offsets['_spr_mask']
@@ -73,6 +73,7 @@ def run(rom,out,measure=False):
     spans=[(fc[i]-fc[i-120])&65535 for i in range(120,len(fc))]
     r['movement_frames_120_per_120']=bool(spans) and min(spans)==120
     terrain=rim.report();r['construction_stays_at_rim']=terrain['construction_stays_at_rim'];r['central_view_is_built']=terrain['central_view_is_built']
+    r['both_edge_effects_are_visible']=terrain['build_and_fall_are_visible']
     g.shot(out/'returned.png');g.stop()
     if frames:frames[0].save(out/'camera-travel.gif',save_all=True,append_images=frames[1:],duration=68,loop=0)
     report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':r,'frames':len(fc),'minimum_game_frames_per_120':min(spans) if spans else None,'oam_max':meter.max_line,'missing_floor':missing[:20],'missing_body':body_missing[:20],'log':log}

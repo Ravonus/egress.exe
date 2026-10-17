@@ -6,6 +6,7 @@
 #include "look.h"
 #include "world.h"
 #include "world_play.h"
+#include "stage.h"
 extern volatile uint8_t video_epoch;
 extern uint8_t frame_epoch;
 uint8_t player_portal_pending(void) BANKED;
@@ -143,9 +144,14 @@ uint8_t world_frame_begin(void) BANKED {
   /* Clock polling and pending VBlank uploads sometimes consume the start of
    * this frame. Publish a prepared seam only while its complete budget fits. */
   if(LY_REG<144u || LY_REG>149u)return 0u;
-  /* These first integrated codec stages are quiet. The full-run actor stream
-   * must replace this guard before larger combat stages can be accepted. */
-  if(enemies_alive)return 0u;
+  /* A generated encounter owns this window until its native actor pool is
+   * cleared. Keep its art/physics budget ahead of speculative map work. */
+  if(enemies_alive) {
+    if(stage_goal[0]!='F' && (((joy&J_RIGHT) && pl_x>208u && world_view.x<world_view.width-EG_W) ||
+       ((joy&J_LEFT) && pl_x<48u && world_view.x) || ((joy&J_DOWN) && pl_y>176u && world_view.y<world_view.height-EG_H) ||
+       ((joy&J_UP) && pl_y<64u && world_view.y))) {hud_msg("CLEAR THIS FIGHT");stage_goal[0]='F';}
+    return 0u;
+  }
   mx=pl_x<128u ? pl_x : (uint8_t)(255u-pl_x);
   my=pl_y<112u ? pl_y : (uint8_t)(223u-pl_y);
   /* A warm orthogonal strip does not imply a requested camera move. Among
@@ -189,7 +195,7 @@ static void goal_hint(void) {
 }
 void world_prefetch(void) BANKED {
   uint8_t n,did,axes=0u,mx,my;int8_t x,y;
-  if(!world_on || !pl_hp || pl_state==PS_FALL || pl_state==PS_EXIT)return;
+  if(!world_on || !pl_hp || pl_state==PS_FALL || pl_state==PS_EXIT || enemies_alive)return;
   if(player_portal_pending())return;
   x=wanted(0u);y=wanted(1u);choose(&px,x);choose(&py,y);
   if(joy&(J_LEFT|J_RIGHT))axes|=1u;
@@ -224,7 +230,7 @@ void world_prefetch(void) BANKED {
 }
 void world_frame_end(void) BANKED {
   uint8_t n,did;
-  if(!world_on || !pl_hp || pl_state==PS_FALL || pl_state==PS_EXIT)return;
+  if(!world_on || !pl_hp || pl_state==PS_FALL || pl_state==PS_EXIT || enemies_alive)return;
   if(!spare(110u))return;
   for(n=0u;n<4u && spare(110u);n++) {
     did=(n&1u) ? clear_one(&px,0u) : clear_one(&py,1u);

@@ -11,7 +11,7 @@ from look_window import LookWindow
 
 class WorldPlayer:
     def __init__(self,g,tool,rom=None):
-        self.g=g;self.monitor=True;self.log=[];self.plan=bytes(g.peek('world_plan',i) for i in range(83))
+        self.g=g;self.floor=g.peek('floor_no');self.monitor=True;self.log=[];self.plan=bytes(g.peek('world_plan',i) for i in range(83))
         self.w,self.h=self.plan[2:4];self.vertical=self.plan[8]
         raw=subprocess.check_output([str(tool),str(int.from_bytes(self.plan[:2],'little')),
                                      str(self.plan[6]),str(self.plan[4]),str(self.plan[5])])
@@ -76,7 +76,7 @@ class WorldPlayer:
     def completed(self,_):
         g=self.g
         if not self.monitor:return
-        if g.peek('floor_no')!=7 or g.peek('game_mode')!=2:return
+        if g.peek('floor_no')!=self.floor or g.peek('game_mode')!=2:return
         self.observe();pos=self.raw_pos();self.cached_pos=pos
         vx,vy=g.peek('world_view'),g.peek('world_view',1);joy=g.peek('joy')
         waiting=self.stream_clamp and pos==self.last and not g.peek('bench_on');self.stream_clamp=False
@@ -118,7 +118,7 @@ class WorldPlayer:
         if not self.monitor:self.tick0(n);return
         for _ in range(n):
             before=g.peek16('frame_count');bench=g.peek('bench_on');self.tick0()
-            if g.peek('floor_no')!=7 or g.peek('game_mode')!=2:return
+            if g.peek('floor_no')!=self.floor or g.peek('game_mode')!=2:return
             fc=g.peek16('frame_count')
             active=not bench and not g.peek('bench_on') and g.peek('pl_state') not in (5,6)
             self.fc.append(fc if active else None)
@@ -175,7 +175,7 @@ class WorldPlayer:
                 at=self.pos()[axis];d=dest-at
                 if abs(d)<=2:break
                 g.hold({('right' if d>0 else 'left') if not axis else ('down' if d>0 else 'up')});g.tick()
-                if g.peek('floor_no')!=7 or g.peek('game_mode')!=2:g.hold(set());return
+                if g.peek('floor_no')!=self.floor or g.peek('game_mode')!=2:g.hold(set());return
                 if len(self.warps)>oldwarps:
                     g.hold(set());g.tick(24)
                     if portal:return
@@ -236,7 +236,7 @@ class WorldPlayer:
         door=next((i%self.w,i//self.w) for i,t in enumerate(self.cells) if t&31==7)
         if self.cells[self.key[1]*self.w+self.key[0]]&31==6:self.walk(self.key)
         self.walk(door)
-        return g.peek('floor_no')!=7 or g.peek('game_mode')!=2
+        return g.peek('floor_no')!=self.floor or g.peek('game_mode')!=2
     def report(self):
         g=self.g;f=self.fc
         spans=[(f[i]-f[i-120])&65535 for i in range(120,len(f)) if None not in f[i-120:i+1]]
@@ -257,7 +257,7 @@ class WorldPlayer:
                 'presentation_window':self.look_window.report(),
                 'stack_canary':bytes(g.pb.memory[1,0xddd0:0xddf0])==bytes([0xa7]*32)}
 
-def run(rom,out,tool,seeds,rule=None,size=None,biome=0):
+def run(rom,out,tool,seeds,rule=None,size=None,biome=0,floor=7):
     out.mkdir(parents=True,exist_ok=True);reports=[]
     for seed in seeds:
         case=out/f'{seed:04x}';case.mkdir(exist_ok=True)
@@ -265,7 +265,7 @@ def run(rom,out,tool,seeds,rule=None,size=None,biome=0):
         if rule is not None:
             assert g.wait_mode(1,1500)
             g.poke('dbg_world_rule',rule+1);g.poke('dbg_world_size',0 if size is None else size+1);g.poke('dbg_world_biome',biome)
-        assert start_run(g,True,True,seed=seed,floor=7);assert g.peek('world_on')
+        assert start_run(g,True,True,seed=seed,floor=floor);assert g.peek('world_on')
         p=WorldPlayer(g,tool,rom);p.out=case
         try:
             g.tick(160);g.shot(case/'start.png');won=p.solve(case);r=p.report();r['solved']=won;r['seed']=seed
@@ -285,5 +285,5 @@ def run(rom,out,tool,seeds,rule=None,size=None,biome=0):
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('rom',type=Path);p.add_argument('out',type=Path)
     p.add_argument('--tool',type=Path,default=Path('build/host/land_one'));p.add_argument('--seeds',nargs='+',type=lambda v:int(v,0),default=[0x5fed])
-    p.add_argument('--rule',type=int);p.add_argument('--size',type=int);p.add_argument('--biome',type=int,default=0)
-    a=p.parse_args();raise SystemExit(0 if run(a.rom,a.out,a.tool,a.seeds,a.rule,a.size,a.biome) else 1)
+    p.add_argument('--floor',type=int,default=7);p.add_argument('--rule',type=int);p.add_argument('--size',type=int);p.add_argument('--biome',type=int,default=0)
+    a=p.parse_args();raise SystemExit(0 if run(a.rom,a.out,a.tool,a.seeds,a.rule,a.size,a.biome,a.floor) else 1)

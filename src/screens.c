@@ -12,6 +12,7 @@
 #include "boss_api.h"
 #include "title3d/t3d.h"
 #include "resume.h"
+#include "run.h"
 #include "ui.h"
 
 static void screen_reset(void) {
@@ -110,6 +111,7 @@ static uint8_t start_menu(void) {
 /* The PRESS START title is the 3D walk in src/title3d (the logo, PRESS START, the clock row and the seed are drawn
  * there). It returns with every palette black and the LCD on, after START/A (play) or SELECT (SETUP). */
 void title_screen(void) BANKED {
+  uint16_t previous,rolled;
   while (1) {
     game_mode = MODE_TITLE;
     screen_reset();
@@ -119,8 +121,11 @@ void title_screen(void) BANKED {
       continue;
     }
     if(!start_menu()) continue;
-    run_seed = dbg_seed ? dbg_seed : (uint16_t)(DIV_REG ^ (frame_count << 3) ^ (t3d_seed << 8) ^ t3d_vbl);
-    if (!run_seed) run_seed = 0x2b1du;
+    previous=run_seed;save_load();
+    rolled=(uint16_t)(DIV_REG ^ (frame_count << 3) ^ (t3d_seed << 8) ^ t3d_vbl ^ previous ^ (meta.runs*0x2b9u));
+    rolled^=rolled<<7;rolled^=rolled>>9;rolled^=rolled<<8;
+    if(!rolled || rolled==previous)rolled=previous==65535u ? 1u : (uint16_t)(previous+1u);
+    run_seed=dbg_seed ? dbg_seed : rolled;
     if (clock_needs_ask()) clock_screen(1); /* a new save asks once: WHAT IS TODAY? */
     return;
   }

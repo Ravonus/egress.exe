@@ -129,13 +129,14 @@ class Game:
         return out.getvalue()[:8192]
 
 
-def start_run(g: Game, god: bool, no_enemies: bool, seed: int = SEED, floor: int = 0, fade: int = 40) -> bool:
+def start_run(g: Game, god: bool, no_enemies: bool, seed: int = SEED, floor: int = 0, fade: int = 40, physical_fixture: int | None = None) -> bool:
     if not g.wait_mode(MODE_TITLE, 1500):
         return False
     g.tick(30)
     g.poke("dbg_god", int(god))
     g.poke("dbg_no_enemies", int(no_enemies))
-    g.poke16("dbg_seed", seed)
+    if physical_fixture is not None:g.poke('dbg_stage',128+physical_fixture)
+    g.poke16("dbg_seed", seed or 0)
     g.poke("dbg_floor", floor)
     g.poke("floor_no", 0)  # play_run sets it: the sign the title took the press
     for _ in range(40):  # the title polls once its fade-in is done: press until the run starts
@@ -385,7 +386,7 @@ def solve_here(g: Game, egtool: Path, log: list[str]) -> str:
 
 
 def room_command(g: Game, egtool: Path, verb: str) -> list[str]:
-    motif = g.peek("slice",22)  # eg_deck 16 bytes, six slice fields, physical
+    motif = g.peek("slice",22)&63  # eg_deck 16 bytes, six slice fields, physical
     if motif:
         seed = g.peek16("run_seed") ^ ((g.peek("floor_no") * 0x9e37) & 65535) ^ 0x51a7
         return [str(egtool),"phys-"+verb,str(seed or 1),str(motif),str(g.peek("slice",19))]

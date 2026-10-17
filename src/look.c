@@ -29,7 +29,7 @@ uint8_t look_dbg_cell, look_dbg_kind;
 static uint8_t queued[EG_N / 8u],in_flight[EG_N/8u];
 static uint8_t q[256], q_head, q_n; /* the wave: cells in order, a ring */
 uint8_t roam_hidden[EG_N/8u];
-static uint8_t roam_on,roam_scan,roam_left,roam_x,roam_y,near_cursor;
+static uint8_t roam_on,roam_scan,roam_left,roam_x,roam_y,near_cursor,roam_dir;
 static uint8_t roam_late,prep_cursor;
 
 /* cards in flight (assembly) and pieces falling (collapse) */
@@ -245,7 +245,7 @@ void look_raise_cell(uint8_t i) BANKED {
 
 void look_roam_begin(uint8_t enabled) BANKED {
   uint8_t i;
-  roam_on=enabled;roam_scan=near_cursor=0u;roam_left=EG_N;roam_x=pl_x;roam_y=pl_y;
+  roam_on=enabled;roam_scan=near_cursor=roam_dir=0u;roam_left=EG_N;roam_x=cam_x;roam_y=cam_y;
   memset(roam_hidden,0,sizeof roam_hidden);
   if(!enabled) return;
   for(i=0u;i!=EG_N;i++) if(!on_screen(i) && !look_void_cell(i) && cell_type(i)!=T_PIT) {
@@ -259,9 +259,13 @@ static uint8_t roam_pending(uint8_t i) {
 static uint8_t roam_wants(uint8_t i) {
   int16_t x=(int16_t)(EG_X(i)<<4)-(int16_t)cam_x;
   int16_t y=(int16_t)(EG_Y(i)<<4)-(int16_t)cam_y;
-  /* Keep the complete view and two off-screen cells warm, including behind
-   * the player during a reversal. Construction belongs at the view's rim. */
-  return (uint8_t)(x>-48 && x<192 && y>-48 && y<160);
+  /* Incoming slabs fly in as they enter the view. The trailing slab cracks
+   * while its last sixteen pixels are still visible, then falls away. */
+  if((roam_dir&J_RIGHT) && x<=0)return 0u;
+  if((roam_dir&J_LEFT) && x>=144)return 0u;
+  if((roam_dir&J_DOWN) && y<=0)return 0u;
+  if((roam_dir&J_UP) && y>=112)return 0u;
+  return (uint8_t)(x>-16 && x<160 && y>-16 && y<128);
 }
 static void roam_raise(uint8_t i) {
   if(!(roam_hidden[i>>3]&BIT(i)) || look_here(i) || roam_pending(i)) return;
@@ -272,23 +276,46 @@ static void roam_raise(uint8_t i) {
   q_head--;q[q_head]=i;q_n++;queued[i>>3]|=BIT(i);
   look_busy_n=(uint8_t)(q_n+n_flying);obj_want=1u;
 }
-static void roam_ahead(int16_t x,int16_t y) {
-  if((uint16_t)x<EG_W && (uint16_t)y<EG_H) roam_raise(EG_IDX(x,y));
+static void roam_probe(uint8_t i) {
+  if(look_void_cell(i) || cell_type(i)==T_PIT || roam_pending(i))return;
+  if(roam_hidden[i>>3]&BIT(i)) {
+    if(look_here(i))roam_hidden[i>>3]&=(uint8_t)~BIT(i);
+    else if(roam_wants(i))roam_raise(i);
+  } else if(look_here(i) && !roam_wants(i) && (uint8_t)(q_n+n_flying)<12u) {
+    roam_hidden[i>>3]|=BIT(i);look_drop_cell(i);
+  }
 }
 void look_roam_tick(void) BANKED {
-  uint8_t k,i,probes;int8_t dx,dy;
+  uint8_t k,i,probes,c,vertical,limit,a,b,cross;int8_t dx,dy;
   if(!roam_on || pl_state==PS_FALL || pl_state==PS_EXIT) return;
-  dx=pl_x>roam_x ? 1 : pl_x<roam_x ? -1 : 0;
-  dy=pl_y>roam_y ? 1 : pl_y<roam_y ? -1 : 0;
-  if(dx || dy) roam_left=EG_N;
-  roam_x=pl_x;roam_y=pl_y;
+  dx=cam_x>roam_x ? 1 : cam_x<roam_x ? -1 : 0;
+  dy=cam_y>roam_y ? 1 : cam_y<roam_y ? -1 : 0;
+  if(dx || dy) {
+    roam_left=EG_N;
+    roam_dir=(uint8_t)((dx>0 ? J_RIGHT : dx<0 ? J_LEFT : 0u)|(dy>0 ? J_DOWN : dy<0 ? J_UP : 0u));
+  }
+  roam_x=cam_x;roam_y=cam_y;
   if(heir_pending && enemies_alive)return;
   if((world_on || enemies_alive) && (video_epoch!=frame_epoch || (LY_REG>=80u && LY_REG<144u)))return;
-  if(dx)roam_ahead(((int16_t)cam_x+(dx>0 ? 176 : -17))>>4,pl_y>>4);
-  if(dy)roam_ahead(pl_x>>4,((int16_t)cam_y+(dy>0 ? 144 : -17))>>4);
+  /* Sweep both visible edges instead of letting a whole-room scan discover
+   * the trailing slab only after it has disappeared. Keep the old six-probe
+   * ceiling; a diagonal alternates its horizontal and vertical edges. */
+  vertical=(uint8_t)((roam_dir&(J_UP|J_DOWN)) && (!(roam_dir&(J_LEFT|J_RIGHT)) || (frame_count&1u)));
+  limit=vertical ? 11u : 9u;
+  if(near_cursor>=limit)near_cursor=0u;
+  a=(vertical ? cam_y : cam_x)>>4;
+  b=(uint8_t)(((uint16_t)(vertical ? cam_y : cam_x)+(vertical ? 127u : 159u))>>4);
+  cross=(vertical ? cam_x : cam_y)>>4;
+  for(k=0u;roam_dir && k<4u && (uint8_t)(q_n+n_flying)<12u;k++) {
+    if(video_epoch!=frame_epoch || (LY_REG>=(enemies_alive ? 48u : 64u) && LY_REG<144u))break;
+    c=(uint8_t)(cross+near_cursor);
+    if(vertical) {if(c<EG_W)roam_probe(EG_IDX(c,(k&1u) ? a : b));}
+    else if(c<EG_H)roam_probe(EG_IDX((k&1u) ? a : b,c));
+    if(k&1u) {if(++near_cursor==limit)near_cursor=0u;}
+  }
   if(LY_REG>=(enemies_alive ? 48u : 80u) && LY_REG<144u) return;
   /* Bounded inspection, never a whole-room scan during a game frame. */
-  probes=enemies_alive ? 2u : 6u;
+  probes=enemies_alive ? 0u : 2u;
   /* Backpressure pauses inspection instead of permanently skipping a slab
    * while the flight queue is full. Urgent approaching floor is independent. */
   for(k=0u;k!=probes && roam_left && (uint8_t)(q_n+n_flying)<12u;k++) {
@@ -297,13 +324,7 @@ void look_roam_tick(void) BANKED {
     if(video_epoch!=frame_epoch || (LY_REG>=(enemies_alive ? 48u : 64u) && LY_REG<144u))break;
     roam_left--;
     i=roam_scan;if(++roam_scan==EG_N) roam_scan=0u;
-    if(look_void_cell(i) || cell_type(i)==T_PIT || roam_pending(i)) continue;
-    if(roam_hidden[i>>3]&BIT(i)) {
-      if(look_here(i)) roam_hidden[i>>3]&=(uint8_t)~BIT(i);
-      else if(roam_wants(i)) roam_raise(i);
-    } else if(look_here(i) && !roam_wants(i) && (uint8_t)(q_n+n_flying)<12u) {
-      roam_hidden[i>>3]|=BIT(i);look_drop_cell(i);
-    }
+    roam_probe(i);
   }
 }
 
@@ -599,7 +620,7 @@ void look_shift_view(int8_t dx,int8_t dy) BANKED {
     i=dy>0 ? 160u : 0u;k=16u;
     do {incoming_pits(i);i=(uint8_t)(i+4u);}while(--k);
   }
-  rd_any=1u;rd_cursor=0u;rd_left=28u;roam_scan=0u;roam_left=EG_N;roam_x=pl_x;roam_y=pl_y;
+  rd_any=1u;rd_cursor=0u;rd_left=28u;roam_scan=0u;roam_left=EG_N;roam_x=cam_x;roam_y=cam_y;
   look_busy_n=(uint8_t)(q_n+n_flying);
 }
 
@@ -609,7 +630,7 @@ static uint8_t roam_bg_time(void) {
   uint8_t ly=LY_REG;
   if(!roam_on || game_mode!=MODE_PLAY) return 1u;
   if(video_epoch!=frame_epoch) return 0u;
-  return (uint8_t)(roam_late ? ly<80u : (ly>=144u || ly<40u));
+  return (uint8_t)(roam_late ? ly<(world_on ? 100u : 80u) : (ly>=144u || ly<40u));
 }
 static const int8_t wobble[8] = {1, -1, 1, -1, 1, 0, -1, 0};
 #define WOBBLE_FRAMES 8u
@@ -899,24 +920,31 @@ static uint8_t ground_ahead(void) {
   if(n<2u && x1!=x0)n+=anchor_at(x1,y0);
   if(n<2u && y1!=y0)n+=anchor_at(x0,y1);
   if(n<2u && y1!=y0 && x1!=x0)n+=anchor_at(x1,y1);
-  /* The previous footprint is already protected by mstep. Do not probe its
-   * same four cells again, or spend a second cosmetic commit after a repair. */
   if(n || video_epoch!=frame_epoch || heir_pending)return n;
   if(enemies_alive>=2u && (pl_state==PS_LASH || pl_state==PS_SPIN))return n;
   if(LY_REG<144u && LY_REG>=(world_on ? 24u : 32u))return 0u;
-  /* Spend the existing one-cell cosmetic allowance outside the view, rather
-   * than assembling the neighbourhood around the character. Sweep the full
-   * approaching edge; diagonal travel alternates axes. */
+  /* Easing continues after a turn. Prepare the camera's residual axis too. */
+  if(cam_x<96u && pl_x>cam_x+80u)dx=1;
+  else if(cam_x && pl_x<cam_x+80u)dx=-1;
+  if(cam_y<96u && pl_y>cam_y+64u)dy=1;
+  else if(cam_y && pl_y<cam_y+64u)dy=-1;
   if(!dx && !dy)return 0u;
+  /* A slow/busy card must land before it leaves the edge band. This sweep is
+   * a half slab INSIDE the approaching screen edge, after its visible entrance,
+   * rather than two slabs outside the screen as in the previous release. */
   vertical=(uint8_t)(dy && (!dx || (frame_count&1u)));
   limit=vertical ? 11u : 9u;
   if(near_cursor>=limit)near_cursor=0u;
-  x=vertical ? cam_x>>4 : ((int16_t)cam_x+(dx>0 ? 176 : -17))>>4;
-  y=vertical ? ((int16_t)cam_y+(dy>0 ? 144 : -17))>>4 : cam_y>>4;
-  for(k=0u;k<4u && !n;k++) {
+  x=vertical ? cam_x>>4 : ((uint16_t)cam_x+(dx>0 ? 152u : 8u))>>4;
+  y=vertical ? ((uint16_t)cam_y+(dy>0 ? 120u : 8u))>>4 : cam_y>>4;
+  /* A streamed camera can ease by four pixels in one tick. Inspect a whole
+   * edge and land up to two slabs, so its nine rows cannot outrun a single
+   * repair per frame. Office combat retains the smaller allowance. */
+  for(k=0u;k<(world_on ? limit : 4u) && n<(world_on ? 2u : 1u);k++) {
     c=near_cursor;if(++near_cursor==limit)near_cursor=0u;
     n+=anchor_at((uint8_t)(x+(vertical ? c : 0u)),(uint8_t)(y+(vertical ? 0u : c)));
   }
+  /* Swept feet remain independent of the bounded cosmetic sweep. */
   return n;
 }
 

@@ -17,7 +17,7 @@ def check(rom, reference, cases=96):
     rng = random.Random(0xC07E)
     g = Game(rom)
     assert g.wait_mode(MODE_TITLE, 1500)
-    assert start_run(g, True, True, seed=0x5EED)
+    assert start_run(g, True, True, seed=0x5EED,physical_fixture=1)
     g.poke("stage_type", 0)
     g.poke("nen", 0)
     g.poke("room", 0, 286)  # no living obstacles in this gravity fixture

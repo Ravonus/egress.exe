@@ -5,14 +5,14 @@ from play import Game,start_run
 from gameplay_rebuild import walk
 
 def run(rom,out):
-    out.mkdir(parents=True,exist_ok=True);r={};log=[];g=Game(rom);assert start_run(g,True,True)
+    out.mkdir(parents=True,exist_ok=True);r={};log=[];g=Game(rom);assert start_run(g,True,True,physical_fixture=1)
     plate=next(i for i,v in enumerate(g.room()[:224]) if v&31==10)
     gate=next(i for i,v in enumerate(g.room()[:224]) if v&31==11)
     assert walk(g,plate,log);g.hold(set());g.tick(30)
     r['standing_on_plate_opens_gate']=g.room()[gate]&31==12;g.shot(out/'01-player-weight.png')
     g.hold({'down'});g.tick(14);g.hold(set());g.tick(30)
     r['leaving_plate_releases_gate']=g.room()[gate]&31==11;g.stop()
-    g=Game(rom);assert start_run(g,True,True)
+    g=Game(rom);assert start_run(g,True,True,physical_fixture=1)
     g.pb.memory[1,0xddd0:0xddf0]=[0xa7]*32
     crate=next(i for i,v in enumerate(g.room()[:224]) if v&31==21)
     assert walk(g,crate+1,log);g.hold({'left'})

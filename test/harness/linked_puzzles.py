@@ -41,8 +41,8 @@ class ItemObserver:
 def run(rom,out,tool):
     out.mkdir(parents=True,exist_ok=True);reports=[]
     for seed in (0x5EEC,0x5ECC):
-        g=Game(rom);assert start_run(g,True,True,seed=seed,floor=7)
-        assert g.peek('slice',22)==4
+        g=Game(rom);assert start_run(g,True,True,seed=seed,floor=7,physical_fixture=4)
+        assert g.peek('slice',22)&63==4
         host=subprocess.check_output(room_command(g,tool,'dump')+['full'])
         assert len(host)==320 and bytes(g.peek('room',i) for i in range(320))==host
         meter=OamMeter(g);grid=GridObserver(g);items=ItemObserver(g);log=[];warps=[];snapshots=[]
@@ -99,7 +99,7 @@ def run(rom,out,tool):
         g.stop()
     # Real bench mistakes consume both HOT units. The normal sliced checker
     # must identify the cut and offer the existing token reset, without a warp.
-    g=Game(rom);assert start_run(g,True,True,seed=0x5EEC,floor=7)
+    g=Game(rom);assert start_run(g,True,True,seed=0x5EEC,floor=7,physical_fixture=4)
     log=[];cells=bytes(g.peek('room',i) for i in range(320));start=cells[224]
     direction='R' if start%16<8 else 'L'
     for _ in range(5):assert step(g,direction,log)

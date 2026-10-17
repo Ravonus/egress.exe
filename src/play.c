@@ -282,17 +282,19 @@ static uint8_t floor_play(void) {
     late=world_on ? world_frame_begin() : heir_cache_flush();
     streamed=world_on ? late : 0u;
     if(!late)heir_prepare();
-    if(world_on && !streamed)world_prefetch();
     late=(uint8_t)(roaming && (world_on || enemies_alive || stage_type!=SG_PUZZLE));
     if (boss_floor) boss_vblank(); /* B2 bosses: in VBlank, before the look's writes */
     if (pal_dirty && !look_busy()) {
       set_sprite_palette(2u, 6u, &pal_sp[8]);
       pal_dirty = 0;
     }
+    /* Visible construction gets its early allowance before speculative
+     * backing-store queries; otherwise the world can starve its own rim. */
+    if(world_on && !streamed) {look_frame_begin();world_prefetch();}
     if(streamed) {}
     else if(late) {
       /* Combat renders actors before spending spare time on cosmetic terrain. */
-      look_frame_begin();flush_cells(2u);
+      if(!world_on)look_frame_begin();flush_cells(2u);
     } else if(roaming) {flush_cells(2u);look_tick();}
     else {look_tick();flush_cells(8u);}
     scroll();
@@ -387,8 +389,8 @@ static uint8_t floor_play(void) {
     tutorial_tick();
     if(!(frame_count&63u)) narrator_tick();
     draw_sprites();
-    if(world_on && !streamed)world_frame_end();
     if(late && !streamed) look_frame_end();
+    if(world_on && !streamed)world_frame_end();
     /* Publish complete visible actors first. An offer that does not fit here
      * gets the next frame's early allowance before another composition. */
     if(!world_on && video_epoch==frame_epoch && LY_REG<100u)heir_cache_flush();
@@ -396,6 +398,7 @@ static uint8_t floor_play(void) {
 }
 
 void play_run(void) BANKED {
+  uint16_t new_seed=run_seed;
   run_loading=1u;
   art_copy_tables(&meta_tile[0][0], meta_pal, pal_bg, pal_sp, people);
   run_begin();
@@ -406,6 +409,10 @@ void play_run(void) BANKED {
     if(resume_restore()) run_record_end(0u);
     resume_new=0u;run_begin();narrator_begin();family_prepare();
   }
+  /* Completing/abandoning the old journal restores its seed while settling
+   * that transaction. Keep the NEW RUN roll; Continue restores its own seed
+   * below through resume_restore, after the heir has been selected. */
+  run_seed=new_seed;
   run_loading=0u;
   family_begin();
   stamina_begin();

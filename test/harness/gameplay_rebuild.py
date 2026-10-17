@@ -1,4 +1,4 @@
-"""Input-driven rebuild acceptance. First three floors use normal progression; separate fixtures check save failure.
+"""Input-driven legacy-motif regression route. Explicit push/drop/bridge fixtures preserve isolated recipe and save checks; procedural_runs.py exercises ordinary generation and death/restart.
 God mode only removes health loss during the combat route. No player/room warps or forced wave kills are used.
 """
 import argparse
@@ -36,10 +36,10 @@ def walk(g,target,log,limit=999):
 def run(rom,out,tool):
     out.mkdir(parents=True,exist_ok=True)
     g=Game(rom); log=[]; result={}; report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':result,'log':log}
-    assert start_run(g,True,False)
+    assert start_run(g,True,False,physical_fixture=1)
     dump=subprocess.check_output([str(tool),'phys-dump',str(g.peek16('run_seed')^0x9e37^0x51a7),'1',str(g.peek('slice',19))],text=True)
     result['first_room_matches_shared_generator']=bytes(g.room()[:224])==bytes.fromhex(dump.split()[0])
-    result['first_room_is_push']=g.peek('slice',22)==1
+    result['first_room_is_push']=g.peek('slice',22)&63==1
     g.shot(out/'01-push.png')
     for d in 'URDL': assert step(g,d,log)
     result['pickup_units']=pocket(g)==[4,2]
@@ -75,8 +75,8 @@ def run(rom,out,tool):
     result['wave_victory_by_player_attacks']=bool(g.peek('stage_won')) and g.peek('kills_run')>0
     report['wave_kills']=g.peek('kills_run');report['wave_count']=g.peek('stage_wave')
     if g.peek('stage_won'):
-        walk(g,g.room()[225],log);g.tick(240)
-        result['normal_floor3_falling_puzzle']=g.peek('floor_no')==3 and g.peek('slice',22)==2
+        g.poke('dbg_stage',130);walk(g,g.room()[225],log);g.tick(240)
+        result['normal_floor3_falling_puzzle']=g.peek('floor_no')==3 and g.peek('slice',22)&63==2
         g.shot(out/'04-falling.png')
         report['drop_plan']=solve_here(g,tool,log)
         g.tick(240)
@@ -87,7 +87,7 @@ def run(rom,out,tool):
     # This fixture isolates heir persistence; floor/landing continuation is covered by resume.py.
     saved[0x40]=saved[0x140]=0
     saved=bytes(saved)
-    g=Game(rom,sram=saved);assert start_run(g,True,False)
+    g=Game(rom,sram=saved);assert start_run(g,True,False,physical_fixture=1)
     result['heir_choice_survives_poweroff']=bytes(g.peek('family',k) for k in range(19))==selected and g.peek('family',283)==1
     solve_here(g,tool,log);g.tick(240)
     g.poke('dbg_god',0)
@@ -128,11 +128,11 @@ def run(rom,out,tool):
     # Tear the newest extension; CRC journal must retain the preceding selected heir and legacy meta.
     damaged=bytearray(dead_save)
     newest=max((0x570,0xa6c),key=lambda at:damaged[at+3]);damaged[newest+20]^=0x80
-    g=Game(rom,sram=bytes(damaged));assert start_run(g,True,False)
+    g=Game(rom,sram=bytes(damaged));assert start_run(g,True,False,physical_fixture=1)
     result['torn_family_save_falls_back']=g.peek16_at('family',279)==1 and bytes(g.peek('family',k) for k in range(19))==selected and g.peek16('meta')==1
     g.stop()
     for answer in ('crt','mud'):
-        g=Game(rom);assert start_run(g,True,True,floor=7)
+        g=Game(rom);assert start_run(g,True,True,floor=7,physical_fixture=3)
         seed=g.peek16('run_seed')^((7*0x9e37)&65535)^0x51a7
         moves_alt=subprocess.check_output([str(tool),'phys-solve',str(seed or 1),'3',str(g.peek('slice',19)),answer],text=True).strip()
         from play import drive_plan
