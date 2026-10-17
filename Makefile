@@ -66,7 +66,7 @@ endif
 CFLAGS := -c -Isrc -Wf--Werror -Wf--disable-warning -Wf110 -Wf--disable-warning -Wf126
 # Native simulation/rendering spends the frame budget here. Prefer SDCC's
 # faster instruction choices; generated art/data keep their normal build.
-HOT_SRC := play player actors grid mob mob_draw sprites look stage fx heir hud puzzle world_play core/eg_input core/eg_move core/eg_combat core/eg_stamina
+HOT_SRC := play player actors grid mob mob_draw sprites look stage fx heir hud puzzle world_play core/eg_input core/eg_move core/eg_combat core/eg_stamina core/eg_land
 $(addprefix build/obj/,$(addsuffix .o,$(HOT_SRC))): CFLAGS += -Wf--opt-code-speed
 # RAM + battery, CGB only, 2 MiB declared (trimmed afterwards), 8 KiB SRAM declared on both mappers. Autobank stops at
 # bank 114: bank 115 would end past the 1,900,000-byte gate. MBC3 addresses 128 banks of 16 KiB, so the same gate holds.
@@ -361,7 +361,7 @@ src/gen/stage_codec.inc: assets/stages/codec.json tools/bake_stage_codec.py
 src/gen/world_art.c src/gen/world_art.h: tools/bake_world_art.py tools/bake_look.py tools/bake_art.py
 	$(PY) tools/bake_world_art.py
 
-build/obj/core/eg_land.o: src/gen/stage_codec.inc
+build/obj/core/eg_land.o: src/gen/stage_codec.inc Makefile
 
 LAND_SRC := src/core/eg_land.c src/core/eg_land_bind.c src/core/eg_land_dead.c src/core/eg_room.c src/core/eg_link.c src/core/eg_piece.c
 build/host/land_one: host/land_one.c src/core/eg_land.c src/core/eg_land.h src/gen/stage_codec.inc
