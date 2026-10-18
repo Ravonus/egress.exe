@@ -257,12 +257,7 @@ static uint8_t roam_pending(uint8_t i) {
 static uint8_t roam_wants(uint8_t i) {
   int16_t x=(int16_t)(EG_X(i)<<4)-(int16_t)cam_x;
   int16_t y=(int16_t)(EG_Y(i)<<4)-(int16_t)cam_y;
-  /* Incoming slabs start just outside view. The trailing slab starts falling
-   * while its last sixteen pixels are still visible. */
-  if((roam_dir&J_RIGHT) && x<=8)return 0u;
-  if((roam_dir&J_LEFT) && x>=136)return 0u;
-  if((roam_dir&J_DOWN) && y<=8)return 0u;
-  if((roam_dir&J_UP) && y>=104)return 0u;
+  /* Offscreen stream repair only. Camera travel never retires floor. */
   return (uint8_t)(x>-40 && x<184 && y>-40 && y<152);
 }
 static void roam_raise(uint8_t i) {
@@ -280,14 +275,11 @@ static void roam_probe(uint8_t i) {
     if(look_here(i)) {
       if(!look_void_cell(i) && cell_type(i)!=T_PIT)roam_hidden[i>>3]&=(uint8_t)~BIT(i);
     } else if((!on_screen(i) || roam_wants(i)) && !look_void_cell(i) && cell_type(i)!=T_PIT)roam_raise(i);
-  } else if(look_here(i) && on_screen(i) && !roam_wants(i) && (uint8_t)(q_n+n_flying)<12u) {
-    if(look_void_cell(i) || cell_type(i)==T_PIT)return;
-    roam_hidden[i>>3]|=BIT(i);look_drop_cell(i);
   }
 }
 void look_roam_tick(void) BANKED {
   uint8_t k,i,probes,c,vertical,limit,a,b,cross;int8_t dx,dy;
-  if(!roam_on || pl_state==PS_FALL || pl_state==PS_EXIT) return;
+  if(!world_on || !roam_on || pl_state==PS_FALL || pl_state==PS_EXIT) return;
   /* Low bits are the last camera direction; spare high bits hold eight
    * recent-reversal ticks. Early preparation must not count the tick twice. */
   if(roam_late && (roam_dir&0xf0u))roam_dir=(uint8_t)(roam_dir-16u);
@@ -888,16 +880,6 @@ static uint8_t ground_contacts(int8_t dx,int8_t dy) {
   if(n<2u && y1!=y0 && x1!=x0)n+=anchor_at(x1,y1);
   return n;
 }
-static uint8_t ground_returning(int8_t dx,int8_t dy) {
-  uint8_t k,c,n=0u;int16_t x,y;
-  for(k=0u;k<LOOK_MAX_CARDS && n<2u;k++)if(c_kind[k] && !c_brk[k]) {
-    c=c_cell[k];x=(int16_t)(EG_X(c)<<4)-cam_x;y=(int16_t)(EG_Y(c)<<4)-cam_y;
-    if(x<143 && x+16>17 && y<111 && y+16>17 &&
-       ((dx>0 && x>=80) || (dx<0 && x<80) || (dy>0 && y>=64) || (dy<0 && y<64)))
-      n+=anchor_at(EG_X(c),EG_Y(c));
-  }
-  return n;
-}
 static uint8_t ground_ahead(uint8_t essential) {
   int8_t dx=0,dy=0;uint8_t x,y,n,k,c,x0,x1,vertical,limit,wide;
   /* A blink travels at most 6.5px/tick. Prepare the next 7px step's complete
@@ -947,14 +929,6 @@ static uint8_t ground_ahead(uint8_t essential) {
     }
     if(n || (essential && !(frame_count&1u)))return n;
   }
-  /* A reversal can return a departing slab from the opposite edge. The
-   * ordinary incoming-column sweep no longer visits that slab. Reuse the
-   * same two-anchor allowance to finish pooled cards before the next eased
-   * camera step can carry them through the inner edge of the 24px band. */
-  wide=(uint8_t)((dx>0 ? J_LEFT : dx<0 ? J_RIGHT : 0u)|(dy>0 ? J_UP : dy<0 ? J_DOWN : 0u));
-  if(!essential && ((roam_dir&wide) || (roam_dir&0xf0u)))
-    n=ground_returning(dx,dy);
-  if(n>=2u)return n;
   /* A slow/busy card must land before it leaves the edge band. This sweep is
    * a half slab INSIDE the approaching screen edge, after its visible entrance,
    * rather than two slabs outside the screen as in the previous release. */
@@ -1014,7 +988,7 @@ void look_frame_begin(void) BANKED {
        * settle on the presentation turn, with no cold texture upload. */
       if(!enemies_alive && (stage_type!=SG_HOLDOUT || stage_won)) {
         if(waiting) {if(!k && (frame_count&1u))look_update(3u);}
-        else {if(!(frame_count&1u))look_roam_tick();look_update((uint8_t)(1u+k));}
+        else {if(world_on && !(frame_count&1u))look_roam_tick();look_update((uint8_t)(1u+k));}
       } else if(enemies_alive && !waiting && !(frame_count&1u) &&
                 (pin.move==EG_MV_IDLE || pin.move==EG_MV_SPRINT) &&
                 (joy&(J_A|J_B|0x0fu))==pin.prev) {
@@ -1148,7 +1122,7 @@ void look_tick(void) BANKED {
   /* Quiet-room work is still in the early phase. frame_begin leaves the
    * split combat path ready for its tail; do not inherit that zero budget. */
   roam_late=0u;look_update(0u);
-  roam_late=1u; /* the later camera sweep may now reconcile trailing cells */
+  roam_late=1u; /* later actor composition retains its bounded tail budget */
 }
 
 /* The controls scene stops physics but keeps presentation alive. A suspended

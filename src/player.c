@@ -61,7 +61,6 @@ static uint8_t __at(0xDB9C) air_void;
 static uint8_t __at(0xDB9D) fall_safe;
 static const uint8_t jump_z[20]={0,3,5,7,9,10,11,12,12,12,11,10,9,7,5,3,1,0,0,0};
 static void overlay(uint8_t st,uint8_t t);
-static uint8_t built_cell(uint8_t x,uint8_t y);
 
 /* 8-way facing (EG_FACE_*: N NE E SE S SW W NW) as vectors and d-pad bits */
 static const int8_t f8x[8] = {0, 1, 1, 1, 0, -1, -1, -1}, f8y[8] = {-1, -1, 0, 1, 1, 1, 0, -1};
@@ -231,7 +230,7 @@ static uint8_t lift_body_free(uint8_t base) {
   uint8_t k,c;
   for(k=0u;k!=4u;k++) {
     c=cell_at((uint8_t)(x0+((k&1u) ? 11u : 0u)),(uint8_t)(y0+((k&2u) ? 11u : 0u)));
-    if(c>=EG_N || !built_cell(EG_X(c),EG_Y(c)) || enemy_in_cell(c) ||
+    if(c>=EG_N || enemy_in_cell(c) ||
        (c!=base && pmap[room.c[c]]!=EG_C_FREE))return 0u;
   }
   return 1u;
@@ -294,18 +293,6 @@ static void do_push(void) {
   grav_t = 1u; /* let it drop promptly if nothing holds it */
 }
 
-static uint8_t built_cell(uint8_t x,uint8_t y) {
-  uint8_t i;
-  if(x>=EG_W || y>=EG_H)return 1u; /* ordinary grid bounds own exterior edges */
-  i=EG_IDX(x,y);
-  return (uint8_t)(look_here(i) || !(roam_hidden[i>>3]&look_bits[i&7u]));
-}
-static uint8_t built_box(int16_t x,int16_t y) {
-  uint8_t x0=(uint8_t)((uint16_t)x>>8),y0=(uint8_t)((uint16_t)y>>8);
-  uint8_t x1=(uint8_t)((uint16_t)(x+176)>>8),y1=(uint8_t)((uint16_t)(y+176)>>8);
-  return (uint8_t)(built_cell(x0,y0) && (x1==x0 || built_cell(x1,y0)) &&
-    (y1==y0 || (built_cell(x0,y1) && (x1==x0 || built_cell(x1,y1)))));
-}
 /* one mover step from the player's centre (psx, psy are the centre, the mover's box is 12x12 from its corner) */
 static void mstep(uint8_t dpad, uint8_t speed, uint8_t synth) {
   if(!synth && companion.hp && (companion.buff&PB_HASTE)){speed+=(speed>>2);if(speed>64u)speed=64u;}
@@ -325,14 +312,6 @@ static void mstep(uint8_t dpad, uint8_t speed, uint8_t synth) {
     if(world_view.x<world_view.width-EG_W && pmv.x>3616)pmv.x=3616;
     if(world_view.y && pmv.y<544)pmv.y=544;
     if(world_view.y<world_view.height-EG_H && pmv.y>3104)pmv.y=3104;
-  }
-  /* Presentation cannot become a gameplay hole. Test the entire destination
-   * footprint after grid collision, preserving sliding on the ready axis.
-   * Real pits, fragile failures and island edges never set roam_hidden. */
-  if(!built_box(pmv.x,pmv.y)) {
-    if(built_box(pmv.x,old_y))pmv.y=old_y;
-    else if(built_box(old_x,pmv.y))pmv.x=old_x;
-    else {pmv.x=old_x;pmv.y=old_y;}
   }
   if (synth) { /* momentum, not a press: the d-pad's press order and the push contact are not touched */
     pmv.prev = prev;

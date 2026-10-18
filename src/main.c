@@ -142,19 +142,16 @@ static uint8_t glyph_tile(char ch) {
 }
 
 void text_at(uint8_t win, uint8_t x, uint8_t y, const char *s, uint8_t pal) {
-  uint8_t t, a = (uint8_t)(pal | 0x08u);
-  while (*s) {
-    t = glyph_tile(*s++);
-    VBK_REG = 1;
-    if (win)
-      set_win_tiles(x, y, 1, 1, &a);
-    else
-      set_bkg_tiles(x, y, 1, 1, &a);
-    VBK_REG = 0;
-    if (win)
-      set_win_tiles(x, y, 1, 1, &t);
-    else
-      set_bkg_tiles(x, y, 1, 1, &t);
+  uint8_t glyph[2],bank;
+  glyph[1]=(uint8_t)(pal|0x08u);
+  while(*s) {
+    glyph[0]=glyph_tile(*s++);
+    bank=1u;
+    do {
+      VBK_REG=bank;
+      if(win)set_win_tiles(x,y,1u,1u,glyph+bank);
+      else set_bkg_tiles(x,y,1u,1u,glyph+bank);
+    } while(bank--);
     x++;
   }
 }
