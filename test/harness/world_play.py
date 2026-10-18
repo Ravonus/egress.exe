@@ -301,12 +301,14 @@ def run(rom,out,tool,seeds,rule=None,size=None,biome=0,floor=7,pet=0):
         if rule is not None:
             assert g.wait_mode(1,1500)
             g.poke('dbg_world_rule',rule+1);g.poke('dbg_world_size',0 if size is None else size+1);g.poke('dbg_world_biome',biome)
-        entries=[];loading_frames=[]
+        entries=[];loading_frames=[];loading_clean=[]
         def beginning(_):entries.append(g.frames)
         def loading_frame(_):
             if g.peek('game_mode')==3 and g.peek('world_on'):
                 loading_frames.append(g.frames)
-                if len(loading_frames)==3:g.shot(case/'loading.png')
+                if len(loading_frames)==3:
+                    g.shot(case/'loading.png')
+                    loading_clean.append(not any(0<g.pb.memory[0xfe00+k*4]<160 and 0<g.pb.memory[0xfe01+k*4]<168 for k in range(40)))
         enter=g.sym['_world_begin'];wait=g.sym['_frame_wait']
         g.pb.hook_register(enter>>16,enter&65535,beginning,None)
         g.pb.hook_register(wait>>16,wait&65535,loading_frame,None)
@@ -328,6 +330,7 @@ def run(rom,out,tool,seeds,rule=None,size=None,biome=0,floor=7,pet=0):
             g.tick(160);g.shot(case/'start.png');won=p.solve(case);r=p.report();r['solved']=won;r['seed']=seed
             r['stage_preparation_frames']=preparation_frames
             r['loading_progress_visible']=len(loading_frames)>=3 and (case/'loading.png').exists()
+            r['loading_has_no_stale_sprites']=loading_clean==[True]
             if pet:
                 r['companion']={'id':pet,'health_preserved':g.peek16('companion')==pet and g.peek('companion',8)==hp,'poses':len(patterns)}
                 r['solved'] &= r['companion']['health_preserved'] and len(patterns)>=3 and r['windows']>1
@@ -344,7 +347,7 @@ def run(rom,out,tool,seeds,rule=None,size=None,biome=0,floor=7,pet=0):
                r['presentation_window']['all_cards_spans_queues_and_bitmaps_match'] and
                r['presentation_window']['native_transfers']==r['seams'] and
                r['runtime_default_tile_queries']==0 and
-               0<r['stage_preparation_frames']<=1200 and r['loading_progress_visible'] and
+               0<r['stage_preparation_frames']<=1200 and r['loading_progress_visible'] and r['loading_has_no_stale_sprites'] and
                r['maximum_stream_wait_frames']<=12 for r in reports)
 
 if __name__=='__main__':

@@ -187,7 +187,9 @@ static uint8_t origin(uint8_t cell,uint8_t span,uint8_t size) {
   return pos>size-span ? size-span : pos;
 }
 static void loading(void) {
+  uint8_t k;
   DISPLAY_OFF;HIDE_WIN;HIDE_SPRITES;hud_line=144u;move_bkg(0u,0u);
+  for(k=0u;k<40u;k++)move_sprite(k,0u,0u);
   art_load_game();ui_load();ui_colours();
   ui_page("EGRESS","GENERATING STAGE");ui_frame(0u,1u,7u,18u,7u,UI_DARK);
   text_at(0u,3u,8u,"PLANNING ROUTES",UI_DARK);
