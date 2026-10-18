@@ -13,6 +13,7 @@ uint8_t world_on,world_latched,world_glitch;
 static uint8_t synchronized[7];
 static uint8_t binding_valid,binding_x,binding_y;
 static uint8_t read_link(void *ctx,uint8_t x,uint8_t y) NONBANKED;
+void eg_land_cached_at(const eg_land *p,uint8_t x,uint8_t y,eg_land_cell *out) BANKED;
 uint8_t world_binding_ready(int8_t dx,int8_t dy) NONBANKED {
   return binding_valid && binding_x==(uint8_t)(world_view.x+dx) && binding_y==(uint8_t)(world_view.y+dy);
 }
@@ -129,7 +130,7 @@ static void generate(uint8_t x,uint8_t y) NONBANKED {
   eg_land_cell cell;uint8_t k;
   eg_window_packet[8]=0u;
   for(k=0u;k<4u;k++) {
-    eg_land_at(&world_plan,x+k,y,&cell);eg_window_packet[k]=cell.material;
+    eg_land_cached_at(&world_plan,x+k,y,&cell);eg_window_packet[k]=cell.material;
     eg_window_packet[k+4u]=world_skin(cell.design,cell.variant);
     if(cell.flags&EL_PROTECTED)eg_window_packet[8]|=look_bits[k];
   }

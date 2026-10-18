@@ -492,6 +492,9 @@ static void incoming_pits(uint8_t i) NONBANKED NAKED {
     jr nz,4$
     set 3,b
   4$:
+    ld a,b
+    or a,a
+    jr z,8$
     bit 2,c
     jr z,5$
     swap b
@@ -513,6 +516,7 @@ static void incoming_pits(uint8_t i) NONBANKED NAKED {
     cpl
     and a,(hl)
     ld (hl),a
+  8$:
     pop de
     pop bc
     ret
@@ -586,18 +590,20 @@ static void shift_spans(int8_t dy) NAKED {
   __endasm;
 }
 void look_shift_view(int8_t dx,int8_t dy) BANKED {
-  uint8_t k,i,keep=0u;
+  uint8_t k,i,c,keep=0u,mask,lo,hi,delta;
+  if(dx){mask=15u;lo=dx>0 ? 4u : 0u;hi=dx>0 ? 16u : 12u;delta=(uint8_t)dx;}
+  else {mask=255u;lo=dy>0 ? 64u : 0u;hi=dy>0 ? 224u : 160u;delta=(uint8_t)(dy*16);}
   /* Each card is tested in its old coordinates. Recycle leaving slots and
    * rebase retained slots without changing material or object state. */
   for(k=0u;k<LOOK_MAX_CARDS;k++)if(c_kind[k]) {
-    i=eg_view_rebase(c_cell[k],dx,dy);
-    if(i>=EG_N)finish(k);
-    else c_cell[k]=i;
+    i=c_cell[k];c=i&mask;
+    if(i>=EG_N || c<lo || c>=hi)finish(k);
+    else c_cell[k]=(uint8_t)(i-delta);
   }
   if(dy)shift_spans(dy);
   for(k=0u;k<q_n;k++) {
-    i=eg_view_rebase(q[(uint8_t)(q_head+k)],dx,dy);
-    if(i<EG_N)q[(uint8_t)(q_head+keep++)]=i;
+    i=q[(uint8_t)(q_head+k)];c=i&mask;
+    if(i<EG_N && c>=lo && c<hi)q[(uint8_t)(q_head+keep++)]=(uint8_t)(i-delta);
   }
   q_n=keep;
   eg_view_bits(look_present,dx,dy,0u);eg_view_bits(roam_hidden,dx,dy,1u);eg_view_bits(redraw,dx,dy,1u);

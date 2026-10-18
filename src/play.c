@@ -30,6 +30,7 @@
 #include "health.h"
 void sprites_budget(void) NONBANKED;
 uint8_t heir_cache_flush(void) BANKED;
+void world_warm_tick(void) BANKED;
 extern volatile uint8_t video_epoch;
 extern uint8_t frame_epoch;
 
@@ -269,6 +270,7 @@ static void assemble_wait(void) {
     frame_wait();
     look_tick();
     sound_tick();
+    if(world_on)world_warm_tick();
     input_poll();
     draw_sprites();
   }
@@ -307,13 +309,16 @@ static uint8_t floor_play(void) {
     input_poll(); /* sample before variable-cost VRAM/audio work can cross a display boundary */
     DISABLE_OAM_DMA;
     if(pet_save_dirty)resume_pet_flush();
+    /* Score rows vary in cost. Spend their time before deciding whether an
+     * atomic world transfer still fits this VBlank's early allowance. */
+    if(world_on)sound_tick();
     /* A busy previous frame may have offered a complete pose without spare
      * time to cache it. Preserve it before another composition replaces the
      * buffer, and give that copy this frame's early composition allowance. */
     late=world_on ? world_frame_begin() : heir_cache_flush();
     streamed=world_on ? late : 0u;
     if(!late)heir_prepare();
-    companion_art_tick();
+    if(!streamed)companion_art_tick();
     late=(uint8_t)(roaming && (world_on || enemies_alive || stage_type!=SG_PUZZLE));
     if (boss_floor) boss_vblank(); /* B2 bosses: in VBlank, before the look's writes */
     if (pal_dirty && !look_busy()) {
@@ -334,7 +339,7 @@ static uint8_t floor_play(void) {
     } else if(roaming) {flush_cells(2u);look_tick();}
     else {look_tick();flush_cells(8u);}
     scroll();
-    sound_tick();
+    if(!world_on)sound_tick();
     hud_tick();
     /* Admit speculative queries after variable BG, audio and HUD work, so
      * their scanline limit reserves the actual remaining simulation budget. */

@@ -21,6 +21,9 @@
 extern eg_mover_t pmv;
 extern volatile uint8_t video_epoch;
 extern uint8_t frame_epoch;
+extern uint8_t world_on,world_moved;
+#define PET_STEERING ((uint8_t *)0xBF00u)
+typedef char pet_steering_fits[(SAVE_STATS_B+SAVE_STATS_BYTES==0xBF00u && 0xBF00u<0xBFFFu) ? 1 : -1];
 eg_companion __at(0xDDDC) companion;
 uint8_t __at(0xDDD9) pet_instance;
 static uint8_t __at(0xDDEC) previous_x;
@@ -167,7 +170,7 @@ void companion_enter(void) BANKED {
  e[17]=pet_serial;memcpy(e+18u,pet_meta,EG_PET_BAG_BYTES);EG_SRAM_CLOSE();
 }
 void companion_restore(void) BANKED {EG_SRAM_OPEN();memcpy(&companion,(const uint8_t *)SAVE_PET_ENTRY,16u);pet_instance=*(uint8_t *)(SAVE_PET_ENTRY+16u);EG_SRAM_CLOSE();if(companion.hp){companion.state=(companion.state&248u)|PP_IDLE;companion.timer=0u;}companion_reset_position();}
-void companion_reset_position(void) BANKED {previous_x=pl_x;previous_y=pl_y;companion.ox=-16;companion.oy=4;companion.shown=255u;}
+void companion_reset_position(void) BANKED {previous_x=pl_x;previous_y=pl_y;companion.ox=-16;companion.oy=4;companion.shown=255u;EG_SRAM_OPEN();*PET_STEERING=0u;EG_SRAM_CLOSE();}
 void companion_shift_view(int8_t dx,int8_t dy) BANKED {previous_x=(uint8_t)(previous_x-dx*16);previous_y=(uint8_t)(previous_y-dy*16);}
 uint8_t companion_equip(uint8_t slot) BANKED {
  eg_item_id id,old=companion.id;uint8_t hp,spent,cd,instance,oldhp=companion.hp,oldspent=(uint8_t)(companion.state&PET_REVIVE_SPENT),oldcd=companion.cd>companion.auto_cd ? companion.cd : companion.auto_cd,oldinstance=pet_instance;
@@ -190,7 +193,7 @@ uint8_t companion_command(void) BANKED {
  sfx(SFX_CHARGED);fx_burst(px(),py(),FX_MAGIC,2u);hud_dirty=1u;return 1u;
 }
 void companion_tick(void) BANKED {
- eg_pet_profile p;uint8_t action,k,phase;int16_t dx,dy,xx,yy;int8_t wantx,wanty,mx=0,my=0;
+ eg_pet_profile p;uint8_t action,k,phase,steering=0u;int16_t dx,dy,xx,yy;int8_t wantx,wanty,mx=0,my=0;
  if(!companion.id)return;
  dx=(int8_t)(pl_x-previous_x);dy=(int8_t)(pl_y-previous_y);previous_x=pl_x;previous_y=pl_y;
  if(dx>24 || dx<-24 || dy>24 || dy<-24){companion_reset_position();fx_burst(px(),py(),FX_MAGIC,2u);}
@@ -212,14 +215,25 @@ void companion_tick(void) BANKED {
   * automatic decisions can resume next tick after a costly stream/save. */
  if(video_epoch!=frame_epoch || (LY_REG>=88u && LY_REG<144u))return;
  if(companion.buff&PB_RETALIATE){companion.buff&=(uint8_t)~PB_RETALIATE;k=target(24u,0u);if(k<nen)strike(k,0u,1u);}
- if(!eg_pet_get(companion.id,&p))return;
  phase=companion.state&7u;
  if(phase>=PP_CAST && phase!=PP_REST && companion.timer){companion.timer--;if(companion.timer)return;}
- wantx=(int8_t)(-dirx[pmv.facing]*16-8);wanty=(int8_t)(-diry[pmv.facing]*16+4);
- if(p.role==PR_TANK && enemies_alive && companion.hp>p.hp/3u){wantx=dirx[pmv.facing]*18;wanty=diry[pmv.facing]*18;}
- dx=(int16_t)wantx-companion.ox;dy=(int16_t)wanty-companion.oy;
- if(dx>1)mx=dx>20 ? 3 : 1;else if(dx<-1)mx=dx<-20 ? -3 : -1;
- if(dy>1)my=dy>20 ? 3 : 1;else if(dy<-1)my=dy<-20 ? -3 : -1;
+ /* Quiet-world steering needs a new decision only every other tick. Feet,
+  * offsets, facing, animation and collision still advance on every tick.
+  * Input changes, view rebases, abilities and fights always decide afresh. */
+ if(world_on && !world_moved && !enemies_alive && (frame_count&1u) &&
+    (phase==PP_FOLLOW || phase==PP_IDLE || phase==PP_REST) && !((joy^joy_prev)&15u)) {
+  EG_SRAM_OPEN();steering=*PET_STEERING;EG_SRAM_CLOSE();
+ }
+ if(steering&128u){mx=(int8_t)((steering&7u)-3u);my=(int8_t)(((steering>>3)&7u)-3u);}
+ else {
+  if(!eg_pet_get(companion.id,&p))return;
+  wantx=(int8_t)(-dirx[pmv.facing]*16-8);wanty=(int8_t)(-diry[pmv.facing]*16+4);
+  if(p.role==PR_TANK && enemies_alive && companion.hp>p.hp/3u){wantx=dirx[pmv.facing]*18;wanty=diry[pmv.facing]*18;}
+  dx=(int16_t)wantx-companion.ox;dy=(int16_t)wanty-companion.oy;
+  if(dx>1)mx=dx>20 ? 3 : 1;else if(dx<-1)mx=dx<-20 ? -3 : -1;
+  if(dy>1)my=dy>20 ? 3 : 1;else if(dy<-1)my=dy<-20 ? -3 : -1;
+  if(world_on){EG_SRAM_OPEN();*PET_STEERING=(uint8_t)(128u|(mx+3u)|((my+3u)<<3));EG_SRAM_CLOSE();}
+ }
  xx=(int16_t)pl_x+companion.ox+mx;yy=(int16_t)pl_y+companion.oy+my;
  if(!mx && !my) { /* No displacement needs no repeated footprint query. */ }
  else if((uint16_t)xx<250u && (uint16_t)yy<218u && floor_ok((uint8_t)xx,(uint8_t)yy)){

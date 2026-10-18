@@ -252,6 +252,12 @@ class WorldPlayer:
         door=next((i%self.w,i//self.w) for i,t in enumerate(self.cells) if t&31==7)
         if self.cells[self.key[1]*self.w+self.key[0]]&31==6:self.walk(self.key)
         self.walk(door)
+        # Faster streaming can align exactly on the first exit tick. Observe
+        # the real door transition instead of assuming walk()'s 16 idle ticks
+        # have already completed the native twenty-tick departure animation.
+        for _ in range(180):
+            if g.peek('floor_no')!=self.floor or g.peek('game_mode')!=2:break
+            g.tick()
         return g.peek('floor_no')!=self.floor or g.peek('game_mode')!=2
     def report(self):
         g=self.g;f=self.fc

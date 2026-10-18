@@ -6,7 +6,8 @@
 #include "eg_piece.h"
 #include "../gen/stage_codec.inc"
 #ifdef __SDCC
-/* One KiB of immutable products replaces the generator's repeated constant
+/* Terrain uses the compiler's extended register-allocation search budget.
+ * One KiB of immutable products replaces the generator's repeated constant
  * multiplies. The portable oracle below retains the original arithmetic. */
 #define LP(n,m) (uint16_t)((uint32_t)(n)*(m))
 #define LP16(n,m) LP(n,m),LP((n)+1,m),LP((n)+2,m),LP((n)+3,m), \
@@ -47,6 +48,198 @@ static uint8_t pick(uint8_t bits,uint16_t roll) {
 static uint8_t distance(uint8_t a,uint8_t b) {return a>b ? a-b : b-a;}
 #ifdef __SDCC
 static uint8_t centre_phase;
+/* The two remaining floor-only work bytes key four immutable lane samples.
+ * Existing DATA bytes hold the seed and samples; no extra hot WRAM is used. */
+static uint8_t __at (0xDBBE) lane_cross;
+static uint8_t __at (0xDBBF) lane_base;
+typedef char patch_cache_fits_two_spare_banks[(0x4600u+EL_NODES*182u*9u+4u<=0x6000u) ? 1 : -1];
+/* Bank-six metadata ends below 0x4200. Reuse 33 immutable nine-byte records
+ * above it for per-column lane/radius/notch calculations, never live cells. */
+static void profile_get(uint16_t offset,uint8_t *packet) __sdcccall(0) __naked {
+ offset;packet;
+ __asm
+ push bc
+ push de
+ ldhl sp,#6
+ ld a,(hl+)
+ ld c,a
+ ld a,(hl+)
+ and a,#15
+ or a,#0xd0
+ ld b,a
+ ld a,(hl+)
+ ld e,a
+ ld d,(hl)
+ ld h,b
+ ld l,c
+ push hl
+ ldhl sp,#9
+ ld a,(hl)
+ swap a
+ and a,#15
+ add a,#2
+ ld c,a
+ pop hl
+ .rept 9
+ ld a,c
+ ldh (#0x70),a
+ ld a,(hl+)
+ ld b,a
+ ld a,#1
+ ldh (#0x70),a
+ ld a,b
+ ld (de),a
+ inc de
+ .endm
+ pop de
+ pop bc
+ ret
+ __endasm;
+}
+static void profile_put(uint16_t offset,const uint8_t *packet) __sdcccall(0) __naked {
+ offset;packet;
+ __asm
+ push bc
+ push de
+ ldhl sp,#6
+ ld a,(hl+)
+ ld e,a
+ ld a,(hl+)
+ and a,#15
+ or a,#0xd0
+ ld d,a
+ ld a,(hl+)
+ ld h,(hl)
+ ld l,a
+ push hl
+ ldhl sp,#9
+ ld a,(hl)
+ swap a
+ and a,#15
+ add a,#2
+ ld c,a
+ pop hl
+ .rept 9
+ ld a,(hl+)
+ ld b,a
+ ld a,c
+ ldh (#0x70),a
+ ld a,b
+ ld (de),a
+ inc de
+ ld a,#1
+ ldh (#0x70),a
+ .endm
+ pop de
+ pop bc
+ ret
+ __endasm;
+}
+static void profile_read4(uint16_t offset,eg_land_cell *out) __sdcccall(0) __naked {
+ offset;out;
+ __asm
+ push bc
+ push de
+ ldhl sp,#6
+ ld a,(hl+)
+ ld c,a
+ ld a,(hl+)
+ and a,#15
+ or a,#0xd0
+ ld b,a
+ ld a,(hl+)
+ ld e,a
+ ld d,(hl)
+ ld h,b
+ ld l,c
+ push hl
+ ldhl sp,#9
+ ld a,(hl)
+ swap a
+ and a,#15
+ add a,#2
+ ld c,a
+ pop hl
+ .rept 4
+ ld a,c
+ ldh (#0x70),a
+ ld a,(hl+)
+ ld b,a
+ ld a,#1
+ ldh (#0x70),a
+ ld a,b
+ ld (de),a
+ inc de
+ .endm
+ pop de
+ pop bc
+ ret
+ __endasm;
+}
+static void bounds(const eg_land *p,uint8_t u,uint8_t *low,uint8_t *high) {
+ uint8_t lane=eg_land_lane(p,u),r=(uint8_t)(3u+(hash(p->seed,u>>3,40u)&3u)),k,a,b;
+ if(p->shape==EL_BASINS)r=(uint8_t)(r+EL_CROSS(p)/5u);
+ else if(p->shape==EL_BEND)r=3u;
+ else if(p->shape==EL_COURTS)r+=3u;
+ *low=lane>r ? lane-r : 0u;*high=(uint8_t)(lane+r);
+ for(k=0u;k<p->nnode;k++)if(u>=p->node[k].at-6u && u<=p->node[k].at+3u) {
+  a=(uint8_t)(p->node[k].lane-3u);b=(uint8_t)(p->node[k].lane+3u);
+  if(a<*low)*low=a;if(b>*high)*high=b;
+ }
+}
+static uint8_t patch_origin(uint8_t centre,uint8_t half,uint8_t span,uint8_t size) {
+ uint8_t at=centre>half ? centre-half : 0u;
+ if(size<=span)return 0u;return at>size-span ? size-span : at;
+}
+static uint16_t patch_slot(uint16_t index) {
+ uint16_t address=(uint16_t)(0x4600u+index*9u);
+ /* Four tail bytes are padding: a nine-byte record must never cross from
+  * bank six into echo RAM. Both halves then use the same bank-seven slot. */
+ return address>=0x4ffcu ? address+4u : address;
+}
+static void profile_build(const eg_land *p) {
+ uint8_t packet[9],group,j,u,r,k,a,b,low,high,v,n;uint16_t at;eg_land_cell cell;
+ memset(packet,0,9u);CRITICAL {profile_put(0x4200u,packet);profile_put(0x43e0u,packet);}
+ for(group=0u;group<32u;group++) {
+  packet[8]=0u;
+  for(j=0u;j<4u;j++) {
+   u=(uint8_t)(group*4u+j);packet[j]=eg_land_lane(p,u);
+   r=(uint8_t)(3u+(hash(p->seed,u>>3,40u)&3u));
+   if(p->shape==EL_BASINS)r=(uint8_t)(r+EL_CROSS(p)/5u);
+   else if(p->shape==EL_BEND)r=3u;
+   else if(p->shape==EL_COURTS){r+=3u;if(((u+3u)&15u)<3u && (hash(p->seed,u>>4,41u)&1u))packet[8]|=1u<<j;}
+   packet[4u+j]=r;
+  }
+  CRITICAL {profile_put((uint16_t)(0x4209u+(uint16_t)group*9u),packet);}
+  for(j=0u;j<4u;j++) {
+   u=(uint8_t)(group*4u+j);bounds(p,u,&low,&high);
+   for(k=0u;k<p->nnode;k++)if(distance(u,p->node[k].at)<=1u)
+    for(v=0u;v<3u;v++) {
+     bounds(p,(uint8_t)(p->node[k].at-1u+v),&a,&b);
+     if(a<low)low=a;if(b>high)high=b;
+    }
+   packet[j]=low;packet[4u+j]=high;
+  }
+  CRITICAL {profile_put((uint16_t)(0x4400u+(uint16_t)group*9u),packet);}
+ }
+ /* Publish only the completed lane/envelope table. The patch header remains
+  * invalid while the canonical query bakes the surrounding 26x14 workspaces. */
+ packet[0]=0xe7u;packet[1]=0x36u;packet[2]=(uint8_t)p->seed;packet[3]=(uint8_t)(p->seed>>8);
+ packet[4]=EL_CROSS(p);packet[5]=p->shape;CRITICAL {profile_put(0x4200u,packet);}
+ for(n=0u;n<p->nnode;n++) {
+  a=patch_origin(p->node[n].at,13u,26u,EL_LENGTH(p));b=patch_origin(p->node[n].lane,7u,14u,EL_CROSS(p));
+  for(at=0u;at<364u;at++) {
+   u=(uint8_t)(a+at/14u);v=(uint8_t)(b+at%14u);
+   eg_land_at(p,EL_X(p,u,v),EL_Y(p,u,v),&cell);j=(uint8_t)(at&1u)*4u;
+   packet[j]=cell.material;packet[j+1u]=cell.design;packet[j+2u]=cell.variant;packet[j+3u]=cell.flags;
+   if(at&1u) {CRITICAL {profile_put(patch_slot((uint16_t)n*182u+(at>>1)),packet);}}
+  }
+ }
+ packet[0]=p->width;packet[1]=p->height;packet[2]=p->rule;packet[3]=p->biome;packet[4]=p->size;packet[5]=p->nnode;packet[6]=0xc4u;
+ CRITICAL {profile_put(0x43e0u,packet);}
+ packet[0]=0xe7u;packet[1]=0x36u;packet[2]=(uint8_t)p->seed;packet[3]=(uint8_t)(p->seed>>8);
+ packet[4]=EL_CROSS(p);packet[5]=p->shape;CRITICAL {profile_put(0x4200u,packet);}
+}
 #endif
 static uint8_t centre(const eg_land *p,uint8_t segment) {
   uint8_t cross=EL_CROSS(p),amplitude=(uint8_t)((cross-10u)>>1),period,phase;
@@ -66,32 +259,27 @@ static uint8_t centre(const eg_land *p,uint8_t segment) {
 uint8_t eg_land_lane(const eg_land *p,uint8_t u) EG_BANKED {
   uint8_t k=(uint8_t)(u>>3),f=(uint8_t)(u&7u),a,b;
 #ifdef __SDCC
-  /* Four-cell prefetch and structural queries repeatedly visit one segment.
-   * Cache only the two immutable interpolation endpoints, keyed by every
-   * input to centre(). The independent host oracle always recomputes them. */
+  /* A four-cell packet revisits these columns across fourteen rows. Cache
+   * their exact interpolation results, not just the two endpoints. */
   static uint16_t cached_seed;
-  static uint8_t cached_cross,cached_segment,cached_a,cached_b;
-  if(cached_cross!=EL_CROSS(p) || cached_seed!=p->seed) {
+  static uint8_t cached_lane[4];
+  uint8_t base=u&252u,j,g,total,changed=(uint8_t)(lane_cross!=EL_CROSS(p) || cached_seed!=p->seed);
+  if(changed) {
     a=(uint8_t)((EL_CROSS(p)-10u)>>1);if(a>12u)a=12u;
     centre_phase=(uint8_t)hash(p->seed,0u,71u)%(uint8_t)(a*4u);
   }
-  if(cached_cross!=EL_CROSS(p) || cached_seed!=p->seed || cached_segment!=k) {
-    cached_seed=p->seed;cached_cross=EL_CROSS(p);cached_segment=k;
-    cached_a=centre(p,k);cached_b=centre(p,(uint8_t)(k+1u));
+  if(changed || lane_base!=base) {
+    cached_seed=p->seed;lane_cross=EL_CROSS(p);lane_base=base;
+    a=centre(p,k);b=centre(p,(uint8_t)(k+1u));
+    for(j=0u;j<4u;j++) {
+      g=(uint8_t)((base+j)&7u);total=0u;
+      if(b>=a) {while(g--)total=(uint8_t)(total+b-a);cached_lane[j]=(uint8_t)(a+(total>>3));}
+      else {while(g--)total=(uint8_t)(total+a-b);cached_lane[j]=(uint8_t)(a-((total+7u)>>3));}
+    }
   }
-  a=cached_a;b=cached_b;
+  return cached_lane[u&3u];
 #else
   a=centre(p,k);b=centre(p,(uint8_t)(k+1u));
-#endif
-#ifdef __SDCC
-  /* Adjacent triangle endpoints differ by at most four. Interpolate with
-   * seven bounded byte additions instead of two general 16-bit multiplies.
-   * A descending span rounds upward before subtraction, preserving floor. */
-  k=0u;
-  if(b>=a) {while(f--)k=(uint8_t)(k+b-a);return (uint8_t)(a+(k>>3));}
-  while(f--)k=(uint8_t)(k+a-b);
-  return (uint8_t)(a-((k+7u)>>3));
-#else
   return (uint8_t)(((uint16_t)a*(8u-f)+(uint16_t)b*f)>>3);
 #endif
 }
@@ -147,6 +335,9 @@ uint8_t eg_land_plan(eg_land *p,uint16_t seed,uint8_t rule,uint8_t size,uint8_t 
     else if(kind==EL_COLD) {item(p,u-5u,v-2u,P_AIR);item(p,u-5u,v-1u,P_WATER);item(p,u-5u,v,P_AIR);}
     else if(kind==EL_POWER) {item(p,u-5u,v-2u,P_AIR);item(p,u-5u,v-1u,P_FIRE);item(p,u-5u,v,P_METAL);}
   }
+#ifdef __SDCC
+  profile_build(p);
+#endif
   return 1u;
 }
 uint8_t eg_land_item_at(const eg_land *p,uint8_t x,uint8_t y) EG_BANKED {
@@ -156,10 +347,22 @@ uint8_t eg_land_item_at(const eg_land *p,uint8_t x,uint8_t y) EG_BANKED {
 }
 static uint8_t floor_at(const eg_land *p,uint8_t u,uint8_t v) {
   uint8_t lane,d,radius,k;
+#ifdef __SDCC
+  uint8_t packet[9];
+#endif
   if(!u || !v || u>=EL_LENGTH(p)-1u || v>=EL_CROSS(p)-1u)return 0u;
   /* The approach, working space and retreat around apparatus are reserved
    * before any geography, hole or foliage is considered. */
   for(k=0u;k<p->nnode;k++)if(u>=p->node[k].at-6u && u<=p->node[k].at+3u && distance(v,p->node[k].lane)<=3u)return 2u;
+#ifdef __SDCC
+  CRITICAL {profile_get(0x4200u,packet);}
+  if(packet[0]==0xe7u && packet[1]==0x36u && packet[2]==(uint8_t)p->seed && packet[3]==(uint8_t)(p->seed>>8) && packet[4]==EL_CROSS(p) && packet[5]==p->shape && u<128u) {
+   CRITICAL {profile_get((uint16_t)(0x4209u+(uint16_t)(u>>2)*9u),packet);}
+   k=u&3u;d=distance(packet[k],v);if(d<=2u)return 1u;
+   if(d>3u && (packet[8]&(1u<<k)))return 0u;
+   return d<=packet[4u+k];
+  }
+#endif
   lane=eg_land_lane(p,u);d=distance(lane,v);
   if(d<=2u)return 1u;
   radius=(uint8_t)(3u+(hash(p->seed,(uint8_t)(u>>3),40u)&3u));
@@ -173,10 +376,37 @@ static uint8_t floor_at(const eg_land *p,uint8_t u,uint8_t v) {
 }
 void eg_land_at(const eg_land *p,uint8_t x,uint8_t y,eg_land_cell *o) EG_BANKED {
   uint8_t u,v,k,lane,d,h,protected=0u,inside;const eg_land_node *n;const uint8_t *b;
+#ifdef __SDCC
+  uint8_t packet[9],node,a,b0,valid=0u;uint16_t at;
+#endif
   o->material=T_PIT|F_ABYSS;o->design=EL_FLOOR;o->variant=o->flags=0u;
   if(x>=p->width || y>=p->height)return;
   u=p->vertical ? y : x;v=p->vertical ? x : y;
-  inside=floor_at(p,u,v);protected=(uint8_t)(inside==2u);
+#ifdef __SDCC
+  /* Mixed edge packets often contain one floor cell and three abyss cells.
+   * Their individual conservative envelopes avoid the full query too. */
+  CRITICAL {profile_get(0x4200u,packet);}
+  if(packet[0]==0xe7u && packet[1]==0x36u && packet[2]==(uint8_t)p->seed && packet[3]==(uint8_t)(p->seed>>8) && packet[4]==EL_CROSS(p) && packet[5]==p->shape && u<128u) {
+   valid=1u;
+   CRITICAL {profile_get((uint16_t)(0x4400u+(uint16_t)(u>>2)*9u),packet);}
+   k=u&3u;if(v<packet[k] || v>packet[k+4u])return;
+  }
+  if(valid)for(node=0u;node<p->nnode;node++) {
+   a=patch_origin(p->node[node].at,13u,26u,EL_LENGTH(p));
+   if(u<a || (uint8_t)(u-a)>=26u)continue;
+   b0=patch_origin(p->node[node].lane,7u,14u,EL_CROSS(p));
+   if(v<b0 || (uint8_t)(v-b0)>=14u)continue;
+    CRITICAL {profile_get(0x43e0u,packet);}
+    if(packet[0]==p->width && packet[1]==p->height && packet[2]==p->rule && packet[3]==p->biome && packet[4]==p->size && packet[5]==p->nnode && packet[6]==0xc4u) {
+     at=(uint16_t)(u-a)*14u+v-b0;
+     CRITICAL {profile_get(patch_slot((uint16_t)node*182u+(at>>1)),packet);}
+     k=(uint8_t)(at&1u)*4u;o->material=packet[k];o->design=packet[k+1u];o->variant=packet[k+2u];o->flags=packet[k+3u];return;
+    }
+   break;
+  }
+#endif
+  inside=floor_at(p,u,v);
+  protected=(uint8_t)(inside==2u);
   if(!inside)for(k=0u;k<p->nnode;k++) {
     n=&p->node[k];
     if(n->kind!=EL_PORTAL && distance(u,n->at)<=1u &&
@@ -246,7 +476,38 @@ void eg_land_at(const eg_land *p,uint8_t x,uint8_t y,eg_land_cell *o) EG_BANKED 
   /* At most one medicine in a 16x16 region; any active 16x14 view contains
    * at most four. Stateless coordinates add no RNG or query-order dependency. */
   if(o->material==T_EMPTY && !(o->flags&EL_PROTECTED) &&
+     (uint8_t)((x&15u)-4u)<8u && (uint8_t)((y&15u)-4u)<8u &&
      !(((uint8_t)p->seed+(x>>4)*5u+(y>>4)*11u)&3u) &&
      (x&15u)==4u+(((uint8_t)p->seed+(x>>4)*7u+(y>>4)*13u)&7u) &&
      (y&15u)==4u+(((uint8_t)(p->seed>>3)+(x>>4)*3u+(y>>4)*5u)&7u))o->material=T_TOKEN|F_HEALTH;
 }
+#ifdef __SDCC
+/* Internal fast path for the most recently constructed immutable plan.
+ * world_begin owns that plan until the next floor. General callers retain
+ * eg_land_at's keyed path; the native oracle exercises this actual leaf. */
+void eg_land_cached_at(const eg_land *p,uint8_t x,uint8_t y,eg_land_cell *o) EG_BANKED {
+ uint8_t u,v,node,a,b;uint16_t at;
+ if(x>=p->width || y>=p->height){o->material=T_PIT|F_ABYSS;o->design=EL_FLOOR;o->variant=o->flags=0u;return;}
+ u=p->vertical ? y : x;v=p->vertical ? x : y;
+ for(node=0u;node<p->nnode;node++) {
+  a=patch_origin(p->node[node].at,13u,26u,EL_LENGTH(p));if(u<a || (uint8_t)(u-a)>=26u)continue;
+  b=patch_origin(p->node[node].lane,7u,14u,EL_CROSS(p));if(v<b || (uint8_t)(v-b)>=14u)continue;
+  at=(uint16_t)(u-a)*14u+v-b;
+  CRITICAL {profile_read4((uint16_t)(patch_slot((uint16_t)node*182u+(at>>1))+(at&1u)*4u),o);}
+  return;
+ }
+ eg_land_at(p,x,y,o);
+}
+/* A conservative column envelope proves whole empty packets without querying
+ * the same exterior abyss four times. Mixed/uncertain packets use eg_land_at. */
+uint8_t eg_land_void4(const eg_land *p,uint8_t x,uint8_t y) EG_BANKED {
+ uint8_t packet[9],k,u=p->vertical ? y : x,v=p->vertical ? x : y;
+ if(x>=p->width || y>=p->height)return 1u;
+ CRITICAL {profile_get(0x4200u,packet);}
+ if(packet[0]!=0xe7u || packet[1]!=0x36u || packet[2]!=(uint8_t)p->seed || packet[3]!=(uint8_t)(p->seed>>8) || packet[4]!=EL_CROSS(p) || packet[5]!=p->shape || u>=128u)return 0u;
+ CRITICAL {profile_get((uint16_t)(0x4400u+(uint16_t)(u>>2)*9u),packet);}
+ if(p->vertical){k=u&3u;return (uint8_t)(v>packet[4u+k] || (uint16_t)v+3u<packet[k]);}
+ for(k=0u;k<4u;k++)if(v>=packet[k] && v<=packet[k+4u])return 0u;
+ return 1u;
+}
+#endif

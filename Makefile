@@ -32,7 +32,7 @@ SRC += src/core/eg_view.c src/view_cache.c
 SRC += src/gen/world_art.c
 SRC += src/world.c src/core/eg_land.c src/core/eg_land_bind.c
 SRC += src/world_dead.c src/core/eg_land_dead.c
-SRC += src/world_play.c
+SRC += src/world_play.c src/world_warm.c
 SRC += src/ui.c src/bench.c src/inventory.c src/collection.c
 SRC += src/core/eg_catalogue.c src/core/eg_bag.c src/core/eg_collection.c
 SRC += src/companion.c src/health.c src/core/eg_pet.c src/core/eg_pet_bag.c src/core/eg_health.c src/core/eg_journal_patch.c
@@ -72,8 +72,11 @@ endif
 CFLAGS := -c -Isrc -Wf--Werror -Wf--disable-warning -Wf110 -Wf--disable-warning -Wf126
 # Native simulation/rendering spends the frame budget here. Prefer SDCC's
 # faster instruction choices; generated art/data keep their normal build.
-HOT_SRC := play player actors grid mob mob_draw sprites look stage fx heir hud puzzle world_play core/eg_input core/eg_move core/eg_combat core/eg_stamina core/eg_land companion health elements inventory catalogue_fusion core/eg_pet core/eg_pet_bag core/eg_health core/eg_catalogue core/eg_bag core/eg_journal_patch
+HOT_SRC := play player actors grid mob mob_draw sprites look stage fx heir hud puzzle world_play world_warm core/eg_input core/eg_move core/eg_combat core/eg_stamina core/eg_land companion health elements inventory catalogue_fusion core/eg_pet core/eg_pet_bag core/eg_health core/eg_catalogue core/eg_bag core/eg_journal_patch
+HOT_SRC += core/eg_land_bind
 $(addprefix build/obj/,$(addsuffix .o,$(HOT_SRC))) build/obj-mbc5/resume.o build/obj-mbc3/resume.o: CFLAGS += -Wf--opt-code-speed
+# Spend compiler time on the two terrain hot paths rather than display time.
+build/obj/core/eg_land.o build/obj/core/eg_land_bind.o build/obj/world_play.o build/obj/companion.o: CFLAGS += -Wf--max-allocs-per-node -Wf100000
 # RAM + battery, CGB only, 2 MiB declared (trimmed afterwards), 8 KiB SRAM declared on both mappers. Autobank stops at
 # bank 114: bank 115 would end past the 1,900,000-byte gate. MBC3 addresses 128 banks of 16 KiB, so the same gate holds.
 LDFLAGS := -Wm-yC -Wm-ya1 -Wm-yo128 -autobank -Wb-ext=.rel -Wb-max=114 -Wl-j -Wl-m

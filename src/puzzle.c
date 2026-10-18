@@ -89,7 +89,7 @@ void puzzle_pick(uint8_t cell) BANKED {
   tutorial_queue(TE_BENCH);
   uint8_t p = eg_item_at(&room, cell);
   if (!p) return;
-  if (pocket_n >= POCKET_CAP) { hud_msg("SATCHEL FULL: USE IT"); return; }
+  if (pocket_n >= POCKET_CAP) { if(cell!=pl_cell)hud_msg("SATCHEL FULL: USE IT"); return; }
   if(!pocket_add(p))return;
   hud_dirty=1u;
   room.c[cell] = T_EMPTY;

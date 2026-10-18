@@ -19,6 +19,8 @@
 #include "core/eg_piece.h"
 #include "stage.h" /* B2 */
 #include "companion.h"
+#include "world.h"
+#include "world_play.h"
 
 #pragma bank 255
 
@@ -287,6 +289,9 @@ static void hud_vbl(void) NONBANKED NAKED {
 typedef char hud_native_layout[(LOOK_PAL_HUD==5u && LOOK_PAL_OBJ==6u && HUD_Y==128u && TOAST_Y==120u) ? 1 : -1];
 
 void hud_tick(void) BANKED {
+  /* Preserve the completed HUD for the atomic map-transfer frame. Counters
+   * and expiring captions publish on the next ordinary gameplay tick. */
+  if(!bench_on && world_on && world_moved)return;
   if(shown_stamina!=stamina.value || shown_cap!=stamina.cap) charge_n();
   if(narr_t && !--narr_t)draw_tool();
   if (msg_t && !--msg_t) hud_layout(0);

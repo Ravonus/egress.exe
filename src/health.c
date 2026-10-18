@@ -17,10 +17,15 @@ void health_reset(void) BANKED {
  for(i=0u;i<EG_N && n<4u;i++)if(EG_HEALTH(room.c[i]))health_cell[n++]=i;
 }
 void health_shift_view(int8_t dx,int8_t dy) BANKED {
- uint8_t k,c,n=0u,start=dx ? (dx>0 ? 12u : 0u) : (dy>0 ? 160u : 0u);
+ uint8_t k,c,at,n=0u,start=dx ? (dx>0 ? 12u : 0u) : (dy>0 ? 160u : 0u);
+ uint8_t mask=dx ? 15u : 255u,lo=dx ? (dx>0 ? 4u : 0u) : (dy>0 ? 64u : 0u);
+ uint8_t hi=dx ? (dx>0 ? 16u : 12u) : (dy>0 ? 224u : 160u),delta=dx ? (uint8_t)dx : (uint8_t)(dy*16);
+ if(!dx && !dy)return;
  for(k=0u;k<4u;k++){
   c=health_cell[k];if(c>=EG_N)continue;
-  c=eg_view_rebase(c,dx,dy);
+  /* The view moves exactly four cells on one axis. Retained medicine uses
+   * the same bounded coordinate transform without four far helper calls. */
+  at=c&mask;if(at<lo || at>=hi)continue;c=(uint8_t)(c-delta);
   if(c<EG_N && EG_HEALTH(room.c[c]))health_cell[n++]=c;
  }
  for(k=n;k<4u;k++)health_cell[k]=255u;
