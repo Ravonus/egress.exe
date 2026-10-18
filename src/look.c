@@ -290,11 +290,16 @@ static void roam_probe(uint8_t i) {
 void look_roam_tick(void) BANKED {
   uint8_t k,i,probes,c,vertical,limit,a,b,cross;int8_t dx,dy;
   if(!roam_on || pl_state==PS_FALL || pl_state==PS_EXIT) return;
+  /* Low bits are the last camera direction; spare high bits hold eight
+   * recent-reversal ticks. Early preparation must not count the tick twice. */
+  if(roam_late && (roam_dir&0xf0u))roam_dir=(uint8_t)(roam_dir-16u);
   dx=cam_x>roam_x ? 1 : cam_x<roam_x ? -1 : 0;
   dy=cam_y>roam_y ? 1 : cam_y<roam_y ? -1 : 0;
   if(dx || dy) {
     roam_left=EG_N;
-    roam_dir=(uint8_t)((dx>0 ? J_RIGHT : dx<0 ? J_LEFT : 0u)|(dy>0 ? J_DOWN : dy<0 ? J_UP : 0u));
+    c=(uint8_t)((dx>0 ? J_RIGHT : dx<0 ? J_LEFT : 0u)|(dy>0 ? J_DOWN : dy<0 ? J_UP : 0u));
+    k=(uint8_t)((dx>0 ? J_LEFT : dx<0 ? J_RIGHT : 0u)|(dy>0 ? J_UP : dy<0 ? J_DOWN : 0u));
+    roam_dir=(uint8_t)(c|((roam_dir&k) ? 0x80u : roam_dir&0xf0u));
   }
   roam_x=cam_x;roam_y=cam_y;
 
@@ -886,6 +891,8 @@ static uint8_t ground_ahead(uint8_t essential) {
    * ordinary incoming-column sweep no longer visits that slab. Reuse the
    * same two-anchor allowance to finish pooled cards before the next eased
    * camera step can carry them through the inner edge of the 24px band. */
+  wide=(uint8_t)((dx>0 ? J_LEFT : dx<0 ? J_RIGHT : 0u)|(dy>0 ? J_UP : dy<0 ? J_DOWN : 0u));
+  if((roam_dir&wide) || (roam_dir&0xf0u))
   for(k=0u;k<LOOK_MAX_CARDS && n<2u;k++)if(c_kind[k] && !c_brk[k]) {
     c=c_cell[k];x=(int16_t)(EG_X(c)<<4)-cam_x;y=(int16_t)(EG_Y(c)<<4)-cam_y;
     if(x<143 && x+16>17 && y<111 && y+16>17 &&
