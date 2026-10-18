@@ -13,9 +13,6 @@ extern eg_mover_t pmv;
 extern volatile uint8_t video_epoch;
 extern uint8_t frame_epoch;
 uint8_t player_portal_pending(void) BANKED;
-void world_warm_reset(void) BANKED;
-void world_warm_tick(void) BANKED;
-void world_warm_end(void) BANKED;
 uint8_t eg_land_void4(const eg_land *p,uint8_t x,uint8_t y) BANKED;
 void eg_land_cached_at(const eg_land *p,uint8_t x,uint8_t y,eg_land_cell *out) BANKED;
 typedef struct {int8_t dir;uint8_t n,part,bg,save;} preparation;
@@ -62,7 +59,6 @@ uint8_t world_work_pending(void) BANKED {
 }
 void world_play_reset(void) BANKED {
   memset(&px,0,sizeof px);memset(&py,0,sizeof py);turn=told=world_moved=0u;world_seams=0u;
-  world_warm_reset();
   if(world_on) {
     room_origin_x=world_view.x;room_origin_y=world_view.y;room_width=world_view.width;room_height=world_view.height;
     grid_shift_view(0,0);
@@ -305,7 +301,7 @@ void world_prefetch(void) BANKED {
    * that finishing allowance while the player waits for this transfer. */
   if((axes==1u && px.dir && px.n==14u && mx<48u && (px.bg!=56u || px.save<14u)) ||
      (axes==2u && py.dir && py.n==16u && my<48u && (py.bg!=64u || py.save<16u)))return;
-  if((!px.dir || px.n==14u) && (!py.dir || py.n==16u)){world_warm_tick();return;}
+  if((!px.dir || px.n==14u) && (!py.dir || py.n==16u)){return;}
   /* Finish both started strips across a direction change. New orthogonal
    * preparations still require movement on that axis (wanted() above). */
   if(axes==3u)axes=my<32u && my<mx ? 2u : mx<32u && mx<=my ? 1u : 3u;
@@ -325,7 +321,6 @@ void world_prefetch(void) BANKED {
       else generate_one(&px,0u,world_pre_x,deadline);
     }
   }
-  world_warm_tick();
 }
 void world_frame_end(void) BANKED {
   uint8_t n,did,axis;
@@ -370,5 +365,4 @@ void world_frame_end(void) BANKED {
   /* A newly approached apparatus may compose a full HUD row. Keep that
    * pending until it fits after the outgoing-strip work above. */
   if(!bench_on && spare(100u))goal_hint();
-  if((!px.dir || px.n==14u) && (!py.dir || py.n==16u))world_warm_end();
 }

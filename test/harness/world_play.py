@@ -50,9 +50,14 @@ class WorldPlayer:
         self.pixels=Pixels(g,rom) if rom is not None else None
         self.meter=OamMeter(g);self.grid=GridObserver(g);self.look_window=LookWindow(g)
         self.tick0=g.tick;g.tick=self.tick
+        self.runtime_tile_queries=0
+        at=g.sym['_eg_land_cached_at'];g.pb.hook_register(at>>16,at&65535,self.tile_query,None)
         at=g.sym['_frame_wait'];g.pb.hook_register(at>>16,at&65535,self.completed,None)
         g.pb.memory[1,0xde78:0xde98]=[0xa7]*32
         self.observe()
+    def tile_query(self,_):
+        if self.monitor and self.g.peek('game_mode')==2 and self.g.peek('floor_no')==self.floor:
+            self.runtime_tile_queries+=1
     def xy(self,u,v):return (v,u) if self.vertical else (u,v)
     def raw_pos(self):
         g=self.g
@@ -272,6 +277,7 @@ class WorldPlayer:
                 'view':list(g.pb.memory[g.addr('world_view'):g.addr('world_view')+4]),
                 'camera':[g.peek('cam_x'),g.peek('cam_y')],
                 'incoming_pit_presentation_checks':self.pit_checks,
+                'runtime_default_tile_queries':self.runtime_tile_queries,
                 'maximum_pending_terrain':self.pool_peak,'maximum_animated_cards':self.live_peak,
                 'maximum_stream_wait_frames':self.stream_wait_max,'total_stream_wait_frames':self.stream_wait_total,
                 'stream_wait_samples':self.stream_wait_samples,
@@ -295,7 +301,18 @@ def run(rom,out,tool,seeds,rule=None,size=None,biome=0,floor=7,pet=0):
         if rule is not None:
             assert g.wait_mode(1,1500)
             g.poke('dbg_world_rule',rule+1);g.poke('dbg_world_size',0 if size is None else size+1);g.poke('dbg_world_biome',biome)
+        entries=[];loading_frames=[]
+        def beginning(_):entries.append(g.frames)
+        def loading_frame(_):
+            if g.peek('game_mode')==3 and g.peek('world_on'):
+                loading_frames.append(g.frames)
+                if len(loading_frames)==3:g.shot(case/'loading.png')
+        enter=g.sym['_world_begin'];wait=g.sym['_frame_wait']
+        g.pb.hook_register(enter>>16,enter&65535,beginning,None)
+        g.pb.hook_register(wait>>16,wait&65535,loading_frame,None)
         assert start_run(g,True,True,seed=seed,floor=floor);assert g.peek('world_on')
+        preparation_frames=g.frames-40-entries[-1]
+        g.pb.hook_deregister(enter>>16,enter&65535);g.pb.hook_deregister(wait>>16,wait&65535)
         patterns=set()
         if pet:
             hp=[8,6,6,14,7,7,16,9,10,6,8,7][pet-433]
@@ -309,6 +326,8 @@ def run(rom,out,tool,seeds,rule=None,size=None,biome=0,floor=7,pet=0):
         p=WorldPlayer(g,tool,rom);p.out=case
         try:
             g.tick(160);g.shot(case/'start.png');won=p.solve(case);r=p.report();r['solved']=won;r['seed']=seed
+            r['stage_preparation_frames']=preparation_frames
+            r['loading_progress_visible']=len(loading_frames)>=3 and (case/'loading.png').exists()
             if pet:
                 r['companion']={'id':pet,'health_preserved':g.peek16('companion')==pet and g.peek('companion',8)==hp,'poses':len(patterns)}
                 r['solved'] &= r['companion']['health_preserved'] and len(patterns)>=3 and r['windows']>1
@@ -324,6 +343,8 @@ def run(rom,out,tool,seeds,rule=None,size=None,biome=0,floor=7,pet=0):
                r['grid']['all_map_and_attributes_match'] and
                r['presentation_window']['all_cards_spans_queues_and_bitmaps_match'] and
                r['presentation_window']['native_transfers']==r['seams'] and
+               r['runtime_default_tile_queries']==0 and
+               0<r['stage_preparation_frames']<=1200 and r['loading_progress_visible'] and
                r['maximum_stream_wait_frames']<=12 for r in reports)
 
 if __name__=='__main__':

@@ -30,7 +30,6 @@
 #include "health.h"
 void sprites_budget(void) NONBANKED;
 uint8_t heir_cache_flush(void) BANKED;
-void world_warm_tick(void) BANKED;
 extern volatile uint8_t video_epoch;
 extern uint8_t frame_epoch;
 
@@ -270,7 +269,6 @@ static void assemble_wait(void) {
     frame_wait();
     look_tick();
     sound_tick();
-    if(world_on)world_warm_tick();
     input_poll();
     draw_sprites();
   }

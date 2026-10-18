@@ -189,6 +189,12 @@ void hud_msg_w(void) BANKED {
     msg_t = 1u; /* closes on the next tick */
     return;
   }
+  /* Pickup/save work can finish late in a streamed frame. Keep the copied
+   * caption and compose it in the next early HUD turn, before more terrain
+   * is admitted. Normal captions use 1..150; 255 is a pending publication. */
+  if(game_mode==MODE_PLAY && world_on && !bench_on && LY_REG>=72u && LY_REG<144u) {
+    msg_t=255u;return;
+  }
   if (!top) hud_layout(1u);
   else memset(sh[0], BT_FONT, 20);
   hud_text((uint8_t)((20u - (n > 20u ? 20u : n)) >> 1), 0, s);
@@ -292,6 +298,7 @@ void hud_tick(void) BANKED {
   /* Preserve the completed HUD for the atomic map-transfer frame. Counters
    * and expiring captions publish on the next ordinary gameplay tick. */
   if(!bench_on && world_on && world_moved)return;
+  if(msg_t==255u){hud_msg_w();if(msg_t==255u)return;}
   if(shown_stamina!=stamina.value || shown_cap!=stamina.cap) charge_n();
   if(narr_t && !--narr_t)draw_tool();
   if (msg_t && !--msg_t) hud_layout(0);
