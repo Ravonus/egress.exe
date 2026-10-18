@@ -24,9 +24,54 @@ from __future__ import annotations
 
 import re
 import sys
+import os
+import json
+import hashlib
+import tempfile
+from functools import lru_cache
 from pathlib import Path
 
 GBDK = Path.home() / ".cache/gbdk-4.5.0"
+@lru_cache(maxsize=4)
+def artifact_files(name: str) -> dict:
+    data=json.loads(Path(name).read_text())
+    if data.get('format')!=1 or not isinstance(data.get('files'),dict):
+        raise ValueError('invalid linked-artifact manifest')
+    return data['files']
+
+def linked_file(path: Path) -> Path:
+    """An explicit hash manifest relocates copied links, never guesses a SDK."""
+    name=os.environ.get('EGRESS_MAPPER_MANIFEST')
+    if not name:return path
+    files=artifact_files(name)
+    if str(path) not in files:raise ValueError('unrecorded linked input: '+str(path))
+    row=files[str(path)];rel=Path(row['path'])
+    if rel.is_absolute() or '..' in rel.parts:raise ValueError('linked input leaves its artifact snapshot')
+    local=Path(name).resolve().parent/rel
+    if hashlib.sha256(local.read_bytes()).hexdigest()!=row['sha256']:
+        raise ValueError('linked input hash mismatch: '+str(path))
+    return local
+
+def relocation_self_test() -> None:
+    previous=os.environ.get('EGRESS_MAPPER_MANIFEST')
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);sample=root/'sample.o';sample.write_bytes(b'exact linked bytes')
+            manifest=root/'manifest.json';origin=Path('/build-host/gbdk/lib/gb/crt0.o')
+            manifest.write_text(json.dumps({'format':1,'files':{str(origin):{'path':'sample.o','sha256':hashlib.sha256(sample.read_bytes()).hexdigest()}}}))
+            os.environ['EGRESS_MAPPER_MANIFEST']=str(manifest)
+            assert linked_file(origin).read_bytes()==b'exact linked bytes'
+            sample.write_bytes(b'wrong linked bytes')
+            try:linked_file(origin)
+            except ValueError:pass
+            else:raise AssertionError('changed linked input accepted')
+            try:linked_file(Path('/unknown/library.o'))
+            except ValueError:pass
+            else:raise AssertionError('unrecorded linked input accepted')
+    finally:
+        if previous is None:os.environ.pop('EGRESS_MAPPER_MANIFEST',None)
+        else:os.environ['EGRESS_MAPPER_MANIFEST']=previous
+        artifact_files.cache_clear()
 SYMS = {"_rRAMG": 0x0000, "_rROMB0": 0x2000, "_rROMB1": 0x3000, "_rRAMB": 0x4000}
 NAMES = [(0x2000, "RAM enable"), (0x3000, "ROM bank"), (0x4000, "ROM bank bit 8"), (0x6000, "RAM bank / RTC select"),
          (0x8000, "RTC latch")]
@@ -225,12 +270,13 @@ def modules(map_path: Path) -> tuple[list[Path], list[tuple[Path, str]]]:
 
 def audit(map_path: Path) -> int:
     mbc3 = "mbc3" in map_path.name
-    own, libs = modules(map_path)
+    own, libs = modules(linked_file(map_path))
     rows = []
     for asm in own:
-        rows += [(w, v, s, asm.stem) for w, v, s in scan_asm(asm)]
+        rows += [(w, v, s, asm.stem) for w, v, s in scan_asm(linked_file(asm))]
     cache: dict[Path, dict[str, bytes]] = {}
     for lib, member in libs:
+        lib=linked_file(lib)
         if member:
             body = cache.setdefault(lib, ar_members(lib))[member]
             label = f"{lib.name}:{member}"
@@ -253,6 +299,7 @@ def audit(map_path: Path) -> int:
 
 
 def self_test() -> int:
+    relocation_self_test()
     """the scanners must see the writes they are for: an MBC5 high-bit write, a latch, and the library trampolines"""
     import tempfile
     with tempfile.TemporaryDirectory() as d:

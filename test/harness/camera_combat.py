@@ -70,6 +70,20 @@ def run(rom,out,measure=False,pet=0):
         g.hold(aim|{'a' if turn%2 else 'b'} if live else {'a' if turn%2 else 'b'});g.tick(2)
         g.hold(aim if live else set());g.tick(26)
         if turn%4==3:g.hold({'a'});g.tick(34);g.hold(set());g.tick(25)
+    combat_frames=len(fc)
+    if grid.calls<=20:
+        # Actor-first scheduling can leave the already-built arena unchanged
+        # during the fight. Keep the original map-write coverage threshold:
+        # clear the real waves, then traverse the recovering camera rim.
+        from procedural_runs import fight
+        for _ in range(32):
+            if g.peek('stage_won'):break
+            if g.peek('enemies_alive'):assert fight(g,log),'survival enemies must be defeated by real attacks'
+            else:g.hold(set());g.tick(30)
+        assert g.peek('stage_won'),'terrain recovery follows actual survival victory'
+        for target in (163,172,131,140)*3:
+            walk(g,target,log);g.hold(set());g.tick(24)
+            if grid.calls>20:break
     spans=[(fc[i]-fc[i-120])&65535 for i in range(120,len(fc))]
     windows=[epochs[i]-epochs[i-120] for i in range(120,len(epochs))]
     r={'real_wave_mobs_present':max_alive>=2,'both_action_buttons_used':5 in moves and 11 in moves,
@@ -83,6 +97,8 @@ def run(rom,out,measure=False,pet=0):
     # A line-zero sample may precede/follow ISR return, pairing a raw 0/2.
     # Require complete updates at the real VBlank epoch, including deadlines.
     report['partial_emitted_poses']=partial[:20]
+    report['initial_combat_frames']=combat_frames
+    report['additional_victory_and_terrain_frames']=len(fc)-combat_frames
     report['raw_counter_minimum_at_lcd_boundary']=report['minimum_game_frames_per_120']
     report['minimum_game_frames_per_120']=min(windows) if windows else None
     report['vblank_span_for_120_completed_updates']=[min(windows),max(windows)] if windows else None
