@@ -133,7 +133,7 @@ void orbs_update(void) BANKED {
     ox = (uint8_t)(((uint8_t)x>>4)|((uint8_t)(x>>8)<<4));
     oy = (uint8_t)(((uint8_t)y>>4)|((uint8_t)(y>>8)<<4));
     t = cell_type(cell_at(ox, oy));
-    if (!--o->life || t == T_WALL || t == T_ROCK || t == T_BRICK || t == T_DOOR) {
+    if (!--o->life || t == T_WALL || t == T_ROCK || t == T_BRICK || t == T_DOOR || t==T_PAPER) {
       o->live = 0;
       puff(ox, oy, 5, ST_PUFF);
       continue;

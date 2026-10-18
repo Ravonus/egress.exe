@@ -157,6 +157,7 @@ static void effects(int8_t dx,int8_t dy) {
   uint8_t k;int16_t x,y;
   if(orbs[0].live|orbs[1].live|orbs[2].live|orbs[3].live|orbs[4].live|orbs[5].live|orbs[6].live|orbs[7].live)
   for(k=0u;k<MAXO;k++)if(orbs[k].live) {
+    if(orbs[k].live==4u)continue; /* environmental fields use global cells */
     x=(int16_t)orbs[k].x-(int16_t)dx*256;y=(int16_t)orbs[k].y-(int16_t)dy*256;
     if((uint16_t)x>=4096u || (uint16_t)y>=3584u)orbs[k].live=0u;
     else {orbs[k].x=(uint16_t)x;orbs[k].y=(uint16_t)y;}
@@ -178,10 +179,10 @@ static uint8_t ready(preparation *p,uint8_t vertical) {
   if(!vertical && !portal && py.dir && (pl_y<80u || pl_y>144u) &&
      (p->dir>0 ? position<208u : position>48u))return 0u;
   return p->dir && p->n==(vertical ? 16u : 14u) && p->bg==(vertical ? 64u : 56u) &&
-    world_binding_ready(vertical ? 0 : p->dir*4,vertical ? p->dir*4 : 0) &&
-    world_preserved(vertical ? 0 : p->dir,vertical ? p->dir : 0) &&
     (toward || portal || (p->dir>0 ? position>=(vertical ? 208u : 240u) : position<=16u)) &&
-    (p->dir>0 ? (position>=(vertical ? 144u : 160u) && cam>=64u) : (position<=96u && cam<=32u));
+    (p->dir>0 ? (position>=(vertical ? 144u : 160u) && cam>=64u) : (position<=96u && cam<=32u)) &&
+    world_binding_ready(vertical ? 0 : p->dir*4,vertical ? p->dir*4 : 0) &&
+    world_preserved(vertical ? 0 : p->dir,vertical ? p->dir : 0);
 }
 uint8_t world_frame_begin(void) BANKED {
   int8_t dx=0,dy=0;
@@ -215,6 +216,9 @@ uint8_t world_frame_begin(void) BANKED {
     else if(ready(&py,1u))dy=(int8_t)(py.dir*4);
     else {bind_requested();return 0u;}
   }
+  /* Readiness checks can themselves cross the short VBlank. Recheck at the
+   * actual commit, before any room, camera or companion coordinates change. */
+  if(LY_REG<144u)return 0u;
   if(!world_shift_prepared(dx,dy))return 0u;
   retained=dx ? py : px;
   room_origin_x=world_view.x;room_origin_y=world_view.y;

@@ -7,6 +7,7 @@
 #include "look.h"
 #include "puzzle.h"
 #include "world.h"
+#include "gen/world_art.h"
 extern uint8_t floor_has_crt;
 
 #pragma bank 255
@@ -100,6 +101,10 @@ static void enqueue(uint8_t i) NONBANKED {
   if ((uint8_t)(cq_head - cq_tail) > 64u) cq_tail = (uint8_t)(cq_head - 64u);
 }
 void queue_cell(uint8_t i) NONBANKED {
+  /* A connected paper reaction may also burn a planted tree. Keep its ash
+   * in the same packet as a direct environmental burn. */
+  if(look_skin[i]==M_WORLD_FERN1+1u && cell_type(i)!=T_PAPER && cell_type(i)!=T_DIRT)
+    look_skin[i]=cell_type(i)==T_EMPTY ? M_WORLD_FLOWER1+1u : 0u;
   if(world_on) {world_clean_skin(i);world_touch(i);}
   if(cell_type(i)==T_ROCK)floor_has_crt=1u;
   enqueue(i);

@@ -13,6 +13,7 @@
 #include "heir.h"
 #include "gen/eg_seeds.h"
 #include "look.h"
+#include "gen/world_art.h"
 #include "stage.h"       /* B2 */
 #include "stage_spawn.h" /* B2 */
 #include "boss_api.h" /* B2 bosses */
@@ -189,6 +190,7 @@ static void floor_show(void) {
   look_load(world_on ? world_plan.biome : BIOME_OFFICE);
   stage_show(); /* B2: the stage's cards and skins */
   if(world_on)world_show();
+  else environment_art_load(meta_pal,&meta_tile[0][0]);
   camera(1);
   look_roam_begin((uint8_t)(!boss_floor && stage_type!=SG_DARK && stage_type!=SG_CHASE));
   look_assemble(room.start);

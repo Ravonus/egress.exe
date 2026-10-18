@@ -11,6 +11,8 @@ void world_show(void) BANKED;
 void world_bind(void) BANKED;
 uint8_t world_read(void *ctx,uint8_t x,uint8_t y) NONBANKED;
 uint8_t world_write(uint8_t x,uint8_t y,uint8_t material) NONBANKED;
+uint8_t world_read_skin(uint8_t x,uint8_t y) BANKED;
+uint8_t world_write_skin(uint8_t x,uint8_t y,uint8_t material,uint8_t skin) BANKED;
 uint8_t world_cached(uint8_t x,uint8_t y) NONBANKED;
 void world_cache_load(void *ctx,uint8_t x,uint8_t y,uint8_t *packet) NONBANKED;
 void world_mark_cached(uint8_t x,uint8_t y) NONBANKED;

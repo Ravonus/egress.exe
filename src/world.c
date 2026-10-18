@@ -119,8 +119,9 @@ uint8_t world_skin(uint8_t design,uint8_t variant) NONBANKED {
 }
 static uint8_t skin_ok(uint8_t skin,uint8_t type) NONBANKED {
   if(!skin)return 1u;skin--;
-  if(skin==M_WORLD_FERN0 || skin==M_WORLD_FERN1 || skin==M_WORLD_FLOWER0 || skin==M_WORLD_FLOWER1 ||
-     skin==M_WORLD_REED0 || skin==M_WORLD_REED1)return type==T_DIRT;
+  if(skin==M_WORLD_FERN1)return type==T_DIRT || type==T_PAPER;
+  if(skin==M_WORLD_FERN0 || skin==M_WORLD_FLOWER0 || skin==M_WORLD_FLOWER1)return type==T_DIRT || type==T_EMPTY;
+  if(skin==M_WORLD_REED0 || skin==M_WORLD_REED1)return type==T_DIRT;
   if(skin==M_WORLD_PROP0 || skin==M_WORLD_PROP1)return type==T_EMPTY;
   if(skin==M_WORLD_RIVER0 || skin==M_WORLD_RIVER1 || skin==M_WORLD_FALL0 || skin==M_WORLD_FALL1)return type==T_WATER;
   return 1u;
@@ -180,6 +181,20 @@ uint8_t world_write(uint8_t x,uint8_t y,uint8_t material) NONBANKED {
   view_store(0,(uint8_t)(x&252u),y,eg_window_packet);
   if(EG_CRATE(material) || (material&T_MASK)==T_ROCK || (material&F_OB))note_weight(x,y);
   return EG_LINK_NONE;
+}
+uint8_t world_read_skin(uint8_t x,uint8_t y) BANKED {
+  uint8_t c;
+  if(!world_on)return x<EG_W && y<EG_H ? look_skin[EG_IDX(x,y)] : 0u;
+  if(x>=world_view.width || y>=world_view.height)return 0u;
+  c=local(x,y);if(c<EG_N)return look_skin[c];
+  world_cache_load(0,(uint8_t)(x&252u),y,eg_window_packet);return eg_window_packet[(x&3u)+4u];
+}
+uint8_t world_write_skin(uint8_t x,uint8_t y,uint8_t material,uint8_t skin) BANKED {
+  uint8_t c=world_write(x,y,material);
+  if(c<EG_N){look_skin[c]=skin;if(world_on)world_touch(c);return c;}
+  if(!world_on || x>=world_view.width || y>=world_view.height)return EG_LINK_NONE;
+  world_cache_load(0,(uint8_t)(x&252u),y,eg_window_packet);eg_window_packet[(x&3u)+4u]=skin;
+  view_store(0,(uint8_t)(x&252u),y,eg_window_packet);return EG_LINK_NONE;
 }
 void world_bind(void) BANKED {eg_land_bind(&world_plan,&world_view,&room,world_latched,read_link,0);eg_plates_dirty=1u;}
 static uint8_t origin(uint8_t cell,uint8_t span,uint8_t size) {
@@ -278,6 +293,10 @@ uint8_t world_shift_data(int8_t dx,int8_t dy) BANKED {
 uint8_t world_shift_prepared(int8_t dx,int8_t dy) BANKED {
   uint8_t k;
   if(!world_on || !world_preserved(dx,dy) || !world_binding_ready(dx,dy))return 0u;
+  /* Validate the display deadline after the variable certificate checks,
+   * immediately before the atomic copy. The standalone geometry API keeps
+   * its unrestricted behavior outside active gameplay. */
+  if(game_mode==MODE_PLAY && LY_REG<144u)return 0u;
   if(!eg_view_shift_prepared(&world_view,&room,look_skin,cracked,dx,dy))return 0u;
   binding_valid=0u;
   /* Preserved overlap stays identical to its backing packet. Retain those

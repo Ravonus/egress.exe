@@ -19,7 +19,9 @@ static uint8_t skin_of(uint8_t design,uint8_t variant) {
 }
 static uint8_t clean(uint8_t s,uint8_t raw) {
   unsigned t=raw&31u;if(!s)return s;s--;
-  if(s==31 || s==33 || s==35 || s==38 || s==39 || s==40)return t==T_DIRT ? s+1 : 0;
+  if(s==33)return t==T_DIRT || t==T_PAPER ? s+1 : 0;
+  if(s==31 || s==35 || s==38)return t==T_DIRT || t==T_EMPTY ? s+1 : 0;
+  if(s==39 || s==40)return t==T_DIRT ? s+1 : 0;
   if(s==41 || s==42)return t==T_EMPTY ? s+1 : 0;
   if(s>=43 && s<=46)return t==T_WATER ? s+1 : 0;
   return s+1;

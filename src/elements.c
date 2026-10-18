@@ -16,11 +16,19 @@
 #include "oam.h"
 #include "resume.h"
 #include "narrator.h"
+#include "world.h"
+#include "gen/world_art.h"
+#include "core/eg_environment.h"
 extern eg_mover_t pmv;
+extern volatile uint8_t video_epoch;
+extern uint8_t frame_epoch;
 uint8_t __at(0xDDEE) elemental_active;
 uint8_t __at(0xDDEF) elemental_ward;
 static const int8_t dx[8]={0,1,1,1,0,-1,-1,-1},dy[8]={-1,-1,0,1,1,1,0,-1};
 static uint8_t kind(uint8_t p){return EG_PIECE_HOT(p) ? FX_HOT : p==P_WATER || p==P_RAIN || p==P_CLOUD ? FX_WET : p==P_ICE || p==P_SNOW ? FX_COLD : p==P_ELECTRIC ? FX_SHOCK : p==P_BRICK || p==P_EARTH || p==P_MUD ? FX_STONE : FX_MAGIC;}
+/* Environmental fields share the eight orb records. live=4 stores global
+ * cell coordinates, so a camera transfer cannot cancel or move a reaction. */
+#include "environment.inc"
 static uint8_t clear_line(uint8_t ax,uint8_t ay,uint8_t bx,uint8_t by){
  int8_t vx,vy;uint8_t k,t;int16_t x=ax,y=ay;
  eg_aim((int16_t)bx-ax,(int16_t)by-ay,8u,&vx,&vy);
@@ -33,6 +41,7 @@ static uint8_t clear_line(uint8_t ax,uint8_t ay,uint8_t bx,uint8_t by){
 }
 static uint8_t terrain(uint8_t p,uint8_t c){
  uint8_t occ[5],rx,k,n=4u;int16_t x,y;
+ int8_t env=elements_environment(0u,p,c,0u);if(env>=0)return (uint8_t)env;
  occ[0]=cell_at(pl_x-6u,pl_y-6u);occ[1]=cell_at(pl_x+5u,pl_y-6u);occ[2]=cell_at(pl_x-6u,pl_y+5u);occ[3]=cell_at(pl_x+5u,pl_y+5u);
  if(p==P_BRICK && companion.hp){x=(int16_t)pl_x+companion.ox;y=(int16_t)pl_y+companion.oy;if((uint16_t)x<256u && (uint16_t)y<224u)occ[n++]=cell_at((uint8_t)x,(uint8_t)y);}
  rx=eg_apply(&room,p,c,occ,n);if(!rx)return 0u;last_rx=rx;n=eg_ndirty;
@@ -52,7 +61,7 @@ uint8_t elements_target(uint8_t effect,uint8_t cell,uint8_t power,uint8_t radius
   if((uint16_t)absdiff(x,ex)+absdiff(y,ey)>range || !clear_line(pl_x,pl_y,ex,ey))continue;
   if(hit(k,effect,power,pl_x,pl_y)){ok=1u;n++;}
  }
- if(!ok && cell<EG_N)ok=terrain(effect,cell);return ok;
+ if(!ok && cell<EG_N){int8_t env=elements_environment(0u,effect,cell,radius);ok=env>=0 ? (uint8_t)env : terrain(effect,cell);}return ok;
 }
 void elements_use(void) BANKED {
  eg_item_profile p;uint8_t slot,k,ok=0u,range,c,who;int16_t x,y;orb_t *o;
@@ -65,6 +74,12 @@ void elements_use(void) BANKED {
   if(k==MAXO){sfx(SFX_DENY);hud_msg("WAIT: FIELD IS FULL");return;}
   o=&orbs[k];o->live=2u;o->friendly=(uint8_t)(128u|p.effect);o->pad=0u;o->life=56u;o->x=psx;o->y=psy;
   o->vx=dx[pmv.facing]*(pmv.facing&1u ? 17 : 24);o->vy=dy[pmv.facing]*(pmv.facing&1u ? 17 : 24);elemental_active|=look_bits[k];ok=1u;
+ }else if(p.family==20u){
+  x=(int16_t)pl_x+dx[pmv.facing]*16;y=(int16_t)pl_y+dy[pmv.facing]*16;
+  if((uint16_t)x<256u && (uint16_t)y<224u){
+   int8_t env;c=cell_at((uint8_t)x,(uint8_t)y);env=elements_environment(p.family,p.effect,c,0u);
+   ok=env>=0 ? (uint8_t)env : elements_target(p.effect,c,p.power,p.radius,(uint8_t)x,(uint8_t)y);
+  }
  }else if(p.family==18u){
   who=eg_health_pickup(&pl_hp,pl_hp_max,&pl_quarter,&companion,(uint8_t)(2u+p.power));
   if(who){if(who==2u)pocket_pet_event(pet_instance,&companion,0u);else resume_damage();ok=1u;fx_burst(pl_x,pl_y,FX_ALIVE,4u);}
@@ -87,12 +102,16 @@ void elements_use(void) BANKED {
  fx_burst(pl_x,pl_y,kind(p.effect),2u);hud_msg(p.kind==CK_BOMB ? "FUSE LIT: STAND BACK" : p.kind==CK_TOOL ? "TOOL: RECHARGING" : "CRAFTED ELEMENT USED");
 }
 void elements_tick(void) BANKED {
- uint8_t k,j,c,effect,worked=0u,x,y,ex,ey,t;int16_t xx,yy,cx,cy;orb_t *o;
+ uint8_t k,j,scan,c,effect,worked=0u,x,y,ex,ey,t;int16_t xx,yy,cx,cy;orb_t *o;
  if(elemental_ward){elemental_ward--;if(!(frame_count&31u))fx_burst(pl_x,pl_y,FX_SHINY,1u);}
  if(!elemental_active)return;
- for(k=0u;k<MAXO;k++){
+ /* Rotate the one-transition allowance. A blocked growing tree must not
+  * starve a later flask or environmental field in the shared pool. */
+ for(scan=0u;scan<MAXO;scan++){
+  k=(uint8_t)((scan+(uint8_t)frame_count)&7u);
   if(!(elemental_active&look_bits[k]))continue;o=&orbs[k];
   if(!o->live || !(o->friendly&128u)){elemental_active&=(uint8_t)~look_bits[k];puzzle_dirty=1u;effect_n=128u;continue;}
+  if(o->live==4u){if(!worked){environment_step(o);worked=1u;}continue;}
   effect=o->friendly&31u;x=(uint8_t)(o->x>>4);y=(uint8_t)(o->y>>4);
   if(o->live==2u){
    if(o->life>32u){

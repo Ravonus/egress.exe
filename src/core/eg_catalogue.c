@@ -115,6 +115,7 @@ void eg_catalogue_hint(eg_item_id id,char *out) EG_BANKED {
   static const char hints[17][19]={"FIND MATERIALS","BURNS PAPER / ICE","DOUSES FIRE","PUSHES LIGHT BOXES","SLOWS A MOB","MIX / SHAPED WARD","MIX WITH METAL","WETS YOUR TARGET","FILLS SHALLOW GAPS","FREEZES WATER/MOBS","FREEZES WATER/MOBS","WEIGHS DOWN PLATES","POWERS WET WIRES","HOT MIST BLINDS","BURNS PAPER / ICE","DUST BLINDS A MOB","WETS YOUR TARGET"};
   uint8_t f=family(id);
   if(id>=EG_PETS_FIRST){copy(out,"SUMMON / COMMAND");return;}
+  if(f==20u){copy(out,"PLANT / WATER GROWS");return;}
   if(id>=EG_TOOLS_FIRST){copy(out,(f==17u || f==24u || f==5u) ? "BRIEF ELEMENT WARD" : f==18u ? "RESTORES HEALTH" : "FOCUSED ELEMENT");return;}
   if(id>=EG_BOMBS_FIRST){copy(out,"FUSE / AREA EFFECT");return;}
   if(f==18u){copy(out,"RESTORES HEALTH");return;}

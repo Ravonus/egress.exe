@@ -100,7 +100,7 @@ static uint8_t prepared_shift(int8_t dx,int8_t dy) {
   return wg_shift(dx,dy);
 }
 static void retained_certificates(void) {
-  int8_t dx,dy;uint8_t x,y,gx,gy,c,mask,byte,saved[9];uint16_t address;
+  int8_t dx,dy;uint8_t x,y,gx,gy,c,mask,byte,k,saved[9];uint16_t address;
   if(!world_begin(17u,5u,2u,0u)) {result[3]=13u;return;}
   dx=world_view.x+8u<=world_view.width-16u ? 4 : -4;
   dy=world_view.y<world_view.height-14u ? 4 : -4;
@@ -116,6 +116,14 @@ static void retained_certificates(void) {
   if(world_shift_data(dx,0) || memcmp(&room,output,320u) || memcmp(look_skin,output+320u,224u) ||
      memcmp(cracked,output+544u,28u) || memcmp(&world_view,output+572u,4u))result[3]=14u;
   CRITICAL {view_put9(address,saved);}
+  /* Paired environment edits must survive inactive packets across the WRAM
+   * row-bank boundary, without consulting default geometry again. */
+  gx=world_view.width-1u;
+  for(k=0u;k<3u;k++){
+    gy=k==0u ? 13u : k==1u ? 14u : world_view.height-1u;
+    (void)world_write_skin(gx,gy,T_EMPTY,(uint8_t)(M_WORLD_FERN0+1u+k));
+    if(world_read(0,gx,gy)!=T_EMPTY || world_read_skin(gx,gy)!=(uint8_t)(M_WORLD_FERN0+1u+k))result[3]=15u;
+  }
   x=dx>0 ? 4u : 11u;gx=world_view.x+x;gy=world_view.y+6u;c=EG_IDX(x,6u);mask=look_bits[c&7u];
   (void)world_write(gx,gy,T_DIRT);look_skin[c]=M_WORLD_FERN0+1u;room.prot[c>>3]|=mask;cracked[c>>3]|=mask;world_touch(c);
   for(y=0u;y<14u;y++)for(x=0u;x<16u;x+=4u)world_preserve(x,y);

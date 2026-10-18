@@ -305,7 +305,7 @@ static void hunt_tick(void) {
   else if (st_roll) st_roll--;
   /* its own orb, returned: a friendly orb close */
   for (k = 0; k != MAXO; k++)
-    if (orbs[k].live && orbs[k].friendly && absdiff((uint8_t)(orbs[k].x >> 4), ex) < 24u &&
+    if (orbs[k].live==1u && orbs[k].friendly && absdiff((uint8_t)(orbs[k].x >> 4), ex) < 24u &&
         absdiff((uint8_t)(orbs[k].y >> 4), ey) < 24u)
       near = 1u;
   st_near = near;

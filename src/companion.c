@@ -18,6 +18,7 @@
 #include "resume.h"
 #include "mapper.h"
 #include "save_map.h"
+#include "elements.h"
 extern eg_mover_t pmv;
 extern volatile uint8_t video_epoch;
 extern uint8_t frame_epoch;
@@ -157,6 +158,7 @@ static uint8_t puzzle_command(void){
  uint8_t c,rx,n,k,occ[4],f;int16_t x=(int16_t)EG_X(cell_at(pl_x,pl_y))+dirx[pmv.facing],y=(int16_t)EG_Y(cell_at(pl_x,pl_y))+diry[pmv.facing];eg_item_profile profile;
  if((uint16_t)x>=EG_W || (uint16_t)y>=EG_H)return 0u;
  eg_catalogue_profile(companion.id,&profile);f=profile.effect;c=EG_IDX((uint8_t)x,(uint8_t)y);
+ {int8_t env=elements_environment(profile.family,f,c,0u);if(env>=0)return (uint8_t)env;}
  occ[0]=cell_at(pl_x-6u,pl_y-6u);occ[1]=cell_at(pl_x+5u,pl_y-6u);occ[2]=cell_at(pl_x-6u,pl_y+5u);occ[3]=cell_at(pl_x+5u,pl_y+5u);
  rx=eg_apply(&room,f,c,occ,4u);if(!rx)return 0u;last_rx=rx;n=eg_ndirty;
  if(n>EG_DIRTY_MAX){for(k=0u;k<EG_N;k++)queue_cell(k);}else for(k=0u;k<n;k++)queue_cell(eg_dirty[k]);

@@ -188,6 +188,7 @@ static void collect(void) {
   uint8_t i = cell_at(pl_x, pl_y), t = cell_type(i);
   if (t == T_DIRT) {
     room.c[i] = T_EMPTY;
+    look_skin[i]=0u; /* clearing wild foliage must not create a planted seed */
     queue_cell(i);
     sfx(SFX_DIG);
     if (acts.dug != 255u) acts.dug++;

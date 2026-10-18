@@ -209,7 +209,7 @@ void puzzle_tool_use(void) BANKED {
   static const uint8_t cost[P_COUNT]={0u,12u,8u,10u,10u,12u,14u,10u,12u,14u,16u,16u,18u,12u,20u,8u,10u};
   static const int8_t dx[8]={0,1,1,1,0,-1,-1,-1},dy[8]={-1,-1,0,1,1,1,0,-1};
   uint8_t occ[4],n,here=cell_at(pl_x,pl_y),cell,k,slot,p=tool_piece,rx,nd;
-  uint8_t order[EG_DIRTY_MAX];
+  uint8_t order[EG_DIRTY_MAX];int8_t env;
   int16_t x=(int16_t)EG_X(here)+dx[pmv.facing],y=(int16_t)EG_Y(here)+dy[pmv.facing];
   if(tool_cd || pl_state!=PS_FREE || pl_air || freeze)return;
   if(tool_piece>=EG_PETS_FIRST){
@@ -236,6 +236,13 @@ void puzzle_tool_use(void) BANKED {
     narrator_event(NE_USE,(uint8_t)(p|(pocket_n==1u ? 128u : 0u)));
     pocket_take(slot);eg_stamina_spend(&stamina,cost[p]);tool_cd=24u;
     hud_msg("ELEMENT USED ON MOB");return;
+  }
+  env=elements_environment(0u,p,cell,0u);
+  if(env>=0){
+    if(!env){sfx(SFX_DENY);hud_msg("NO EFFECT: KEPT");return;}
+    cast_fx(p,(uint8_t)(EG_X(cell)*16u+8u),(uint8_t)(EG_Y(cell)*16u+8u));
+    pocket_take(slot);eg_stamina_spend(&stamina,cost[p]);tool_cd=24u;hud_dirty=puzzle_dirty=1u;
+    narrator_event(NE_USE,p);return;
   }
   n=body(occ);rx=eg_apply(&room,p,cell,occ,n);
   if(!rx) {narrator_event(NE_REFUSED,0u);sfx(SFX_DENY);hud_msg("NO EFFECT: KEPT");return;}
