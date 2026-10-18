@@ -4,6 +4,8 @@ Terrain cards now drop from above, settle, and fall downward at the trailing edg
 
 Speculative early terrain work also yields during a multi-target lash or spin. Native profiling found that a three-enemy charged swing could otherwise admit terrain work before the attack, projectiles and complete actor list consumed the remaining display time. Swept-foot protection and existing card animation remain active. Attack contact scans resolve their clipped tile rectangle once and invoke the wall-break handler only for actual bricks; the touched tile set and weapon reach are unchanged.
 
+Stage and boss victories unlock the door without composing a generic door toast immediately before their completion toast. This removes redundant HUD work on the heavy final-hit frame while retaining the final visible message, door sound and state.
+
 The old random rise/slide/glitch arrivals and generic flying-slab substitutions are removed. Cosmetic departures begin their downward flight immediately instead of waiting for a second crack-state BG transaction. Actual fragile surfaces retain their own cracking/shattering effects. Idle palette restoration no longer alternates between the terrain and combat palettes every other frame. Initial assembly, including a manual reset, runs in an explicit loading phase so a cold texture cannot stall behind the roaming upload deadline.
 
 The paused controls scene finishes presentation separately from active-play deadlines. Suspending a gravity or push turn can no longer reserve the BG budget indefinitely, strand queued cards and stop item idle uploads. The regression holds both physics counters fixed while checking all four native poses of every item card; presentation never advances those counters.
@@ -20,8 +22,27 @@ Focused native checks exercise ordinary opening fights, actual downward OBJ traj
 
 Quiet-room updates explicitly restore the early background-write budget after preparing the split combat path. This prevents a leaked late-phase flag from permanently starving the edge queue during camera travel and reversals. The travel fixture measures completed updates against VBlank epochs, including a no-late-update assertion, instead of relying on counter samples taken on either side of an interrupt.
 
-Stationary quiet-room queues also finish cold-card copies within a bounded early window, rotate one blocked retry and inspect up to four backing cells under the existing scanline cutoff. Moving, attacking, combat and streamed-world turns retain their original upload limits. Unchanged cells skip unnecessary banked geometry queries. A queued arrival abandoned by a camera reversal remains hidden instead of toggling back into grounded floor. Both mapper camera routes retain the original return-path, central visibility, motion and VBlank assertions.
+Stationary quiet-room queues also finish cold-card copies within a bounded early window, rotate one blocked retry and inspect up to four backing cells under the existing scanline cutoff. Office movement and combat retain their tighter upload allowance. Streamed worlds admit cold cards through line 32 when generation is suspended; while generation can run, a single resident card may launch or settle on alternate preparation ticks without a cold upload. Existing flights keep their per-frame animation. Unchanged cells skip unnecessary banked geometry queries. A queued arrival abandoned by a camera reversal remains hidden instead of toggling back into grounded floor. Both mapper camera routes retain the original return-path, central visibility, motion and VBlank assertions.
+
+The existing two-anchor allowance also catches pooled cards returning on a camera reversal before the next eased step exposes the central view. The ordinary incoming sweep still prepares new columns early.
+
+Vertical prefetch starts one tile earlier to finish its sixteen incoming packets before a sprinted turn reaches the swept-foot guard. Bench/apparatus hints and cosmetic glitch scans wait for sufficient display time after a seam. The collision beat still follows the current frame immediately, and a deferred hint remains pending.
+
+Streamed worlds reserve pickup, push and periodic narrator turns before speculative seed queries. Visible edge repair checks both imminent edges with direct bitmap scans and the existing two-anchor allowance, including the tick when generation finishes. The scanline admission runs after variable BG, audio and HUD work; prepared-strip binding retains an early allowance before further queries. The large-world observer checks completed updates against VBlank epochs and rejects late publication; raw counter samples remain available for diagnosis. Controller pathfinding uses actual adjacent grid cells, rests through normal stamina recovery and records idle observations when a short fight ends before a full timing window exists.
 
 Release validation and publication results are recorded separately. This work does not declare the full campaign or every sprint complete. No physical cartridge write is part of this release.
 
 SELECT quick slot: START then A opens the equip-only bag. Crafting requires A beside a physical bench after clearing enemies and pending waves. SELECT assigns its highlighted finite material; crafted results equip automatically. A fresh gameplay tap uses that piece ID with eight-way targeting, stamina cost, hand animation, native particles and sound. A held reset restores the entry bag and slot without casting. The slot is included in the current floor-entry Continue journal.
+
+## Frozen release validation
+
+ROM source: `8ef8ac0ccab37cd427aeb8f8d7143377a80452f3`. Test source: `9d6d37bd0eb7bf7de9aabdc8dc4d79b003677cbe`.
+
+| Cartridge | SHA-256 | Bytes |
+|---|---|---:|
+| egress.gbc | `aaec5551d87a0ab307baae2305d9febf28e900ad8fd3c37801a4df21a3d4385b` | 1245184 |
+| egress-rtc.gbc | `a0be816ce4a643b1136a3c58f011cc20ce3e8b634ecb89cc812b3b689290376e` | 1245184 |
+
+The complete sequential native suite, website unit/type/asset/build gates and browser acceptance pass. Camera, large-world and procedural controller targets ran first and were reused by the remaining invocation on identical ROM bytes. The independent host linked-puzzle solver reuses a prior successful run with all 93 source and build inputs plus both executable hashes verified unchanged; `native-target-order.json` records the commands, reports and hashes. The new fingerprint pins bench placement while normalization preserves the exact prior geometry, resources and RNG fingerprint across 4,864 cases. Ten prior-save cases across both mappers start fresh and then resume current saves. Browser checks use actual downloads, native portrait comparisons, fresh-start controller input, real pickups, walking to a physical bench, A to open crafting after clearing enemies, four crafting phases and changing sprite buffers. The browser observer reads common WRAM without filtering it by the switched-bank register; menu input waits on native ticks rather than LCD paints. No native memory writes bypass the browser flow.
+
+Prior-save acceptance can be replayed with `python test/harness/fresh_save.py previous-public/egress.gbc build/egress.gbc build/fresh-save/mbc5` and the matching RTC pair. The previous public artifacts are identified by SHA-256 in the two fresh-save reports.

@@ -1,0 +1,37 @@
+{
+  "base": "http://127.0.0.1:3247",
+  "viewport": {
+    "width": 320,
+    "height": 600
+  },
+  "sha256": "aaec5551d87a0ab307baae2305d9febf28e900ad8fd3c37801a4df21a3d4385b",
+  "source": "Current-ROM authored crafting checkpoint in the website; DOM keyboard events released at native paint boundaries, actual pickups, walking to a physical bench and A to craft; no RAM or inventory writes.",
+  "results": {
+    "exactRomFetch": true,
+    "realFloorPickups": true,
+    "bagCannotCraft": true,
+    "walkToPhysicalBench": true,
+    "aOpensClearedBench": true,
+    "fourMergePhases": true,
+    "visibleMergeFrames": true,
+    "finiteRecipeConsumption": true,
+    "selectEquipsWithoutConsuming": true,
+    "recipeAutoEquips": true,
+    "pageErrors": true
+  },
+  "phases": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "frames": 90,
+  "before": [
+    4,
+    2
+  ],
+  "after": [
+    8
+  ]
+}

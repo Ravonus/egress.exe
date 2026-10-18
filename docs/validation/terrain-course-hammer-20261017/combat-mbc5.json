@@ -1,0 +1,86 @@
+{
+  "sha256": "aaec5551d87a0ab307baae2305d9febf28e900ad8fd3c37801a4df21a3d4385b",
+  "results": {
+    "real_wave_mobs_present": true,
+    "both_action_buttons_used": true,
+    "actual_player_kills": true,
+    "sprite_line_budget": true,
+    "combat_and_travel_120_per_120": true,
+    "floor_under_feet_stays_present": true,
+    "complete_body_retained": true,
+    "floor_stack_canary": true,
+    "visible_animation_keeps_advancing": true,
+    "native_allocator_matches_reference": true,
+    "native_map_and_attributes_match": true
+  },
+  "frames": 4333,
+  "minimum_game_frames_per_120": 120,
+  "oam_max": 10,
+  "max_enemies": 2,
+  "allocator": {
+    "calls": {
+      "groups": 7832,
+      "size_1": 1710,
+      "full": 7630,
+      "off_y": 84,
+      "size_2": 6122,
+      "left_clip": 118,
+      "refused": 80
+    },
+    "mismatches": [],
+    "all_allocations_match": true
+  },
+  "grid": {
+    "native_quads": 122,
+    "distinct_cells": 91,
+    "attributes": [
+      0,
+      2,
+      3,
+      8,
+      9,
+      10,
+      11,
+      14,
+      35
+    ],
+    "max_masked_cycles": 964,
+    "all_map_and_attributes_match": true
+  },
+  "moves": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    8,
+    11,
+    12
+  ],
+  "missing_floor": [],
+  "missing_body": [],
+  "log": [
+    "stuck moving D from cell 134 toward 150 at (123, 138)"
+  ],
+  "partial_emitted_poses": [],
+  "raw_counter_minimum_at_lcd_boundary": 120,
+  "vblank_span_for_120_completed_updates": [
+    120,
+    120
+  ],
+  "animation": {
+    "samples": 3814,
+    "requested_poses": 99,
+    "compositions": 799,
+    "visible_sprite_buffers": 90,
+    "maximum_unserved_pose_frames": 4,
+    "cache_reads": 799,
+    "cache_hits": 647,
+    "starved": [],
+    "invalid_pose_or_direction": [],
+    "animation_keeps_advancing": true
+  },
+  "timing_samples": [],
+  "late_completions": []
+}

@@ -1,0 +1,41 @@
+{
+  "base": "http://127.0.0.1:3247",
+  "checks": [
+    {
+      "width": 1280,
+      "downloads": true,
+      "github": true,
+      "noOverflow": true,
+      "explainerNoOverflow": true,
+      "pageErrors": []
+    },
+    {
+      "width": 768,
+      "downloads": true,
+      "github": true,
+      "noOverflow": true,
+      "explainerNoOverflow": true,
+      "pageErrors": []
+    },
+    {
+      "width": 390,
+      "downloads": true,
+      "github": true,
+      "noOverflow": true,
+      "explainerNoOverflow": true,
+      "pageErrors": []
+    },
+    {
+      "width": 320,
+      "downloads": true,
+      "github": true,
+      "noOverflow": true,
+      "explainerNoOverflow": true,
+      "pageErrors": []
+    }
+  ],
+  "standardSha256": "aaec5551d87a0ab307baae2305d9febf28e900ad8fd3c37801a4df21a3d4385b",
+  "rtcSha256": "a0be816ce4a643b1136a3c58f011cc20ce3e8b634ecb89cc812b3b689290376e",
+  "actualDownloadsVerified": true,
+  "browserEmulatorUsesStandard": true
+}
