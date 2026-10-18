@@ -1,0 +1,1107 @@
+{
+  "sha256": "a9d31dcf3c41d66f9b783388061a8f16c4aa9bded13ca7740e26234de5ecb1c1",
+  "results": {
+    "level_0_spawns_without_standing_zone": true,
+    "level_0_waiting_cannot_win": true,
+    "level_0_victory_requires_real_kills": true,
+    "level_0_finite_complete_waves": true,
+    "level_0_pooled_three_live_enemies": true,
+    "level_0_every_wave_grows": true,
+    "level_0_combat_120_per_120": true,
+    "level_0_completes_before_vblank": true,
+    "level_0_wakes_at_vblank": true,
+    "level_0_clock_preserves_elapsed_vblanks": true,
+    "level_0_hud_is_exact_and_bounded": true,
+    "level_0_particle_updates_match": true,
+    "level_0_mob_art_requests_match": true,
+    "level_0_shot_requests_match": true,
+    "level_0_reinforcements_created_outside_camera": true,
+    "level_0_cleared_waves_unlock_physical_bench": true,
+    "level_5_spawns_without_standing_zone": true,
+    "level_5_waiting_cannot_win": true,
+    "level_5_victory_requires_real_kills": true,
+    "level_5_finite_complete_waves": true,
+    "level_5_pooled_three_live_enemies": true,
+    "level_5_every_wave_grows": true,
+    "level_5_combat_120_per_120": true,
+    "level_5_completes_before_vblank": true,
+    "level_5_wakes_at_vblank": true,
+    "level_5_clock_preserves_elapsed_vblanks": true,
+    "level_5_hud_is_exact_and_bounded": true,
+    "level_5_particle_updates_match": true,
+    "level_5_mob_art_requests_match": true,
+    "level_5_shot_requests_match": true,
+    "level_5_reinforcements_created_outside_camera": true,
+    "level_5_enemy_projectiles_drawn": true,
+    "level_5_different_enemy_roles": true,
+    "level_5_cleared_waves_unlock_physical_bench": true,
+    "level_10_spawns_without_standing_zone": true,
+    "level_10_waiting_cannot_win": true,
+    "level_10_victory_requires_real_kills": true,
+    "level_10_finite_complete_waves": true,
+    "level_10_pooled_three_live_enemies": true,
+    "level_10_every_wave_grows": true,
+    "level_10_combat_120_per_120": true,
+    "level_10_completes_before_vblank": true,
+    "level_10_wakes_at_vblank": true,
+    "level_10_clock_preserves_elapsed_vblanks": true,
+    "level_10_hud_is_exact_and_bounded": true,
+    "level_10_particle_updates_match": true,
+    "level_10_mob_art_requests_match": true,
+    "level_10_shot_requests_match": true,
+    "level_10_reinforcements_created_outside_camera": true,
+    "level_10_enemy_projectiles_drawn": true,
+    "level_10_different_enemy_roles": true,
+    "level_10_cleared_waves_unlock_physical_bench": true,
+    "later_stages_spawn_more_enemies": true,
+    "entry_positions_follow_the_moving_camera": true
+  },
+  "cases": [
+    {
+      "level": 0,
+      "generated_level": 0,
+      "waves": 2,
+      "kills": 3,
+      "max_alive": 2,
+      "families": [
+        0,
+        3
+      ],
+      "by_wave": {
+        "1": [
+          0
+        ],
+        "2": [
+          0,
+          3
+        ]
+      },
+      "wave_kills": {
+        "1": 1,
+        "2": 2
+      },
+      "vblank_span_for_120_completed_updates": [
+        120,
+        120
+      ],
+      "maximum_input_start_scanlines_after_vblank": 4,
+      "raw_counter_minimum_at_lcd_boundary": 120,
+      "hitches": [],
+      "late_frames": [],
+      "clock": {
+        "samples": 45,
+        "maximum_poll_lag_vblanks": 64,
+        "arithmetic_mismatches": [],
+        "elapsed_vblanks_preserved": true
+      },
+      "hud": {
+        "callbacks": 2717,
+        "rows_checked": 288,
+        "maximum_callback_cycles": 2008,
+        "mismatches": [],
+        "native_hud_is_exact_and_bounded": true
+      },
+      "fx": {
+        "updates": 2643,
+        "late_updates": 4,
+        "mismatches": [],
+        "particle_updates_match": true
+      },
+      "mob_art": {
+        "passes": 8943,
+        "body_passes": 3759,
+        "groups": 6566,
+        "column_masks": {
+          "3": 3283
+        },
+        "flips": [
+          false,
+          true
+        ],
+        "mismatches": [],
+        "mob_art_requests_match": true
+      },
+      "shots": {
+        "passes": 660,
+        "groups": 660,
+        "maximum_pixel_coordinate": 255,
+        "mismatches": [],
+        "shot_requests_match": true
+      },
+      "spawn_view": {
+        "spawns": 3,
+        "camera_positions": [
+          [
+            74,
+            74
+          ],
+          [
+            88,
+            96
+          ]
+        ],
+        "mismatches": [],
+        "all_entries_start_offscreen": true,
+        "entries": [
+          {
+            "frame": 896,
+            "slot": 0,
+            "position": [
+              168,
+              56
+            ],
+            "camera": [
+              88,
+              96
+            ],
+            "screen": [
+              80,
+              -40
+            ],
+            "family": 0,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 1444,
+            "slot": 0,
+            "position": [
+              200,
+              40
+            ],
+            "camera": [
+              74,
+              74
+            ],
+            "screen": [
+              126,
+              -34
+            ],
+            "family": 3,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 1468,
+            "slot": 1,
+            "position": [
+              56,
+              24
+            ],
+            "camera": [
+              74,
+              74
+            ],
+            "screen": [
+              -18,
+              -50
+            ],
+            "family": 0,
+            "whole_entry_outside_view": true
+          }
+        ]
+      },
+      "oam_max": 10,
+      "log": []
+    },
+    {
+      "level": 5,
+      "generated_level": 5,
+      "waves": 2,
+      "kills": 9,
+      "max_alive": 3,
+      "families": [
+        0,
+        3,
+        4
+      ],
+      "by_wave": {
+        "1": [
+          0,
+          3
+        ],
+        "2": [
+          0,
+          3,
+          4
+        ]
+      },
+      "wave_kills": {
+        "1": 4,
+        "2": 5
+      },
+      "vblank_span_for_120_completed_updates": [
+        120,
+        120
+      ],
+      "maximum_input_start_scanlines_after_vblank": 5,
+      "raw_counter_minimum_at_lcd_boundary": 120,
+      "hitches": [],
+      "late_frames": [],
+      "clock": {
+        "samples": 131,
+        "maximum_poll_lag_vblanks": 64,
+        "arithmetic_mismatches": [],
+        "elapsed_vblanks_preserved": true
+      },
+      "hud": {
+        "callbacks": 7891,
+        "rows_checked": 906,
+        "maximum_callback_cycles": 2008,
+        "mismatches": [],
+        "native_hud_is_exact_and_bounded": true
+      },
+      "fx": {
+        "updates": 7565,
+        "late_updates": 32,
+        "mismatches": [],
+        "particle_updates_match": true
+      },
+      "mob_art": {
+        "passes": 30710,
+        "body_passes": 15736,
+        "groups": 28524,
+        "column_masks": {
+          "3": 14262
+        },
+        "flips": [
+          false,
+          true
+        ],
+        "mismatches": [],
+        "mob_art_requests_match": true
+      },
+      "shots": {
+        "passes": 1928,
+        "groups": 1928,
+        "maximum_pixel_coordinate": 255,
+        "mismatches": [],
+        "shot_requests_match": true
+      },
+      "spawn_view": {
+        "spawns": 9,
+        "camera_positions": [
+          [
+            40,
+            96
+          ],
+          [
+            67,
+            32
+          ],
+          [
+            73,
+            4
+          ],
+          [
+            85,
+            88
+          ],
+          [
+            89,
+            51
+          ],
+          [
+            96,
+            0
+          ]
+        ],
+        "mismatches": [],
+        "all_entries_start_offscreen": true,
+        "entries": [
+          {
+            "frame": 940,
+            "slot": 0,
+            "position": [
+              200,
+              56
+            ],
+            "camera": [
+              40,
+              96
+            ],
+            "screen": [
+              160,
+              -40
+            ],
+            "family": 0,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 952,
+            "slot": 1,
+            "position": [
+              56,
+              72
+            ],
+            "camera": [
+              40,
+              96
+            ],
+            "screen": [
+              16,
+              -24
+            ],
+            "family": 3,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 968,
+            "slot": 2,
+            "position": [
+              56,
+              24
+            ],
+            "camera": [
+              40,
+              96
+            ],
+            "screen": [
+              16,
+              -72
+            ],
+            "family": 0,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 3096,
+            "slot": 0,
+            "position": [
+              72,
+              168
+            ],
+            "camera": [
+              73,
+              4
+            ],
+            "screen": [
+              -1,
+              164
+            ],
+            "family": 0,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 4812,
+            "slot": 0,
+            "position": [
+              152,
+              56
+            ],
+            "camera": [
+              85,
+              88
+            ],
+            "screen": [
+              67,
+              -32
+            ],
+            "family": 4,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 4856,
+            "slot": 1,
+            "position": [
+              120,
+              24
+            ],
+            "camera": [
+              89,
+              51
+            ],
+            "screen": [
+              31,
+              -27
+            ],
+            "family": 0,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 4868,
+            "slot": 2,
+            "position": [
+              56,
+              184
+            ],
+            "camera": [
+              89,
+              51
+            ],
+            "screen": [
+              -33,
+              133
+            ],
+            "family": 3,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 5268,
+            "slot": 0,
+            "position": [
+              120,
+              200
+            ],
+            "camera": [
+              67,
+              32
+            ],
+            "screen": [
+              53,
+              168
+            ],
+            "family": 0,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 6820,
+            "slot": 0,
+            "position": [
+              56,
+              88
+            ],
+            "camera": [
+              96,
+              0
+            ],
+            "screen": [
+              -40,
+              88
+            ],
+            "family": 4,
+            "whole_entry_outside_view": true
+          }
+        ]
+      },
+      "oam_max": 10,
+      "log": []
+    },
+    {
+      "level": 10,
+      "generated_level": 10,
+      "waves": 4,
+      "kills": 26,
+      "max_alive": 3,
+      "families": [
+        0,
+        3,
+        5
+      ],
+      "by_wave": {
+        "1": [
+          0,
+          3
+        ],
+        "2": [
+          0,
+          3,
+          5
+        ],
+        "3": [
+          0,
+          3,
+          5
+        ],
+        "4": [
+          0,
+          3,
+          5
+        ]
+      },
+      "wave_kills": {
+        "1": 5,
+        "2": 6,
+        "3": 7,
+        "4": 8
+      },
+      "vblank_span_for_120_completed_updates": [
+        120,
+        120
+      ],
+      "maximum_input_start_scanlines_after_vblank": 4,
+      "raw_counter_minimum_at_lcd_boundary": 120,
+      "hitches": [],
+      "late_frames": [],
+      "clock": {
+        "samples": 707,
+        "maximum_poll_lag_vblanks": 73,
+        "arithmetic_mismatches": [],
+        "elapsed_vblanks_preserved": true
+      },
+      "hud": {
+        "callbacks": 42411,
+        "rows_checked": 5069,
+        "maximum_callback_cycles": 2008,
+        "mismatches": [],
+        "native_hud_is_exact_and_bounded": true
+      },
+      "fx": {
+        "updates": 40711,
+        "late_updates": 300,
+        "mismatches": [],
+        "particle_updates_match": true
+      },
+      "mob_art": {
+        "passes": 178111,
+        "body_passes": 96847,
+        "groups": 175486,
+        "column_masks": {
+          "3": 71849,
+          "2": 15678
+        },
+        "flips": [
+          false,
+          true
+        ],
+        "mismatches": [],
+        "mob_art_requests_match": true
+      },
+      "shots": {
+        "passes": 22993,
+        "groups": 28034,
+        "maximum_pixel_coordinate": 255,
+        "mismatches": [],
+        "shot_requests_match": true
+      },
+      "spawn_view": {
+        "spawns": 26,
+        "camera_positions": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            72
+          ],
+          [
+            0,
+            90
+          ],
+          [
+            0,
+            93
+          ],
+          [
+            0,
+            96
+          ],
+          [
+            25,
+            96
+          ],
+          [
+            40,
+            96
+          ],
+          [
+            42,
+            96
+          ],
+          [
+            44,
+            96
+          ],
+          [
+            85,
+            96
+          ],
+          [
+            88,
+            96
+          ],
+          [
+            96,
+            61
+          ],
+          [
+            96,
+            72
+          ],
+          [
+            96,
+            90
+          ],
+          [
+            96,
+            96
+          ]
+        ],
+        "mismatches": [],
+        "all_entries_start_offscreen": true,
+        "entries": [
+          {
+            "frame": 975,
+            "slot": 0,
+            "position": [
+              200,
+              56
+            ],
+            "camera": [
+              40,
+              96
+            ],
+            "screen": [
+              160,
+              -40
+            ],
+            "family": 0,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 983,
+            "slot": 1,
+            "position": [
+              232,
+              136
+            ],
+            "camera": [
+              40,
+              96
+            ],
+            "screen": [
+              192,
+              40
+            ],
+            "family": 0,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 991,
+            "slot": 2,
+            "position": [
+              56,
+              72
+            ],
+            "camera": [
+              40,
+              96
+            ],
+            "screen": [
+              16,
+              -24
+            ],
+            "family": 3,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 1279,
+            "slot": 1,
+            "position": [
+              184,
+              56
+            ],
+            "camera": [
+              42,
+              96
+            ],
+            "screen": [
+              142,
+              -40
+            ],
+            "family": 0,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 4287,
+            "slot": 0,
+            "position": [
+              104,
+              72
+            ],
+            "camera": [
+              88,
+              96
+            ],
+            "screen": [
+              16,
+              -24
+            ],
+            "family": 0,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 8091,
+            "slot": 0,
+            "position": [
+              40,
+              88
+            ],
+            "camera": [
+              96,
+              96
+            ],
+            "screen": [
+              -56,
+              -8
+            ],
+            "family": 3,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 8139,
+            "slot": 1,
+            "position": [
+              232,
+              40
+            ],
+            "camera": [
+              96,
+              72
+            ],
+            "screen": [
+              136,
+              -32
+            ],
+            "family": 5,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 8155,
+            "slot": 2,
+            "position": [
+              72,
+              152
+            ],
+            "camera": [
+              96,
+              72
+            ],
+            "screen": [
+              -24,
+              80
+            ],
+            "family": 0,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 9123,
+            "slot": 2,
+            "position": [
+              200,
+              40
+            ],
+            "camera": [
+              96,
+              96
+            ],
+            "screen": [
+              104,
+              -56
+            ],
+            "family": 3,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 9539,
+            "slot": 1,
+            "position": [
+              216,
+              72
+            ],
+            "camera": [
+              96,
+              96
+            ],
+            "screen": [
+              120,
+              -24
+            ],
+            "family": 0,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 10967,
+            "slot": 1,
+            "position": [
+              24,
+              168
+            ],
+            "camera": [
+              85,
+              96
+            ],
+            "screen": [
+              -61,
+              72
+            ],
+            "family": 5,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 20171,
+            "slot": 0,
+            "position": [
+              40,
+              168
+            ],
+            "camera": [
+              0,
+              0
+            ],
+            "screen": [
+              40,
+              168
+            ],
+            "family": 5,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 20175,
+            "slot": 1,
+            "position": [
+              216,
+              72
+            ],
+            "camera": [
+              0,
+              0
+            ],
+            "screen": [
+              216,
+              72
+            ],
+            "family": 3,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 20179,
+            "slot": 2,
+            "position": [
+              184,
+              152
+            ],
+            "camera": [
+              0,
+              0
+            ],
+            "screen": [
+              184,
+              152
+            ],
+            "family": 5,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 21195,
+            "slot": 0,
+            "position": [
+              200,
+              120
+            ],
+            "camera": [
+              0,
+              90
+            ],
+            "screen": [
+              200,
+              30
+            ],
+            "family": 0,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 21719,
+            "slot": 2,
+            "position": [
+              232,
+              56
+            ],
+            "camera": [
+              0,
+              93
+            ],
+            "screen": [
+              232,
+              -37
+            ],
+            "family": 3,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 22863,
+            "slot": 0,
+            "position": [
+              168,
+              72
+            ],
+            "camera": [
+              44,
+              96
+            ],
+            "screen": [
+              124,
+              -24
+            ],
+            "family": 0,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 24987,
+            "slot": 0,
+            "position": [
+              40,
+              120
+            ],
+            "camera": [
+              96,
+              61
+            ],
+            "screen": [
+              -56,
+              59
+            ],
+            "family": 5,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 28651,
+            "slot": 0,
+            "position": [
+              184,
+              72
+            ],
+            "camera": [
+              0,
+              96
+            ],
+            "screen": [
+              184,
+              -24
+            ],
+            "family": 3,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 28711,
+            "slot": 1,
+            "position": [
+              184,
+              104
+            ],
+            "camera": [
+              0,
+              72
+            ],
+            "screen": [
+              184,
+              32
+            ],
+            "family": 5,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 28723,
+            "slot": 2,
+            "position": [
+              184,
+              136
+            ],
+            "camera": [
+              0,
+              72
+            ],
+            "screen": [
+              184,
+              64
+            ],
+            "family": 3,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 36427,
+            "slot": 1,
+            "position": [
+              56,
+              56
+            ],
+            "camera": [
+              25,
+              96
+            ],
+            "screen": [
+              31,
+              -40
+            ],
+            "family": 5,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 36915,
+            "slot": 2,
+            "position": [
+              88,
+              72
+            ],
+            "camera": [
+              96,
+              96
+            ],
+            "screen": [
+              -8,
+              -24
+            ],
+            "family": 0,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 37527,
+            "slot": 2,
+            "position": [
+              24,
+              104
+            ],
+            "camera": [
+              96,
+              96
+            ],
+            "screen": [
+              -72,
+              8
+            ],
+            "family": 3,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 37895,
+            "slot": 1,
+            "position": [
+              184,
+              40
+            ],
+            "camera": [
+              96,
+              90
+            ],
+            "screen": [
+              88,
+              -50
+            ],
+            "family": 0,
+            "whole_entry_outside_view": true
+          },
+          {
+            "frame": 39011,
+            "slot": 1,
+            "position": [
+              72,
+              72
+            ],
+            "camera": [
+              96,
+              96
+            ],
+            "screen": [
+              -24,
+              -24
+            ],
+            "family": 5,
+            "whole_entry_outside_view": true
+          }
+        ]
+      },
+      "oam_max": 10,
+      "log": [
+        "stuck moving L from cell 167 toward 166 at (118, 157)"
+      ]
+    }
+  ]
+}

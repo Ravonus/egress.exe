@@ -1,0 +1,26 @@
+{
+  "sha256": "a9d31dcf3c41d66f9b783388061a8f16c4aa9bded13ca7740e26234de5ecb1c1",
+  "source": "Native PH_DROP course from the cartridge generator. Only debug course/no-enemy/god-mode flags before entry, then ordinary controller input. No map/position/resource writes, painting or interpolation.",
+  "results": {
+    "native_drop_course_has_supported_crt": true,
+    "one_tile_raise_in_native_drop_course": true,
+    "raise_spends_stamina": true,
+    "no_recovery_after_releasing_up": true,
+    "moving_clear_allows_recovery": true,
+    "released_monitor_resumes_gravity": true,
+    "exact_frame_deadlines": true,
+    "sprite_line_budget": true
+  },
+  "initial_crt_cell": 101,
+  "native_entry_sha256": "b45998826d66019102fd69d42217089dc8f2bccb292545dd6e24da7233fdc266",
+  "stamina": {
+    "before": 105,
+    "after_raise": 93,
+    "after_hold": 81,
+    "after_clear": 108
+  },
+  "frames": 429,
+  "oam_max": 10,
+  "late": [],
+  "log": []
+}

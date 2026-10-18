@@ -1,0 +1,40 @@
+{
+  "sha256": "a9d31dcf3c41d66f9b783388061a8f16c4aa9bded13ca7740e26234de5ecb1c1",
+  "source": "Authored CRT shafts: actual cartridge input owns lifting and held stamina.\nFixtures set board/actor resources before the observation; they never move a\nmonitor or replenish stamina during the tested controller sequence.\n",
+  "results": {
+    "one_monitor_lifts_one_tile": true,
+    "lift_costs_stamina": true,
+    "released_direction_still_holds_weight_without_regen": true,
+    "brace_uses_push_animation": true,
+    "one_strength_cannot_raise_a_second_tile": true,
+    "moving_clear_restores_stamina": true,
+    "world_supported_monitor_does_not_drain_the_heir": true,
+    "two_stacked_cannot_lift_even_one_at_strength_one": true,
+    "two_strength_lifts_two_stacked_one_tile": true,
+    "two_strength_cannot_lift_two_stacked_two_tiles": true,
+    "two_strength_lifts_one_monitor_two_tiles": true,
+    "button_release_does_not_reset_height_budget": true,
+    "exhaustion_breaks_brace_and_weight_falls": true
+  },
+  "details": {
+    "one": {
+      "stamina_after_clear": 100,
+      "player": [
+        141,
+        134
+      ]
+    },
+    "exhaustion": {
+      "from": [
+        104,
+        102
+      ],
+      "to": [
+        104,
+        150
+      ],
+      "stamina": 0,
+      "load": 0
+    }
+  }
+}

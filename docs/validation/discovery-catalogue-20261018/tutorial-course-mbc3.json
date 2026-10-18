@@ -1,0 +1,129 @@
+{
+  "sha256": "e39dbffe56e966c6a2b7ec010a4c3a4d148257e292cb0a2865225703b2808c62",
+  "results": {
+    "course_is_fixed": true,
+    "entry_keeps_normal_run_save": true,
+    "landing_collects_the_course_key": true,
+    "all_course_goals_completed": true,
+    "training_keeps_existing_heir_and_checkpoint": true,
+    "continue_restores_existing_heir_and_floor": true,
+    "continue_keeps_pet_health_and_spent_revive": true,
+    "continue_keeps_carried_pet_individual": true,
+    "replay_uses_same_authored_board": true,
+    "menu_start_leaves_training": true
+  },
+  "progress": [
+    [
+      1,
+      1,
+      [
+        56,
+        119
+      ]
+    ],
+    [
+      2,
+      2,
+      [
+        56,
+        118
+      ]
+    ],
+    [
+      3,
+      3,
+      [
+        56,
+        116
+      ]
+    ],
+    [
+      4,
+      4,
+      [
+        56,
+        116
+      ]
+    ],
+    [
+      5,
+      6,
+      [
+        56,
+        116
+      ]
+    ],
+    [
+      6,
+      6,
+      [
+        56,
+        77
+      ]
+    ],
+    [
+      7,
+      7,
+      [
+        75,
+        103
+      ]
+    ],
+    [
+      8,
+      8,
+      [
+        122,
+        137
+      ]
+    ],
+    [
+      9,
+      9,
+      [
+        200,
+        47
+      ]
+    ]
+  ],
+  "log": [
+    "durable journal changes: []"
+  ],
+  "allowed_settings_clock_and_volatile_ranges": [
+    [
+      960,
+      1050
+    ],
+    [
+      1280,
+      1392
+    ],
+    [
+      4096,
+      5297
+    ],
+    [
+      5376,
+      7040
+    ],
+    [
+      7936,
+      7937
+    ],
+    [
+      3944,
+      3976
+    ],
+    [
+      5312,
+      5376
+    ]
+  ],
+  "pet_fixture": {
+    "active": 443,
+    "health": 3,
+    "revive_spent": true,
+    "carried": 433,
+    "carried_health": 5
+  }
+}

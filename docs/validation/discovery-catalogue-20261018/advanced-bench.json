@@ -1,0 +1,246 @@
+{
+  "sha256": "a9d31dcf3c41d66f9b783388061a8f16c4aa9bded13ca7740e26234de5ecb1c1",
+  "results": {
+    "recipe_2_1_makes_13_on_collection": true,
+    "collection_records_13": true,
+    "recipe_2_4_makes_8_on_collection": true,
+    "collection_records_8": true,
+    "recipe_4_1_makes_14_on_collection": true,
+    "collection_records_14": true,
+    "recipe_3_4_makes_15_on_collection": true,
+    "collection_records_15": true,
+    "recipe_3_2_makes_7_on_collection": true,
+    "collection_records_7": true,
+    "recipe_1_3_makes_6_on_collection": true,
+    "collection_records_6": true,
+    "recipe_3_13_makes_16_on_collection": true,
+    "collection_records_16": true,
+    "recipe_7_3_makes_9_on_collection": true,
+    "collection_records_9": true,
+    "recipe_2_9_makes_10_on_collection": true,
+    "collection_records_10": true,
+    "recipe_8_1_makes_11_on_collection": true,
+    "collection_records_11": true,
+    "recipe_6_5_makes_12_on_collection": true,
+    "collection_records_12": true,
+    "recipe_15_1_makes_17_on_collection": true,
+    "collection_records_17": true,
+    "recipe_7_4_makes_18_on_collection": true,
+    "collection_records_18": true,
+    "recipe_5_254_makes_255_on_collection": true,
+    "collection_records_255": true,
+    "recipe_255_1_makes_256_on_collection": true,
+    "collection_records_256": true,
+    "recipe_4_383_makes_384_on_collection": true,
+    "collection_records_384": true,
+    "recipe_28_22_makes_385_on_collection": true,
+    "collection_records_385": true,
+    "recipe_22_373_makes_408_on_collection": true,
+    "collection_records_408": true,
+    "recipe_30_24_makes_409_on_collection": true,
+    "collection_records_409": true,
+    "recipe_24_375_makes_432_on_collection": true,
+    "collection_records_432": true,
+    "recipe_30_18_makes_433_on_collection": true,
+    "crafted_critter_433_has_individual_life": true,
+    "crafted_critter_433_does_not_replace_active_pet": true,
+    "collection_records_433": true,
+    "recipe_18_315_makes_443_on_collection": true,
+    "crafted_critter_443_has_individual_life": true,
+    "crafted_critter_443_does_not_replace_active_pet": true,
+    "collection_records_443": true,
+    "recipe_375_18_makes_444_on_collection": true,
+    "crafted_critter_444_has_individual_life": true,
+    "crafted_critter_444_does_not_replace_active_pet": true,
+    "collection_records_444": true,
+    "all_sixteen_materials_can_be_selected_without_discard": true
+  },
+  "recipes": [
+    {
+      "ingredients": [
+        2,
+        1
+      ],
+      "result": 13,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        2,
+        4
+      ],
+      "result": 8,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        4,
+        1
+      ],
+      "result": 14,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        3,
+        4
+      ],
+      "result": 15,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        3,
+        2
+      ],
+      "result": 7,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        1,
+        3
+      ],
+      "result": 6,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        3,
+        13
+      ],
+      "result": 16,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        7,
+        3
+      ],
+      "result": 9,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        2,
+        9
+      ],
+      "result": 10,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        8,
+        1
+      ],
+      "result": 11,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        6,
+        5
+      ],
+      "result": 12,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        15,
+        1
+      ],
+      "result": 17,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        7,
+        4
+      ],
+      "result": 18,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        5,
+        254
+      ],
+      "result": 255,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        255,
+        1
+      ],
+      "result": 256,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        4,
+        383
+      ],
+      "result": 384,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        28,
+        22
+      ],
+      "result": 385,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        22,
+        373
+      ],
+      "result": 408,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        30,
+        24
+      ],
+      "result": 409,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        24,
+        375
+      ],
+      "result": 432,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        30,
+        18
+      ],
+      "result": 433,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        18,
+        315
+      ],
+      "result": 443,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        375,
+        18
+      ],
+      "result": 444,
+      "collects": true
+    }
+  ],
+  "fixture": "Material quantities only; physical approach, selection, mixing and collection use controller input.",
+  "log": []
+}

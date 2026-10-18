@@ -1,0 +1,11 @@
+{
+  "sha256": "89e0b7a812e4d557ccd0a1fca09d56aa9bd185edffc1b9e4fe3e7441576950cd",
+  "results": {
+    "all_native_crcs_match_independent_oracle": true,
+    "bounded_native_operation": true
+  },
+  "cases": 1155,
+  "lengths": "Every length 0..384; three byte patterns, including both counter bytes.",
+  "maxDisplayFramesPerOperation": 2,
+  "failures": []
+}

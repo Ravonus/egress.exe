@@ -1,0 +1,11 @@
+{
+  "sha256": "ffbc4e354bf2f575ee49d6f0147c967c658fdc901d2d855050e4a54bdded3920",
+  "cases": 640,
+  "maxDisplayFramesPerOperation": 1,
+  "results": {
+    "all_four_directions_match_rectangle_oracle": true,
+    "all_retained_counts_and_ignored_flags_match": true,
+    "full_output_never_overwrites_guard_or_source": true,
+    "bounded_native_operation": true
+  }
+}

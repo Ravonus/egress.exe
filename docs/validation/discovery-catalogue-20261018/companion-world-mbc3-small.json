@@ -1,0 +1,113 @@
+{
+  "sha256": "e39dbffe56e966c6a2b7ec010a4c3a4d148257e292cb0a2865225703b2808c62",
+  "cases": [
+    {
+      "size": [
+        32,
+        18
+      ],
+      "vertical": false,
+      "nodes": [
+        [
+          0,
+          13,
+          7,
+          2,
+          0,
+          3
+        ],
+        [
+          0,
+          26,
+          12,
+          3,
+          1,
+          3
+        ]
+      ],
+      "preparation": [
+        255,
+        14,
+        0,
+        0,
+        14,
+        255,
+        16,
+        0,
+        64,
+        16,
+        0,
+        3
+      ],
+      "view": [
+        16,
+        4,
+        32,
+        18
+      ],
+      "camera": [
+        96,
+        50
+      ],
+      "incoming_pit_presentation_checks": 92,
+      "runtime_default_tile_queries": 0,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 7,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "stream_wait_samples": [],
+      "native_heir_uploads": 145,
+      "heir_pixel_mismatches": [],
+      "seams": 5,
+      "windows": 6,
+      "warps": [],
+      "minimum_game_frames_per_120": 120,
+      "maximum_game_frames_per_120": 120,
+      "late_completions": [],
+      "raw_counter_minimum_at_lcd_boundary": 120,
+      "hitches": [],
+      "missing_floor": [],
+      "missing_body": [],
+      "oam_max": 10,
+      "oam_over": 0,
+      "grid": {
+        "native_quads": 878,
+        "distinct_cells": 256,
+        "attributes": [
+          0,
+          2,
+          3,
+          4,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          13,
+          14,
+          35
+        ],
+        "max_masked_cycles": 964,
+        "all_map_and_attributes_match": true
+      },
+      "presentation_window": {
+        "native_transfers": 5,
+        "vertical_transfers": 1,
+        "maximum_cycles": 26156,
+        "all_cards_spans_queues_and_bitmaps_match": true
+      },
+      "stack_canary": true,
+      "solved": true,
+      "seed": 20737,
+      "stage_preparation_frames": 393,
+      "loading_progress_visible": true,
+      "loading_has_no_stale_sprites": true,
+      "companion": {
+        "id": 436,
+        "health_preserved": true,
+        "poses": 27
+      }
+    }
+  ]
+}

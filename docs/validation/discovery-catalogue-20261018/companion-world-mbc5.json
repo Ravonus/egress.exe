@@ -1,0 +1,102 @@
+{
+  "sha256": "a9d31dcf3c41d66f9b783388061a8f16c4aa9bded13ca7740e26234de5ecb1c1",
+  "cases": [
+    {
+      "size": [
+        20,
+        14
+      ],
+      "vertical": false,
+      "nodes": [
+        [
+          0,
+          14,
+          8,
+          2,
+          0,
+          3
+        ]
+      ],
+      "preparation": [
+        255,
+        14,
+        0,
+        0,
+        14,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      "view": [
+        4,
+        0,
+        20,
+        14
+      ],
+      "camera": [
+        96,
+        81
+      ],
+      "incoming_pit_presentation_checks": 20,
+      "runtime_default_tile_queries": 0,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 7,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "stream_wait_samples": [],
+      "native_heir_uploads": 68,
+      "heir_pixel_mismatches": [],
+      "seams": 1,
+      "windows": 2,
+      "warps": [],
+      "minimum_game_frames_per_120": 120,
+      "maximum_game_frames_per_120": 120,
+      "late_completions": [],
+      "raw_counter_minimum_at_lcd_boundary": 120,
+      "hitches": [],
+      "missing_floor": [],
+      "missing_body": [],
+      "oam_max": 10,
+      "oam_over": 0,
+      "grid": {
+        "native_quads": 305,
+        "distinct_cells": 128,
+        "attributes": [
+          0,
+          2,
+          3,
+          7,
+          8,
+          9,
+          11,
+          13,
+          14,
+          35
+        ],
+        "max_masked_cycles": 964,
+        "all_map_and_attributes_match": true
+      },
+      "presentation_window": {
+        "native_transfers": 1,
+        "vertical_transfers": 0,
+        "maximum_cycles": 22432,
+        "all_cards_spans_queues_and_bitmaps_match": true
+      },
+      "stack_canary": true,
+      "solved": true,
+      "seed": 20737,
+      "stage_preparation_frames": 292,
+      "loading_progress_visible": true,
+      "loading_has_no_stale_sprites": true,
+      "companion": {
+        "id": 436,
+        "health_preserved": true,
+        "poses": 26
+      }
+    }
+  ]
+}

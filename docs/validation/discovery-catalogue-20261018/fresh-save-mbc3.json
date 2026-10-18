@@ -1,0 +1,76 @@
+{
+  "previous_sha256": "ca6bdd6a1b186ac1e5982c94923719001cd43f274aea5843f14e2362d98ee42d",
+  "sha256": "e39dbffe56e966c6a2b7ec010a4c3a4d148257e292cb0a2865225703b2808c62",
+  "cases": [
+    {
+      "case": "opening",
+      "results": {
+        "old_continue_rejected": true,
+        "boot_does_not_rewrite_old_progress": true,
+        "fresh_generation_and_history": true,
+        "old_run_progress_rejected": true,
+        "fresh_inventory_and_mods": true,
+        "matches_a_blank_save": true,
+        "tutorial_starts_uncompleted": true,
+        "new_family_and_continue_versions": true,
+        "current_save_resumes": true
+      }
+    },
+    {
+      "case": "survival",
+      "results": {
+        "old_continue_rejected": true,
+        "boot_does_not_rewrite_old_progress": true,
+        "fresh_generation_and_history": true,
+        "old_run_progress_rejected": true,
+        "fresh_inventory_and_mods": true,
+        "matches_a_blank_save": true,
+        "tutorial_starts_uncompleted": true,
+        "new_family_and_continue_versions": true,
+        "current_save_resumes": true
+      }
+    },
+    {
+      "case": "spatial",
+      "results": {
+        "old_continue_rejected": true,
+        "boot_does_not_rewrite_old_progress": true,
+        "fresh_generation_and_history": true,
+        "old_run_progress_rejected": true,
+        "fresh_inventory_and_mods": true,
+        "matches_a_blank_save": true,
+        "tutorial_starts_uncompleted": true,
+        "new_family_and_continue_versions": true,
+        "current_save_resumes": true
+      }
+    },
+    {
+      "case": "completed-family",
+      "results": {
+        "old_continue_rejected": true,
+        "boot_does_not_rewrite_old_progress": true,
+        "fresh_generation_and_history": true,
+        "old_run_progress_rejected": true,
+        "fresh_inventory_and_mods": true,
+        "matches_a_blank_save": true,
+        "tutorial_starts_uncompleted": true,
+        "new_family_and_continue_versions": true,
+        "current_save_resumes": true
+      }
+    },
+    {
+      "case": "family-v1",
+      "results": {
+        "old_continue_rejected": true,
+        "boot_does_not_rewrite_old_progress": true,
+        "fresh_generation_and_history": true,
+        "old_run_progress_rejected": true,
+        "fresh_inventory_and_mods": true,
+        "matches_a_blank_save": true,
+        "tutorial_starts_uncompleted": true,
+        "new_family_and_continue_versions": true,
+        "current_save_resumes": true
+      }
+    }
+  ]
+}

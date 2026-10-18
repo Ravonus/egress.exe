@@ -1,0 +1,17 @@
+{
+  "sha256": "86b7999bd0b6e9997ebb572a4fe553e3b7f0dd88d790517fbefa0e5f1a3ca327",
+  "results": {
+    "all_1776_scaled_bodies_match_codec": true,
+    "shared_fusion_preserves_sources_and_exact_result": true,
+    "all_native_operations_bounded": true
+  },
+  "requests": 3221,
+  "recipes": 85,
+  "maxDisplayFramesPerOperation": 6,
+  "maximumByOperation": {
+    "preview": 2,
+    "decode_and_first_pose": 6,
+    "pose": 5
+  },
+  "failures": []
+}

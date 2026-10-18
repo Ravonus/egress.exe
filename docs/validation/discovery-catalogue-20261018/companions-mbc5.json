@@ -1,0 +1,300 @@
+{
+  "sha256": "a9d31dcf3c41d66f9b783388061a8f16c4aa9bded13ca7740e26234de5ecb1c1",
+  "fixtures": "Native companion acceptance. Saved individuals and projectile/target records\nare explicit fixtures; commands, damage, death, healing and reset run through\ncartridge code and controller input. No direct calls to game functions.",
+  "results": {
+    "pet_433_restores_native_individual": true,
+    "pet_433_walks_and_changes_view": true,
+    "pet_433_command_has_cost_and_cooldown": true,
+    "pet_433_oam_and_stack": true,
+    "pet_434_restores_native_individual": true,
+    "pet_434_walks_and_changes_view": true,
+    "pet_434_command_has_cost_and_cooldown": true,
+    "pet_434_oam_and_stack": true,
+    "pet_435_restores_native_individual": true,
+    "pet_435_walks_and_changes_view": true,
+    "pet_435_command_has_cost_and_cooldown": true,
+    "pet_435_oam_and_stack": true,
+    "pet_436_restores_native_individual": true,
+    "pet_436_walks_and_changes_view": true,
+    "pet_436_command_has_cost_and_cooldown": true,
+    "tank_436_creates_real_enemy_threat": true,
+    "tank_436_redirects_enemy_movement": true,
+    "pet_436_oam_and_stack": true,
+    "pet_437_restores_native_individual": true,
+    "pet_437_walks_and_changes_view": true,
+    "pet_437_command_has_cost_and_cooldown": true,
+    "pet_437_oam_and_stack": true,
+    "pet_438_restores_native_individual": true,
+    "pet_438_walks_and_changes_view": true,
+    "pet_438_command_has_cost_and_cooldown": true,
+    "pet_438_oam_and_stack": true,
+    "pet_439_restores_native_individual": true,
+    "pet_439_walks_and_changes_view": true,
+    "pet_439_command_has_cost_and_cooldown": true,
+    "tank_439_creates_real_enemy_threat": true,
+    "tank_439_redirects_enemy_movement": true,
+    "pet_439_oam_and_stack": true,
+    "pet_440_restores_native_individual": true,
+    "pet_440_walks_and_changes_view": true,
+    "pet_440_command_has_cost_and_cooldown": true,
+    "pet_440_oam_and_stack": true,
+    "pet_441_restores_native_individual": true,
+    "pet_441_walks_and_changes_view": true,
+    "pet_441_command_has_cost_and_cooldown": true,
+    "pet_441_oam_and_stack": true,
+    "pet_442_restores_native_individual": true,
+    "pet_442_walks_and_changes_view": true,
+    "pet_442_command_has_cost_and_cooldown": true,
+    "pet_442_oam_and_stack": true,
+    "pet_443_restores_native_individual": true,
+    "pet_443_walks_and_changes_view": true,
+    "pet_443_command_has_cost_and_cooldown": true,
+    "pet_443_oam_and_stack": true,
+    "pet_444_restores_native_individual": true,
+    "pet_444_walks_and_changes_view": true,
+    "pet_444_command_has_cost_and_cooldown": true,
+    "pet_444_oam_and_stack": true,
+    "companion_can_kill_a_real_matrix_target": true,
+    "pet_cannot_bypass_frontal_armour": true,
+    "pet_cannot_bypass_crush_only": true,
+    "pet_cannot_bypass_own_reflected_orb": true,
+    "tank_ward_protects_heir_from_real_projectile": true,
+    "ordinary_lethal_hit_plays_death": true,
+    "ordinary_death_removes_individual": true,
+    "ordinary_death_survives_room_reset": true,
+    "ordinary_death_survives_poweroff": true,
+    "second_spring_spends_charge_at_lethal_hit": true,
+    "pending_revival_survives_poweroff": true,
+    "second_spring_returns_once": true,
+    "spent_charge_survives_poweroff": true,
+    "second_lethal_hit_is_permanent": true,
+    "no_second_revival_after_reload": true,
+    "swap_keeps_old_individual_in_bag": 32,
+    "swap_preserves_cooldown": true,
+    "duplicate_species_have_individual_health_and_charge": true,
+    "bag_ui_preserves_native_stack": true,
+    "reset_restores_matching_individual_without_heal_or_charge_refresh": true,
+    "quarter_missing_heals_heir_first": true,
+    "full_heir_routes_pickup_to_living_pet": true,
+    "both_full_leave_pickup": true,
+    "pickup_never_revives_dead_pet": true
+  },
+  "details": {
+    "433": {
+      "patterns": 19,
+      "facings": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "states": [
+        0,
+        1,
+        3
+      ],
+      "cooldown": 71,
+      "maxOam": 10
+    },
+    "434": {
+      "patterns": 15,
+      "facings": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "states": [
+        0,
+        1,
+        3
+      ],
+      "cooldown": 118,
+      "maxOam": 10
+    },
+    "435": {
+      "patterns": 19,
+      "facings": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "states": [
+        0,
+        1,
+        3
+      ],
+      "cooldown": 88,
+      "maxOam": 10
+    },
+    "436": {
+      "patterns": 19,
+      "facings": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "states": [
+        0,
+        1,
+        3
+      ],
+      "cooldown": 96,
+      "maxOam": 10
+    },
+    "437": {
+      "patterns": 19,
+      "facings": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "states": [
+        0,
+        1,
+        3
+      ],
+      "cooldown": 79,
+      "maxOam": 10
+    },
+    "438": {
+      "patterns": 19,
+      "facings": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "states": [
+        0,
+        1,
+        3
+      ],
+      "cooldown": 98,
+      "maxOam": 10
+    },
+    "439": {
+      "patterns": 18,
+      "facings": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "states": [
+        0,
+        1,
+        3
+      ],
+      "cooldown": 96,
+      "maxOam": 10
+    },
+    "440": {
+      "patterns": 19,
+      "facings": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "states": [
+        0,
+        1,
+        3
+      ],
+      "cooldown": 74,
+      "maxOam": 10
+    },
+    "441": {
+      "patterns": 17,
+      "facings": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "states": [
+        0,
+        1,
+        3
+      ],
+      "cooldown": 104,
+      "maxOam": 10
+    },
+    "442": {
+      "patterns": 19,
+      "facings": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "states": [
+        0,
+        1,
+        3
+      ],
+      "cooldown": 98,
+      "maxOam": 10
+    },
+    "443": {
+      "patterns": 19,
+      "facings": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "states": [
+        0,
+        1,
+        3
+      ],
+      "cooldown": 108,
+      "maxOam": 10
+    },
+    "444": {
+      "patterns": 19,
+      "facings": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "states": [
+        0,
+        1,
+        3
+      ],
+      "cooldown": 103,
+      "maxOam": 10
+    }
+  }
+}
