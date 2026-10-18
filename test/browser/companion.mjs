@@ -22,9 +22,11 @@ try{
    if(r(sym._game_mode)!==2||(r(0xff70)&7)!==1||(r(0xff4f)&1)||r(sym._bench_on))return v;
    const id=r(sym._companion)|(r(sym._companion+1)<<8);if(id!==fixture.pet||r(sym._companion+7)===255)return v;
    const x=r(sym._pl_x)+((r(sym._companion+2)<<24)>>24)-r(sym._cam_x),y=r(sym._pl_y)+((r(sym._companion+3)<<24)>>24)-r(sym._cam_y);if(x<8||x>152||y<10||y>118)return v;
-   const body=[];for(let k=0;k<40;k++){const a=0xfe00+k*4,t=r(a+2);if(r(a)&&t>=124&&t<132&&!(r(a+3)&8))body.push(t);if(r(a)&&t<16&&!(r(a+3)&8))s.heir++;}
+   // At a native paint boundary CPU-side OAM reads can be unavailable.
+   // Observe the published native list, as the heir-animation check does.
+   const body=[];for(let k=0;k<40;k++){const a=sym._shadow_OAM+k*4,t=r(a+2);if(r(a)&&t>=124&&t<132&&!(r(a+3)&8))body.push(t);if(r(a)&&t<16&&!(r(a+3)&8))s.heir++;}
    if(body.length===2)s.ready=true;if(!s.ready)return v;
-   s.samples++;if(body.length!==2)s.missing++;else{const at=0x8000+(Math.min(...body)&~3)*16,key=Array.from({length:64},(_,i)=>r(at+i)).join(',');if(!s.patterns.includes(key))s.patterns.push(key);}
+   s.samples++;if(body.length!==2)s.missing++;else{const at=n.m._emulator_get_vram_ptr(n.id)+(Math.min(...body)&~3)*16,key=Array.from(n.m.HEAPU8.subarray(at,at+64)).join(',');if(!s.patterns.includes(key))s.patterns.push(key);}
    const facing=(r(sym._companion+6)>>3)&7;if(!s.facings.includes(facing))s.facings.push(facing);return v;
   };
  },{fixture,sym});
@@ -33,10 +35,14 @@ try{
  const elapsed=async ms=>{const from=await page.evaluate(()=>{const {m,id}=window.__egressNative;return m._emulator_get_ticks_f64(id);});await page.waitForFunction(({from,ms})=>{const {m,id}=window.__egressNative;return m._emulator_get_ticks_f64(id)>=from+Math.ceil(ms*4194304/1000);},{from,ms},{timeout:120000});};
  const press=async(key,hold=110)=>{await page.keyboard.down(key);await elapsed(hold);await page.keyboard.up(key);await elapsed(300);};
  const wait=async(field,value)=>page.waitForFunction(({a,value})=>{const {m,id}=window.__egressNative;return (a<0xd000||(m._emulator_read_mem(id,0xff70)&7)===1)&&m._emulator_read_mem(id,a)===value;},{a:sym['_'+field],value},{timeout:120000});
- await wait('game_mode',1);await elapsed(2500);await press('Enter');await wait('menu_active',1);await press('KeyX');await wait('game_mode',2);await elapsed(600);
+ await wait('game_mode',1);await elapsed(2500);await press('Enter');await wait('menu_active',1);await press('KeyX');await wait('game_mode',2);
+ // MODE_PLAY also brackets initial loading. Actual simulation frames advance
+ // only once the room has assembled; do not spend the walking route in it.
+ await page.waitForFunction(sym=>{const {m,id}=window.__egressNative,r=a=>m._emulator_read_mem(id,a);return (r(0xff70)&7)<=1&&r(sym._game_mode)===2&&(r(sym._acts+8)|(r(sym._acts+9)<<8))>=2;},sym,{timeout:120000});
+ await page.waitForFunction(()=>window.__petPaints.ready,null,{timeout:120000});await elapsed(600);
  for(const [key,hold] of [['ArrowUp',220],['ArrowRight',220],['ArrowDown',160],['ArrowLeft',220]])await press(key,hold);
  await elapsed(4000);const d=await page.evaluate(()=>window.__petPaints);
  const results={exactRomFetch:(await Promise.all(loads)).includes(sha),nativePetKeptVisible:d.samples>120&&d.missing===0,walkAndIdleAnimate:d.patterns.length>=5,multipleFacingsAnimate:d.facings.length>=3,heirRemainsVisible:d.heir>120,pageErrors:errors.length===0};
  const image=await page.locator('.game-canvas').evaluate(c=>c.toDataURL('image/png'));await writeFile(out+'/native-companion.png',Buffer.from(image.split(',')[1],'base64'));
- const report={base,sha256:sha,pet:fixture.pet,source:'Explicit CRC-sealed saved encounter; ordinary DOM keyboard movement and native OAM/VRAM reads, no gameplay RAM writes.',results,samples:d.samples,visiblePatterns:d.patterns.length,facings:d.facings,missingPetPaints:d.missing,errors};await writeFile(out+'/report.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));assert.ok(Object.values(results).every(Boolean));
+ const report={base,sha256:sha,pet:fixture.pet,source:'Explicit CRC-sealed saved encounter; ordinary DOM keyboard movement after native assembly, published native sprite list and direct VRAM reads, no gameplay RAM writes.',results,samples:d.samples,visiblePatterns:d.patterns.length,facings:d.facings,missingPetPaints:d.missing,errors};await writeFile(out+'/report.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));assert.ok(Object.values(results).every(Boolean));
 }finally{await browser.close();}

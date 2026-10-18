@@ -52,9 +52,9 @@ static uint16_t hum[2]; /* the open door's pulse: the HUD/door palette's accent,
 static uint16_t lk_rs;
 static uint8_t flick_next, flick_t;
 
-/* A fall from the sky: increasing downward speed, impact, settle. The
- * grounded card and the flying card are the same canonical texture. */
-static const int8_t ease_in[11] = {-72, -70, -66, -60, -52, -42, -30, -16, 0, 2, 0};
+/* The loading scene rises out of empty space, then settles. During play,
+ * incoming floor is prepared offscreen; only departures animate. */
+static const int8_t ease_in[11] = {24, 20, 14, 8, 3, 0, -1, 1, 0, 0, 0};
 #define EASE_FRAMES 11u
 /* the fall: crack, split, accelerate, drift apart */
 static const uint8_t fall_dy[16] = {0, 0, 1, 2, 3, 5, 7, 10, 14, 19, 25, 32, 40, 49, 59, 70};
@@ -245,13 +245,10 @@ void look_raise_cell(uint8_t i) BANKED {
 }
 
 void look_roam_begin(uint8_t enabled) BANKED {
-  uint8_t i;
   roam_on=enabled;roam_scan=near_cursor=roam_dir=0u;roam_left=EG_N;roam_x=cam_x;roam_y=cam_y;
   memset(roam_hidden,0,sizeof roam_hidden);
-  if(!enabled) return;
-  for(i=0u;i!=EG_N;i++) if(!on_screen(i) && !look_void_cell(i) && cell_type(i)!=T_PIT) {
-    roam_hidden[i>>3]|=BIT(i);look_present[i>>3]&=(uint8_t)~BIT(i);
-  }
+  /* floor_show draws the complete backing map while the display is off.
+   * Keep its offscreen floor ready, rather than hiding it to animate later. */
 }
 
 static uint8_t roam_pending(uint8_t i) {
@@ -266,7 +263,7 @@ static uint8_t roam_wants(uint8_t i) {
   if((roam_dir&J_LEFT) && x>=136)return 0u;
   if((roam_dir&J_DOWN) && y<=8)return 0u;
   if((roam_dir&J_UP) && y>=104)return 0u;
-  return (uint8_t)(x>-24 && x<168 && y>-24 && y<136);
+  return (uint8_t)(x>-40 && x<184 && y>-40 && y<152);
 }
 static void roam_raise(uint8_t i) {
   if(!(roam_hidden[i>>3]&BIT(i)) || look_here(i) || roam_pending(i)) return;
@@ -282,8 +279,8 @@ static void roam_probe(uint8_t i) {
   if(roam_hidden[i>>3]&BIT(i)) {
     if(look_here(i)) {
       if(!look_void_cell(i) && cell_type(i)!=T_PIT)roam_hidden[i>>3]&=(uint8_t)~BIT(i);
-    } else if(roam_wants(i) && !look_void_cell(i) && cell_type(i)!=T_PIT)roam_raise(i);
-  } else if(look_here(i) && !roam_wants(i) && (uint8_t)(q_n+n_flying)<12u) {
+    } else if((!on_screen(i) || roam_wants(i)) && !look_void_cell(i) && cell_type(i)!=T_PIT)roam_raise(i);
+  } else if(look_here(i) && on_screen(i) && !roam_wants(i) && (uint8_t)(q_n+n_flying)<12u) {
     if(look_void_cell(i) || cell_type(i)==T_PIT)return;
     roam_hidden[i>>3]|=BIT(i);look_drop_cell(i);
   }
@@ -312,12 +309,12 @@ void look_roam_tick(void) BANKED {
   limit=vertical ? 11u : 9u;
   if(prep_cursor>=limit)prep_cursor=0u;
   a=vertical ? cam_y : cam_x;
-  /* Discover an approaching card half a slab before it enters the screen,
-   * rather than discovering it and safety-landing it on the same edge row. */
-  if(roam_dir&(vertical ? J_UP : J_LEFT))a=a>=8u ? (uint8_t)(a-8u) : 0u;
+  /* Restore a complete extra slab before it enters view. Both existing
+   * edge probes and the bounded backing scan share the normal BG budget. */
+  if(roam_dir&(vertical ? J_UP : J_LEFT))a=a>=24u ? (uint8_t)(a-24u) : 0u;
   a>>=4;
   b=(uint8_t)(((uint16_t)(vertical ? cam_y : cam_x)+
-    (vertical ? ((roam_dir&J_DOWN) ? 135u : 127u) : ((roam_dir&J_RIGHT) ? 167u : 159u)))>>4);
+    (vertical ? ((roam_dir&J_DOWN) ? 151u : 127u) : ((roam_dir&J_RIGHT) ? 183u : 159u)))>>4);
   cross=(vertical ? cam_x : cam_y)>>4;
   for(k=0u;roam_dir && k<(roam_late ? 4u : 2u) && (uint8_t)(q_n+n_flying)<12u;k++) {
     if(video_epoch!=frame_epoch || (LY_REG>=(enemies_alive ? 48u : 64u) && LY_REG<144u))break;
@@ -398,12 +395,12 @@ static uint8_t band_ok(int16_t top, int16_t bot) {
 
 static uint8_t launch(uint8_t i) {
   uint8_t k,h,cached=0u,fall=(uint8_t)(look_here(i)!=0u);
-  int16_t y=(int16_t)((uint16_t)EG_Y(i)<<4),top=y-(fall ? 0 : 72),bot=y+16+(fall ? 70 : 2);
+  int16_t y=(int16_t)((uint16_t)EG_Y(i)<<4),top=y-(fall ? 0 : 1),bot=y+16+(fall ? 70 : 24);
   /* Seven reusable OBJ cards. The eighth slot remains available to a real
    * fragile-floor break, which uses its resident bank-0 art. */
   /* Roaming cards are composed after actors through oam_card_pair's actual
    * per-line allocator. Whole-path overlap is far too conservative for a
-   * tall sky fall: adjacent cards remain separated as they descend. */
+   * loading-scene rise: adjacent cards remain separated as they enter. */
   if(!roam_on && !band_ok(top,bot))return 0u;
   if(!fall)look_present[i>>3]|=BIT(i);
   h=cell_meta(i);
@@ -697,7 +694,7 @@ static void step_card(uint8_t k) {
   uint8_t tile = c_brk[k] ? meta_tile[c_meta[k]][0] : (k<3u ? (uint8_t)(4u+(k<<2)) : (uint8_t)(100u+(k<<2))), prop;
   int16_t wx = (int16_t)((uint16_t)EG_X(i) << 4), wy = (int16_t)((uint16_t)EG_Y(i) << 4);
   if(kind==K_FALL && roam_on && !c_brk[k] && (roam_hidden[i>>3]&BIT(i)) && roam_wants(i))
-    {kind=c_kind[k]=K_DROP;t=c_t[k]=0u;}
+    {kind=c_kind[k]=K_DROP;t=c_t[k]=EASE_FRAMES;}
   if (kind >= K_WOBBLE) {
     step_break(k, wx, wy, tile);
     return;
@@ -731,7 +728,7 @@ static void step_card(uint8_t k) {
   /* assembly */
   if (t >= EASE_FRAMES) {
     if (budget < (roam_on ? 1u : 2u) || !roam_bg_time()) {
-      sprite_pair(k,wx,wy,tile,(uint8_t)(S_BANK|(meta_pal[c_meta[k]]&LOOK_META_FLIP)|(is_wallish(c_meta[k]) ? 7u : 6u)),0u);
+      sprite_pair(k,wx,wy,tile,(uint8_t)(S_BANK|S_PRIORITY|(meta_pal[c_meta[k]]&LOOK_META_FLIP)|(is_wallish(c_meta[k]) ? 7u : 6u)),0u);
       return;
     }
     look_present[i >> 3] |= BIT(i);
@@ -739,7 +736,7 @@ static void step_card(uint8_t k) {
     finish(k);
     return;
   }
-  prop = (uint8_t)(S_BANK|(meta_pal[c_meta[k]]&LOOK_META_FLIP)|(is_wallish(c_meta[k]) ? 7u : 6u));
+  prop = (uint8_t)(S_BANK|S_PRIORITY|(meta_pal[c_meta[k]]&LOOK_META_FLIP)|(is_wallish(c_meta[k]) ? 7u : 6u));
   wy += ease_in[t];
   sprite_pair(k, wx, wy, tile, prop, 0);
   c_t[k]++;
@@ -1061,7 +1058,12 @@ static void look_update(uint8_t prepare) {
     if(roam_on && (roam_hidden[i>>3]&BIT(i)) && look_here(i) && roam_wants(i)) {
       roam_hidden[i>>3]&=(uint8_t)~BIT(i);queued[i>>3]&=(uint8_t)~BIT(i);q_head++;q_n--;continue;
     }
-    if (!on_screen(i) && !(roam_on && roam_wants(i))) {
+    if(roam_on && game_mode==MODE_PLAY && !look_here(i)) {
+      /* Incoming background is canonical and ready before camera exposure.
+       * No OBJ upload or flight slot competes with the approved departures. */
+      look_present[i>>3]|=BIT(i);roam_hidden[i>>3]&=(uint8_t)~BIT(i);
+      settle(i);
+    } else if (!on_screen(i) && !(roam_on && roam_wants(i))) {
       if(roam_on) {
         /* A queued arrival abandoned by a reversal stays hidden. */
         look_present[i>>3]&=(uint8_t)~BIT(i);roam_hidden[i>>3]|=BIT(i);

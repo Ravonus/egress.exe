@@ -1,4 +1,4 @@
-"""Observe actual drop/settle/fall trajectories during ordinary opening fights.
+"""Observe offscreen preparation and visible fall trajectories during ordinary opening fights.
 No board, camera, actor-health or animation-state writes. God mode only protects
 health so the same route can be observed under live enemy load.
 """
@@ -46,7 +46,7 @@ def run(rom,out):
     key=(kind,cell,t,dy)
     previous=seen.get(k)
     if previous and previous[0]==kind and previous[1]==cell and previous[2]!=t:
-     if kind==1 and previous[3]<dy:arrivals.append([previous[3],dy])
+     if kind==1 and dy!=0:arrivals.append([previous[3],dy])
      if kind==7 and previous[3]<dy:departures.append([previous[3],dy])
     seen[k]=key
     if kind not in (1,7):wrong.append(kind)
@@ -74,7 +74,7 @@ def run(rom,out):
     g.tick()
   safe_steps=0;log=[]
   for _ in range(6):
-   if len(arrivals)>=3 and len(departures)>=3:break
+   if len(departures)>=3:break
    g.hold(set())
    for __ in range(96):
     if g.peek('pl_state')==0 and not g.peek('pl_air') and g.peek('pin',2)==0:break
@@ -86,7 +86,7 @@ def run(rom,out):
     if tuple(g.peek('world_view',k) for k in range(2))!=view:break
    g.hold(set());g.tick(30)
   row=rim.report();row.update(seed=seed,updates=updates,arrival_steps=len(arrivals),departure_steps=len(departures),additional_safe_steps=safe_steps,driver_log=log,wrong_motion_kinds=wrong[:5],art_mismatches=art_bad[:5],late_updates=late[:5]);rows.append(row)
-  results[f'{seed:04x}_visible_downward_arrival_and_departure']=len(arrivals)>=3 and len(departures)>=3
+  results[f'{seed:04x}_visible_departure_without_incoming_flights']=not arrivals and len(departures)>=3
   results[f'{seed:04x}_consistent_motion']=not wrong
   results[f'{seed:04x}_canonical_ground_art']=not art_bad
   results[f'{seed:04x}_central_view_ready']=not rim.core_missing and not rim.bad
