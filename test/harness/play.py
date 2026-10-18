@@ -308,7 +308,15 @@ def bench_open(g: Game,log: list[str],*,craft: bool=False) -> bool:
         if not bench_visit(g,log):return False
         g.press('a',3)
     else:
-        g.press('start',3);g.tick(12);g.press('a',3)
+        g.press('start',3)
+        # The native pause scene builds its tiles before polling input. Wait
+        # for its visible split, rather than releasing A during that redraw.
+        for _ in range(180):
+            if g.peek('bench_on')==4 and g.peek('hud_line')==80:break
+            g.tick()
+        else:
+            log.append('the START menu did not become visible');return False
+        g.tick(2);g.press('a',3)
     for _ in range(80):
         if g.peek('bench_on')==1:
             g.tick(2)
