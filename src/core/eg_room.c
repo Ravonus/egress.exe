@@ -121,6 +121,33 @@ static uint8_t scan_gates(void) __naked {
   __endasm;
 }
 typedef char native_gate_values[(T_GATE==11u && T_GATE_OPEN==12u) ? 1 : -1];
+/* Return the distance to the next plain shutter, or the remaining length.
+ * Resolving a landing previously ran the full C mutation loop over every
+ * empty cell after the two fast classification scans. Only shutters need
+ * that work; keep the host's complete loop as the independent reference. */
+static uint8_t scan_next_gate(void) __naked {
+  __asm
+    ld hl,#_scan_p
+    ld a,(hl+)
+    ld h,(hl)
+    ld l,a
+    ld a,(#_scan_n)
+    ld c,a
+    ld b,#0
+  1$:
+    ld a,(hl+)
+    cp a,#11
+    jr z,2$
+    cp a,#12
+    jr z,2$
+    inc b
+    dec c
+    jr nz,1$
+  2$:
+    ld a,b
+    ret
+  __endasm;
+}
 /* Every plate must carry weight. A bare plate settles that result immediately;
  * checking occupancy only for bare plates avoids a general C scan per cell. */
 static uint8_t scan_weights(void) __naked {
@@ -403,6 +430,11 @@ static uint8_t shutters(eg_room *r, const uint8_t *occ, uint8_t nocc) {
 #endif
   if (gates)
     for (i = 0u; i != (uint8_t)EG_N; i++) {
+#ifdef EG_GRAV_ASM
+      scan_p=&c[i];scan_n=(uint8_t)(EG_N-i);
+      i=(uint8_t)(i+scan_next_gate());
+      if(i==EG_N)break;
+#endif
       v = c[i];
       if (w && v == T_GATE) {
         c[i] = T_GATE_OPEN;
@@ -442,6 +474,35 @@ uint8_t eg_push(eg_room *r, uint8_t rock, uint8_t to) EG_BANKED {
   r->c[to] = t == T_PIT ? T_EMPTY : (uint8_t)(T_ROCK | (t == T_PLATE ? F_PLATE : 0u));
   r->c[rock] = ROCK_LEFT(r->c[rock]);
   return 1u;
+}
+
+uint8_t eg_lift_load(const eg_room *r,uint8_t base) EG_BANKED {
+  uint8_t n=0u;
+  if(base>=EG_N) return 0u;
+  while((r->c[base]&T_MASK)==T_ROCK) {
+    if(r->c[base]&F_FALL)return 0u;
+    n++;
+    if(base<EG_W)break;
+    base-=EG_W;
+  }
+  return n;
+}
+uint8_t eg_lift_raise(eg_room *r,uint8_t base,uint8_t capacity) EG_BANKED {
+  uint8_t n=eg_lift_load(r,base),top,i,v;
+  if(!n || n>capacity || EG_Y(base)<n)return 0u;
+  top=(uint8_t)(base-n*EG_W);
+  if(!EG_ROCK_OPEN(r->c[top]))return 0u;
+  eg_ndirty=0u;
+  for(i=top;i!=base;i+=EG_W) {
+    v=r->c[i];
+    r->c[i]=(uint8_t)(T_ROCK|((v==T_PLATE || ((v&T_MASK)==T_ROCK && (v&F_PLATE))) ? F_PLATE : 0u));
+    if(r->c[i]&F_PLATE)eg_plates_dirty=1u;
+    mark(i);
+  }
+  v=r->c[base];r->c[base]=ROCK_LEFT(v);
+  if(v&F_PLATE)eg_plates_dirty=1u;
+  mark(base);
+  return n;
 }
 
 uint8_t eg_leave(eg_room *r, uint8_t cell) EG_BANKED { return eg_step_off(r, cell, BB_PLAYER, 1u); }

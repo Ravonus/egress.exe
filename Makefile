@@ -661,10 +661,15 @@ build/host/test_stamina: host/test_stamina.c src/core/eg_stamina.c src/core/eg_s
 	@mkdir -p $(dir $@)
 	$(HOSTCC) $(HOSTCFLAGS) -Isrc -o $@ host/test_stamina.c src/core/eg_stamina.c
 
-test-runtime-core: build/host/test_plate build/host/test_deadlock build/host/test_stamina test-narrator test-journal
+build/host/test_lift: host/test_lift.c src/core/eg_room.c src/core/eg_link.c src/core/eg_stamina.c src/core/eg_stamina.h src/core/eg_room.h
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc -o $@ host/test_lift.c src/core/eg_room.c src/core/eg_link.c src/core/eg_stamina.c
+
+test-runtime-core: build/host/test_plate build/host/test_deadlock build/host/test_stamina build/host/test_lift test-narrator test-journal
 	build/host/test_plate
 	build/host/test_deadlock
 	build/host/test_stamina
+	build/host/test_lift
 	$(PY) tools/narrator/bake_assets.py --check
 
 build/cache-check/test.o: test/native/wram_cache.c src/wram_cache.h
@@ -711,6 +716,10 @@ test-runtime: all test-runtime-core test-native-overlap
 	$(PY) test/harness/menu.py build/egress-rtc.gbc build/sprints/menu-mbc3
 	$(PY) test/harness/stamina.py build/egress.gbc build/sprints/stamina-mbc5
 	$(PY) test/harness/stamina.py build/egress-rtc.gbc build/sprints/stamina-mbc3
+	$(PY) test/harness/lift.py build/egress.gbc build/sprints/lift-mbc5
+	$(PY) test/harness/lift.py build/egress-rtc.gbc build/sprints/lift-mbc3
+	$(PY) test/harness/lift_course.py build/egress.gbc build/sprints/lift-course-mbc5
+	$(PY) test/harness/lift_course.py build/egress-rtc.gbc build/sprints/lift-course-mbc3
 	$(PY) test/harness/interaction_runtime.py build/egress.gbc build/sprints/interactions-mbc5
 	$(PY) test/harness/interaction_runtime.py build/egress-rtc.gbc build/sprints/interactions-mbc3
 	$(PY) test/harness/diagonal.py build/egress.gbc build/sprints/diagonal-mbc5

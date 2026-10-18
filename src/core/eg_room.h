@@ -207,6 +207,10 @@ uint8_t eg_rndn(uint8_t n) EG_RNG_ABI; /* 0..n-1 */
 /* Push the resting CRT at `rock` into `to` (a neighbour): into open floor or a pit (which it fills). Returns 0 if
  * `to` can't take it. */
 uint8_t eg_push(eg_room *r, uint8_t rock, uint8_t to) EG_BANKED;
+/* Contiguous resting CRTs above a base, then an atomic one-cell upward lift.
+ * No move on failure. Lift capacity/height and stamina belong to the actor. */
+uint8_t eg_lift_load(const eg_room *r,uint8_t base) EG_BANKED;
+uint8_t eg_lift_raise(eg_room *r,uint8_t base,uint8_t capacity) EG_BANKED;
 /* B2: push the crate (a laid brick: T_BLOCK, or T_BLOCK_PLATE on a plate) at `from` into the neighbour `to`, Sokoban
  * rules, by the player, a pusher or a mirror: onto carpet or a plate (T_BLOCK_PLATE: it weighs the plate); onto floor
  * glass or a ceiling tile it smashes through (a pit, the crate gone). Anything else, a pit included, refuses (0). */
