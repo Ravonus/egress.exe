@@ -319,7 +319,11 @@ static uint8_t floor_play(void) {
     streamed=world_on ? late : 0u;
     if(!late)heir_prepare();
     if(!streamed && companion.id)companion_art_tick();
-    late=(uint8_t)(roaming && (world_on || enemies_alive || stage_type!=SG_PUZZLE));
+    /* Quiet floors also cast elements and analyse irreversible puzzles.
+     * Every roaming room shares one bounded early terrain allowance, then
+     * composes actors before advancing the flying cards. A quiet room must
+     * not stack a second unrestricted terrain pass ahead of those actions. */
+    late=roaming;
     if (boss_floor) boss_vblank(); /* B2 bosses: in VBlank, before the look's writes */
     if (pal_dirty && !look_busy()) {
       set_sprite_palette(2u, 6u, &pal_sp[8]);

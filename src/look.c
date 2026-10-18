@@ -52,9 +52,10 @@ static uint16_t hum[2]; /* the open door's pulse: the HUD/door palette's accent,
 static uint16_t lk_rs;
 static uint8_t flick_next, flick_t;
 
-/* A fixed downward arrival: drop, decelerate, one-pixel settle, commit. */
-static const int8_t ease_in[8] = {-24, -18, -12, -7, -3, 0, 1, 0};
-#define EASE_FRAMES 8u
+/* A fall from the sky: increasing downward speed, impact, settle. The
+ * grounded card and the flying card are the same canonical texture. */
+static const int8_t ease_in[11] = {-72, -70, -66, -60, -52, -42, -30, -16, 0, 2, 0};
+#define EASE_FRAMES 11u
 /* the fall: crack, split, accelerate, drift apart */
 static const uint8_t fall_dy[16] = {0, 0, 1, 2, 3, 5, 7, 10, 14, 19, 25, 32, 40, 49, 59, 70};
 #define FALL_FRAMES 16u
@@ -397,7 +398,7 @@ static uint8_t band_ok(int16_t top, int16_t bot) {
 
 static uint8_t launch(uint8_t i) {
   uint8_t k,h,cached=0u,fall=(uint8_t)(look_here(i)!=0u);
-  int16_t y=(int16_t)((uint16_t)EG_Y(i)<<4),top=y-(fall ? 0 : 24),bot=y+16+(fall ? 70 : 1);
+  int16_t y=(int16_t)((uint16_t)EG_Y(i)<<4),top=y-(fall ? 0 : 72),bot=y+16+(fall ? 70 : 2);
   /* Seven reusable OBJ cards. The eighth slot remains available to a real
    * fragile-floor break, which uses its resident bank-0 art. */
   if(!band_ok(top,bot))return 0u;
