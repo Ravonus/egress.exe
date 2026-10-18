@@ -42,7 +42,7 @@ void enemy_kill(uint8_t k, uint8_t crushed) BANKED {
   if (e->kind == SPAWN_BOSS) {
     shake = 30u;
     freeze = 20u;
-    open_door();
+    open_door_quiet();
     hud_msg("IT BLINKS OUT.");
     /* its static goes with it */
     for (k = 1; k != nen; k++)

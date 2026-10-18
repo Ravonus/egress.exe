@@ -241,7 +241,7 @@ static uint8_t in_ring(void) { return (uint8_t)(cheb(pcell(), stg.ring) <= stg.r
 static void win(const char *msg) {
   stage_won = 1u;
   wv_pend = 0;
-  if (!door_open) open_door();
+  if (!door_open) open_door_quiet();
   hud_msg(msg);
 }
 

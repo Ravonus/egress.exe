@@ -154,10 +154,15 @@ static void fall_tick(void) {
   heir_play(HA_SPAWN,1u);
 }
 
-void open_door(void) BANKED {
+/* Stage/boss completion supplies its own toast; do not compose an immediately
+ * overwritten door message on the same heavy final-hit frame. */
+void open_door_quiet(void) BANKED {
   door_open = 1;
   if(room.door<EG_N)queue_cell(room.door);
   sfx(SFX_DOOR);
+}
+void open_door(void) BANKED {
+  open_door_quiet();
   hud_msg("THE DOOR HUMS");
 }
 

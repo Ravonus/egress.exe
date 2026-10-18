@@ -294,8 +294,8 @@ static void bench_near_tick(void) {
   uint8_t c,ready;
   if(frame_count&15u)return;
   /* A new toast composes a complete HUD row. Leave its hint pending when
-   * a streamed seam has already spent this frame's early display budget. */
-  if(world_on && (video_epoch!=frame_epoch || (LY_REG>=80u && LY_REG<144u)))return;
+   * combat or a streamed seam has spent this frame's early display budget. */
+  if(video_epoch!=frame_epoch || (LY_REG>=80u && LY_REG<144u))return;
   c=near_bench();
   if(c==255u) {bench_hint=255u;return;}
   ready=stage_bench_ready();
