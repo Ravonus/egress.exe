@@ -262,7 +262,7 @@ def pocket(g: Game) -> list[int]:
     return [g.peek("pocket", k) for k in range(g.peek("pocket_n"))]
 
 
-def bench_visit(g: Game,log: list[str]) -> bool:
+def _bench_approach(g: Game,log: list[str]) -> bool:
     # Read the real marker; move through stable floor with controller input.
     from collections import deque
     cells=g.room()[:224];x,y=g.player();start=y//16*16+x//16
@@ -285,11 +285,22 @@ def bench_visit(g: Game,log: list[str]) -> bool:
     # before interacting; airborne A remains a combat input.
     g.hold(set())
     for _ in range(96):
-        if not g.peek('pl_air') and g.peek('pl_state')==0:
+        if not g.peek('pl_air') and g.peek('pl_state')==0 and g.peek('pin',2)==0:
             g.tick(2)
-            if not g.peek('pl_air') and g.peek('pl_state')==0:return True
+            if not g.peek('pl_air') and g.peek('pl_state')==0 and g.peek('pin',2)==0:return True
         g.tick()
     log.append('the bench approach never landed');return False
+
+
+def bench_visit(g: Game,log: list[str]) -> bool:
+    # A roll can reach the requested tile before its momentum ends. Replan
+    # from the actual grounded position instead of pressing A past the bench.
+    for _ in range(3):
+        if not _bench_approach(g,log):return False
+        cells=g.room()[:224];x,y=g.player();c=y//16*16+x//16
+        for n in (c-16,c+16,c-1,c+1):
+            if 0<=n<224 and abs(c%16-n%16)+abs(c//16-n//16)==1 and cells[n]==34:return True
+    log.append('the bench approach drifted out of interaction range');return False
 
 
 def bench_open(g: Game,log: list[str],*,craft: bool=False) -> bool:
