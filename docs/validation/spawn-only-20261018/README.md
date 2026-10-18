@@ -18,3 +18,9 @@ Source `f19136c84a4294f33270ffcad93ce92137d147ba` is frozen against 504 input ha
 | egress-rtc.gbc | 1572864 | `38364434c967c53c844236736c886708d3ac2ac31ef7c6069655a7184daeacef` |
 
 This remains the ten-floor office development campaign. Physical cartridge playback has not been tested for this pair.
+
+## Published release
+
+[PR #8](https://github.com/Ravonus/egress.exe/pull/8) merged as `5edbd2cc1e1d756c8ddf1fb693ecbbc67a36bd8b`. The [public player and downloads](https://egress.onkeel.io/) serve this exact pair. Actual standard/RTC downloads, emulator ROM identity and layouts at 1280/768/390/320 pass a fresh live browser run. That driver waits for the page's existing interactive-ready marker before operating controls. HTTP hashes independently match the export. The site source is committed locally as `ef9fa691e78386a4d27e83ad35ba99a440ecdbd3` in its checkout with no Git remote. All 65 pre-existing changed paths are preserved.
+
+Only the primary game worktree and `main` remain. Private browser outputs are archived under the ignored candidate directory; no temporary production-host test checkout was reused, and the prior temporary directory remains absent. Production rollback backups are preserved. See `site-release.json`, `cleanup.json` and `live-site/report.json`.

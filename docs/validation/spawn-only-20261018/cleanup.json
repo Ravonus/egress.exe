@@ -1,0 +1,13 @@
+{
+  "remainingLocalBranches": [
+    "main"
+  ],
+  "remainingRemoteBranches": [
+    "origin/main"
+  ],
+  "worktrees": "worktree /Users/ravonus/dev/egress\nHEAD 5edbd2cc1e1d756c8ddf1fb693ecbbc67a36bd8b\nbranch refs/heads/main\n\n",
+  "privateBrowserOutputsArchived": true,
+  "remoteTemporaryVerificationReused": false,
+  "remoteTemporaryDirectoryAbsent": true,
+  "liveBrowserClosed": true
+}

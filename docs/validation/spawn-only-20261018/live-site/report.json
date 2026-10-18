@@ -1,0 +1,41 @@
+{
+  "base": "https://egress.onkeel.io",
+  "checks": [
+    {
+      "width": 1280,
+      "downloads": true,
+      "github": true,
+      "noOverflow": true,
+      "explainerNoOverflow": true,
+      "pageErrors": []
+    },
+    {
+      "width": 768,
+      "downloads": true,
+      "github": true,
+      "noOverflow": true,
+      "explainerNoOverflow": true,
+      "pageErrors": []
+    },
+    {
+      "width": 390,
+      "downloads": true,
+      "github": true,
+      "noOverflow": true,
+      "explainerNoOverflow": true,
+      "pageErrors": []
+    },
+    {
+      "width": 320,
+      "downloads": true,
+      "github": true,
+      "noOverflow": true,
+      "explainerNoOverflow": true,
+      "pageErrors": []
+    }
+  ],
+  "standardSha256": "c04e9703b973173112911aa94769b1a6871803c0a33edb637960d897770e923d",
+  "rtcSha256": "38364434c967c53c844236736c886708d3ac2ac31ef7c6069655a7184daeacef",
+  "actualDownloadsVerified": true,
+  "browserEmulatorUsesStandard": true
+}

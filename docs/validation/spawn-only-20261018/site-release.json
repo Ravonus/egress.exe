@@ -1,0 +1,22 @@
+{
+  "site": "https://egress.onkeel.io",
+  "sourceCommit": "f19136c84a4294f33270ffcad93ce92137d147ba",
+  "mergeCommit": "5edbd2cc1e1d756c8ddf1fb693ecbbc67a36bd8b",
+  "siteCommit": "ef9fa691e78386a4d27e83ad35ba99a440ecdbd3",
+  "roms": {
+    "egress.gbc": {
+      "bytes": 1556480,
+      "sha256": "c04e9703b973173112911aa94769b1a6871803c0a33edb637960d897770e923d"
+    },
+    "egress-rtc.gbc": {
+      "bytes": 1572864,
+      "sha256": "38364434c967c53c844236736c886708d3ac2ac31ef7c6069655a7184daeacef"
+    }
+  },
+  "publicHashesVerified": true,
+  "fourLiveWidthsVerified": true,
+  "nativeFullSuite": 0,
+  "privateBrowserChecks": 7,
+  "preexistingWebsitePathsPreserved": 65,
+  "physicalCartridgeTested": false
+}
