@@ -34,7 +34,7 @@ class Pixels:
         pose,dd,tile=r.A,r.E,m[r.SP+2]
         rec=self.read(g.sym['_heir_recs']+3*(pose*5+dd),3)
         chunk,lo,hi=rec;addr=g.sym['_heir_data_'+str(chunk)]+lo+256*hi
-        blob=self.read(addr,16000-(addr&16383));buf=bytearray(blob[1:129]);p=129
+        blob=self.read(addr,16384-(addr&16383));buf=bytearray(blob[1:129]);p=129
         sh={name:g.peek('heir',off) for name,off in [('look',1),('neck',3),('pat',4),('hair',2),('mark',5),('weapon',7)]}
         zero=False
         for name,value in SLOTS:

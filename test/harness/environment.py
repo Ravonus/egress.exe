@@ -11,9 +11,9 @@ from grid_observer import GridObserver
 from world_play import WorldPlayer
 
 class Watch:
- def __init__(self,g):
+ def __init__(self,g,grid=None):
   self.g=g;self.late=[];self.fx=self.smoke=self.sounds=0;self.paused=True;self.epochs=[]
-  self.meter=OamMeter(g);self.grid=GridObserver(g)
+  self.meter=OamMeter(g);self.grid=grid if grid is not None else GridObserver(g)
   for name,callback in [('frame_wait',self.frame),('fx_burst',self.particle),('puff',self.puff),('sfx',self.sound)]:
    at=g.sym['_'+name];g.pb.hook_register(at>>16,at&65535,callback,None)
  def frame(self,_):
@@ -41,11 +41,12 @@ def cast(g):
 
 def run(rom,out):
  out.mkdir(parents=True,exist_ok=True);results={};c=7*16+7
- g=fresh(rom,20)
+ # Keep the original map-write coverage by observing actual spawn writes.
+ grids=[];g=fresh(rom,20,observer=lambda g:grids.append(GridObserver(g)))
  for k in range(28):g.poke('room',0,258+k)
  for y in range(4,11):
   for x in range(3,13):g.poke('look_skin',0,y*16+x)
- bag(g,[20,2,2,1,20]);w=Watch(g);frames=[];states=[];base_tick=g.tick
+ bag(g,[20,2,2,1,20]);w=Watch(g,grids[0]);frames=[];states=[];base_tick=g.tick
  def capture(n=1):
   for _ in range(n):
    base_tick();state=(g.room()[c],g.peek('look_skin',c))

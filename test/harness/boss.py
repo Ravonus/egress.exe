@@ -495,13 +495,17 @@ def fight(rom: Path, kind: int, out: Path | None, report: dict, tag: str, mortal
             # the door: walk out
             break
     won = st.get("bs_st") in (BS["EXIT"], BS["DEAD"]) or st.get("game_mode") == MODE_CLEAR
+    # Record the defeated boss before walking through its door: spawn-only
+    # transitions can enter the next floor before the driver's final wait.
+    hits = (g.peek("acts", 7) - hits0) & 255
+    good_hits = g.peek("bs_hits")
+    hp_final = g.peek("pl_hp")
     if kind == BOSS_MID and won:
         walk_to_door(g, bot)
-    hits = (g.peek("acts", 7) - hits0) & 255
     lag_min = {p: min(v) for p, v in lag.items() if v}
     r = {
-        "won": won, "hits_taken": hits, "hp": [hp0, g.peek("pl_hp")], "frames": t, "phases": phases,
-        "good_hits": g.peek("bs_hits"), "oam_frames": meter.frames, "oam_max_per_line": meter.max_line,
+        "won": won, "hits_taken": hits, "hp": [hp0, hp_final], "frames": t, "phases": phases,
+        "good_hits": good_hits, "oam_frames": meter.frames, "oam_max_per_line": meter.max_line,
         "oam_frames_over_10": meter.over, "oam_over_by_phase": per_line_over,
         "game_frames_per_120_min": lag_min, "lag_windows": {p: sum(1 for d in v if d < 120) for p, v in lag.items()},
         "sequence_frames_per_120_min": {p: min(v) for p, v in sequence_lag.items() if v},
