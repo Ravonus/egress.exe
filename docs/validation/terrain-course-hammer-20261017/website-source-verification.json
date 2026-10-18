@@ -1,0 +1,10 @@
+{
+  "sourceFiles": 351,
+  "changedSourceFiles": {
+    "next.config.ts": {
+      "before": "b764434d13152f35c8da66fb439d34a6e8be071e849ac2db583a2521b19745e9",
+      "after": "3e6f0a675441ae323fa3329ac2d7f09df340a44244f4a49409df8fa74be5a84c"
+    }
+  },
+  "onlyTemporaryBoundedBuildConfigurationChanged": true
+}

@@ -262,15 +262,68 @@ def pocket(g: Game) -> list[int]:
     return [g.peek("pocket", k) for k in range(g.peek("pocket_n"))]
 
 
-def bench_open(g: Game, log: list[str]) -> bool:
+def _bench_approach(g: Game,log: list[str]) -> bool:
+    # Read the real marker; move through stable floor with controller input.
+    from collections import deque
+    cells=g.room()[:224];x,y=g.player();start=y//16*16+x//16
+    q=deque([start]);prev={start:None};route_dir={};target=None
+    while q:
+        c=q.popleft()
+        for name,delta in [('U',-16),('D',16),('L',-1),('R',1)]:
+            n=c+delta
+            if n<0 or n>=224 or abs(c%16-n%16)+abs(c//16-n//16)!=1:continue
+            if cells[n]==34:target=c;break
+            if n in prev or cells[n] not in (0,1,5,10,12):continue
+            prev[n]=c;route_dir[n]=name;q.append(n)
+        if target is not None:break
+    if target is None:log.append('no real bench reachable in the active stable component');return False
+    route=[]
+    while prev[target] is not None:route.append(route_dir[target]);target=prev[target]
+    for d in reversed(route):
+        if not step(g,d,log):return False
+    # Grid steps can double-tap into a real roll. Land and finish recovery
+    # before interacting; airborne A remains a combat input.
+    g.hold(set())
+    for _ in range(96):
+        if not g.peek('pl_air') and g.peek('pl_state')==0 and g.peek('pin',2)==0:
+            g.tick(2)
+            if not g.peek('pl_air') and g.peek('pl_state')==0 and g.peek('pin',2)==0:return True
+        g.tick()
+    log.append('the bench approach never landed');return False
+
+
+def bench_visit(g: Game,log: list[str]) -> bool:
+    # A roll can reach the requested tile before its momentum ends. Replan
+    # from the actual grounded position instead of pressing A past the bench.
     for _ in range(3):
-        g.press("select", 3)
-        for _ in range(40):
-            if g.peek("bench_on") == 1:
-                g.tick(2)
-                return True
+        if not _bench_approach(g,log):return False
+        cells=g.room()[:224];x,y=g.player();c=y//16*16+x//16
+        for n in (c-16,c+16,c-1,c+1):
+            if 0<=n<224 and abs(c%16-n%16)+abs(c//16-n//16)==1 and cells[n]==34:return True
+    log.append('the bench approach drifted out of interaction range');return False
+
+
+def bench_open(g: Game,log: list[str],*,craft: bool=False) -> bool:
+    if craft:
+        if not bench_visit(g,log):return False
+        g.press('a',3)
+    else:
+        g.press('start',3)
+        # The native pause scene builds its tiles before polling input. Wait
+        # for its visible split, rather than releasing A during that redraw.
+        for _ in range(180):
+            if g.peek('bench_on')==4 and g.peek('hud_line')==80:break
             g.tick()
-    log.append("the bench did not open")
+        else:
+            log.append('the START menu did not become visible');return False
+        g.tick(2);g.press('a',3)
+    for _ in range(80):
+        if g.peek('bench_on')==1:
+            g.tick(2)
+            if bool(g.peek('bench_mode'))==craft:return True
+            break
+        g.tick()
+    log.append('the physical bench did not open' if craft else 'inventory did not open through START, A')
     return False
 
 
@@ -300,7 +353,7 @@ def bench_act(g: Game, act: str, log: list[str], shot: Path | None = None, *, pr
             g.tick(2)
             if g.peek("pl_face") == want:
                 break
-    if not bench_open(g, log):
+    if not bench_open(g,log,craft=act[0]=="C"):
         return False
     inv = pocket(g)
     if a not in inv:
@@ -333,9 +386,11 @@ def bench_act(g: Game, act: str, log: list[str], shot: Path | None = None, *, pr
             log.append(f"{act}: the bench made nothing (pocket {pocket(g)})")
         return ok and not g.peek("bench_on")
     n0 = g.peek("pocket_n")
-    g.press("start", 4)
+    g.press("select",4)  # equip this stable piece ID and close the bench
+    g.tick(12)
+    g.press("select",4)  # use only on a fresh gameplay tap/release
     for _ in range(600):  # the reaction plays out inside the use
-        if not g.peek("bench_on"):
+        if g.peek("pocket_n")==n0-1 and not g.peek("bench_on"):
             break
         g.tick()
     g.tick(4)
@@ -392,7 +447,7 @@ def solve_here(g: Game, egtool: Path, log: list[str]) -> str:
 
 
 def room_command(g: Game, egtool: Path, verb: str) -> list[str]:
-    motif = g.peek("slice",22)&63  # eg_deck 16 bytes, six slice fields, physical
+    motif = g.peek("slice",22)&31  # eg_deck 16 bytes, six slice fields, physical
     if motif:
         seed = g.peek16("run_seed") ^ ((g.peek("floor_no") * 0x9e37) & 65535) ^ 0x51a7
         return [str(egtool),"phys-"+verb,str(seed or 1),str(motif),str(g.peek("slice",19))]
@@ -629,7 +684,7 @@ def read_save(sram: bytes) -> dict | None:
     best = None
     for off in (0, 32):
         r = sram[off:off + 22]
-        if r[:3] != b"EG\x01" or crc16(r[:20]) != (r[20] | r[21] << 8):
+        if r[:3] != b"EG\x02" or crc16(r[:20]) != (r[20] | r[21] << 8):
             continue
         m = r[4:20]
         rec = {"gen": r[3], "runs": m[0] | m[1] << 8, "wins": m[2], "best_floor": m[3], "unlocked": m[4],

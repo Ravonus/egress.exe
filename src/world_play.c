@@ -39,7 +39,9 @@ static void bind_requested(void) {
 }
 uint8_t world_work_pending(void) BANKED {
   preparation *p;uint8_t n;
-  if(!world_on)return 0u;
+  /* Presentation yields only to work that can run this frame. A fight or
+   * fall suspends prefetch; its pending strips must not starve rim arrivals. */
+  if(!world_on || !pl_hp || pl_state==PS_FALL || pl_state==PS_EXIT || enemies_alive || player_portal_pending())return 0u;
   if((px.dir && px.n<14u) || (py.dir && py.n<16u))return 1u;
   n=priority_axis();p=n ? &py : &px;
   return p->dir && !world_binding_ready(n ? 0 : p->dir*4,n ? p->dir*4 : 0);
@@ -54,8 +56,10 @@ void world_play_reset(void) BANKED {
 static int8_t wanted(uint8_t vertical) {
   uint8_t position=vertical ? pl_y : pl_x,origin=vertical ? world_view.y : world_view.x;
   uint8_t max=vertical ? world_view.height-EG_H : world_view.width-EG_W;
-  if(joy&(vertical ? J_DOWN : J_RIGHT))return origin<max && position>=(vertical ? 48u : 64u) ? 1 : 0;
-  if(joy&(vertical ? J_UP : J_LEFT))return origin && position<=(vertical ? 176u : 192u) ? -1 : 0;
+  /* A vertical strip has sixteen packets. Start it a tile earlier so a
+   * sprint out of a horizontal turn can finish before the swept feet arrive. */
+  if(joy&(vertical ? J_DOWN : J_RIGHT))return origin<max && position>=(vertical ? 32u : 64u) ? 1 : 0;
+  if(joy&(vertical ? J_UP : J_LEFT))return origin && position<=192u ? -1 : 0;
   if(origin && position<=96u)return -1;
   if(origin<max && position>=(vertical ? 144u : 160u))return 1;
   if(joy&(J_UP|J_DOWN|J_LEFT|J_RIGHT))return 0;
@@ -82,6 +86,7 @@ static uint8_t generate_one(preparation *p,uint8_t vertical,uint8_t *packet) {
   if(!p->dir || p->n>=(vertical ? 16u : 14u))return 0u;
   chunk(p,vertical,&x,&y);
   if(!p->part && world_cached(x,y)) {p->n++;return 1u;}
+  if(!spare(58u))return 0u;
   k=p->part;if(!k)packet[8]=0u;
   eg_land_at(&world_plan,(uint8_t)(x+k),y,&c);packet[k]=c.material;packet[k+4u]=world_skin(c.design,c.variant);
   if(c.flags&EL_PROTECTED)packet[8]|=look_bits[k];
@@ -98,7 +103,10 @@ static uint8_t generate_one(preparation *p,uint8_t vertical,uint8_t *packet) {
 static uint8_t clear_one(preparation *p,uint8_t vertical) {
   uint8_t x,y,cam=vertical ? cam_y : cam_x;
   if(!p->dir || (!(p->bg&128u) && p->bg>=(vertical ? 64u : 56u)))return 0u;
-  if(p->dir>0 ? cam<64u : cam>(vertical ? 64u : 32u))return 0u;
+  /* South retires padding rows 14/15 and real rows 0/1. The latter are
+   * completely outside the 128px view once SCY reaches 32, unlike the four
+   * real columns retired by a horizontal transfer. */
+  if(p->dir>0 ? cam<(vertical ? 32u : 64u) : cam>(vertical ? 64u : 32u))return 0u;
   if(p->bg&128u) {
     /* A horizontal transfer retains the perpendicular cleared strip. Only
      * the two padding rows in its new four-column corner need clearing. */
@@ -198,16 +206,42 @@ static void goal_hint(void) {
     break;
   }
 }
+static uint8_t pickup_cell(uint8_t x,uint8_t y) {
+  uint8_t t=room.c[EG_IDX(x,y)]&T_MASK;
+  return (uint8_t)(t==T_KEY || t==T_ITEM || t==T_TOKEN || t==T_DIRT);
+}
+static uint8_t pickup_ahead(void) {
+  /* A seven-pixel sweep covers the fastest evade and a landing. Pickups can
+   * compose a complete HUD message later in player_update; reserve that turn
+   * before admitting an expensive inactive-map query. */
+  uint8_t x0=pl_x<7u ? 0u : (pl_x-7u)>>4;
+  uint8_t x1=pl_x>248u ? 15u : (pl_x+7u)>>4;
+  uint8_t y0=pl_y<7u ? 0u : (pl_y-7u)>>4;
+  uint8_t y1=pl_y>216u ? 13u : (pl_y+7u)>>4;
+  return (uint8_t)(pickup_cell(x0,y0) || (x1!=x0 && pickup_cell(x1,y0)) ||
+    (y1!=y0 && (pickup_cell(x0,y1) || (x1!=x0 && pickup_cell(x1,y1)))));
+}
 void world_prefetch(void) BANKED {
   uint8_t n,did,axes=0u,mx,my;int8_t x,y;
   if(!world_on || !pl_hp || pl_state==PS_FALL || pl_state==PS_EXIT || enemies_alive)return;
   if(player_portal_pending())return;
+  /* A narrator turn may compose a caption or start a voice clip after the
+   * simulation. Reserve its budget instead of stacking a cold map query. */
+  if(!(frame_count&63u))return;
+  /* Interaction/attack frames own their budget; do not stack speculative
+   * seed queries on a fresh action. */
+  if(((joy^joy_prev)&(J_A|J_B|J_START|J_SELECT)) || pl_state==PS_LASH || pl_state==PS_SPIN || push_t || pickup_ahead())return;
   x=wanted(0u);y=wanted(1u);choose(&px,x);choose(&py,y);
   if(joy&(J_LEFT|J_RIGHT))axes|=1u;
   if(joy&(J_UP|J_DOWN))axes|=2u;
   if(!axes)axes=3u;
   mx=pl_x<128u ? pl_x : (uint8_t)(255u-pl_x);
   my=pl_y<112u ? pl_y : (uint8_t)(223u-pl_y);
+  /* Near a corner, finish the closer continuation before the next turn.
+   * The held axis resumes as soon as that strip is cached. Splitting every
+   * frame between both strips leaves the imminent edge half prepared. */
+  if(axes==1u && py.dir && my<48u && my<mx)axes=2u;
+  else if(axes==2u && px.dir && mx<48u && mx<my)axes=1u;
   /* Retire one already-offscreen quad early near a requested boundary.
    * This work must progress even while late actors/cards use their margin. */
   if(spare(24u)) {
@@ -216,13 +250,15 @@ void world_prefetch(void) BANKED {
   }
   /* Resolve a ready transfer before spending its spare time on a different
    * strip. A tight vertical edge must not starve after a horizontal turn. */
-  if(spare(15u))bind_requested();
+  if(spare(32u))bind_requested();
   /* Finish both started strips across a direction change. New orthogonal
    * preparations still require movement on that axis (wanted() above). */
   if(axes==3u)axes=my<32u && my<mx ? 2u : mx<32u && mx<=my ? 1u : 3u;
   /* Seed queries touch only the inactive backing store. Reserve their time
    * before simulation; a late collision/render pass must not starve a seam. */
-  for(n=0u;n<6u && spare(55u);n++) {
+  /* A seed query near apparatus can consume roughly forty scanlines.
+   * Admit it early enough to retain the mover, audio and complete actor list. */
+  for(n=0u;n<6u && spare(60u);n++) {
     /* Once the requested strip is generated, warm the other axis while its
      * outgoing BG/save work finishes. A turn must not start from cold data. */
     if(axes==1u && px.dir && px.n==14u) {generate_one(&py,1u,world_pre_y);continue;}
@@ -268,5 +304,7 @@ void world_frame_end(void) BANKED {
       if(!world_chunk_preserved(a,b)) {world_preserve(a,b);break;}
     }
   }
-  goal_hint();
+  /* A newly approached apparatus may compose a full HUD row. Keep that
+   * pending until it fits after the outgoing-strip work above. */
+  if(spare(100u))goal_hint();
 }

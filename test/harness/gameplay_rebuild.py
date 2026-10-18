@@ -18,6 +18,7 @@ def route(g, target):
         for d,delta in [('U',-16),('D',16),('L',-1),('R',1)]:
             n=c+delta
             if n<0 or n>=224 or n in prev or (cells[n]&31 not in PASSABLE and not (cells[n]&31==7 and g.peek('door_open'))): continue
+            if abs(c%16-n%16)+abs(c//16-n//16)!=1:continue
             prev[n]=c;dirs[n]=d;q.append(n)
     if target not in prev:
         target=min(prev,key=lambda c:abs(c%16-target%16)+abs(c//16-target//16))
@@ -39,7 +40,7 @@ def run(rom,out,tool):
     assert start_run(g,True,False,physical_fixture=1)
     dump=subprocess.check_output([str(tool),'phys-dump',str(g.peek16('run_seed')^0x9e37^0x51a7),'1',str(g.peek('slice',19))],text=True)
     result['first_room_matches_shared_generator']=bytes(g.room()[:224])==bytes.fromhex(dump.split()[0])
-    result['first_room_is_push']=g.peek('slice',22)&63==1
+    result['first_room_is_push']=g.peek('slice',22)&31==1
     g.shot(out/'01-push.png')
     for d in 'URDL': assert step(g,d,log)
     result['pickup_units']=pocket(g)==[4,2]
@@ -47,10 +48,11 @@ def run(rom,out,tool):
     result['reset_restores_entry_bag_and_pickups']=pocket(g)==[] and g.room()[178]==17 and g.room()[179]==17
     for d in 'URDL': assert step(g,d,log)
     assert bench_open(g,log); bench_cursor(g,0);g.shot(out/'02-bench.png')
-    g.press('start');g.tick(35)
+    g.press('select',4);g.tick(12);g.press('select',4);g.tick(35)
     result['invalid_target_keeps_units']=pocket(g)==[4,2]
     assert bench_act(g,'Cdb',log)
     result['finite_recipe_consumption']=pocket(g)==[8]
+    assert walk(g,g.room()[224],log)  # replay the authored solver route from its entry
     moves=solve_here(g,tool,log);g.tick(240)
     result['normal_floor2_wave_stage']=g.peek('floor_no')==2 and g.peek('stage_type')==1
     result['inventory_carried_into_combat']=pocket(g)==[8]
@@ -76,7 +78,7 @@ def run(rom,out,tool):
     report['wave_kills']=g.peek('kills_run');report['wave_count']=g.peek('stage_wave')
     if g.peek('stage_won'):
         g.poke('dbg_stage',130);walk(g,g.room()[225],log);g.tick(240)
-        result['normal_floor3_falling_puzzle']=g.peek('floor_no')==3 and g.peek('slice',22)&63==2
+        result['normal_floor3_falling_puzzle']=g.peek('floor_no')==3 and g.peek('slice',22)&31==2
         g.shot(out/'04-falling.png')
         report['drop_plan']=solve_here(g,tool,log)
         g.tick(240)
@@ -123,9 +125,9 @@ def run(rom,out,tool):
     result['siblings_visibly_distinct']=len(set(looks))==3
     from picker_collision import wait_ready
     g.press('a');wait_ready(g);g.press('a');assert g.wait_mode(2)
-    result['legacy_meta_preserved']=g.peek('meta_loaded')==1 and g.peek16('meta')==1
+    result['current_meta_preserved']=g.peek('meta_loaded')==1 and g.peek16('meta')==1
     g.stop()
-    # Tear the newest extension; CRC journal must retain the preceding selected heir and legacy meta.
+    # Tear the newest extension; CRC journal must retain the preceding selected heir and current meta.
     damaged=bytearray(dead_save)
     newest=max((0x570,0xa6c),key=lambda at:damaged[at+3]);damaged[newest+20]^=0x80
     g=Game(rom,sram=bytes(damaged));assert start_run(g,True,False,physical_fixture=1)

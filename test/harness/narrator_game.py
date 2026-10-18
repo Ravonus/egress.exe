@@ -14,7 +14,7 @@ def run(rom,out):
     g.shot(out/'quiet-heir-caption.png')
     for d in 'URDL':assert step(g,d,log)
     assert pocket(g)==[4,2]
-    assert bench_open(g,log);bench_cursor(g,0);g.press('start',4);g.tick(12)
+    assert bench_open(g,log);bench_cursor(g,0);g.press('select',4);g.tick(12);g.press('select',4);g.tick(12)
     res['refused_use_keeps_items']=pocket(g)==[4,2]
     g.tick(700)
     res['text_cooldown_is_sparse']=g.peek('narrator_seq')==1

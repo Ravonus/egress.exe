@@ -1,0 +1,23 @@
+{
+  "sourceCommit": "8ef8ac0ccab37cd427aeb8f8d7143377a80452f3",
+  "roms": {
+    "egress.gbc": {
+      "bytes": 1245184,
+      "sha256": "aaec5551d87a0ab307baae2305d9febf28e900ad8fd3c37801a4df21a3d4385b"
+    },
+    "egress-rtc.gbc": {
+      "bytes": 1245184,
+      "sha256": "a0be816ce4a643b1136a3c58f011cc20ce3e8b634ecb89cc812b3b689290376e"
+    }
+  },
+  "gbdkRelease": "4.5.0",
+  "mapperLinksSequential": true,
+  "explicitFinalObjectBuild": true,
+  "finalObjectAtLeastAsNewAsSource": true,
+  "logs": {
+    "victory-toast-build-v47.log": "a01afb546eeda4c3ca6c146588b9c5d39336caeb859e8de1bb3d95a035ca528f",
+    "forced-final-build-v54.log": "ec9e49f324985d93e2b98c467c8e6765d22661416d18ea30f49a45c1455db67b",
+    "budget-order-build-v92.log": "9b513bae947cfcd85911f396805b64ac3560ba0e0f562d4a34b89afc23bafdd1",
+    "binding-budget-build-v99.log": "a65bbbd14ca0ff6defae2b8445808719599882f6b107126622cc41dc40fd8c30"
+  }
+}

@@ -50,7 +50,7 @@ class LookWindow:
             if cell==255:
                 p['in_flight'][old>>3]&=~(1<<(old&7))
                 if 1<=kind<=5 and not p['c_brk'][k]:p['roam_hidden'][old>>3]&=~(1<<(old&7))
-                if p['c_brk'][k]:p['c_brk'][k]=0;p['n_break']-=1
+                if p['c_brk'][k]:p['c_brk'][k]=0;p['c_meta'][k]=255;p['n_break']-=1
                 p['c_kind'][k]=0;p['n_flying']-=1
             else:
                 p['c_cell'][k]=cell

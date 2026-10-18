@@ -49,5 +49,6 @@ void eg_portal_gen(eg_room *r,uint16_t seed,uint8_t level) EG_BANKED {
   /* All apparatus is deliberate; later detail placement may decorate the
    * remaining floor but must not break the dependency graph. */
   for(c=0u;c!=EG_N;c++) if(r->c[c]!=T_EMPTY)r->prot[c>>3]|=(uint8_t)(1u<<(c&7u));
+  eg_benches(r,seed);
   eg_plates_dirty=1u;
 }

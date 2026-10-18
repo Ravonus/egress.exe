@@ -45,21 +45,21 @@ uint8_t menu_active,menu_cursor;
 static void menu_controls(uint8_t page) {
   uint8_t k;
   static const char *const actions[6]={"TAP A: STRIKE","HOLD A: CHARGE","TAP B: SHOOT","HOLD B: CHARGE","A>B: COUNTER","B>A: RUSH"};
-  static const char *const movement[6]={"DIR TWICE: EVADE","HOLD DIR: RUN","SELECT: BENCH","HOLD SELECT: RESET","START: PAUSE","REST: STAMINA"};
+  static const char *const movement[6]={"DIR TWICE: EVADE","HOLD DIR: RUN","SELECT: ELEMENT","HOLD SELECT: RESET","START: MENU / BAG","REST: STAMINA"};
   ui_page(page ? "MOVEMENT / TOOLS" : "A / B ACTIONS","L/R PAGE    B BACK");
   ui_fill(0u,0u,4u,20u,12u,UI_DARK);ui_frame(0u,0u,3u,20u,14u,UI_DARK);
   for(k=0u;k<6u;k++)text_at(0u,1u,(uint8_t)(4u+k*2u),page ? movement[k] : actions[k],UI_DARK);
 }
 static void menu_row(uint8_t k) {
   uint8_t pal=k==menu_cursor ? UI_LIGHT : UI_DARK,y=(uint8_t)(5u+k*2u);
-  static const char *const label[6]={"CONTINUE","NEW RUN","CONTROLS","TUTORIALS","CLOCK / SETTINGS","NARRATOR"};
+  static const char *const label[6]={"CONTINUE","NEW RUN","CONTROLS","TUTORIAL","CLOCK / SETTINGS","NARRATOR"};
   ui_fill(0u,1u,y,18u,1u,pal);
   text_at(0u,1u,y,k==menu_cursor ? ">" : " ",pal);text_at(0u,3u,y,label[k],pal);
   if(!k && !resume_ready)text_at(0u,16u,y,"--",pal);
-  if(k==3u || k==5u)text_at(0u,15u,y,(k==3u ? tutorial_on : voice_on) ? "ON" : "OFF",pal);
+  if(k==5u)text_at(0u,15u,y,voice_on ? "ON" : "OFF",pal);
 }
 static void menu_hint(void) {
-  static const char *const hint[6]={"RETURN TO YOUR HEIR","A NEW GENERATION","LEARN YOUR MOVES","HINTS WHILE PLAYING","TIME / DATE / CLOCK","VOICE REACTIONS"};
+  static const char *const hint[6]={"RETURN TO YOUR HEIR","A NEW GENERATION","LEARN YOUR MOVES","ENTER THE COURSE","TIME / DATE / CLOCK","VOICE REACTIONS"};
   ui_fill(0u,0u,3u,20u,1u,UI_DARK);text_at(0u,1u,3u,hint[menu_cursor],UI_DARK);
 }
 static void menu_draw(void) {
@@ -101,7 +101,7 @@ static uint8_t start_menu(void) {
         if(joy_pressed&(J_LEFT|J_RIGHT)) {page^=1u;menu_controls(page);sfx(SFX_STEP);}
       }
       menu_draw();
-    } else if(menu_cursor==3u) {tutorial_on^=1u;tutorial_save();menu_row(3u);sfx(SFX_STEP);}
+    } else if(menu_cursor==3u) {tutorial_on=1u;break;}
     else if(menu_cursor==4u) {setup_screen();tutorial_save();screen_reset();art_load_game();look_load(BIOME_OFFICE);ui_load();ui_colours();menu_draw();pal_commit(8u);SHOW_BKG;DISPLAY_ON;}
     else {voice_on^=1u;if(!voice_on) voice_stop();tutorial_save();menu_row(5u);sfx(SFX_STEP);}
   }
@@ -121,6 +121,7 @@ void title_screen(void) BANKED {
       continue;
     }
     if(!start_menu()) continue;
+    if(tutorial_on==1u)return;
     previous=run_seed;save_load();
     rolled=(uint16_t)(DIV_REG ^ (frame_count << 3) ^ (t3d_seed << 8) ^ t3d_vbl ^ previous ^ (meta.runs*0x2b9u));
     rolled^=rolled<<7;rolled^=rolled>>9;rolled^=rolled<<8;

@@ -27,7 +27,13 @@ trimmed file.
 
 ## How rooms are made
 
-`src/core` is shared verbatim by the cartridge and the host. `eg_gen.c` builds a 16x14 office room backwards from its
+`src/core` is shared verbatim by the cartridge and the host. New runs seed the physical and combat constructors
+in `eg_stage.c`; their outlines, holes, apparatus and encounters vary within the floor's lesson. Quiet generated
+worlds use `eg_land.c` and the editable [stage codec](docs/STAGE-CODEC.md), with XS–XXL sizes and persistent
+travel through a recycled 16×14 active window. Larger worlds currently cover quiet puzzles; actor streaming and
+the full campaign remain unfinished.
+
+The elemental lesson generator, `eg_gen.c`, builds a 16x14 office room backwards from its
 door: it picks a trick (BURN paper and planks with something HOT, COLD PATH: freeze a flood to walk over it, SHORT
 CIRCUIT: shock a flood that touches a dead socket and the shutter under the door lifts, DEAD WEIGHT: lay a brick on a
 plate in the north wall), seals the door behind it, then places the pieces (FIRE, WATER, AIR, EARTH, METAL) that the
@@ -37,8 +43,8 @@ baked room). `eg_room.c` runs the CRT gravity step. The host solver (`host/eg_so
 board- or pocket-changing act per step (dig, collect, pick up, push, break drywall, combine on the bench, use a piece
 on a cell), and every plan it returns is replayed through the same rules. `tools/bake_seeds.sh` keeps, per tier, the
 128 seeds whose rooms are not trivial, need their trick (proved: the trick's obstacle counted as concrete seals
-the goal), keep their herrings harmless, and solve within the tier's difficulty band; the cartridge only plays those
-seeds. `make test` re-checks every baked seed; the harness checks that the cartridge's room is byte-identical to the
+the goal), keep their herrings harmless, and solve within the tier's difficulty band. Elemental lessons select from
+those accepted seeds. `make test` re-checks every baked seed; the harness checks that the cartridge's room is byte-identical to the
 host's and drives the solver's plan, bench and all, through the real game to the door. The bounded bake includes
 five isolated STEER/MIRROR lessons that are revalidated with the full tick-state solver, so a shorter search cannot
 silently remove either mechanic from the curriculum.
@@ -60,16 +66,21 @@ verified seeds, including living obstacles across later generations; the first f
 cold paths, with fire introduced later. LAST FAX is the mid-boss on floor 5; THE TENANT is the biome boss on floor 10. After
 floors 3, 6 and 9 there is a landing: one of the six factions talks (the reply leans the truth matrix and their
 standing), then trades mods, a battery or coffee for tokens, priced by standing. The ending is a question built from
-what the matrix leans toward. The legacy battery record keeps runs, wins, the best floor, unlocked mods and the
+what the matrix leans toward. The current meta record keeps runs, wins, the best floor, unlocked mods and the
 truth matrix. A separate CRC-checked two-slot family journal preserves the selected heir, full lesson history,
-three related successors and the last eight actual ancestors, without moving the legacy save or either clock.
+three related successors and the last eight actual ancestors. Clock records are independent.
 Heirs inherit appearance, stats, weapon and dodge alleles; blade, hammer, whip, gauntlet and launcher have different
 timing, reach, force and secondary attacks. THE TREE on a landing shows the real family history.
 
-The satchel carries 24 finite units between floors. SELECT opens the two-slot, eleven-recipe bench with inventory
-icons and quantities, animated ingredients/result, the material faced and START-to-use. Invalid recipes and targets keep the items. A valid use
+The satchel carries 24 finite units between floors. Walk beside a seeded physical bench and press A after clearing
+the mobs and all waves. Its two-slot, eleven-recipe scene has inventory icons and quantities, animated
+ingredients/result and SELECT-to-equip. START then A opens the bag for equipping or discarding; it cannot craft. Invalid recipes and targets keep the items. A valid use
 consumes one unit; a valid recipe consumes two and creates one. Hold RIGHT in the bench to discard one unit, then
 release before discarding another. A room reset restores its entry inventory, preventing pickup duplication.
+
+This release requires a fresh save. Earlier family, run, meta-progress and tutorial records are incompatible;
+their migration paths have been removed. The browser reads only the current ROM's battery namespace. Current
+game saves retain Continue, lineage persistence and recovery from interrupted journal writes.
 
 The lobby offers continue/new run, controls, tutorial and voice settings. Continue regenerates the saved floor from
 its entry state while retaining damage, or resumes a landing's conversation/trade state. Real falls cost health and
@@ -82,8 +93,11 @@ key. `tools/narrator/bake_assets.py --check` reproduces their banks from the ret
 event grammar and the remaining whole-game work are described in the ledger.
 
 Controls: d-pad move (lean into a CRT or crate to push it), A lash (three-hit combo; hold to charge and release),
-B tap for the secondary attack; hold B to charge and release to execute it. B then A rushes; A then B counters. Both attacks aim in eight directions. Double-tap a direction to evade (sideways sidesteps, backward backsteps); hold the direction to run. Each action spends stamina; resting restores it. START shows controls and pauses. Tap SELECT for the bench
-(combine two pieces with A, START uses the chosen piece on the cell you face); hold SELECT to reset for a token.
+B tap for the secondary attack; hold B to charge and release to execute it. B then A rushes; A then B counters. Both attacks aim in eight directions. Double-tap a direction to evade (sideways sidesteps, backward backsteps); hold the direction to run. Each action spends stamina; resting restores it. START opens the menu; A opens the bag and B resumes play. At a cleared physical bench, A opens crafting; START there opens the menu.
+
+Combine two pieces with A; SELECT equips the highlighted item and closes the bench. A new recipe equips its result automatically. Tap SELECT during play to use one equipped unit toward your eight-way facing; hold SELECT to reset for a token without using an item. The rim shows the equipped material and remaining units.
+
+Successful uses spend material-dependent stamina and share a short cooldown. Embers, droplets, ice shards, wind/dust and electrical sparks accompany the hand animation and sound. Water extinguishes/wets enemies; wet targets can freeze or conduct shock. Mud fills pits or slows mobs; air pushes crates or light enemies; brick weighs switches; hot materials burn barriers or damage vulnerable enemies. Blocked or invalid uses keep the unit.
 
 ## Layout
 

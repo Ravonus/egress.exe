@@ -1,0 +1,23 @@
+{
+  "sha256": "a0be816ce4a643b1136a3c58f011cc20ce3e8b634ecb89cc812b3b689290376e",
+  "results": {
+    "generator_places_a_solid_bench": true,
+    "locked_bench_does_not_open": true,
+    "locked_bench_leaves_a_as_attack": true,
+    "a_next_to_cleared_bench_opens_crafting": true,
+    "start_inventory_has_no_crafting_mode": true,
+    "bag_cannot_make_a_recipe": true,
+    "bag_equips_without_consuming_or_casting": true,
+    "bench_material_survives_open_and_close": true,
+    "carried_recipe_cannot_skip_pending_waves": true,
+    "mixing_stage_has_finite_waves": true,
+    "mixing_bench_unlocks_after_final_wave": true
+  },
+  "bench_cells": [
+    75,
+    173,
+    215,
+    222
+  ],
+  "log": []
+}

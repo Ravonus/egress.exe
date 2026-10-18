@@ -14,7 +14,7 @@ An integrated prototype, a passing host simulation, a native build and a played 
 | Authored stage codec and generated geography | Quiet native worlds verified on both mappers; campaign integration partial | Reduce measured corner preparation waits; actor streaming, campaign curriculum, environment/reaction coverage and continuation |
 | Shared action/object/mob matrix | Partial | Complete the authored interactions and readable activation, reaction, spent and destruction states; exercise both directions |
 | Mobs, stages, biomes and full run | Partial | Native full-run layout and seed bank, all biomes, stage/obstacle combinations and their kill/exit guarantees |
-| Heirs, lineage, saves, tree and stats | Partial | Non-overlapping migrated SRAM journals, floor/landing continue, shortcut/line progress, full tree and stats pages with event accounting |
+| Heirs, lineage, saves, tree and stats | Partial | Current SRAM journals, floor/landing continue, shortcut/line progress, full tree and stats pages with event accounting |
 | Boss roster | Two office fights verified | Remaining biome bosses, final stretch and no-hit feasibility/frame budgets |
 | Music | Existing score player | Native adaptive composition, transitions and in-key effects across the complete run, with captured/listened audio |
 | Title and first-person stages | Title verified; renderer prototype | Playable generated first-person stages with the same tools/combat and measured timing |
@@ -23,9 +23,12 @@ An integrated prototype, a passing host simulation, a native build and a played 
 
 ## Current work
 
-The native feedback milestone now migrates FA1 families from A100/A300 into the reserved tree regions before
-enabling continue writes. Floor-entry/landing journals preserve damage, inventory, the chosen heir and narration
-history; interrupted end transactions finish once. This is a ten-floor office branch, still short of the full run.
+The current release requires a fresh save, as requested by the owner on 2026-10-17. Earlier family, run,
+meta-progress and tutorial journals are rejected; the FA1/FA2 family migration and saved-floor migration paths
+are deleted. The browser reads only the current cartridge's battery namespace. Current floor-entry/landing
+journals preserve damage, inventory, the chosen heir and narration history; interrupted end transactions finish
+once. This is a ten-floor office branch, still short of the full run. The dated checkpoint notes below retain the
+evidence for earlier releases; their migration policies no longer describe the current cartridge.
 
 No milestone will be called complete just because a checkpoint can be merged or published. Each completed entry
 must point to its native implementation, focused evidence and relevant regression gates. The public ROM stays on
@@ -75,8 +78,8 @@ voiced clips. More causal/history combinations, voice approval and human listeni
   with fitting SFX, particles, subtle palette/dither variety and connected autotiled terrain/ground structures.
 
 Settings/tutorial journal: AF68/AF78 (16 bytes each), from the explicitly free region after both tree copies.
-This avoids both the 128-byte sky record at A240 and the legacy FA1 family source at A300. Settings writes must
-not corrupt an old family before its migration. Core/native checks must cover mixed mapper saves and torn writes.
+This avoids the 128-byte sky record at A240 and the family/tree journals. The current settings epoch rejects
+earlier tutorial records. Core/native checks cover both mappers, prior-save rejection and torn writes.
 
 ## Integrated feedback branch
 
@@ -213,3 +216,12 @@ This checkpoint does not mark the full campaign or the remaining milestones comp
 ## Native menus, crafting and survival release
 
 The framed menus and distinct inherited portrait cards, corrected feet/tile boundaries, ahead-of-motion terrain preparation, visible finite-inventory bench merge and escalating enemy survival waves are merged and published. Both mapper images passed the complete native regression, real-input wave combat and world frame gates. The live website fetched those exact ROM bytes, preserved a legacy family/genome and crafted using real pickups. See `validation/menu-terrain-20261016/site-release.json`. This release does not complete the campaign ledger above.
+
+
+## Terrain drops, fresh saves and offscreen waves - 2026-10-17
+
+SELECT now activates a stable equipped material, with finite quantities, eight-way targeting, material-specific stamina costs, hand animation, native particles and sound. START then A opens an equip-only bag. Walk beside a seeded physical bench and press A after clearing mobs and pending waves to combine; SELECT equips, and new recipes equip automatically. Hold SELECT resets without casting. The slot is part of the floor-entry continue checkpoint. World prefetch prioritizes incoming terrain, starts vertical strips earlier, retires fully offscreen rows earlier, and admits expensive seed queries within a bounded early window. Bench hints yield during busy combat and camera transfers; apparatus hints and cosmetic glitch scans share the streamed-frame budget. Stage and boss completion avoid composing an immediately overwritten door message. The canonical world query uses the native speed compiler profile; generated materials and art remain byte-identical to the independent host oracle.
+
+The current native checkpoint removes obsolete floor constructors and earlier-save migration paths. Fresh game progress is required. Floor cards use canonical artwork and consistent downward arrival/departure animation; quiet reversals finish their queues without extending moving/combat upload limits. Live wave and hunt arrivals remain beyond the current camera. The playable tutorial course and distinct eight-way hammer effects are included.
+
+Both mapper images pass the full native regression and prior-save rejection checks. Browser acceptance verifies downloads, native portraits, fresh generation-one play, real pickups, finite animated crafting and changing sprite buffers. Evidence: `validation/terrain-course-hammer-20261017/`. This remains the ten-floor development cartridge; the full campaign and the other open milestones above remain required.

@@ -1,0 +1,19 @@
+{
+  "base": "http://127.0.0.1:3247",
+  "viewport": {
+    "width": 320,
+    "height": 600
+  },
+  "sha256": "aaec5551d87a0ab307baae2305d9febf28e900ad8fd3c37801a4df21a3d4385b",
+  "source": "Actual website canvas paints and native reads while playing the current-ROM authored crafting course; DOM keyboard input released at native frame boundaries; no RAM writes.",
+  "samples": 3267,
+  "requestedPoses": 32,
+  "visibleSpriteBuffers": 35,
+  "maximumUnservedPosePaints": 3,
+  "results": {
+    "exactRomFetch": true,
+    "visibleAnimationAdvances": true,
+    "poseDoesNotStarve": true,
+    "pageErrors": true
+  }
+}

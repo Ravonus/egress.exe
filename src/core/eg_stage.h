@@ -47,7 +47,7 @@ typedef struct {
   uint8_t per_wave;      /* base wave size; reinforcements keep at most 3 alive */
   uint8_t shooters;      /* waves from this index on bring one shooter */
   uint8_t ring, ring_r;  /* the ring's centre cell and Chebyshev radius (holdout, mixp) */
-  uint16_t charge;       /* legacy difficulty parameter; no standing-zone requirement */
+  uint16_t charge;       /* difficulty weight; no standing-zone requirement */
   uint8_t speed;         /* chase: frames per row of the drop; escort: frames per cell walked */
   uint8_t grace;         /* chase: frames before the floor starts to drop, x4 */
   uint8_t piece;         /* mixp: the recipe to make; heist: the goods; dark: the light */
@@ -75,7 +75,6 @@ uint8_t eg_wave_count(const eg_stage *s,uint8_t wave) EG_BANKED;
  * when a stage was made; 0 only if no layout passed its own checks, which the host sim shows never happens). */
 uint16_t eg_stage_gen(eg_room *r, eg_stage *s, uint8_t type, uint16_t seed, uint8_t level, uint8_t m) EG_BANKED;
 /* Existing continue journals retain the pre-island constructor exactly. */
-uint16_t eg_stage_gen_legacy(eg_room *r,eg_stage *s,uint8_t type,uint16_t seed,uint8_t level,uint8_t m) EG_BANKED;
 #define EG_STAGE_TRIES 8u
 #define EG_CHASE_WALK 16u /* frames a cell the chase assumes the player walks (they walk ~11: the slack is real) */
 
@@ -118,6 +117,7 @@ uint8_t eg_deck_trick_seen(const eg_deck *d, uint8_t trick) EG_BANKED; /* in the
 uint8_t eg_stage_roll(uint16_t run_seed, uint8_t floor, uint8_t salt) EG_BANKED;
 /* the mid-boss slot's level: the planner's wave target for the slot, + 2 (3.6.2) */
 #define EG_MIDBOSS_LEVEL(target) ((uint8_t)((target) + 2u > 15u ? 15u : (target) + 2u))
+#define EG_SLICE_HAZARDS 32u
 typedef struct {
   eg_deck deck;
   uint8_t kind;   /* SK_STAGE, SK_MIDBOSS, SK_BOSS */

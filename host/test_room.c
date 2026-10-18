@@ -279,6 +279,8 @@ static void test_bench_solver(void) {
       "#..............#", "#..............#", "#..............#", "################"};
   parse(&r, cold);
   r.trick = TRICK_COLD;
+  CHECK(!eg_solve(&r, 40000, moves, sizeof moves, &st), "crafting cannot happen without a reachable bench");
+  eg_benches(&r, 0x42b1u);
   CHECK(!eg_trivial(&r) && eg_trick_needed(&r), "the cold room needs its trick");
   int ok = eg_solve(&r, 40000, moves, sizeof moves, &st);
   CHECK(ok && st.combines == 1 && st.uses == 1 && (st.reactions >> RX_FREEZE & 1), "it solves on the bench: %s",

@@ -1,0 +1,1 @@
+{"sequence": ["complete native regression", "website checks and build", "browser acceptance"], "cpu": 1, "memoryBytes": 1073741824, "pidsLimit": 256, "concurrentHeavyJobs": false, "freshSaveDriverSha256": "f6c173551392a41dedd4d4fb6ced8f36cf5de4df9133e03476468c56410b4378", "portraitDriverSha256": "648a9ff6e1649074a476607bccfdf544aa7ecc1cafd0ef7ef396e2b16bd2c2cf"}

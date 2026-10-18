@@ -38,8 +38,9 @@ static uint8_t weight_cells[4],weight_n;
 uint8_t run_loading;
 uint8_t floor_has_crt;
 
-static void controls_pause(void) {
-  uint8_t old_y=cam_y;
+static uint8_t controls_pause(void) {
+  uint8_t old_y=cam_y,open_bench=0u,leave_course=0u;
+  bench_on=4u; /* explicit suspended/redraw phase, including VRAM page construction */
   cam_y=pl_y>40u ? (uint8_t)(pl_y-40u) : 0u;
   if(cam_y>144u) cam_y=144u;
   move_bkg(BG_SCROLL_X(cam_x),BG_SCROLL_Y(cam_y));
@@ -49,17 +50,34 @@ static void controls_pause(void) {
   text_at(1,1,2,"HOLD EITHER: CHARGE",LOOK_PAL_HUD);
   text_at(1,1,3,"A>B PARRY B>A RUSH",LOOK_PAL_HUD);
   text_at(1,1,4,"DIR x2 EVADE / RUN",LOOK_PAL_HUD);
-  text_at(1,1,5,"SELECT BENCH/TOOLS",LOOK_PAL_HUD);
-  text_at(1,2,7,"START / B RESUME",LOOK_PAL_HUD);
+  text_at(1,1,5,stage_type==SG_HEIST ? "SELECT: BUY HERE" : "SELECT: USE ITEM",LOOK_PAL_HUD);
+  text_at(1,1,6,"A: BAG / EQUIP",LOOK_PAL_HUD);
+  text_at(1,1,7,tutorial_on==2u ? "START EXIT B BACK" : "START / B RESUME",LOOK_PAL_HUD);
   hud_line=80u;move_win(7,80);
   while(1) {
-    frame_wait();look_tick();flush_cells(8u);sound_tick();draw_sprites();input_poll();
-    if(joy_pressed&(J_START|J_B)) break;
+    frame_wait();look_pause_tick();flush_cells(8u);sound_tick();draw_sprites();input_poll();
+    if((joy_pressed&J_SELECT) && stage_type==SG_HEIST) {stage_select();break;}
+    if(joy_pressed&J_A) {open_bench=1u;break;}
+    if(joy_pressed&(J_START|J_B)) {leave_course=(uint8_t)(tutorial_on==2u && (joy_pressed&J_START));break;}
   }
   cam_y=old_y;move_bkg(BG_SCROLL_X(cam_x),BG_SCROLL_Y(cam_y));
   clear_map(1,LOOK_PAL_HUD);hud_draw();hud_charge();move_win(7,128);hud_line=128u;
+  frame_wait();bench_on=0u;
+  return leave_course ? 1u : open_bench ? 2u : 0u;
 }
 
+
+/* Inventory assignment is available from START; recipes require a physical
+ * cleared bench. Unwind each window before entering the next one. */
+static uint8_t system_menu(void) {
+  uint8_t next;
+  do {
+    next=controls_pause();if(next!=2u)return (uint8_t)(next==1u);
+    bench_mode=0u;bench_run();sel_t=60u;
+    next=bench_on;bench_on=0u;
+  } while(next==5u);
+  return 0u;
+}
 
 static void people_colours(void) { /* B1: the heir's palettes (heir.c), rolled from the run's seed */
   family_apply();
@@ -74,7 +92,8 @@ static void floor_build(void) {
   memset(cracked, 0, sizeof cracked);
   memset(orbs, 0, sizeof orbs);
   memset(puffs, 0, sizeof puffs);
-  if (boss_floor) {
+  if(tutorial_on==2u) {boss_floor=0u;tutorial_build();}
+  else if (boss_floor) {
     floor_tier = 5u;
     floor_seed = 0;
     boss_setup(boss_floor, BIOME_OFFICE);
@@ -234,7 +253,11 @@ static void gravity_tick(void) {
 /* look: the room falls into place around the player; nothing moves until it has (the floor's enemies glitch in
  * once it is whole) */
 static void assemble_wait(void) {
-  uint8_t keep = nen, inv = pl_inv, k;
+  uint8_t keep = nen, inv = pl_inv, k,previous_mode=game_mode;
+  /* A manual reset also enters this loading phase from active play. It must
+   * assemble the whole initial view, not inherit the roaming upload deadline
+   * and strand its first cold texture forever. */
+  game_mode=MODE_CLEAR;
   nen = 0;
   pl_inv = 0; /* no blinking while the world arrives */
   while (look_busy()) {
@@ -244,6 +267,7 @@ static void assemble_wait(void) {
     input_poll();
     draw_sprites();
   }
+  game_mode=previous_mode;
   nen = keep;
   pl_inv = inv;
   for (k = 0; k != nen; k++) puff((uint8_t)(en[k].x >> 4), (uint8_t)(en[k].y >> 4), 4u, ST_PUFF);
@@ -254,7 +278,8 @@ static uint8_t floor_play(void) {
   uint8_t end_t = 0,roaming,late,streamed;
   floor_tokens0 = tokens;
   pocket_enter();
-  if(restored_floor) {stage_resume_floor();restored_floor=0u;narrator_event(NE_RETURN,0u);}
+  if(tutorial_on==2u) {}
+  else if(restored_floor) {stage_resume_floor();restored_floor=0u;narrator_event(NE_RETURN,0u);}
   else {
     if (floor_no < RUN_FLOORS) stage_plan_floor(); /* B1, B2: the slot, the stage type, the room */
     if(family.nrecord && !family.history[0].won && family.history[0].floor==floor_no) narrator_event(NE_ANCESTOR,0u);
@@ -290,16 +315,23 @@ static uint8_t floor_play(void) {
     }
     /* Visible construction gets its early allowance before speculative
      * backing-store queries; otherwise the world can starve its own rim. */
-    if(world_on && !streamed) {look_frame_begin();world_prefetch();}
+    if(world_on && !streamed)look_frame_begin();
     if(streamed) {}
     else if(late) {
       /* Combat renders actors before spending spare time on cosmetic terrain. */
-      if(!world_on)look_frame_begin();flush_cells(2u);
+      if(!world_on)look_frame_begin();
+      /* Dirty BG cells share the early budget with terrain and heir uploads.
+       * A busy office turn publishes one, rather than stacking two metadata
+       * draws on a fresh pose before attacks, wave completion and live AI. */
+      if(world_on || LY_REG>=144u || LY_REG<16u)flush_cells(world_on ? 2u : 1u);
     } else if(roaming) {flush_cells(2u);look_tick();}
     else {look_tick();flush_cells(8u);}
     scroll();
     sound_tick();
     hud_tick();
+    /* Admit speculative queries after variable BG, audio and HUD work, so
+     * their scanline limit reserves the actual remaining simulation budget. */
+    if(world_on && !streamed)world_prefetch();
     if (pl_state == PS_EXIT) {
       if(late) look_frame_end();
       sprites_budget();
@@ -331,13 +363,13 @@ static uint8_t floor_play(void) {
       continue;
     }
     if (joy_pressed & J_START) {
-      controls_pause();
+      if(system_menu()) {look_end();return 0u;}
       continue;
     }
     /* hold SELECT to put the floor back the way it was (B1: it costs a token, never a heart) */
-    if ((joy & J_SELECT) && !boss_floor) {
-      if (sel_t != 61u && ++sel_t == 60u) { /* 61: still held from closing the bench */
-        sel_t = 0;
+    if (joy & J_SELECT) {
+      if (sel_t<60u && ++sel_t==60u && !boss_floor) {
+        sel_t = 60u;
         tokens = floor_tokens0;
         puzzle_reset_cost(); /* B1: a token and a lean of the matrix, never a heart */
         look_freeze();
@@ -351,10 +383,8 @@ static uint8_t floor_play(void) {
         continue;
       }
     } else {
-      if (sel_t && sel_t < 20u && !boss_floor && pl_state == PS_FREE) { /* B1: a tap of SELECT opens the bench */
-        if (!stage_select()) bench_run(); /* B2: the heist's desk, the ring's bench */
-        sel_t = 61u;
-        continue;
+      if(sel_t && sel_t<60u && pl_state==PS_FREE) {
+        sel_t=0u;puzzle_tool_use();
       }
       sel_t = 0;
     }
@@ -366,6 +396,11 @@ static uint8_t floor_play(void) {
       continue;
     }
     player_update();
+    if(bench_on==5u || bench_on==6u) {
+      uint8_t menu=(uint8_t)(bench_on==5u);bench_on=0u;sel_t=60u;
+      if(menu && system_menu()) {look_end();return 0u;}
+      continue;
+    }
     stage_tick(); /* B2 */
     puzzle_tick(); /* B1: fragile floor, the beat, the dead-room hint */
     obstacle_tick();
@@ -379,7 +414,7 @@ static uint8_t floor_play(void) {
         gravity_tick();
       }
     }
-    if (door_open && cell_at(pl_x, pl_y) == room.door) {
+    if (door_open && cell_at(pl_x, pl_y) == room.door && (tutorial_on!=2u || tutorial_ready())) {
       pl_state = PS_EXIT;
       sfx(SFX_EXIT);
       hud_msg("EGRESS");
@@ -390,7 +425,7 @@ static uint8_t floor_play(void) {
     if(!(frame_count&63u)) narrator_tick();
     draw_sprites();
     if(world_on && !streamed)world_frame_end();
-    if(late && !streamed) look_frame_end();
+    if(late && !streamed && video_epoch==frame_epoch && LY_REG<108u) look_frame_end();
     /* Publish complete visible actors first. An offer that does not fit here
      * gets the next frame's early allowance before another composition. */
     if(!world_on && video_epoch==frame_epoch && LY_REG<100u)heir_cache_flush();
@@ -399,6 +434,15 @@ static uint8_t floor_play(void) {
 
 void play_run(void) BANKED {
   uint16_t new_seed=run_seed;
+  if(tutorial_on==1u) {
+    tutorial_on=2u;run_loading=1u;
+    art_copy_tables(&meta_tile[0][0],meta_pal,pal_bg,pal_sp,people);
+    run_begin();narrator_begin();heir_roll(0x600du);heir.weapon=0u;heir.dodge=0u;heir_colours();
+    memset(family_stat,0,sizeof family_stat);stamina_begin();pocket_begin();stage_run_begin();
+    floor_no=1u;floor_seed=0x600du;floor_tier=0u;tokens=0u;restored_floor=0u;run_loading=0u;
+    if(floor_play()) {tutorial_seen|=0x8000u;tutorial_save();}
+    HIDE_WIN;hud_line=144u;tutorial_on=0u;return;
+  }
   run_loading=1u;
   art_copy_tables(&meta_tile[0][0], meta_pal, pal_bg, pal_sp, people);
   run_begin();

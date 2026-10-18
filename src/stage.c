@@ -14,7 +14,7 @@
  *             pocket. Made: the door opens.
  *   dark      unlit cells show the void; light reaches 1 cell around you (2 with a GLOWS piece, the tealight, in the
  *             pocket) and 1 around each lamp; the door is lit. Keycards open the door as usual.
- *   heist     the shopkeeper behind the counter; SELECT at the desk buys the goods. Walk in and take them: the door
+ *   heist     the shopkeeper behind the counter; START at the desk buys the goods. Walk in and take them: the door
  *             seals and waves come (a holdout without the ring); the last one down, the door opens again.
  * Per-frame work is sliced: at most one spawn probe batch, four dropped cells, one neighbourhood relight a frame. */
 #pragma bank 255
@@ -96,7 +96,7 @@ void stage_plan_floor(void) BANKED {
   floor_resets = 0;
   st_seed = (uint16_t)(run_seed ^ ((uint16_t)floor_no * 0x9e37u) ^ 0x51a7u);
   if (!st_seed) st_seed = 1u;
-  /* Explicit legacy-motif fixtures for isolated interaction regressions.
+  /* Explicit authored mechanic fixtures for isolated interaction regressions.
    * Ordinary runs never set this debug flag and use the spatial codec. */
   if(dbg_stage>=129u && dbg_stage<=132u) {
     slice.kind=stage_kind=SK_STAGE;slice.type=stage_type=SG_PUZZLE;
@@ -119,9 +119,7 @@ void stage_plan_floor(void) BANKED {
   }
   stage_kind = eg_slice_floor(&slice, &plan, floor_no, RUN_FLOORS, &e, force);
   stage_type = slice.type;
-  /* Version the constructor in the existing journal byte. Plain PH_* and
-   * zero from older saves retain their exact original floor on Continue. */
-  if(force==255u)slice.physical|=64u;
+  if(force==255u)slice.physical|=EG_SLICE_HAZARDS;
   if (slice.planned) {
     floor_seed = e.seed;
     floor_tier = e.tier;
@@ -154,23 +152,18 @@ uint8_t stage_build(void) BANKED {
     stage_type=SG_PUZZLE;
     return world_begin(st_seed,dbg_world_rule-1u,dbg_world_size ? dbg_world_size-1u : 255u,dbg_world_biome);
   }
-  if((slice.physical&63u) && !(slice.physical&64u)) {
-    if(floor_no==7u && (run_seed&0x0100u))return world_begin(st_seed,4u,255u,BIOME_OFFICE);
-    eg_physics_gen(&room,slice.physical,st_seed,slice.level);return 1u;
-  }
-  if (slice.physical&63u) {
+  if (slice.physical&31u) {
     /* Falling-load chutes remain in the ordinary deal alongside the spatial
      * cold/power routes, rather than disappearing into test-only fixtures. */
     if(floor_no==3u && !(st_seed&3u)) {eg_physics_gen(&room,PH_DROP,st_seed,slice.level);return 1u;}
     /* The floor keeps its mechanical role; its dimensions, topology, goal
      * conditions and apparatus are constructed anew from this run's seed. */
     rule=floor_no==1u ? 0u : floor_no==3u ? (uint8_t)(2u+(st_seed&1u)) : (uint8_t)(4u+(st_seed&1u));
-    if(!world_begin(st_seed,rule,255u,BIOME_OFFICE))return 0u;
+    if(!world_begin(st_seed,(uint8_t)(rule|((slice.physical&32u) ? EL_HAZARDS : 0u)),255u,BIOME_OFFICE))return 0u;
     world_encounter();return 1u;
   }
   if (stage_type == SG_PUZZLE || stage_type >= EG_DECK_TYPES) return 0u;
-  if (!(slice.physical&64u ? eg_stage_gen(&room,&stg,stage_type,st_seed,slice.level,slice.m) :
-        eg_stage_gen_legacy(&room,&stg,stage_type,st_seed,slice.level,slice.m))) {
+  if (!eg_stage_gen(&room,&stg,stage_type,st_seed,slice.level,slice.m)) {
     stage_type = SG_PUZZLE; /* never seen in the host sim; the puzzle room stands in */
     return 0u;
   }
@@ -178,6 +171,13 @@ uint8_t stage_build(void) BANKED {
 }
 
 /* ---------------- waves: glitched in from the void, a probe batch a frame ---------------- */
+static uint8_t entry_offscreen(uint8_t cell) {
+  int16_t x=(int16_t)((uint16_t)EG_X(cell)*16u+8u)-(int16_t)cam_x;
+  int16_t y=(int16_t)((uint16_t)EG_Y(cell)*16u+8u)-(int16_t)cam_y;
+  /* Include the complete body, entry particles and the next camera easing
+   * step. Recheck the current camera for every probe, including pooled slots. */
+  return (uint8_t)(x<=-24 || x>=184 || y<=-24 || y>=152);
+}
 static void wave_begin(uint8_t n, uint8_t shooter) {
   if(n && !dbg_no_enemies) narrator_event(NE_WAVE,0u);
   wv_pend = dbg_no_enemies ? 0u : n;
@@ -188,12 +188,15 @@ static void wave_begin(uint8_t n, uint8_t shooter) {
 static void wave_step(void) {
   uint8_t k, c, fam,slot,rank;
   if (!wv_pend || enemies_alive >= 3u) return;
+  if(pl_state==PS_FALL || pl_state==PS_EXIT)return;
   /* A reinforcement is optional work, unlike the current attack and live AI.
    * Do not stack its setup on a hit/charge frame that has spent the budget. */
   if(freeze || (frame_count&3u) || (LY_REG>=24u && LY_REG<144u))return;
   for (k = 0; k != 2u; k++) {
     c = EG_IDX(1u + eg_rndn(14u), 1u + eg_rndn(12u));
-    if (!look_here(c) || (stage_type == SG_DARK && look_skin[c]) || !ss_spawn_ok(c)) continue;
+    /* Cosmetic visibility is not material: actors can approach over genuine
+     * offscreen floor before its camera-owned cards are drawn. */
+    if (!entry_offscreen(c) || (stage_type == SG_DARK && look_skin[c]) || !ss_spawn_ok(c)) continue;
     fam=wv_shoot ? SS_SHOOTER : SS_CHASER;
     if(stage_type==SG_HOLDOUT) {
       /* Three preloaded silhouettes; the third role opens after the first
@@ -238,19 +241,21 @@ static uint8_t in_ring(void) { return (uint8_t)(cheb(pcell(), stg.ring) <= stg.r
 static void win(const char *msg) {
   stage_won = 1u;
   wv_pend = 0;
-  if (!door_open) open_door();
+  if (!door_open) open_door_quiet();
   hud_msg(msg);
 }
 
 /* ---------------- hunt ---------------- */
 static const uint8_t kc_fam[KC_COUNT] = {SS_CRUSH, SS_ORB, SS_BACK};
-static uint8_t hunt_spawn(void) {
+static uint8_t hunt_spawn(uint8_t arrival) {
   uint8_t c = stg.tcell, k, p = pcell();
-  for (k = 0; k != 24u && !ss_spawn_ok(c); k++) {
-    c = EG_IDX(1u + eg_rndn(14u), 1u + eg_rndn(8u));
+  if(arrival && (freeze || (LY_REG>=24u && LY_REG<144u)))return 0u;
+  for (k = 0; k != (arrival ? 2u : 24u); k++) {
+    if((!arrival || entry_offscreen(c)) && ss_spawn_ok(c))break;
+    c = EG_IDX(1u + eg_rndn(14u), 1u + eg_rndn(12u));
     if (cheb(c, p) < 5u) c = 0u;
   }
-  if (k == 24u) return 0u;
+  if (k == (arrival ? 2u : 24u)) return 0u;
   stage_cell = ss_spawn(st_fam, c, (uint8_t)(stage_kind == SK_MIDBOSS), frame_count);
   if (stage_cell == 255u) return 0u;
   if (stg.cond[st_cond] == KC_BACK) mob[stage_cell].flags |= MOBF_HUNT_BACK;
@@ -266,7 +271,7 @@ static void hunt_tick(void) {
   enemy_t *e;
   uint8_t k, ex, ey, ok, near = 0;
   if (st_pend) { /* re-forming */
-    if (--st_pend == 1u && !hunt_spawn()) st_pend = 2u;
+    if (--st_pend == 1u && !hunt_spawn(1u)) st_pend = 2u;
     return;
   }
   e = &en[stage_cell];
@@ -415,13 +420,17 @@ static void escort_tick(void) {
 /* ---------------- mix under pressure ---------------- */
 static void mixp_tick(void) {
   uint8_t k;
-  for (k = 0; k != pocket_n; k++)
-    if (pocket[k] == stg.piece) {
-      win("MADE. GET OUT");
-      return;
-    }
   ring_spark(in_ring());
-  if (st_t >= st_next) {
+  if(stage_wave>=stg.waves && !wv_pend && !mobs_alive()) {
+    for(k=0u;k!=pocket_n;k++)if(pocket[k]==stg.piece) {win("MADE. GET OUT");return;}
+    if(stage_goal[0]!='M') {
+      eg_piece_name(stg.piece,sbuf);strcpy(stage_goal,"MAKE ");
+      for(k=0u;sbuf[k] && k<8u;k++)stage_goal[5u+k]=sbuf[k];stage_goal[5u+k]=0u;
+      hud_set("CRAFT ");hud_msg("MOBS CLEAR. BENCH: A");sfx(SFX_DOOR);
+    }
+    return;
+  }
+  if (stage_wave<stg.waves && !wv_pend && !mobs_alive() && st_t >= st_next) {
     wave_begin(stg.per_wave, (uint8_t)(stg.shooters != 255u && (stage_wave & 1u)));
     st_next = (uint16_t)(st_next + (uint16_t)stg.speed * 4u);
   }
@@ -505,7 +514,7 @@ static void heist_tick(void) {
   }
   if (!st_paid && pcell() == desk && !st_told) {
     st_told = 1u;
-    strcpy(sbuf, "SELECT BUYS: ");
+    strcpy(sbuf, "MENU: BUY    ");
     k = 13u;
     if (stg.price >= 10u) sbuf[k++] = (char)('0' + stg.price / 10u);
     sbuf[k++] = (char)('0' + stg.price % 10u);
@@ -517,7 +526,6 @@ static void heist_tick(void) {
 
 /* ---------------- the hooks ---------------- */
 void stage_start(void) BANKED {
-  uint8_t k;
   stage_won = stage_lost = stage_wave = stage_pct = 0;
   stage_row = 255u;
   stage_cell = 255u;
@@ -543,7 +551,7 @@ void stage_start(void) BANKED {
       break;
     case SG_HUNT:
       st_fam = kc_fam[stg.cond[0]];
-      if (!hunt_spawn()) st_pend = 2u;
+      if (!hunt_spawn(0u)) st_pend = 2u;
       hud_numset("MARK", 1u, stg.conds == 2u ? "/2" : "/1");
       break;
     case SG_ESCORT:
@@ -554,13 +562,7 @@ void stage_start(void) BANKED {
       hud_numset("TEMP", stage_thp, "");
       break;
     case SG_MIXP:
-      eg_piece_name(stg.piece, sbuf);
-      strcpy(stage_goal, "MAKE ");
-      for (k = 0; sbuf[k] && k != 8u; k++) stage_goal[5u + k] = sbuf[k];
-      strcpy(&stage_goal[5u + k], " FAST");
-      eg_piece_abbr(stg.piece, sbuf);
-      hud_set(sbuf);
-      st_next = 180u;
+      strcpy(stage_goal,"CLEAR WAVES. CRAFT");hud_set("FIGHT ");st_next=180u;
       break;
     case SG_DARK:
       break; /* the keycards on the HUD */
@@ -615,7 +617,7 @@ void stage_show(void) BANKED {
 
 uint8_t stage_announce(void) BANKED {
   if(world_on) {hud_msg(enemies_alive ? "FIGHT. SOLVE. EXIT." : "LOAD. CROSS. EXIT.");return 1u;}
-  if (slice.physical&63u) { eg_physics_goal(slice.physical&63u, sbuf); hud_msg(sbuf); return 1u; }
+  if (slice.physical&31u) { eg_physics_goal(slice.physical&31u, sbuf); hud_msg(sbuf); return 1u; }
   if (!stage_goal[0]) return 0u;
   hud_msg(stage_goal);
   return 1u;
@@ -656,12 +658,15 @@ void stage_tick(void) BANKED {
   }
 }
 
+uint8_t stage_bench_ready(void) BANKED {
+  if(boss_floor || enemies_alive || mobs_alive() || wv_pend)return 0u;
+  if(stage_type==SG_MIXP)return (uint8_t)(stage_wave>=stg.waves);
+  if(stage_type==SG_HOLDOUT || stage_type==SG_HUNT || stage_type==SG_ESCORT)return stage_won;
+  if(stage_type==SG_HEIST && st_theft)return stage_won;
+  return 1u;
+}
+
 uint8_t stage_select(void) BANKED {
-  if (stage_type == SG_MIXP && !stage_won && !in_ring()) {
-    sfx(SFX_DENY);
-    hud_msg("THE BENCH: IN RING");
-    return 1u;
-  }
   if (stage_type == SG_HEIST && !st_paid && !st_theft && pcell() == (uint8_t)(stg.spot + EG_W) &&
       cell_type(stg.spot) == T_ITEM) {
     if (tokens < stg.price) {

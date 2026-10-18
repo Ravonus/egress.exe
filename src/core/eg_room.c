@@ -2,6 +2,7 @@
 #ifdef __SDCC
 #pragma bank 255
 #endif
+#include <string.h>
 #include "eg_room.h"
 #include "eg_piece.h"
 
@@ -222,8 +223,45 @@ static void move_rock(uint8_t *c, uint8_t i, uint8_t b) {
 
 static uint8_t shutters(eg_room *r, const uint8_t *occ, uint8_t nocc);
 
+/* One seeded bench in each stable walking component. Only an existing wall
+ * changes its marker; collision, doors, resources and the generator's route
+ * stay intact. The two bitsets are loading-only stack scratch. */
+static uint8_t bench_floor(uint8_t v) {
+  return (uint8_t)(v==T_EMPTY || v==T_DIRT || v==T_TOKEN || v==T_KEY || v==T_ITEM || v==T_PLATE || v==T_GATE_OPEN);
+}
+void eg_benches(eg_room *r,uint16_t seed) EG_BANKED {
+  uint8_t seen[EG_N/8u],reach[EG_N/8u],i,j,k,changed,best,score,lowest;
+  int16_t n;
+  static const int8_t delta[4]={-16,16,-1,1};
+  for(i=0u;i!=EG_N;i++)if(EG_BENCH(r->c[i]))return;
+  memset(seen,0,sizeof seen);
+  for(i=0u;i!=EG_N;i++) {
+    if((seen[i>>3]&(1u<<(i&7u))) || !bench_floor(r->c[i]))continue;
+    memset(reach,0,sizeof reach);reach[i>>3]|=(uint8_t)(1u<<(i&7u));
+    do {
+      changed=0u;
+      for(j=0u;j!=EG_N;j++)if(reach[j>>3]&(1u<<(j&7u)))for(k=0u;k<4u;k++) {
+        if((k==0u && !EG_Y(j)) || (k==1u && EG_Y(j)==13u) || (k==2u && !EG_X(j)) || (k==3u && EG_X(j)==15u))continue;
+        n=(int16_t)j+delta[k];
+        if(!(reach[n>>3]&(1u<<(n&7u))) && bench_floor(r->c[n])) {reach[n>>3]|=(uint8_t)(1u<<(n&7u));changed=1u;}
+      }
+    } while(changed);
+    for(j=0u;j!=sizeof seen;j++)seen[j]|=reach[j];
+    best=255u;lowest=255u;
+    for(j=0u;j!=EG_N;j++)if(r->c[j]==T_WALL)for(k=0u;k<4u;k++) {
+      if((k==0u && !EG_Y(j)) || (k==1u && EG_Y(j)==13u) || (k==2u && !EG_X(j)) || (k==3u && EG_X(j)==15u))continue;
+      n=(int16_t)j+delta[k];
+      if(!(reach[n>>3]&(1u<<(n&7u))))continue;
+      score=(uint8_t)(j*73u+(uint8_t)seed+(uint8_t)(seed>>8)*13u);
+      if(best==255u || score<lowest) {best=j;lowest=score;}
+    }
+    if(best!=255u)r->c[best]=(uint8_t)(T_WALL|F_BENCH);
+  }
+}
+
 void eg_island_edges(eg_room *r) EG_BANKED {
   uint8_t y,i;
+  eg_benches(r,eg_rs);
   for(y=0u;y!=EG_H;y++) {
     i=EG_IDX(0u,y);if(r->c[i]==T_WALL) r->c[i]=T_PIT|F_ABYSS;
     i=EG_IDX(EG_W-1u,y);if(r->c[i]==T_WALL) r->c[i]=T_PIT|F_ABYSS;
@@ -528,8 +566,10 @@ static uint8_t dd_weight_tools(const eg_room *r,const uint8_t *pocket,uint8_t n)
     if(i<n) p=pocket[i];
     else {t=(uint8_t)(i-n);if((r->c[r->item_cell[t]]&T_MASK)!=T_ITEM) continue;p=r->item_piece[t];}
     if(p==P_BRICK) return 1u;
-    if(p==P_FIRE) tools|=1u;if(p==P_MUD) tools|=2u;
-    if(p==P_EARTH) tools|=4u;if(p==P_WATER) tools|=8u;
+    if(p==P_FIRE) tools|=1u;
+    if(p==P_MUD) tools|=2u;
+    if(p==P_EARTH) tools|=4u;
+    if(p==P_WATER) tools|=8u;
   }
   return (uint8_t)((tools&1u) && ((tools&2u) || (tools&12u)==12u));
 }

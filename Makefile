@@ -66,7 +66,7 @@ endif
 CFLAGS := -c -Isrc -Wf--Werror -Wf--disable-warning -Wf110 -Wf--disable-warning -Wf126
 # Native simulation/rendering spends the frame budget here. Prefer SDCC's
 # faster instruction choices; generated art/data keep their normal build.
-HOT_SRC := play player actors grid mob mob_draw sprites look stage fx heir hud puzzle world_play core/eg_input core/eg_move core/eg_combat core/eg_stamina
+HOT_SRC := play player actors grid mob mob_draw sprites look stage fx heir hud puzzle world_play core/eg_input core/eg_move core/eg_combat core/eg_stamina core/eg_land
 $(addprefix build/obj/,$(addsuffix .o,$(HOT_SRC))): CFLAGS += -Wf--opt-code-speed
 # RAM + battery, CGB only, 2 MiB declared (trimmed afterwards), 8 KiB SRAM declared on both mappers. Autobank stops at
 # bank 114: bank 115 would end past the 1,900,000-byte gate. MBC3 addresses 128 banks of 16 KiB, so the same gate holds.
@@ -96,7 +96,10 @@ build/obj-mbc3/%.o: src/%.c $(HDRS)
 
 build/obj/sound.o: src/gen/music_data.h
 build/obj/items.o: src/gen/item_idle.inc
-build/obj/sprites.o: src/gen/diag_arc.inc
+build/obj/sprites.o: src/gen/diag_arc.inc src/gen/hammer.inc
+
+src/gen/hammer.inc: tools/bake_hammer.py
+	$(PY) tools/bake_hammer.py
 build/obj/grid.o: src/overlap.inc
 
 build/overlap-check/overlap.gbc: test/native/overlap.c src/overlap.inc
@@ -358,7 +361,7 @@ src/gen/stage_codec.inc: assets/stages/codec.json tools/bake_stage_codec.py
 src/gen/world_art.c src/gen/world_art.h: tools/bake_world_art.py tools/bake_look.py tools/bake_art.py
 	$(PY) tools/bake_world_art.py
 
-build/obj/core/eg_land.o: src/gen/stage_codec.inc
+build/obj/core/eg_land.o: src/gen/stage_codec.inc Makefile
 
 LAND_SRC := src/core/eg_land.c src/core/eg_land_bind.c src/core/eg_land_dead.c src/core/eg_room.c src/core/eg_link.c src/core/eg_piece.c
 build/host/land_one: host/land_one.c src/core/eg_land.c src/core/eg_land.h src/gen/stage_codec.inc
@@ -537,10 +540,20 @@ test-island-edges: build/host/test_edges
 	build/host/test_edges
 
 test-runtime: all test-runtime-core test-native-overlap
+	$(PY) test/harness/element_slot.py build/egress.gbc build/sprints/element-slot-mbc5
+	$(PY) test/harness/element_slot.py build/egress-rtc.gbc build/sprints/element-slot-mbc3
+	$(PY) test/harness/terrain_effect.py build/egress.gbc build/sprints/terrain-effect-mbc5
+	$(PY) test/harness/terrain_effect.py build/egress-rtc.gbc build/sprints/terrain-effect-mbc3
+	$(PY) test/harness/tutorial_course.py build/egress.gbc build/sprints/tutorial-course-mbc5
+	$(PY) test/harness/tutorial_course.py build/egress-rtc.gbc build/sprints/tutorial-course-mbc3
+	$(PY) test/harness/hammer.py build/egress.gbc build/sprints/hammer-mbc5
+	$(PY) test/harness/hammer.py build/egress-rtc.gbc build/sprints/hammer-mbc3
 	$(PY) test/harness/mob_render_fixtures.py build/egress.gbc build/sprints/mob-render-mbc5
 	$(PY) test/harness/mob_render_fixtures.py build/egress-rtc.gbc build/sprints/mob-render-mbc3
 	$(PY) test/harness/waves.py build/egress.gbc build/sprints/waves-mbc5
 	$(PY) test/harness/waves.py build/egress-rtc.gbc build/sprints/waves-mbc3
+	$(PY) test/harness/physical_bench.py build/egress.gbc build/sprints/physical-bench-mbc5
+	$(PY) test/harness/physical_bench.py build/egress-rtc.gbc build/sprints/physical-bench-mbc3
 	$(PY) test/harness/picker_collision.py build/egress.gbc build/sprints/picker-collision-mbc5
 	$(PY) test/harness/picker_collision.py build/egress-rtc.gbc build/sprints/picker-collision-mbc3
 	$(PY) test/harness/terrain_boundary.py build/egress.gbc build/sprints/terrain-boundary-mbc5

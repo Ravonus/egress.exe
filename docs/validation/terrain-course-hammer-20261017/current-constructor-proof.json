@@ -1,0 +1,33 @@
+{
+  "sourceCommit": "8ef8ac0ccab37cd427aeb8f8d7143377a80452f3",
+  "roms": {
+    "egress.gbc": {
+      "bytes": 1245184,
+      "sha256": "aaec5551d87a0ab307baae2305d9febf28e900ad8fd3c37801a4df21a3d4385b"
+    },
+    "egress-rtc.gbc": {
+      "bytes": 1245184,
+      "sha256": "a0be816ce4a643b1136a3c58f011cc20ce3e8b634ecb89cc812b3b689290376e"
+    }
+  },
+  "obsoleteSymbolsAbsent": {
+    "egress.gbc": true,
+    "egress-rtc.gbc": true
+  },
+  "obsoleteTerrainImplementationsAbsent": {
+    "K_RISE": true,
+    "K_SLIDE_L": true,
+    "K_SLIDE_R": true,
+    "K_GLITCH": true,
+    "K_CRACK": true
+  },
+  "freshSaveRequired": true,
+  "earlierFamilyMigrationRemoved": true,
+  "savedFloorMigrationRemoved": true,
+  "saveEpochs": {
+    "meta": 2,
+    "continue": 2,
+    "family": 3,
+    "preferences": 2
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "unrelatedSourceFilesVerified": 333,
+  "releasePaths": [
+    "data/release.json",
+    "public/game/releases.json",
+    "public/game/egress-dev.gbc",
+    "public/game/egress-aaec5551d87a0ab3.gbc",
+    "public/game/egress-rtc-a0be816ce4a643b1.gbc",
+    "public/game/previews/egress-aaec5551d87a0ab3.png",
+    "public/game/previews/egress-rtc-a0be816ce4a643b1.png",
+    "public/game/egress-aaec5551d87a0ab3.chromatic.json",
+    "public/game/egress-rtc-a0be816ce4a643b1.chromatic.json",
+    "src/components/player.tsx",
+    "src/lib/emulator/saves.ts",
+    "src/config/game.ts",
+    "test/saves.test.ts",
+    "scripts/sync-rom.mjs",
+    "scripts/build-egress-assets.py",
+    "src/app/how-it-works/page.tsx",
+    "src/components/landing-rooms.tsx"
+  ],
+  "preexistingChangesPreserved": 65,
+  "temporaryTypeDeclarationAdjustment": {
+    "path": "next-env.d.ts",
+    "originalSha256": "678d150d0bd103f5158bcfbb828086356b55205a650c343b0fce623fc3a68eb7",
+    "stagedSha256": "85ae5aee75f011967cf2d25cbc342f62d69314e9d925f7f4aa3456fc2cffcca6",
+    "reason": "Generated route-type reference follows the temporary build directory instead of the existing functional-test directory. Actual worktree file remains untouched and will not be committed."
+  },
+  "unexpectedChanges": []
+}

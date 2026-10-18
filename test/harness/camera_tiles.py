@@ -14,6 +14,13 @@ def run(rom,out,measure=False):
     symbols=(Path(__file__).resolve().parents[2]/'build/obj/heir.sym').read_text()
     offsets={m[1]:int(m[2],16) for m in re.finditer(r'^\s*2\s+(_\w+)\s+([0-9A-F]+)',symbols,re.M)}
     mask_addr=g.addr('ha_dir')-offsets['_ha_dir']+offsets['_spr_mask']
+    epochs=[];late=[]
+    def completed(_):
+        if g.peek('game_mode')!=2:return
+        epoch=g.peek('frame_epoch')
+        if g.peek('video_epoch')!=epoch:late.append(g.peek16('frame_count'))
+        epochs.append(epoch if not epochs else epochs[-1]+((epoch-epochs[-1])&255))
+    at=g.sym['_frame_wait'];g.pb.hook_register(at>>16,at&65535,completed,None)
     def record(n=1):
         for _ in range(n):
             previous=g.pb.memory[1,mask_addr].bit_count()
@@ -71,12 +78,14 @@ def run(rom,out,measure=False):
     r['sprite_line_budget']=meter.over==0
     r['floor_stack_canary']=bytes(g.pb.memory[1,0xddd0:0xddf0])==bytes([0xa7]*32)
     spans=[(fc[i]-fc[i-120])&65535 for i in range(120,len(fc))]
-    r['movement_frames_120_per_120']=bool(spans) and min(spans)==120
+    windows=[epochs[i]-epochs[i-120] for i in range(120,len(epochs))]
+    r['movement_frames_120_per_120']=bool(windows) and min(windows)==max(windows)==120
+    r['completes_before_vblank']=not late
     terrain=rim.report();r['construction_stays_at_rim']=terrain['construction_stays_at_rim'];r['central_view_is_built']=terrain['central_view_is_built']
     r['both_edge_effects_are_visible']=terrain['build_and_fall_are_visible']
     g.shot(out/'returned.png');g.stop()
     if frames:frames[0].save(out/'camera-travel.gif',save_all=True,append_images=frames[1:],duration=68,loop=0)
-    report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':r,'frames':len(fc),'minimum_game_frames_per_120':min(spans) if spans else None,'oam_max':meter.max_line,'missing_floor':missing[:20],'missing_body':body_missing[:20],'log':log}
+    report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':r,'frames':len(fc),'minimum_game_frames_per_120':min(windows) if windows else None,'maximum_game_frames_per_120':max(windows) if windows else None,'raw_counter_minimum_at_lcd_boundary':min(spans) if spans else None,'late_frames':late[:20],'oam_max':meter.max_line,'missing_floor':missing[:20],'missing_body':body_missing[:20],'log':log}
     report['terrain_rim']=terrain
     (out/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2));return measure or all(r.values())
 

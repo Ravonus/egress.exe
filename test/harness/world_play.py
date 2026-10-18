@@ -22,6 +22,7 @@ class WorldPlayer:
         self.items=[list(self.plan[35+k*3:38+k*3]) for k in range(self.plan[10])]
         self.portal_points={self.xy(u+d,v) for kind,u,v,*_ in self.nodes if kind==4 for d in (-2,2)}
         self.cached_pos=self.raw_pos();self.fc=[];self.missing=[];self.body=[];self.hitches=[];self.last=self.pos();self.screens=[]
+        self.completed_epochs=[];self.epoch_clock=None;self.epoch_paused=False;self.late_completions=[]
         self.stream_wait=self.stream_wait_max=self.stream_wait_total=0
         self.stream_wait_samples=[];self.stream_clamp=False
         self.last_view=tuple(g.peek('world_view',i) for i in range(2));self.pit_checks=0
@@ -77,6 +78,12 @@ class WorldPlayer:
         g=self.g
         if not self.monitor:return
         if g.peek('floor_no')!=self.floor or g.peek('game_mode')!=2:return
+        ep=g.peek('frame_epoch');paused=bool(g.peek('bench_on') or g.peek('pl_state') in (5,6))
+        self.epoch_clock=ep if self.epoch_clock is None else self.epoch_clock+((ep-self.epoch_clock)&255)
+        active=not paused and not self.epoch_paused
+        self.completed_epochs.append(self.epoch_clock if active else None);self.epoch_paused=paused
+        if active and g.peek('video_epoch')!=ep:
+            self.late_completions.append({'frame':g.frames,'native_frame':g.peek16('frame_count'),'line':g.pb.memory[0xff44]})
         self.observe();pos=self.raw_pos();self.cached_pos=pos
         vx,vy=g.peek('world_view'),g.peek('world_view',1);joy=g.peek('joy')
         waiting=self.stream_clamp and pos==self.last and not g.peek('bench_on');self.stream_clamp=False
@@ -221,6 +228,9 @@ class WorldPlayer:
             elif kind in (1,2,3):
                 for iu,iv,piece in self.items:
                     if iu==u-5:self.walk(self.xy(iu,iv))
+                if kind in (2,3):
+                    side=1 if (int.from_bytes(self.plan[:2],'little')>>self.nodes.index([kind,u,v,condition,needs,alts]))&1 else -1
+                    self.walk(self.xy(u-2,v+side))
                 if kind==2:
                     assert bench_act(g,'Ccg',self.log,prepare_use=self.face_tool),self.log
                     piece=9;target=(u,v)
@@ -240,6 +250,11 @@ class WorldPlayer:
     def report(self):
         g=self.g;f=self.fc
         spans=[(f[i]-f[i-120])&65535 for i in range(120,len(f)) if None not in f[i-120:i+1]]
+        # LCD-line-zero counter samples can straddle maintenance/ISR return.
+        # Completed updates must remain exactly one per VBlank, with no late
+        # publication; retain the raw samples separately for diagnosis.
+        e=self.completed_epochs
+        windows=[e[i]-e[i-120] for i in range(120,len(e)) if None not in e[i-120:i+1]]
         return {'size':[self.w,self.h],'vertical':bool(self.vertical),'nodes':self.nodes,
                 'preparation':list(g.pb.memory[g.addr('world_seams')-12:g.addr('world_seams')]),
                 'view':list(g.pb.memory[g.addr('world_view'):g.addr('world_view')+4]),
@@ -251,7 +266,10 @@ class WorldPlayer:
                 'native_heir_uploads':self.pixels.samples if self.pixels else None,
                 'heir_pixel_mismatches':self.pixels.errors if self.pixels else [],
                 'seams':g.peek16('world_seams'),'windows':len(self.visited),'warps':self.warps,
-                'minimum_game_frames_per_120':min(spans) if spans else None,'hitches':self.hitches[:30],
+                'minimum_game_frames_per_120':min(windows) if windows else None,
+                'maximum_game_frames_per_120':max(windows) if windows else None,
+                'late_completions':self.late_completions[:30],
+                'raw_counter_minimum_at_lcd_boundary':min(spans) if spans else None,'hitches':self.hitches[:30],
                 'missing_floor':self.missing[:30],'missing_body':self.body[:30],
                 'oam_max':self.meter.max_line,'oam_over':self.meter.over,'grid':self.grid.report(),
                 'presentation_window':self.look_window.report(),
@@ -277,7 +295,8 @@ def run(rom,out,tool,seeds,rule=None,size=None,biome=0,floor=7):
     (out/'report.json').write_text(json.dumps(report,indent=2)+'\n')
     return all(r['solved'] and not r['missing_floor'] and not r['missing_body'] and not r['oam_over'] and
                not r['heir_pixel_mismatches'] and r['native_heir_uploads']>10 and r['stack_canary'] and
-               r['minimum_game_frames_per_120']==120 and r['grid']['all_map_and_attributes_match'] and
+               r['minimum_game_frames_per_120']==r['maximum_game_frames_per_120']==120 and not r['late_completions'] and
+               r['grid']['all_map_and_attributes_match'] and
                r['presentation_window']['all_cards_spans_queues_and_bitmaps_match'] and
                r['presentation_window']['native_transfers']==r['seams'] and
                r['maximum_stream_wait_frames']<=12 for r in reports)

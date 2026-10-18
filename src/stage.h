@@ -31,7 +31,8 @@ void stage_start(void) BANKED;       /* the end of floor_build (a reset too): th
 void stage_show(void) BANKED;        /* floor_show, display off, after look_load: cards, skins, palette */
 uint8_t stage_announce(void) BANKED; /* the floor's first toast: 1 if the stage showed its objective */
 void stage_tick(void) BANKED;        /* every frame of play, after player_update */
-uint8_t stage_select(void) BANKED;   /* a tap of SELECT: 1 if the stage used it (the heist's desk, mixp's ring) */
+uint8_t stage_bench_ready(void) BANKED;
+uint8_t stage_select(void) BANKED;   /* the menu's heist desk action: 1 if consumed */
 void stage_floor_done(void) BANKED;  /* through the door: the planner's result for a planned puzzle floor */
 void stage_landing(void) BANKED;     /* the landing between segments, then the rest (src/stage_rest.c) */
 

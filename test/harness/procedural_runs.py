@@ -5,7 +5,7 @@ entropy path. No map, inventory, actor-health or wave-result writes are used.
 """
 import argparse,hashlib,json,subprocess
 from pathlib import Path
-from play import Game,start_run,MODE_TITLE
+from play import Game,start_run,MODE_TITLE,PASSABLE,step
 from gameplay_rebuild import walk
 from world_play import WorldPlayer
 from animation_progress import AnimationProgress
@@ -13,7 +13,7 @@ from terrain_rim import TerrainRim
 
 def fingerprint(g):
     plan=bytes(g.peek('world_plan',k) for k in range(83))
-    assert g.peek('world_on') and plan[6]==0
+    assert g.peek('world_on') and plan[6]&127==0
     cells=subprocess.check_output(['build/host/land_one',str(int.from_bytes(plan[:2],'little')),str(plan[6]),str(plan[4]),str(plan[5])])
     assert cells[:83]==plan
     outline=bytes(int(t&31!=9) for t in cells[83::4]);w=plan[2]
@@ -37,6 +37,10 @@ def fight(g,log,fatal=False):
     for turn in range(320 if fatal else 200):
         if fatal and g.peek('game_mode')==4:return True
         if not fatal and not g.peek('enemies_alive'):g.hold(set());g.tick(16);return True
+        # Use the real recovery rules instead of endlessly queuing attacks
+        # below their stamina cost. Enemies keep simulating during this rest.
+        if not fatal and g.peek('stamina')<24:
+            g.hold(set());g.tick(160);continue
         k=closest(g)
         if k is None:g.hold(set());g.tick(16);continue
         ex=g.peek16_at('en',16*k+8)//16;ey=g.peek16_at('en',16*k+10)//16
@@ -68,6 +72,35 @@ def abandon(g):
         g.tick(8)
     raise AssertionError('New Run did not enter the new generated opening')
 
+def leave_cleared_stage(g,log):
+    """Reach the real exit; pursuit's closest-reachable walk is insufficient."""
+    from collections import deque
+    floor=g.peek('floor_no')
+    for _ in range(224):
+        g.hold(set())
+        for __ in range(96):
+            if g.peek('floor_no')!=floor or g.peek('pl_state')==6:return True
+            if not g.peek('pl_air') and g.peek('pl_state')==0 and g.peek('pin',2)==0:break
+            g.tick()
+        else:raise AssertionError('exit approach did not settle')
+        g.tick(16) # expire directional double-tap history before another tile
+        if g.peek('floor_no')!=floor or g.peek('pl_state')==6:return True
+        cells=g.room();target=cells[225];x,y=g.player();start=y//16*16+x//16
+        if start==target:g.tick(4);continue
+        q=deque([start]);prev={start:None};directions={}
+        while q and target not in prev:
+            c=q.popleft()
+            for d,delta in [('U',-16),('D',16),('L',-1),('R',1)]:
+                n=c+delta
+                if not 0<=n<224 or n in prev or abs(c%16-n%16)+abs(c//16-n//16)!=1:continue
+                if cells[n]&31 not in PASSABLE and not (n==target and g.peek('door_open')):continue
+                prev[n]=c;directions[n]=d;q.append(n)
+        assert target in prev,('cleared exit is unreachable',start,target)
+        n=target
+        while prev[n]!=start:n=prev[n]
+        if not step(g,directions[n],log):return False
+    raise AssertionError('cleared exit was not crossed')
+
 def run(rom,out,tool):
     out.mkdir(parents=True,exist_ok=True);res={};sweep=[]
     for seed in range(0x5100,0x5118):
@@ -98,6 +131,12 @@ def run(rom,out,tool):
         for _ in range(n):tick();animation.observe()
     g.tick=record
     res['opening_enemies_defeated_by_normal_attacks']=fight(g,log) and g.peek('kills_run')>=entry['spawned_enemies']
+    # A short fight can end before one 120-update timing window exists.
+    # Observe its normal idle recovery too; never manufacture another enemy
+    # or relax the pose/deadline assertions when a fight ends quickly.
+    post_fight_frames=0;g.hold(set())
+    while (animation.samples<=180 or len(epochs)<=180) and post_fight_frames<240:
+        g.tick();post_fight_frames+=1
     windows=[epochs[i]-epochs[i-120] for i in range(120,len(epochs))]
     res['generated_world_combat_meets_frame_deadlines']=bool(windows) and min(windows)==max(windows)==120 and not late
     ar=animation.report();res['generated_world_combat_animation_advances']=ar['animation_keeps_advancing']
@@ -117,6 +156,7 @@ def run(rom,out,tool):
     g.tick=travel_tick;p.monitor=False;g.tick(240)
     rr=rim.report();res['ordinary_world_builds_ahead_and_falls_behind']=rr['build_and_fall_are_visible']
     res['ordinary_world_keeps_effects_at_the_edge']=rr['central_view_is_built'] and rr['construction_stays_at_rim']
+    (out/'ordinary-world-effects.json').write_text(json.dumps(rr,indent=2)+'\n')
     if images:images[0].save(out/'ordinary-world-travel.gif',save_all=True,append_images=images[1:],duration=68,loop=0)
     res['ordinary_progression_reaches_survival_stage']=g.peek('floor_no')==2 and g.peek('stage_type')==1
     arena=bytes(g.room()[:224]);res['survival_arena_has_generated_void_edges']=any((arena[y*16+x]&31)==9 for y in range(1,13) for x in range(1,15))
@@ -126,8 +166,18 @@ def run(rom,out,tool):
         if g.peek('enemies_alive'):assert fight(g,log)
         else:g.hold(set());g.tick(30)
     res['ordinary_survival_requires_and_accepts_player_kills']=bool(g.peek('stage_won')) and g.peek('kills_run')>entry['spawned_enemies']
-    assert walk(g,g.room()[225],log);g.tick(240)
-    res['next_floor_deals_a_different_puzzle_family']=g.peek('floor_no')==3 and g.peek('world_on') and g.peek('world_plan',6) in (2,3)
+    assert leave_cleared_stage(g,log);g.tick(240)
+    for _ in range(600):
+        if g.peek('floor_no')==3 and g.peek('game_mode')==2:break
+        g.tick()
+    next_floor={'floor':g.peek('floor_no'),'mode':g.peek('game_mode'),'world':bool(g.peek('world_on')),
+                'raw_rule':g.peek('world_plan',6),'physical':g.peek('slice',22)&31,
+                'rocks':sum(t&31==4 for t in g.room()[:224]),'plates':sum(t&31==10 for t in g.room()[:224])}
+    # The ordinary deal includes falling-load chutes as well as cold/power
+    # worlds. The geography's hazard bit is independent of its puzzle family.
+    next_family=(next_floor['world'] and (next_floor['raw_rule']&127) in (2,3)) or (
+        not next_floor['world'] and next_floor['physical']==2 and next_floor['rocks'] and next_floor['plates'])
+    res['next_floor_deals_a_different_puzzle_family']=next_floor['floor']==3 and next_floor['mode']==2 and bool(next_family)
     g.shot(out/'next-procedural-puzzle.png');g.stop()
 
     # Real mortality advances the family. Every next run uses fresh entropy.
@@ -150,7 +200,7 @@ def run(rom,out,tool):
     g=Game(rom,sram=checkpoint);abandon(g);after=fingerprint(g);g.stop()
     res['new_run_cannot_restore_the_abandoned_seed']=after['run_seed']!=continued['run_seed'] and after['material_layout_sha256']!=continued['material_layout_sha256']
     report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':res,'seeded_openings':sweep,
-            'ordinary_entry':entry,'ordinary_world_effects':rr,'combat_animation':ar,'combat_late_completions':late,'combat_epoch_span':([min(windows),max(windows)] if windows else []),
+            'ordinary_entry':entry,'next_floor':next_floor,'ordinary_world_effects':rr,'combat_animation':ar,'post_fight_observation_frames':post_fight_frames,'combat_late_completions':late,'combat_epoch_span':([min(windows),max(windows)] if windows else []),
             'real_death_generations':deaths,'continued':continued,'new_run_after_abandon':after,'log':log}
     (out/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2),flush=True)
     return all(res.values())

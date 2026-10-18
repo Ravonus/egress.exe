@@ -184,6 +184,16 @@ class Bot:
         if self.kind == BOSS_BIOME and s["bs_atk"] == ATK["QUAKE"] and s["bs_st"] == BS["IDLE"]:
             tx = s["bs_tx"]
             out.append((10, lambda x, y, tx=tx: abs(x - tx) < 14 + M))
+        # Pages remain dangerous after the Fax finishes its fan animation.
+        # Use nearby visible swept rectangles; distant pages need no per-node
+        # closest-approach solve in the routing search.
+        if self.kind==BOSS_MID:
+            for o in s["orbs"]:
+                if o["friendly"] or max(abs(o["x"]-s["pl_x"]),abs(o["y"]-s["pl_y"]))>48:continue
+                x,y=o["x"],o["y"];nx=x+o["vx"]*16;ny=y+o["vy"]*16
+                l,r=min(x,nx)-10-M,max(x,nx)+10+M
+                top,bottom=min(y,ny)-10-M,max(y,ny)+10+M
+                out.append((12,lambda px,py,l=l,r=r,top=top,bottom=bottom:l<px<r and top<py<bottom))
         for o in s["obstacles"]:
             if o["stop"]:
                 continue

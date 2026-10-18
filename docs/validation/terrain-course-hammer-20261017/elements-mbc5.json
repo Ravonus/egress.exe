@@ -1,0 +1,23 @@
+{
+  "sha256": "aaec5551d87a0ab307baae2305d9febf28e900ad8fd3c37801a4df21a3d4385b",
+  "results": {
+    "pickup_equips_first_material": true,
+    "recipe_equips_result_and_consumes_two": true,
+    "invalid_target_keeps_item_and_stamina": true,
+    "slot_survives_next_floor": true,
+    "slot_restored_with_current_continue": true,
+    "equipping_never_casts_on_its_closing_release": true,
+    "fire_burns_and_consumes_exactly_one": true,
+    "compaction_keeps_equipped_material": true,
+    "cast_uses_hand_animation_and_stamina": true,
+    "fire_emits_native_ember_particles": true,
+    "cast_keeps_native_oam_budget": true,
+    "cast_recovers_without_freezing_frames": true,
+    "diagonal_cast_hits_the_diagonal_cell": true,
+    "empty_slot_never_uses_the_next_material": true,
+    "holding_does_not_autofire": true,
+    "hold_reset_restores_entry_slot_and_bag": true
+  },
+  "log": [],
+  "fixtureWrites": "One paper target and finite inventory only; all actions use controller input."
+}

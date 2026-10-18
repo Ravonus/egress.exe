@@ -1,0 +1,135 @@
+{
+  "sha256": "aaec5551d87a0ab307baae2305d9febf28e900ad8fd3c37801a4df21a3d4385b",
+  "results": {
+    "n_real_heir_is_hammer": true,
+    "n_distinct_windup_and_contact_art_loaded": true,
+    "n_front_target_breaks": true,
+    "n_rear_target_untouched": true,
+    "n_impact_faces_aim": true,
+    "n_visible_head_is_forward": true,
+    "ne_real_heir_is_hammer": true,
+    "ne_distinct_windup_and_contact_art_loaded": true,
+    "ne_front_target_breaks": true,
+    "ne_rear_target_untouched": true,
+    "ne_impact_faces_aim": true,
+    "e_real_heir_is_hammer": true,
+    "e_distinct_windup_and_contact_art_loaded": true,
+    "e_front_target_breaks": true,
+    "e_rear_target_untouched": true,
+    "e_impact_faces_aim": true,
+    "e_visible_head_is_forward": true,
+    "se_real_heir_is_hammer": true,
+    "se_distinct_windup_and_contact_art_loaded": true,
+    "se_front_target_breaks": true,
+    "se_rear_target_untouched": true,
+    "se_impact_faces_aim": true,
+    "s_real_heir_is_hammer": true,
+    "s_distinct_windup_and_contact_art_loaded": true,
+    "s_front_target_breaks": true,
+    "s_rear_target_untouched": true,
+    "s_impact_faces_aim": true,
+    "s_visible_head_is_forward": true,
+    "sw_real_heir_is_hammer": true,
+    "sw_distinct_windup_and_contact_art_loaded": true,
+    "sw_front_target_breaks": true,
+    "sw_rear_target_untouched": true,
+    "sw_impact_faces_aim": true,
+    "w_real_heir_is_hammer": true,
+    "w_distinct_windup_and_contact_art_loaded": true,
+    "w_front_target_breaks": true,
+    "w_rear_target_untouched": true,
+    "w_impact_faces_aim": true,
+    "w_visible_head_is_forward": true,
+    "nw_real_heir_is_hammer": true,
+    "nw_distinct_windup_and_contact_art_loaded": true,
+    "nw_front_target_breaks": true,
+    "nw_rear_target_untouched": true,
+    "nw_impact_faces_aim": true
+  },
+  "directions": [
+    {
+      "direction": "n",
+      "facings": [
+        0,
+        0
+      ],
+      "weapon_projection": [
+        16,
+        16,
+        16,
+        16
+      ]
+    },
+    {
+      "direction": "ne",
+      "facings": [
+        1,
+        1
+      ],
+      "weapon_projection": []
+    },
+    {
+      "direction": "e",
+      "facings": [
+        2,
+        2
+      ],
+      "weapon_projection": [
+        16,
+        24,
+        16,
+        24
+      ]
+    },
+    {
+      "direction": "se",
+      "facings": [
+        3,
+        3
+      ],
+      "weapon_projection": []
+    },
+    {
+      "direction": "s",
+      "facings": [
+        4,
+        4
+      ],
+      "weapon_projection": [
+        16,
+        16,
+        16,
+        16
+      ]
+    },
+    {
+      "direction": "sw",
+      "facings": [
+        5,
+        5
+      ],
+      "weapon_projection": []
+    },
+    {
+      "direction": "w",
+      "facings": [
+        6,
+        6
+      ],
+      "weapon_projection": [
+        16,
+        8,
+        16,
+        8
+      ]
+    },
+    {
+      "direction": "nw",
+      "facings": [
+        7,
+        7
+      ],
+      "weapon_projection": []
+    }
+  ]
+}

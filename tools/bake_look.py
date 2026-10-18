@@ -1504,6 +1504,7 @@ def write(out: Path) -> None:
         "/* loads the cards into VRAM banks 1 and 0, a biome's 8 BG palettes into pal_out[32], each card's palette into",
         " * meta_pal[M_COUNT] (| LOOK_META_BANK0) and its 2x2 map tiles into meta_tile[M_COUNT * 4] */",
         "void look_art_load(uint8_t biome, uint16_t *pal_out, uint8_t *meta_pal, uint8_t *meta_tile) BANKED;",
+        "void look_art_card(uint8_t meta, uint8_t slot) BANKED;",
         "#endif",
     ]
     (out / "look_art.h").write_text("\n".join(h) + "\n")
@@ -1518,6 +1519,9 @@ def write(out: Path) -> None:
         BA.c_bytes("look_tiles1", tiles1),
         BA.c_bytes("look_tiles0", tiles0),
         BA.c_bytes("look_tiles0l", tiles0l),
+        BA.c_bytes("look_flight_cards", b''.join(
+            (b0.get(t,bytes(16)) if pals[m]&0x80 else b1.get(t,bytes(16)))
+            for m in range(len(ms)) for t in [mtile[m*4+q] for q in (0,2,1,3)])),
         BA.c_bytes("look_item_icons", b''.join(item_icon(rows) for _,_,rows in ITEM_ART)),
         "static const uint8_t look_meta_pal[] = {" + ", ".join(map(str, pals)) + "};",
         "static const uint8_t look_meta_tile[] = {" + ", ".join(map(str, mtile)) + "};",
@@ -1527,6 +1531,16 @@ def write(out: Path) -> None:
         f"#define LOOK_NT0 {len(tiles0) // 16}u",
         f"#define LOOK_NT0L {len(tiles0l) // 16}u",
         """
+/* Seven recycled 16x16 OBJ cards in bank 1's unsigned-only area. They never
+ * overlap the signed BG art, diagonal weapon, mob atlas or mob FX. Copy the
+ * canonical quadrant data, including connected carpet, rather than a slab
+ * stand-in which changes texture when it lands. No additional WRAM cache. */
+void look_art_card(uint8_t meta, uint8_t slot) BANKED {
+  uint8_t dst=slot<3u ? (uint8_t)(4u+(slot<<2)) : (uint8_t)(100u+(slot<<2));
+  VBK_REG=1u;
+  set_sprite_data(dst,4u,look_flight_cards+((uint16_t)meta<<6));
+  VBK_REG=0u;
+}
 void look_art_load(uint8_t biome, uint16_t *pal_out, uint8_t *meta_pal, uint8_t *meta_tile) BANKED {
   VBK_REG = 1;
   set_bkg_data(LOOK_T_BASE, LOOK_NT1, look_tiles1);

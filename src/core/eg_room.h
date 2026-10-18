@@ -62,6 +62,8 @@ enum {
 #define F_PLATE 0x20u /* on a CRT: it rests on a pressure plate (the plate comes back when it leaves) */
 #define F_ABYSS 0x20u /* on T_PIT only: open exterior void, with no support for a one-cell crossing */
 #define EG_ABYSS(v) ((v)==(T_PIT|F_ABYSS))
+#define F_BENCH 0x20u /* on T_WALL only: a solid, indestructible workbench */
+#define EG_BENCH(v) ((v)==(T_WALL|F_BENCH))
 #define F_OB 0x80u    /* B2, on any cell but a CRT: a living obstacle stands here (src/core/eg_obst.h). Solid to the
                          player, crates and other obstacles; masked off wherever the cell's type is read */
 
@@ -121,6 +123,7 @@ typedef struct {
   eg_link link[EG_LINKS];
   uint8_t portal[2], portal_need; /* ON | required circuit mask */
 } eg_room;
+void eg_benches(eg_room *r,uint16_t seed) EG_BANKED;
 typedef char eg_room_fits_fixed_slot[(sizeof(eg_room)==320u) ? 1 : -1];
 #define EG_PROT(r, i) ((r)->prot[(uint8_t)(i) >> 3] & (uint8_t)(1u << ((i) & 7u)))
 
