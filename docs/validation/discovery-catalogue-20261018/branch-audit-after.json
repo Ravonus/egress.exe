@@ -1,0 +1,19 @@
+{
+  "removedMergedBranches": [
+    {
+      "branch": "codex/crucible-bench-scene",
+      "head": "a800d9fb96d1beb958ed92d4f4393e007ad5daa4"
+    },
+    {
+      "branch": "codex/discovery-catalogue-444",
+      "head": "c04568cce48f1dc64bfd341866793dc3712468fe"
+    }
+  ],
+  "remainingLocalBranches": [
+    "main"
+  ],
+  "remainingRemoteBranches": [
+    "origin/main"
+  ],
+  "worktrees": "worktree /Users/ravonus/dev/egress\nHEAD ae6bcbc14c96fff1f57061e3639544b4595379e5\nbranch refs/heads/main\n\n"
+}

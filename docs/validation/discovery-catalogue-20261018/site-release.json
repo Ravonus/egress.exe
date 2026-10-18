@@ -1,0 +1,22 @@
+{
+  "site": "https://egress.onkeel.io",
+  "sourceCommit": "ad859cab67bf1807169778200a87950e8bc3f5d8",
+  "mergeCommit": "ae6bcbc14c96fff1f57061e3639544b4595379e5",
+  "siteCommit": "788e2b2539b06162432d3bf933df68e4cc3654e6",
+  "roms": {
+    "egress.gbc": {
+      "bytes": 1572864,
+      "sha256": "a9d31dcf3c41d66f9b783388061a8f16c4aa9bded13ca7740e26234de5ecb1c1"
+    },
+    "egress-rtc.gbc": {
+      "bytes": 1572864,
+      "sha256": "e39dbffe56e966c6a2b7ec010a4c3a4d148257e292cb0a2865225703b2808c62"
+    }
+  },
+  "httpVerified": true,
+  "liveBrowserVerified": true,
+  "temporaryVerificationHostCleaned": true,
+  "preexistingSiteChangesPreserved": 65,
+  "physicalCartridgeTested": false,
+  "campaign": "ten-floor office development campaign"
+}

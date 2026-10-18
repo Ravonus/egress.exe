@@ -56,3 +56,9 @@ Separate native oracle cartridges verify 45,056 visibility/order requests, 640 b
 The site's playable ROM, download aliases, portable cartridge metadata and native previews share this exact pair. Gameplay images carry a ROM-hash/source-commit capture manifest and per-image hashes. The separate scroll-driven KEEL illustration uses 14 canonical cartridge textures and records their provenance; it is labelled as an illustration. Current native captures replace stale gameplay images. All 65 pre-existing website changes are preserved by byte/status guards.
 
 This remains the ten-floor office development campaign with LAST FAX and THE TENANT. The full campaign, remaining biomes/bosses, family tree/stats pages, adaptive score, playable first-person stages and cycle consequences remain open in `docs/SPRINTS.md`. Emulator proof does not establish physical cartridge playback.
+
+## Published release
+
+[PR #7](https://github.com/Ravonus/egress.exe/pull/7) merged as `ae6bcbc14c96fff1f57061e3639544b4595379e5`. The [public player and downloads](https://egress.onkeel.io/) serve the exact pair above. Public HTTP hashes and a fresh live browser run at widths 1280, 768, 390 and 320 verify the pages, source link, standard/RTC downloads and player ROM identity. The website source is committed locally as `788e2b2539b06162432d3bf933df68e4cc3654e6`; this checkout has no Git remote. Its 65 pre-existing changed paths are preserved. See `site-release.json`, `live-site/report.json` and the deployment receipt.
+
+Both merged feature branches are removed; the only game branch is `main` and the primary worktree remains. Temporary verification containers, copied source/build inputs, downloaded tools and the pulled image are removed; production and rollback backups remain. See `branch-audit-after.json` and `verification-host-cleanup.json`.
