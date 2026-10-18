@@ -46,10 +46,14 @@ uint8_t health_drop(uint8_t cell) BANKED {
  if(k==4u)return 0u;health_cell[k]=cell;room.c[cell]=T_TOKEN|F_HEALTH;queue_cell(cell);return 1u;
 }
 void health_draw(void) BANKED {
- uint8_t k,c,tile=(uint8_t)(ST_HEALTH+(((uint8_t)(frame_count>>4))&1u)*4u);
+ uint8_t k,c,tile=(uint8_t)(ST_HEALTH+(((uint8_t)(frame_count>>4))&1u)*4u);int16_t x,y;
  if((health_cell[0]&health_cell[1]&health_cell[2]&health_cell[3])==255u)return;
  for(k=0u;k<4u;k++){
   c=health_cell[k];if(c>=EG_N || !EG_HEALTH(room.c[c]) || !look_here(c))continue;
-  oam_group((int16_t)EG_X(c)*16-cam_x,(int16_t)EG_Y(c)*16-cam_y-2,2u,tile,2u,5u);
+  /* Packed cell nibbles already contain both pixel coordinates. Reject a
+   * wholly hidden pickup before paying the general group allocator. */
+  x=(uint8_t)(c<<4);x-=cam_x;if((uint16_t)(x+15)>=175u)continue;
+  y=c&240u;y-=cam_y;y-=2;if((uint16_t)(y+15)>=159u)continue;
+  oam_group(x,y,2u,tile,2u,5u);
  }
 }

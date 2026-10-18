@@ -41,8 +41,9 @@
     },
     {
       "name": "MUD",
-      "body": "#b9a06a",
-      "hueSpread": 14
+      "body": "#a07952",
+      "hueSpread": 6,
+      "highlight": "#d9b991"
     },
     {
       "name": "SNOW",

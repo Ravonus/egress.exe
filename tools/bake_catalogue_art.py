@@ -6,8 +6,8 @@ fusion renderer. No per-recipe animation payload is emitted.
 from pathlib import Path
 import json,math,argparse,hashlib
 from PIL import Image,ImageDraw
-import bake_look as art
 import catalogue_colours as colours
+import element_pixels
 ROOT=Path(__file__).resolve().parents[1]
 C=json.loads((ROOT/'assets/alchemy/catalogue.json').read_text())
 PETS=[json.loads(p.read_text()) for p in sorted((ROOT/'assets/alchemy/pets').glob('*.json')) if not p.name.startswith('.')]
@@ -23,22 +23,7 @@ def outline(mask,seed=0):
  return out
 
 def source(f):
- if f<=16:
-  return [[0 if ch not in '0123' else max(1,int(ch)) for ch in row] for row in art.ITEM_ART[f-1][2].strip().splitlines()]
- m=[[False]*16 for _ in range(16)]
- for y in range(16):
-  for x in range(16):
-   dx=x-7.5;dy=y-7.5
-   m[y][x]= (
-    (abs(dx)*.8+abs(dy)<6.6) if f in (17,24) else
-    ((dx*dx+(dy+1)*(dy+1)<32) or (abs(dx)<2 and 9<y<14)) if f==18 else
-    ((2<=x<=7 and 5<=y<=12) or (8<=x<=12 and 3<=y<=9)) if f==19 else
-    (abs(dx-math.sin(y*.7)*3)<1.8 or (3<y<11 and abs(dx)<5 and (x+y)%3==0)) if f==20 else
-    (3<=x<=12 and 3<=y<=13 and not(y<5 and x%3==0)) if f==21 else
-    (9<=y<=13 and abs(dx)<(y-6) or (x,y) in [(5,6),(10,7),(8,4)]) if f==22 else
-    (3<=x<=12 and 2<=y<=13 and not(6<=x<=9 and y<10))
-   )
- return outline(m,f)
+ return element_pixels.pixels(C['families'][f-1][0])
 
 def form_mask(n,x,y):
  dx=x-7.5;dy=y-7.5;r=dx*dx+dy*dy
@@ -61,15 +46,18 @@ def form_mask(n,x,y):
 def material(f,n):
  src=source(f)
  if not n:return src
- out=outline([[form_mask(n,x,y) for x in range(16)] for y in range(16)],f+n)
- # A central sample retains the original material's recognizable texture.
- for y in range(4,12):
-  for x in range(4,12):
-   if out[y][x]>1 and src[y][x]:out[y][x]=src[y][x]
- # Five tiny facets distinguish family motifs within a shared silhouette.
- for k in range(5):
-  x=5+k;y=10
-  if out[y][x]>1:out[y][x]=3 if f&(1<<k) else 2
+ # The substance remains the foreground silhouette. A small inset form mark
+ # identifies the discovery without replacing mud/fire/water with a blob.
+ out=[row[:] for row in src]
+ mask=[[form_mask(n, x*4+1, y*4+1) for x in range(4)] for y in range(4)]
+ for y in range(4):
+  for x in range(4):
+   out[11+y][11+x]=3 if mask[y][x] else 1
+ for x in range(4):out[14][11+x]=3 if n&(1<<x) else 1
+ # Facets change the interior, keeping every exterior edge and its light.
+ for y in range(3,11):
+  for x in range(3,13):
+   if src[y][x]==2 and (x*3+y+n*5)%17==0:out[y][x]=3
  return out
 
 def shifted(src,dx=0,dy=0):
@@ -210,6 +198,16 @@ def main():
  p=argparse.ArgumentParser();p.add_argument('--preview-only',action='store_true');a=p.parse_args();out=ROOT/'build/catalogue/art';out.mkdir(parents=True,exist_ok=True)
  ramps=colours.ramps()
  paper=(25,19,40);white=(255,239,213)
+ # Source review only; released website illustrations come from native ROM
+ # captures, never from this sheet.
+ sheet=Image.new('RGB',(384,192),paper);d=ImageDraw.Draw(sheet)
+ for f in range(1,25):
+  x0=((f-1)%6)*64;y0=((f-1)//6)*48
+  ramp=[colours.unpack(c) for c in ramps[f-1][0]];ramp[0]=paper
+  im=Image.new('RGB',(16,16));im.putdata([ramp[v] for row in source(f) for v in row])
+  sheet.paste(im.resize((32,32),Image.Resampling.NEAREST),(x0+16,y0))
+  d.text((x0+2,y0+34),C['families'][f-1][0],fill=white)
+ sheet.save(out/'material-source.png')
  sheet=Image.new('RGB',(480,320),paper);d=ImageDraw.Draw(sheet)
  for k in range(12):
   ramp=[colours.unpack(c) for c in ramps[C['pets'][k][0]-1][colours.variant(1234,433+k)]];ramp[0]=paper

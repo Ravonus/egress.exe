@@ -115,7 +115,7 @@
 #define LOOK_T_END 182u /* first tile past the reaction range */
 #define LOOK_T1_END 190u /* first bank 1 tile past the look */
 #define LOOK_B0_BASE 210u /* VRAM bank 0: the flying fragile cards from here */
-#define LOOK_LOW0_BASE 0u /* VRAM bank 0 BG-only (0x9000 + 16n): items, thin ice's crack, the void's edges, to 109 */
+#define LOOK_LOW0_BASE 0u /* VRAM bank 0 BG-only (0x9000 + 16n): items, thin ice's crack, the void's edges, to 102 */
 #define LOOK_SHARD 242u /* VRAM bank 0: two 8x16 glass shard sprites (+0, +2) */
 #define LOOK_META_BANK0 0x80u /* meta_pal bit: the card's tiles are in VRAM bank 0 */
 #define LOOK_META_FLIP 0x20u /* meta_pal bit, bank 0 cards: the map attribute's X-flip */

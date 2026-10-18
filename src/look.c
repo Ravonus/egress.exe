@@ -53,11 +53,11 @@ static uint16_t lk_rs;
 static uint8_t flick_next, flick_t;
 
 /* A fixed downward arrival: drop, decelerate, one-pixel settle, commit. */
-static const int8_t ease_in[5] = {-16, -9, -3, 1, 0};
-#define EASE_FRAMES 5u
+static const int8_t ease_in[8] = {-24, -18, -12, -7, -3, 0, 1, 0};
+#define EASE_FRAMES 8u
 /* the fall: crack, split, accelerate, drift apart */
-static const uint8_t fall_dy[12] = {0, 1, 2, 4, 6, 9, 12, 16, 21, 26, 32, 38};
-#define FALL_FRAMES 12u
+static const uint8_t fall_dy[16] = {0, 0, 1, 2, 3, 5, 7, 10, 14, 19, 25, 32, 40, 49, 59, 70};
+#define FALL_FRAMES 16u
 
 static uint8_t lk_rnd(void) {
   lk_rs = (uint16_t)(lk_rs * 25173u + 13849u);
@@ -397,7 +397,7 @@ static uint8_t band_ok(int16_t top, int16_t bot) {
 
 static uint8_t launch(uint8_t i) {
   uint8_t k,h,cached=0u,fall=(uint8_t)(look_here(i)!=0u);
-  int16_t y=(int16_t)((uint16_t)EG_Y(i)<<4),top=y-(fall ? 0 : 16),bot=y+16+(fall ? 38 : 1);
+  int16_t y=(int16_t)((uint16_t)EG_Y(i)<<4),top=y-(fall ? 0 : 24),bot=y+16+(fall ? 70 : 1);
   /* Seven reusable OBJ cards. The eighth slot remains available to a real
    * fragile-floor break, which uses its resident bank-0 art. */
   if(!band_ok(top,bot))return 0u;

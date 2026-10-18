@@ -239,7 +239,7 @@ src/core/eg_journal_patch.inc: tools/bake_journal_patch.py
 	$(PY) tools/bake_journal_patch.py
 src/gen/health_art.c: tools/bake_health.py assets/alchemy/pickups/health.json
 	$(PY) tools/bake_health.py
-build/catalogue-art.stamp: tools/bake_catalogue_art.py tools/catalogue_colours.py assets/alchemy/catalogue.json assets/alchemy/colours.json $(wildcard assets/alchemy/pets/[0-9]*.json)
+build/catalogue-art.stamp: tools/bake_catalogue_art.py tools/element_pixels.py tools/catalogue_colours.py assets/alchemy/catalogue.json assets/alchemy/colours.json $(wildcard assets/alchemy/pets/[0-9]*.json)
 	$(PY) tools/bake_catalogue_art.py
 	@touch $@
 $(filter build/obj/gen/catalogue_%.o,$(OBJ)) $(filter build/art-check/gen/catalogue_%.o,$(CAT_ART_OBJ)): build/catalogue-art.stamp
@@ -257,7 +257,7 @@ build/overlap-check/overlap.gbc: test/native/overlap.c src/overlap.inc
 test-native-overlap: build/overlap-check/overlap.gbc
 	$(PY) tools/test_native_overlap.py $<
 
-src/gen/item_idle.inc: tools/bake_item_idle.py tools/bake_look.py
+src/gen/item_idle.inc: tools/bake_item_idle.py tools/bake_look.py tools/element_pixels.py
 	$(PY) tools/bake_item_idle.py
 
 # the heir's baked frame records (tools/bake_heir.py): plain data, no headers but GBDK's
@@ -325,7 +325,7 @@ src/gen/art.c src/gen/art_pics.c src/gen/art.h: tools/bake_art.py
 	$(PY) tools/bake_art.py src/gen --sheet docs/shots/art_sheet.png
 
 # the floor's look: the office cards, the biome palettes (tools/bake_look.py borrows bake_art.py's helpers)
-src/gen/look_art.c src/gen/look_art.h: tools/bake_look.py tools/bake_art.py
+src/gen/look_art.c src/gen/look_art.h: tools/bake_look.py tools/bake_art.py tools/element_pixels.py
 	$(PY) tools/bake_look.py src/gen --sheet docs/shots/b1_look_tiles.png --fragile docs/shots/b1_fragile_tiles.png --items docs/shots/b1_items_tiles.png
 
 # B2 stages: the temp and the shopkeeper (BG cards, src/stage.c)
@@ -507,7 +507,7 @@ test-native-window: build/host/window_stream_dump build/window-check/window.gbc
 src/gen/stage_codec.inc: assets/stages/codec.json tools/bake_stage_codec.py
 	$(PY) tools/bake_stage_codec.py
 
-src/gen/world_art.c src/gen/world_art.h: tools/bake_world_art.py tools/bake_look.py tools/bake_art.py
+src/gen/world_art.c src/gen/world_art.h: tools/bake_world_art.py tools/bake_look.py tools/bake_art.py tools/element_pixels.py
 	$(PY) tools/bake_world_art.py
 
 build/obj/core/eg_land.o: src/gen/stage_codec.inc Makefile

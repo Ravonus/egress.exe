@@ -4,9 +4,22 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 import bake_catalogue_art as art
 import catalogue_colours as colour
+import element_pixels
 
 
 def run():
+    assert len(element_pixels.DRAWINGS) == 24
+    # A material has the same silhouette wherever it appears, before the
+    # ground card adds its fixed slab/shadow. All discoveries remain distinct.
+    assert len({art.packed(art.pixels(i)) for i in range(1, 433)}) == 432
+    for f in range(1, 25):
+        body = art.source(f)
+        assert body == element_pixels.pixels(art.C['families'][f-1][0])
+        for n in range(1,16):
+            variant=art.material(f,n)
+            same=sum(body[y][x]==variant[y][x] for y in range(11) for x in range(16) if body[y][x])
+            total=sum(bool(body[y][x]) for y in range(11) for x in range(16))
+            assert same >= total * .85, (f,n,'Lost the recognizable material')
     ramps = colour.ramps()
     for family in ramps:
         assert len(set(family)) >= 32, 'Seed variation collapsed after RGB555 quantisation'

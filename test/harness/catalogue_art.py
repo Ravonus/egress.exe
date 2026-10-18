@@ -39,8 +39,13 @@ def run(rom,out):
   if palette==4:assert bytes(g.pb.memory[g.addr('pal_sp')+32:g.addr('pal_sp')+40])==bytes(observed),'Palette commit cache mismatch'
   assert g.pb.memory[0xfe03] & 0x20 == (0x20 if direction>4 else 0)
   checks+=1;g.tick();return g.pb.screen.image.convert('RGB').crop((64,56,80,72))
+ materials=[Image.new('RGB',(96,64),(25,19,40)) for _ in range(4)]
  for i in range(1,433):
-  for pose in range(4):request(i,4,0,pose)
+  for pose in range(4):
+   frame=request(i,4,0,pose)
+   if i<=24:materials[pose].paste(frame,(((i-1)%6)*16,((i-1)//6)*16))
+ materials[0].save(out/'materials-native.png')
+ materials[0].save(out/'materials-native.gif',save_all=True,append_images=materials[1:],duration=180,loop=0)
  for k in range(12):
   frames=[]
   for pose in range(4):
