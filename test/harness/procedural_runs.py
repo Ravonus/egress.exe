@@ -5,7 +5,7 @@ entropy path. No map, inventory, actor-health or wave-result writes are used.
 """
 import argparse,hashlib,json,subprocess
 from pathlib import Path
-from play import Game,start_run,MODE_TITLE
+from play import Game,start_run,MODE_TITLE,PASSABLE,step
 from gameplay_rebuild import walk
 from world_play import WorldPlayer
 from animation_progress import AnimationProgress
@@ -68,6 +68,35 @@ def abandon(g):
         g.tick(8)
     raise AssertionError('New Run did not enter the new generated opening')
 
+def leave_cleared_stage(g,log):
+    """Reach the real exit; pursuit's closest-reachable walk is insufficient."""
+    from collections import deque
+    floor=g.peek('floor_no')
+    for _ in range(224):
+        g.hold(set())
+        for __ in range(96):
+            if g.peek('floor_no')!=floor or g.peek('pl_state')==6:return True
+            if not g.peek('pl_air') and g.peek('pl_state')==0 and g.peek('pin',2)==0:break
+            g.tick()
+        else:raise AssertionError('exit approach did not settle')
+        g.tick(16) # expire directional double-tap history before another tile
+        if g.peek('floor_no')!=floor or g.peek('pl_state')==6:return True
+        cells=g.room();target=cells[225];x,y=g.player();start=y//16*16+x//16
+        if start==target:g.tick(4);continue
+        q=deque([start]);prev={start:None};directions={}
+        while q and target not in prev:
+            c=q.popleft()
+            for d,delta in [('U',-16),('D',16),('L',-1),('R',1)]:
+                n=c+delta
+                if not 0<=n<224 or n in prev or abs(c%16-n%16)+abs(c//16-n//16)!=1:continue
+                if cells[n]&31 not in PASSABLE and not (n==target and g.peek('door_open')):continue
+                prev[n]=c;directions[n]=d;q.append(n)
+        assert target in prev,('cleared exit is unreachable',start,target)
+        n=target
+        while prev[n]!=start:n=prev[n]
+        if not step(g,directions[n],log):return False
+    raise AssertionError('cleared exit was not crossed')
+
 def run(rom,out,tool):
     out.mkdir(parents=True,exist_ok=True);res={};sweep=[]
     for seed in range(0x5100,0x5118):
@@ -126,8 +155,18 @@ def run(rom,out,tool):
         if g.peek('enemies_alive'):assert fight(g,log)
         else:g.hold(set());g.tick(30)
     res['ordinary_survival_requires_and_accepts_player_kills']=bool(g.peek('stage_won')) and g.peek('kills_run')>entry['spawned_enemies']
-    assert walk(g,g.room()[225],log);g.tick(240)
-    res['next_floor_deals_a_different_puzzle_family']=g.peek('floor_no')==3 and g.peek('world_on') and g.peek('world_plan',6) in (2,3)
+    assert leave_cleared_stage(g,log);g.tick(240)
+    for _ in range(600):
+        if g.peek('floor_no')==3 and g.peek('game_mode')==2:break
+        g.tick()
+    next_floor={'floor':g.peek('floor_no'),'mode':g.peek('game_mode'),'world':bool(g.peek('world_on')),
+                'raw_rule':g.peek('world_plan',6),'physical':g.peek('slice',22)&31,
+                'rocks':sum(t&31==4 for t in g.room()[:224]),'plates':sum(t&31==10 for t in g.room()[:224])}
+    # The ordinary deal includes falling-load chutes as well as cold/power
+    # worlds. The geography's hazard bit is independent of its puzzle family.
+    next_family=(next_floor['world'] and (next_floor['raw_rule']&127) in (2,3)) or (
+        not next_floor['world'] and next_floor['physical']==2 and next_floor['rocks'] and next_floor['plates'])
+    res['next_floor_deals_a_different_puzzle_family']=next_floor['floor']==3 and next_floor['mode']==2 and bool(next_family)
     g.shot(out/'next-procedural-puzzle.png');g.stop()
 
     # Real mortality advances the family. Every next run uses fresh entropy.
@@ -150,7 +189,7 @@ def run(rom,out,tool):
     g=Game(rom,sram=checkpoint);abandon(g);after=fingerprint(g);g.stop()
     res['new_run_cannot_restore_the_abandoned_seed']=after['run_seed']!=continued['run_seed'] and after['material_layout_sha256']!=continued['material_layout_sha256']
     report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':res,'seeded_openings':sweep,
-            'ordinary_entry':entry,'ordinary_world_effects':rr,'combat_animation':ar,'combat_late_completions':late,'combat_epoch_span':([min(windows),max(windows)] if windows else []),
+            'ordinary_entry':entry,'next_floor':next_floor,'ordinary_world_effects':rr,'combat_animation':ar,'combat_late_completions':late,'combat_epoch_span':([min(windows),max(windows)] if windows else []),
             'real_death_generations':deaths,'continued':continued,'new_run_after_abandon':after,'log':log}
     (out/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2),flush=True)
     return all(res.values())

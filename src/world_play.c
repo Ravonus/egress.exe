@@ -206,10 +206,28 @@ static void goal_hint(void) {
     break;
   }
 }
+static uint8_t pickup_cell(uint8_t x,uint8_t y) {
+  uint8_t t=room.c[EG_IDX(x,y)]&T_MASK;
+  return (uint8_t)(t==T_KEY || t==T_ITEM || t==T_TOKEN || t==T_DIRT);
+}
+static uint8_t pickup_ahead(void) {
+  /* A seven-pixel sweep covers the fastest evade and a landing. Pickups can
+   * compose a complete HUD message later in player_update; reserve that turn
+   * before admitting an expensive inactive-map query. */
+  uint8_t x0=pl_x<7u ? 0u : (pl_x-7u)>>4;
+  uint8_t x1=pl_x>248u ? 15u : (pl_x+7u)>>4;
+  uint8_t y0=pl_y<7u ? 0u : (pl_y-7u)>>4;
+  uint8_t y1=pl_y>216u ? 13u : (pl_y+7u)>>4;
+  return (uint8_t)(pickup_cell(x0,y0) || (x1!=x0 && pickup_cell(x1,y0)) ||
+    (y1!=y0 && (pickup_cell(x0,y1) || (x1!=x0 && pickup_cell(x1,y1)))));
+}
 void world_prefetch(void) BANKED {
   uint8_t n,did,axes=0u,mx,my;int8_t x,y;
   if(!world_on || !pl_hp || pl_state==PS_FALL || pl_state==PS_EXIT || enemies_alive)return;
   if(player_portal_pending())return;
+  /* Interaction/attack frames own their budget; do not stack speculative
+   * seed queries on a fresh action. */
+  if(((joy^joy_prev)&(J_A|J_B|J_START|J_SELECT)) || pl_state==PS_LASH || pl_state==PS_SPIN || pickup_ahead())return;
   x=wanted(0u);y=wanted(1u);choose(&px,x);choose(&py,y);
   if(joy&(J_LEFT|J_RIGHT))axes|=1u;
   if(joy&(J_UP|J_DOWN))axes|=2u;

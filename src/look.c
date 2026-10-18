@@ -878,7 +878,10 @@ static uint8_t ground_ahead(uint8_t essential) {
   if(n<2u && x1!=x0)n+=anchor_at(x1,y0);
   if(n<2u && y1!=y0)n+=anchor_at(x0,y1);
   if(n<2u && y1!=y0 && x1!=x0)n+=anchor_at(x1,y1);
-  if(n || essential || video_epoch!=frame_epoch)return n;
+  if(n || video_epoch!=frame_epoch)return n;
+  /* Share pending-generation turns: one visible BG repair or resident card
+   * on presentation ticks, with the alternate tick reserved for seed work. */
+  if(essential && !(frame_count&1u))return n;
   if(enemies_alive>=2u && (pl_state==PS_LASH || pl_state==PS_SPIN))return n;
   if(LY_REG<144u && LY_REG>=(world_on ? 24u : 32u))return 0u;
   /* Easing continues after a turn. Prepare the camera's residual axis too. */
@@ -892,7 +895,7 @@ static uint8_t ground_ahead(uint8_t essential) {
    * same two-anchor allowance to finish pooled cards before the next eased
    * camera step can carry them through the inner edge of the 24px band. */
   wide=(uint8_t)((dx>0 ? J_LEFT : dx<0 ? J_RIGHT : 0u)|(dy>0 ? J_UP : dy<0 ? J_DOWN : 0u));
-  if((roam_dir&wide) || (roam_dir&0xf0u))
+  if(!essential && ((roam_dir&wide) || (roam_dir&0xf0u)))
   for(k=0u;k<LOOK_MAX_CARDS && n<2u;k++)if(c_kind[k] && !c_brk[k]) {
     c=c_cell[k];x=(int16_t)(EG_X(c)<<4)-cam_x;y=(int16_t)(EG_Y(c)<<4)-cam_y;
     if(x<143 && x+16>17 && y<111 && y+16>17 &&
@@ -908,11 +911,13 @@ static uint8_t ground_ahead(uint8_t essential) {
   if(near_cursor>=limit)near_cursor=0u;
   x=vertical ? cam_x>>4 : ((uint16_t)cam_x+(dx>0 ? 152u : 8u))>>4;
   y=vertical ? ((uint16_t)cam_y+(dy>0 ? 120u : 8u))>>4 : cam_y>>4;
-  /* Quiet puzzles can ease just as fast as streamed worlds. Inspect their
+  /* Visible BG readiness also runs while speculative generation is pending;
+   * it needs no cold OBJ upload. Quiet puzzles can ease as fast as worlds. Inspect their
    * complete edge and land up to two slabs; a single repair cannot cover all
    * nine rows during a fast reversal. Combat retains its smaller allowance. */
   wide=(uint8_t)(world_on || (stage_type==SG_PUZZLE && !enemies_alive));
-  for(k=0u;k<(wide ? limit : 4u) && n<(wide ? 2u : 1u);k++) {
+  x0=(uint8_t)(wide && !essential ? 2u : 1u);
+  for(k=0u;k<(wide ? limit : 4u) && n<x0;k++) {
     c=near_cursor;if(++near_cursor==limit)near_cursor=0u;
     n+=anchor_at((uint8_t)(x+(vertical ? c : 0u)),(uint8_t)(y+(vertical ? 0u : c)));
   }
@@ -954,7 +959,7 @@ void look_frame_begin(void) BANKED {
       /* Share the early window with seed queries on alternate ticks. Existing
        * flights still animate every frame; one resident card may launch or
        * settle on the presentation turn, with no cold texture upload. */
-      if(waiting) {if(frame_count&1u)look_update(3u);}
+      if(waiting) {if(!k && (frame_count&1u))look_update(3u);}
       else {if(!(frame_count&1u))look_roam_tick();look_update((uint8_t)(1u+k));}
     }
     roam_late=1u;
