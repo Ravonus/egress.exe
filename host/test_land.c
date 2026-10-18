@@ -213,14 +213,14 @@ static void solve(uint8_t tool) {
     jumping=0u;portal_enabled=1u;
     if(n->kind==EL_LOAD) {
       if(n->condition>=EL_EITHER && (!tool || n->condition==EL_BOTH))push(n,u-3u,v+2u,-1,0);
-      if(tool) {make(P_FIRE,P_MUD);use(n,P_BRICK,u-3u,v-1u);}
+      if(tool) {make(P_EARTH,P_WATER);make(P_FIRE,P_MUD);use(n,P_BRICK,u-3u,v-1u);}
       else if(n->condition!=EL_EITHER) {push(n,u-3u,v+1u,0,-1);push(n,u-3u,v,0,-1);}
     } else if(n->kind==EL_HEAT)use(n,P_FIRE,u,v);
     else if(n->kind==EL_COLD) {
-      if(tool && (n->alternatives&EL_JUMP))use(n,P_MUD,u,v+2u);
-      else {make(P_AIR,P_RAIN);use(n,P_SNOW,u,v);}
+      if(tool && (n->alternatives&EL_JUMP) && bag[P_EARTH]){make(P_EARTH,P_WATER);use(n,P_MUD,u,v+2u);}
+      else {make(P_AIR,P_WATER);make(P_AIR,P_RAIN);use(n,P_SNOW,u,v);}
     }
-    else if(n->kind==EL_POWER) {make(P_ENERGY,P_METAL);use(n,P_ELECTRIC,u-3u,v-1u);}
+    else if(n->kind==EL_POWER) {make(P_AIR,P_FIRE);make(P_ENERGY,P_METAL);use(n,P_ELECTRIC,u-3u,v-1u);}
     else {
       eg_room r;extract(&r,n);assert(eg_portal_target(&r,local(u-2u,v),0,0)==local(u+2u,v));portals++;
     }

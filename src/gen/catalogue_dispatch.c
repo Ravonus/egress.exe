@@ -1,0 +1,92 @@
+#pragma bank 255
+#include <gb/gb.h>
+#include "../catalogue_art.h"
+void cat_copy_0(uint8_t,uint8_t,uint8_t*) BANKED;
+void cat_upload_0(uint8_t,uint8_t,uint8_t) BANKED;
+void cat_copy_1(uint8_t,uint8_t,uint8_t*) BANKED;
+void cat_upload_1(uint8_t,uint8_t,uint8_t) BANKED;
+void cat_copy_2(uint8_t,uint8_t,uint8_t*) BANKED;
+void cat_upload_2(uint8_t,uint8_t,uint8_t) BANKED;
+void cat_copy_3(uint8_t,uint8_t,uint8_t*) BANKED;
+void cat_upload_3(uint8_t,uint8_t,uint8_t) BANKED;
+void cat_copy_4(uint8_t,uint8_t,uint8_t*) BANKED;
+void cat_upload_4(uint8_t,uint8_t,uint8_t) BANKED;
+void cat_copy_5(uint8_t,uint8_t,uint8_t*) BANKED;
+void cat_upload_5(uint8_t,uint8_t,uint8_t) BANKED;
+void cat_copy_6(uint8_t,uint8_t,uint8_t*) BANKED;
+void cat_upload_6(uint8_t,uint8_t,uint8_t) BANKED;
+void cat_copy_7(uint8_t,uint8_t,uint8_t*) BANKED;
+void cat_upload_7(uint8_t,uint8_t,uint8_t) BANKED;
+void cat_copy_8(uint8_t,uint8_t,uint8_t*) BANKED;
+void cat_upload_8(uint8_t,uint8_t,uint8_t) BANKED;
+void cat_copy_9(uint8_t,uint8_t,uint8_t*) BANKED;
+void cat_upload_9(uint8_t,uint8_t,uint8_t) BANKED;
+void cat_copy_10(uint8_t,uint8_t,uint8_t*) BANKED;
+void cat_upload_10(uint8_t,uint8_t,uint8_t) BANKED;
+void cat_copy_11(uint8_t,uint8_t,uint8_t*) BANKED;
+void cat_upload_11(uint8_t,uint8_t,uint8_t) BANKED;
+void cat_copy_12(uint8_t,uint8_t,uint8_t*) BANKED;
+void cat_upload_12(uint8_t,uint8_t,uint8_t) BANKED;
+void cat_copy_13(uint8_t,uint8_t,uint8_t*) BANKED;
+void cat_upload_13(uint8_t,uint8_t,uint8_t) BANKED;
+void cat_copy_14(uint8_t,uint8_t,uint8_t*) BANKED;
+void cat_upload_14(uint8_t,uint8_t,uint8_t) BANKED;
+void cat_pet_0(uint8_t,uint8_t,uint8_t,uint8_t) BANKED;
+void cat_pet_1(uint8_t,uint8_t,uint8_t,uint8_t) BANKED;
+void cat_pet_2(uint8_t,uint8_t,uint8_t,uint8_t) BANKED;
+void cat_pet_3(uint8_t,uint8_t,uint8_t,uint8_t) BANKED;
+void cat_pet_4(uint8_t,uint8_t,uint8_t,uint8_t) BANKED;
+void cat_pet_5(uint8_t,uint8_t,uint8_t,uint8_t) BANKED;
+void cat_pet_6(uint8_t,uint8_t,uint8_t,uint8_t) BANKED;
+void cat_pet_7(uint8_t,uint8_t,uint8_t,uint8_t) BANKED;
+void cat_pet_8(uint8_t,uint8_t,uint8_t,uint8_t) BANKED;
+void cat_pet_9(uint8_t,uint8_t,uint8_t,uint8_t) BANKED;
+void cat_pet_10(uint8_t,uint8_t,uint8_t,uint8_t) BANKED;
+void cat_pet_11(uint8_t,uint8_t,uint8_t,uint8_t) BANKED;
+void catalogue_art_raw(eg_item_id id,uint8_t pose,uint8_t *out) BANKED {uint8_t n;if(!id || id>444u)id=1u;id--;n=(uint8_t)(id%30u);switch(id/30u){
+case 0u:cat_copy_0(n,pose,out);break;
+case 1u:cat_copy_1(n,pose,out);break;
+case 2u:cat_copy_2(n,pose,out);break;
+case 3u:cat_copy_3(n,pose,out);break;
+case 4u:cat_copy_4(n,pose,out);break;
+case 5u:cat_copy_5(n,pose,out);break;
+case 6u:cat_copy_6(n,pose,out);break;
+case 7u:cat_copy_7(n,pose,out);break;
+case 8u:cat_copy_8(n,pose,out);break;
+case 9u:cat_copy_9(n,pose,out);break;
+case 10u:cat_copy_10(n,pose,out);break;
+case 11u:cat_copy_11(n,pose,out);break;
+case 12u:cat_copy_12(n,pose,out);break;
+case 13u:cat_copy_13(n,pose,out);break;
+case 14u:cat_copy_14(n,pose,out);break;
+}}
+void catalogue_art_upload(eg_item_id id,uint8_t state,uint8_t pose,uint8_t tile) BANKED {uint8_t n,view;if(!id || id>444u)id=1u;if(id>=433u){n=(uint8_t)(id-433u);view=(state>>3)&7u;if(view>4u)view=8u-view;switch(n){
+case 0u:cat_pet_0(view,state&7u,pose,tile);break;
+case 1u:cat_pet_1(view,state&7u,pose,tile);break;
+case 2u:cat_pet_2(view,state&7u,pose,tile);break;
+case 3u:cat_pet_3(view,state&7u,pose,tile);break;
+case 4u:cat_pet_4(view,state&7u,pose,tile);break;
+case 5u:cat_pet_5(view,state&7u,pose,tile);break;
+case 6u:cat_pet_6(view,state&7u,pose,tile);break;
+case 7u:cat_pet_7(view,state&7u,pose,tile);break;
+case 8u:cat_pet_8(view,state&7u,pose,tile);break;
+case 9u:cat_pet_9(view,state&7u,pose,tile);break;
+case 10u:cat_pet_10(view,state&7u,pose,tile);break;
+case 11u:cat_pet_11(view,state&7u,pose,tile);break;
+}return;}id--;n=(uint8_t)(id%30u);switch(id/30u){
+case 0u:cat_upload_0(n,pose,tile);break;
+case 1u:cat_upload_1(n,pose,tile);break;
+case 2u:cat_upload_2(n,pose,tile);break;
+case 3u:cat_upload_3(n,pose,tile);break;
+case 4u:cat_upload_4(n,pose,tile);break;
+case 5u:cat_upload_5(n,pose,tile);break;
+case 6u:cat_upload_6(n,pose,tile);break;
+case 7u:cat_upload_7(n,pose,tile);break;
+case 8u:cat_upload_8(n,pose,tile);break;
+case 9u:cat_upload_9(n,pose,tile);break;
+case 10u:cat_upload_10(n,pose,tile);break;
+case 11u:cat_upload_11(n,pose,tile);break;
+case 12u:cat_upload_12(n,pose,tile);break;
+case 13u:cat_upload_13(n,pose,tile);break;
+case 14u:cat_upload_14(n,pose,tile);break;
+}}

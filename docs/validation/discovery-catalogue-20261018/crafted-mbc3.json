@@ -1,0 +1,27 @@
+{
+  "sha256": "e39dbffe56e966c6a2b7ec010a4c3a4d148257e292cb0a2865225703b2808c62",
+  "fixtures": "Controller-driven crafted materials, finite fuse flasks and reusable tools.\nOnly starting inventory, target tiles and enemies are fixtures. Effects, pool\nallocation, damage, resource use, cooldowns and rendering execute in the ROM.",
+  "results": {
+    "formed_material_reacts_and_consumes_one_unit": true,
+    "wrong_target_keeps_material_and_stamina": true,
+    "item_256_uses_its_real_family": true,
+    "bomb_uses_finite_inventory_stamina_and_existing_pool": true,
+    "bomb_has_motion_fuse_animation_and_spent_state": true,
+    "bomb_reacts_with_paper_in_its_area": true,
+    "bomb_oam_and_stack_limits": true,
+    "bombs_break_real_drywall": true,
+    "bomb_damages_a_real_enemy": true,
+    "bomb_respects_crush_only_armour": true,
+    "full_pool_keeps_bomb": true,
+    "tool_reacts_without_being_consumed": true,
+    "cooldown_prevents_repeat_use": true,
+    "recharged_tool_can_react_again": true,
+    "life_tool_heals_without_consuming_the_tool": true,
+    "ward_tool_has_a_timed_active_state": true,
+    "ward_absorbs_a_real_enemy_projectile": true,
+    "glass_creates_a_finite_visible_ward": true,
+    "boss_closed_armour_keeps_material": true,
+    "boss_open_hit_consumes_one_material": true,
+    "reusable_weight_certificate_is_bounded": true
+  }
+}

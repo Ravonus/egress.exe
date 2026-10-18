@@ -1,0 +1,26 @@
+{
+  "running": false,
+  "host": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
+  "roms": {
+    "build/egress.gbc": "a9d31dcf3c41d66f9b783388061a8f16c4aa9bded13ca7740e26234de5ecb1c1",
+    "build/egress-rtc.gbc": "e39dbffe56e966c6a2b7ec010a4c3a4d148257e292cb0a2865225703b2808c62"
+  },
+  "command": [
+    "make",
+    "-k",
+    "-j1",
+    "-o",
+    "build/t3d_bake/gen/chunks.mk",
+    "-o",
+    "build/egress.gbc",
+    "-o",
+    "build/egress-rtc.gbc",
+    "GBDK_HOME=/Users/ravonus/.cache/gbdk-4.5.0",
+    "HOSTCC=clang",
+    "test"
+  ],
+  "scope": "Complete Makefile regression against the exact Linux-built main cartridges after host and both native monitor-lifting gates passed; remaining focused gates run independently on the remote host. Main ROM outputs are held immutable; host/native oracle prerequisites use this Mac toolchain.",
+  "code": 0,
+  "seconds": 393.46,
+  "sourceHashesUnchanged": true
+}

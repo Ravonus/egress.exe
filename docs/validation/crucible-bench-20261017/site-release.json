@@ -1,0 +1,218 @@
+{
+  "sourceCommit": "a800d9fb96d1beb958ed92d4f4393e007ad5daa4",
+  "mergeCommit": "35f88831fe39bde3da737d78963ef63a87eb1a01",
+  "pullRequest": "https://github.com/Ravonus/egress.exe/pull/6",
+  "websiteCommit": "9916236b7da882564a363aedd80931e0998e32a3",
+  "preexistingWebsiteChangesPreserved": 65,
+  "deployment": {
+    "verified": [
+      {
+        "path": "404.html",
+        "sha256": "1a4d9f9d85dfd9044622f9fdf733dcd3f138dcb12589deaba60fad86cf9bdd01"
+      },
+      {
+        "path": "index.html",
+        "sha256": "04f151f951c42a4dad8d2d8ace03aa07f8531e1009b73f7472975e5396822e0c"
+      },
+      {
+        "path": "index.txt",
+        "sha256": "9b58d7b5f4e7f8303e4cab69a43b82466f5bacf673ea25749168e20e6115a812"
+      },
+      {
+        "path": "404/index.html",
+        "sha256": "1a4d9f9d85dfd9044622f9fdf733dcd3f138dcb12589deaba60fad86cf9bdd01"
+      },
+      {
+        "path": "_next/static/0gEkcW-0IpFyk2nscrG1K/_buildManifest.js",
+        "sha256": "80e4f9c4f84477d9824d7d8e48d2ea64dc8f8acbd76627c2bf0282491f5ba0ed"
+      },
+      {
+        "path": "_next/static/0gEkcW-0IpFyk2nscrG1K/_ssgManifest.js",
+        "sha256": "678f6ce2cb80b1fe72fc67e7412be6e2ab6ada083111b64f7c40d35e3cba5e00"
+      },
+      {
+        "path": "_next/static/chunks/app/page-fe68d82de3624676.js",
+        "sha256": "f04f73ce09cbd2a089714b3bbbd8ac5d1cf4db9252d589f303015a8396b4c73a"
+      },
+      {
+        "path": "_next/static/chunks/app/chromatic/page-55f7e005521fead7.js",
+        "sha256": "b3ab79dfe2afa1d90927431543dcff6a377ea3d9729de601d6bc974cff93a829"
+      },
+      {
+        "path": "chromatic/index.html",
+        "sha256": "731362057775381553d24be0b1c5936d1436dbd0d4a5a5d1c9f5a69d09c57676"
+      },
+      {
+        "path": "chromatic/index.txt",
+        "sha256": "be2e1ce8fda7808559dcc7468d700372c2f4b1ac96dd9d011ec809724ec70023"
+      },
+      {
+        "path": "game/egress-ab05de7b48168d8b.chromatic.json",
+        "sha256": "32fea017a8334a51c2a385459d6ecf1e71b7a1cee55e08367afa0150620a4bd0"
+      },
+      {
+        "path": "game/egress-ab05de7b48168d8b.gbc",
+        "sha256": "ab05de7b48168d8ba30451fcd038266ba7a846f237a2481c9125287db6efe92e"
+      },
+      {
+        "path": "game/egress-dev.gbc",
+        "sha256": "ab05de7b48168d8ba30451fcd038266ba7a846f237a2481c9125287db6efe92e"
+      },
+      {
+        "path": "game/egress-rtc-ca6bdd6a1b186ac1.chromatic.json",
+        "sha256": "6351fac68a09b6f412522e9f9e3d04f7a510ff6ab10d5bce441c128057aa77d1"
+      },
+      {
+        "path": "game/egress-rtc-ca6bdd6a1b186ac1.gbc",
+        "sha256": "ca6bdd6a1b186ac1e5982c94923719001cd43f274aea5843f14e2362d98ee42d"
+      },
+      {
+        "path": "game/releases.json",
+        "sha256": "f51bf04078fe8b890988e3d790b1b054bb614bbc4b272b57a30a42b0950022cd"
+      },
+      {
+        "path": "game/previews/egress-ab05de7b48168d8b-bag.png",
+        "sha256": "cb634e2212f04ba2af658f300d345a628030b8c83904addee865fc203cee03ab"
+      },
+      {
+        "path": "game/previews/egress-ab05de7b48168d8b-bench.png",
+        "sha256": "d25f1d76a20c7236e947d20b1c93a0685dbd3f5a1dade21ce2e2e99e8b356fd2"
+      },
+      {
+        "path": "game/previews/egress-ab05de7b48168d8b-fusion.gif",
+        "sha256": "7f41e54b73838b2f01c86293b3d9a9c667fac34d9406174b4277c507de161fda"
+      },
+      {
+        "path": "game/previews/egress-ab05de7b48168d8b-result.png",
+        "sha256": "023b651b8833ee5ddf0879c06b6eb99daf7ebd17c9886d7072b4d9f9478ef734"
+      },
+      {
+        "path": "game/previews/egress-ab05de7b48168d8b-terrain.gif",
+        "sha256": "13371ebcc10c548af938a3caabd0c9c2d96dc60fb819069a34cf56ac78e7e556"
+      },
+      {
+        "path": "game/previews/egress-ab05de7b48168d8b.png",
+        "sha256": "65245118433068497db3b6d069e481d5cdbc21ff3c0cc4ddb5aea81628321a28"
+      },
+      {
+        "path": "game/previews/egress-rtc-ca6bdd6a1b186ac1.png",
+        "sha256": "4e53d220ff22f0d4e55aa610a76df860e55ebee34a6f41d4fb7ab48663b8ebae"
+      },
+      {
+        "path": "how-it-works/index.html",
+        "sha256": "410faf095a5b6e4bf0df4d6a2b7d874ff71bf340f07a11f7d550d3622af9f56f"
+      },
+      {
+        "path": "how-it-works/index.txt",
+        "sha256": "9c0385d97914ece1cdcb7a4edd7f8586f5305f2e58ae2a19e308202b78dbfb84"
+      },
+      {
+        "path": "trailer/index.html",
+        "sha256": "50b091d0fd92f59130bd4d2946c1069a8b25c3562d41effde98c3bf4ebf40e74"
+      },
+      {
+        "path": "trailer/index.txt",
+        "sha256": "7b957957fbde4b88463d4f64297feeb8ae018d4ceb62e174104aefe8d1a24eff"
+      }
+    ],
+    "oldRomPreserved": true,
+    "backup": "/opt/velatis-gateway/backups/egress-crucible-bench-20261018T045340Z",
+    "sourceCommit": "a800d9fb96d1beb958ed92d4f4393e007ad5daa4",
+    "mergeCommit": "35f88831fe39bde3da737d78963ef63a87eb1a01",
+    "site": "https://egress.onkeel.io",
+    "deployedAt": "2026-10-18T04:53:45.027622+00:00",
+    "http": [
+      {
+        "url": "https://egress.onkeel.io/game/egress-ab05de7b48168d8b.gbc",
+        "status": 200,
+        "bytes": 1376256,
+        "sha256": "ab05de7b48168d8ba30451fcd038266ba7a846f237a2481c9125287db6efe92e"
+      },
+      {
+        "url": "https://egress.onkeel.io/game/egress-rtc-ca6bdd6a1b186ac1.gbc",
+        "status": 200,
+        "bytes": 1376256,
+        "sha256": "ca6bdd6a1b186ac1e5982c94923719001cd43f274aea5843f14e2362d98ee42d"
+      },
+      {
+        "url": "https://egress.onkeel.io/game/egress-aaec5551d87a0ab3.gbc",
+        "status": 200,
+        "bytes": 1245184,
+        "sha256": "aaec5551d87a0ab307baae2305d9febf28e900ad8fd3c37801a4df21a3d4385b"
+      },
+      {
+        "url": "https://egress.onkeel.io/",
+        "status": 200,
+        "bytes": 39354,
+        "sha256": "04f151f951c42a4dad8d2d8ace03aa07f8531e1009b73f7472975e5396822e0c"
+      },
+      {
+        "url": "https://egress.onkeel.io/how-it-works/",
+        "status": 200,
+        "bytes": 52327,
+        "sha256": "410faf095a5b6e4bf0df4d6a2b7d874ff71bf340f07a11f7d550d3622af9f56f"
+      },
+      {
+        "url": "https://egress.onkeel.io/game/releases.json",
+        "status": 200,
+        "bytes": 1378,
+        "sha256": "f51bf04078fe8b890988e3d790b1b054bb614bbc4b272b57a30a42b0950022cd"
+      },
+      {
+        "url": "https://egress.onkeel.io/game/previews/egress-ab05de7b48168d8b.png",
+        "status": 200,
+        "bytes": 4462,
+        "sha256": "65245118433068497db3b6d069e481d5cdbc21ff3c0cc4ddb5aea81628321a28"
+      },
+      {
+        "url": "https://egress.onkeel.io/game/previews/egress-rtc-ca6bdd6a1b186ac1.png",
+        "status": 200,
+        "bytes": 4454,
+        "sha256": "4e53d220ff22f0d4e55aa610a76df860e55ebee34a6f41d4fb7ab48663b8ebae"
+      }
+    ]
+  },
+  "browser": {
+    "base": "https://egress.onkeel.io",
+    "checks": [
+      {
+        "width": 1280,
+        "downloads": true,
+        "github": true,
+        "noOverflow": true,
+        "explainerNoOverflow": true,
+        "pageErrors": []
+      },
+      {
+        "width": 768,
+        "downloads": true,
+        "github": true,
+        "noOverflow": true,
+        "explainerNoOverflow": true,
+        "pageErrors": []
+      },
+      {
+        "width": 390,
+        "downloads": true,
+        "github": true,
+        "noOverflow": true,
+        "explainerNoOverflow": true,
+        "pageErrors": []
+      },
+      {
+        "width": 320,
+        "downloads": true,
+        "github": true,
+        "noOverflow": true,
+        "explainerNoOverflow": true,
+        "pageErrors": []
+      }
+    ],
+    "standardSha256": "ab05de7b48168d8ba30451fcd038266ba7a846f237a2481c9125287db6efe92e",
+    "rtcSha256": "ca6bdd6a1b186ac1e5982c94923719001cd43f274aea5843f14e2362d98ee42d",
+    "actualDownloadsVerified": true,
+    "browserEmulatorUsesStandard": true
+  },
+  "physicalCartridgeTested": false,
+  "scope": "Ten-floor development release; campaign milestones and 444 discoveries remain open."
+}

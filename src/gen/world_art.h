@@ -17,4 +17,6 @@
 #define M_WORLD_FALL1 46u
 void world_art_load(uint8_t style,uint8_t *meta_pal,const uint8_t *meta_tiles,uint16_t *pal_bg) BANKED;
 void world_art_tick(const uint8_t *meta_tiles,uint16_t frame) BANKED;
+void environment_art_load(uint8_t *meta_pal,const uint8_t *meta_tiles) BANKED;
+void environment_art_tick(const uint8_t *meta_tiles,uint16_t frame) BANKED;
 #endif

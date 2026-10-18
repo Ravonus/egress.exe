@@ -72,7 +72,7 @@ void tutorial_tick(void) BANKED {
     case 4u:done=(uint8_t)(pin.move==EG_MV_BPOWER);break;
     case 5u:done=(uint8_t)((queued_at&(1u<<TE_EVADE))!=0u);break;
     case 6u:done=(uint8_t)(room.c[EG_IDX(6u,6u)]==T_BLOCK_PLATE);break;
-    case 7u:for(k=0u;k<pocket_n;k++)if(pocket[k]==P_STEAM)done=1u;break;
+    case 7u:for(k=0u;k<pocket_n;k++)if(pocket_id(k)==P_STEAM)done=1u;break;
     case 8u:done=(uint8_t)(pl_x>=152u && pl_y<64u && !pl_air);break;
   }
   if(done) {pending++;cool=0u;sfx(SFX_KEY);}

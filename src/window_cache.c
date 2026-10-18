@@ -728,13 +728,20 @@ __endasm;
 }
 void ev_forward(void *dst,const void *src,uint8_t n) __sdcccall(0) NONBANKED;
 void ev_backward(void *dst,const void *src,uint8_t n) __sdcccall(0) NONBANKED;
+/* World packet rows are 0..53. Two bounded subtractions replace the general
+ * 8/16-bit remainder helpers in the atomic camera transfer. */
+static uint8_t bank_rows_left(uint8_t row) {
+ if(row>=28u)row-=28u;
+ if(row>=14u)row-=14u;
+ return (uint8_t)(14u-row);
+}
 uint8_t eg_view_shift_horizontal(eg_view *v,eg_room *r,uint8_t *skin,uint8_t *cracked,int8_t dx) NONBANKED {
  uint8_t old=v->x,next;
  if((dx<0 && !old) || (dx>0 && old==v->width-EG_W))return 0u;
  next=(uint8_t)(old+dx);
  ew_from=dx>0 ? 0u : 12u;ew_to=dx>0 ? 12u : 0u;
  ew_cells=r->c;ew_skin=skin;ew_prot=r->prot;ew_crack=cracked;ew_rows=14u;
- ew_bank_rows=(uint8_t)(14u-v->y%14u);
+ ew_bank_rows=bank_rows_left(v->y);
  ew_out=view_address((uint8_t)(old+ew_from),v->y);ew_in=view_address((uint8_t)(next+ew_to),v->y);
  if(view_prepared) {
    if(dx>0) {ev_forward(r->c,r->c+4u,220u);ev_forward(skin,skin+4u,220u);}
@@ -755,6 +762,6 @@ uint8_t eg_view_shift_vertical_prepared(eg_view *v,eg_room *r,uint8_t *skin,uint
  ew_cells=r->c+(uint8_t)(from<<4);ew_skin=skin+(uint8_t)(from<<4);
  ew_prot=r->prot+(uint8_t)(from<<1);ew_crack=cracked+(uint8_t)(from<<1);
  ew_from=4u;ew_to=0u;ew_out=4u;ew_rows=16u;
- ew_in=view_address(v->x,(uint8_t)(next+from));ew_bank_rows=(uint8_t)(14u-(next+from)%14u);
+ ew_in=view_address(v->x,(uint8_t)(next+from));ew_bank_rows=bank_rows_left((uint8_t)(next+from));
  prepared_kernel();v->y=next;return 1u;
 }

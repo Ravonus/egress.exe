@@ -1,0 +1,21 @@
+{
+  "base": "http://127.0.0.1:3287",
+  "viewport": {
+    "width": 320,
+    "height": 600
+  },
+  "input": "DOM keyboard events with bounded native tick waits; no LCD-paint dependency.",
+  "sha256": "a9d31dcf3c41d66f9b783388061a8f16c4aa9bded13ca7740e26234de5ecb1c1",
+  "previousSha256": "ab05de7b48168d8ba30451fcd038266ba7a846f237a2481c9125287db6efe92e",
+  "previousGeneration": 2,
+  "clockPrompt": true,
+  "results": {
+    "previousSaveIgnored": true,
+    "oldStorageUntouched": true,
+    "freshGenerationOne": true,
+    "noInheritedProgress": true,
+    "currentSaveWritten": true,
+    "nativeGameStarted": true,
+    "pageErrors": true
+  }
+}

@@ -2,8 +2,8 @@
 #pragma bank 255
 #endif
 #include "eg_journal.h"
-/* Byte-at-a-time CCITT table: no four-bit shifts in the damage-checkpoint hot path.
- * 512 ROM bytes buy bounded work instead of several missed gameplay frames. */
+/* Host table and native register folding implement the same CCITT format. */
+#if !defined(__SDCC) || !defined(__PORT_sm83)
 static const uint16_t tab[256]={
   0x0000u,0x1021u,0x2042u,0x3063u,0x4084u,0x50a5u,0x60c6u,0x70e7u,
   0x8108u,0x9129u,0xa14au,0xb16bu,0xc18cu,0xd1adu,0xe1ceu,0xf1efu,
@@ -38,10 +38,68 @@ static const uint16_t tab[256]={
   0xef1fu,0xff3eu,0xcf5du,0xdf7cu,0xaf9bu,0xbfbau,0x8fd9u,0x9ff8u,
   0x6e17u,0x7e36u,0x4e55u,0x5e74u,0x2e93u,0x3eb2u,0x0ed1u,0x1ef0u
 };
+#else
+/* CCITT byte folding in registers. No ROM lookup or saved pointer per byte.
+ * DE=data, BC=length; the static register ABI returns the CRC in BC. */
+static uint16_t crc_bytes(const uint8_t *p,uint16_t n) __naked {
+ p;n;
+ __asm
+ ld h, d
+ ld l, e
+ ld de, #0xffff
+ ld a, b
+ or c
+ jr Z, 3$
+ ld a, c
+ or a, a
+ jr Z, 1$
+ inc b
+1$:
+ ld a, (hl+)
+ xor d
+ ld d, a
+ swap a
+ and a, #0x0f
+ xor d
+ ld d, a
+ swap a
+ and a, #0xf0
+ xor e
+ ld e, a
+ ld a, d
+ rrca
+ rrca
+ rrca
+ and a, #0x1f
+ xor e
+ ld e, a
+ ld a, d
+ rrca
+ rrca
+ rrca
+ and a, #0xe0
+ xor d
+ ld d, e
+ ld e, a
+ dec c
+ jr NZ, 1$
+ dec b
+ jr NZ, 1$
+3$:
+ ld b, d
+ ld c, e
+ ret
+ __endasm;
+}
+#endif
 uint16_t eg_save_crc(const uint8_t *p,uint16_t n) EG_BANKED {
+#if defined(__SDCC) && defined(__PORT_sm83)
+  return crc_bytes(p,n);
+#else
   uint16_t c=65535u;
   while(n--) c=(uint16_t)((c<<8)^tab[(uint8_t)((c>>8)^*p++)]);
   return c;
+#endif
 }
 uint8_t eg_save_valid(const uint8_t *p,uint16_t n,uint8_t version) EG_BANKED {
   return (uint8_t)(n>=4u && p[0]==version && eg_save_crc(p,n-2u)==((uint16_t)p[n-2u]|((uint16_t)p[n-1u]<<8)));

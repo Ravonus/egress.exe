@@ -30,6 +30,9 @@ static void lift(ctx *x, const eg_room *r0) {
   x->base = *r0;
   for (int i = 0; i < (int)EG_N; i++) {
     uint8_t v = r0->c[i] & (uint8_t)~F_OB, t = v & T_MASK;
+    /* Healing is irrelevant to this no-combat puzzle proof. Do not double
+     * the tick-state graph for an optional medicine pickup. */
+    if(EG_HEALTH(v))v=t=T_EMPTY;
     if ((r0->c[i] & T_MASK) == T_ROCK) v = r0->c[i];
     x->base.c[i] = v;
     if (EG_CRATE(v)) {

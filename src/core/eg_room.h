@@ -64,13 +64,15 @@ enum {
 #define EG_ABYSS(v) ((v)==(T_PIT|F_ABYSS))
 #define F_BENCH 0x20u /* on T_WALL only: a solid, indestructible workbench */
 #define EG_BENCH(v) ((v)==(T_WALL|F_BENCH))
+#define F_HEALTH 0x20u /* on T_TOKEN only: one-heart medicine, never a currency token */
+#define EG_HEALTH(v) (((v)&(T_MASK|F_HEALTH))==(T_TOKEN|F_HEALTH))
 #define F_OB 0x80u    /* B2, on any cell but a CRT: a living obstacle stands here (src/core/eg_obst.h). Solid to the
                          player, crates and other obstacles; masked off wherever the cell's type is read */
 
 #define EG_MAX_SPAWN 6u
 #define EG_MAX_OB 3u   /* B2: living obstacles per room (7.7: at most 3 slots, at most 2 free movers) */
 #define EG_MAX_RUN 8u  /* B2: route runs per room (one patroller loop) */
-#define EG_MAX_ITEM 6u /* = the pocket's size, so the pocket can never be full while an item lies in the room */
+#define EG_MAX_ITEM 6u /* local room metadata; the nine-bit carried bag holds 24 */
 #ifdef __SDCC
 #include <gb/gb.h>
 #define EG_BANKED BANKED
@@ -124,6 +126,7 @@ typedef struct {
   uint8_t portal[2], portal_need; /* ON | required circuit mask */
 } eg_room;
 void eg_benches(eg_room *r,uint16_t seed) EG_BANKED;
+void eg_health_room(eg_room *r,uint16_t seed) EG_BANKED;
 typedef char eg_room_fits_fixed_slot[(sizeof(eg_room)==320u) ? 1 : -1];
 #define EG_PROT(r, i) ((r)->prot[(uint8_t)(i) >> 3] & (uint8_t)(1u << ((i) & 7u)))
 
@@ -196,14 +199,18 @@ uint8_t eg_rndn(uint8_t n) EG_RNG_ABI; /* 0..n-1 */
   ((t) == T_EMPTY || (t) == T_DIRT || (t) == T_TOKEN || (t) == T_KEY || (t) == T_CRUMBLE || (t) == T_PLATE ||       \
    (t) == T_GATE_OPEN || (t) == T_PLANK || (t) == T_ITEM || (t) == T_GLITCH || ((t) >= T_WORN && (t) <= T_ICE_1))
 /* open floor (a whole cell value): walked without changing the board (fragile cells change it: see eg_frag) */
-#define EG_FLOOR(v) ((v) == T_EMPTY || (v) == T_PLATE || (v) == T_GATE_OPEN || (v) == T_PLANK || (v) == T_GLITCH)
+#define EG_FLOOR(v) ((v) == T_EMPTY || (v) == T_PLATE || (v) == T_GATE_OPEN || (v) == T_PLANK || (v) == T_GLITCH || EG_HEALTH(v))
 #define EG_FRAGILE(t) ((t) == T_CRUMBLE || ((t) >= T_WORN && (t) <= T_ICE_1))
 /* where a CRT may move (fall, roll, be pushed) */
-#define EG_ROCK_OPEN(v) ((v) == T_EMPTY || (v) == T_PLATE)
+#define EG_ROCK_OPEN(v) ((v) == T_EMPTY || (v) == T_PLATE || EG_HEALTH(v))
 
 /* Push the resting CRT at `rock` into `to` (a neighbour): into open floor or a pit (which it fills). Returns 0 if
  * `to` can't take it. */
 uint8_t eg_push(eg_room *r, uint8_t rock, uint8_t to) EG_BANKED;
+/* Contiguous resting CRTs above a base, then an atomic one-cell upward lift.
+ * No move on failure. Lift capacity/height and stamina belong to the actor. */
+uint8_t eg_lift_load(const eg_room *r,uint8_t base) EG_BANKED;
+uint8_t eg_lift_raise(eg_room *r,uint8_t base,uint8_t capacity) EG_BANKED;
 /* B2: push the crate (a laid brick: T_BLOCK, or T_BLOCK_PLATE on a plate) at `from` into the neighbour `to`, Sokoban
  * rules, by the player, a pusher or a mirror: onto carpet or a plate (T_BLOCK_PLATE: it weighs the plate); onto floor
  * glass or a ceiling tile it smashes through (a pit, the crate gone). Anything else, a pit included, refuses (0). */

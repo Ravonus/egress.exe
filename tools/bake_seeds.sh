@@ -20,6 +20,9 @@ t=0; while [ $t -lt $TIERS ]; do
     nice "$EGTOOL" tier $t "$PER" $((j + 1)) "$JOBS" > "$TMP/$t.$j.txt" 2> "$TMP/$t.$j.log" &
     j=$((j+1))
   done
+  # One worker means a bounded serial bake (including across tiers), useful
+  # on the one-CPU / one-GB verification host.
+  if [ "$JOBS" -eq 1 ]; then wait; fi
   t=$((t+1))
 done
 wait

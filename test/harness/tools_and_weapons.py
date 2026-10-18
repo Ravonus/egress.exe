@@ -17,7 +17,10 @@ def aim_fixture(g,weapon=0,dx=16,dy=0):
     for y in range(5,12):
         for x in range(4,13):m[g.addr('room')+y*16+x]=0
     teleport(g,120,136)
-    m[e+1]=0;m[e+3]=20;m[e+6]=255
+    # Keep this explicit range/status target stationary through the inventory
+    # round trip. WALK chases into the heir before SELECT is released; water's
+    # burn hitstop merely hid that fixture drift in the first case.
+    m[e+1]=3;m[e+2]=255;m[e+3]=20;m[e+6]=255
     x,y=120+dx,136+dy
     for off,val in [(8,x*16),(10,y*16)]:m[e+off]=val&255;m[e+off+1]=val>>8
     m[e+12]=m[e+13]=0;m[e+14]=x;m[e+15]=y

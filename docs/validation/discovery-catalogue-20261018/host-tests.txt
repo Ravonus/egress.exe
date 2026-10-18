@@ -1,0 +1,92 @@
+.venv/bin/python tools/bake_catalogue.py --check
+{
+  "canonicalRecipeCount": 439,
+  "version": 1,
+  "recipeCount": 5283,
+  "kindCounts": {
+    "material": 384,
+    "bomb": 24,
+    "tool": 24,
+    "pet": 12
+  },
+  "found": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "discoveryBytes": 56,
+  "maxBaseUnits": 22,
+  "maxCanonicalBaseUnits": 28,
+  "maxDepth": 17
+}
+.venv/bin/python tools/bake_companions.py --check
+Twelve critters cover tanks, healers, attackers, supports, damage over time and tactics; 24 named abilities.
+.venv/bin/python tools/bake_journal_patch.py --check
+build/host/test_catalogue
+444 distinct reachable discoveries; 5283 symmetric recipes; base-only roots; max 28 base units; 56-byte collection.
+build/host/test_bag
+Nine-bit inventory crosses 255/256, round-trips 444, compacts every slot and rejects invalid checkpoints.
+build/host/test_collection
+Collection survives every interrupted byte write, CRC corruption and serial wrap; exact 444-bit ownership count.
+build/host/test_pet
+12 combat profiles, 24 abilities, cooldowns, stamina gates, threats/buffs, shields, permanent death and one explicit non-renewable revival pass.
+build/host/test_health
+Health pickups prioritise the heir, preserve quarter hearts, heal living pets only at full heir health, clamp to maximum and never revive.
+build/host/test_environment
+Environment: 65,536 state/action inputs; finite plant/water/grow/burn/replant and freeze/thaw cycles.
+build/host/test_pet_bag
+Individual critters retain health, cooldown and spent revival through compaction and CRC records; identity allocation avoids live and checkpoint copies.
+build/host/test_journal_patch
+Every byte/value patch and 10000 consecutive journal changes match a full CRC scan.
+build/host/test_pickups
+Medicine preserves apparatus and protected cells, never duplicates on constructor retries; 53 seeded world pickups obey one-per-region/view-pool bounds.
+.venv/bin/python test/test_catalogue_art.py
+444 four-pose bodies; 12 critters, five stored views/eight facings, eight states; 1536 targeted RGB555 ramps.
+build/host/test_base_loot
+Base-only map loot: 6031 ordinary rooms, 1536 seeded worlds, 128 crafting-wave stages and all physical motifs.
+build/host/test_gen_fingerprint
+generator fingerprint: 4864 cases (4791 constructed), f12971b1b99ee60e; baseline 1512912f0d8e6989
+build/host/test_curriculum
+curriculum: 64 families, all 13 mechanics reached within six generations; physical lessons and early waves present
+make: 'build/host/egplan' is up to date.
+== B1 slice (the cartridge: nine office floors over the baked table) ==
+1000 runs, 8050 rooms (378 runs ended in a death)
+stages: introduce 1378 develop 2376 combine 1655 test 2641
+introduce -> combine ordering: 0 violations (100.0% clean)
+introductions alone: 1378 of 1378
+same trick at the same level back to back: 0
+floor:             1     2     3     4     5     6     7     8     9
+mixed share:     17%   19%   75%   30%   34%   84%   46%   46%   88%
+mean target:    3.58  3.58  7.50  4.75  5.56  9.54  6.12  7.47 12.49
+mean level:     3.54  3.44  7.58  4.55  5.04  9.32  6.02  6.18 11.85
+== full run (3.6): 1160 layouts (1000 story runs over lines of 25, plus descent strata), 37682 slots ==
+floors per front-door run: 50..55, mean 52.3
+structure breaks 0; band breaks 0; introduce -> develop -> combine ordering breaks 0
+introductions 4495, not alone/gentle 0; develop not right after its introduction 0
+back to back: same mechanics at the same level 0, same stage type 0, two rare stages 0
+nudge under its floor or past its cap 0; descent slots that don't mix 0
+introductions by biome position (slots reached):     80    91   108   110   109   105   113    84
+fresh line, whole layout: every position introduces (of 40): 80 80 82 83 83 83 85 80
+  mechanics a fresh line would not meet even going all the way: 3.60 of 20
+progressive lines: introduced in its own biome 66.5%, one later 29.0%, two later 4.5%, later 0.0%
+mixed share by biome position:    54%   55%   52%   48%   43%   40%   78%   86%  (late biomes 78%)
+stage types: puzzle 54.4% holdout 9.1% chase 7.3% hunt 6.4% escort 4.0% mixp 6.8% dark 4.1% heist 2.2% 3d 3.0% rift 1.7% sky 1.1%
+full run: ok
+full runs 1000: stage slots 34400, back to back same type 0, same type two apart 1.7%
+  shares: puzzle 66.6% holdout 7.1% chase 6.2% hunt 4.4% escort 3.4% mixp 5.7% dark 2.3% heist 1.1% 3d 2.2% rift 1.0% sky 0.0%
+cart runs 1000: stage slots 8000, back to back same type 0, same type two apart 0.3%
+  types: puzzle 59.6% holdout 19.2% chase 6.8% hunt 6.6% escort 6.8% mixp 0.5% dark 0.5% heist 0.0%
+stages generated 19684: made 19684 (failed 0), in the band 98.8%
+  holdout  failed    0 n   3804  band  99.7%  mean |score-level| 0.60  budget 15.2  conds 1.00
+  chase    failed    0 n   2802  band  96.6%  mean |score-level| 0.76  budget 2.8  conds 1.00
+  hunt     failed    0 n   3680  band  99.2%  mean |score-level| 0.57  budget 10.5  conds 1.63
+  escort   failed    0 n   2752  band 100.0%  mean |score-level| 0.62  budget 14.8  conds 1.00
+  mixp     failed    0 n   2300  band  96.0%  mean |score-level| 0.70  budget 11.7  conds 2.22
+  dark     failed    0 n   2218  band  99.8%  mean |score-level| 0.67  budget 2.6  conds 1.70
+  heist    failed    0 n   2128  band 100.0%  mean |score-level| 0.62  budget 13.7  conds 1.00
+chase played out on the grid at 16 frames a cell: 2802 stages, 0 lost, least spare start delay 80 frames
+climb: mean level by segment 5.11 6.91 7.08, mean stage score 5.09 7.18 7.24
+  by generation: 4.89 4.89 5.73 5.73 6.54 6.56 7.39 7.39 8.21
+stage sim: ok

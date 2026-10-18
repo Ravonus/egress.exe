@@ -9,6 +9,7 @@ class TerrainRim:
         self.assembly_frames=0;self.collapse_frames=0
         self.maximum_depth=0
         self.last_camera=None;self.motion=(0,0);self.ahead_build_frames=0;self.behind_fall_frames=0
+        self.offscreen_restorations=0;self.incoming_motion=[];self.previous_present=None
         symbols=(Path(__file__).resolve().parents[2]/'build/obj/look.sym').read_text()
         offsets={m[1]:int(m[2],16) for m in re.finditer(r'^\s*2\s+(_\w+)\s+([0-9A-F]+)',symbols,re.M)}
         base=g.addr('look_present')-offsets['_look_present']
@@ -33,6 +34,10 @@ class TerrainRim:
             rim=True
             self.maximum_depth=max(self.maximum_depth,min(x+16,160-x,y+16,128-y))
             assembly|=kind<=5;collapse|=kind==7
+            if kind<=5:
+                oy=m[0xc000+4*a]
+                delta=oy-16-y
+                if delta and len(self.incoming_motion)<20:self.incoming_motion.append({'frame':g.frames,'cell':cell,'offset':delta})
             ahead|=kind<=5 and ((dx>0 and x>=160-RIM) or (dx<0 and x+16<=RIM) or (dy>0 and y>=128-RIM) or (dy<0 and y+16<=RIM))
             behind|=kind==7 and ((dx>0 and x+16<=RIM) or (dx<0 and x>=160-RIM) or (dy>0 and y+16<=RIM) or (dy<0 and y>=128-RIM))
             if x<160-RIM and x+16>RIM and y<128-RIM and y+16>RIM and len(self.bad)<20:
@@ -42,6 +47,15 @@ class TerrainRim:
         if collapse and not self.collapse_frames and self.out:g.shot(self.out/'visible-fall.png')
         self.assembly_frames+=assembly;self.collapse_frames+=collapse
         self.ahead_build_frames+=ahead;self.behind_fall_frames+=behind
+        now=bytes(g.peek('look_present',k) for k in range(28));view=tuple(g.peek('world_view',k) for k in range(2))
+        if self.previous_present:
+            old,pcx,pcy,old_view=self.previous_present
+            for c in range(224):
+                bit=1<<(c&7)
+                if view==old_view and now[c>>3]&bit and not old[c>>3]&bit:
+                    x=(c%16)*16-pcx;y=(c//16)*16-pcy
+                    if x+16<=0 or x>=160 or y+16<=0 or y>=128:self.offscreen_restorations+=1
+        self.previous_present=(now,cx,cy,view)
         missing=[]
         for y in range(14):
             sy=y*16-cy
@@ -58,5 +72,7 @@ class TerrainRim:
                 'visible_assembly_frames':self.assembly_frames,'visible_collapse_frames':self.collapse_frames,
                 'ahead_build_frames':self.ahead_build_frames,'behind_fall_frames':self.behind_fall_frames,
                 'build_and_fall_are_visible':self.ahead_build_frames>0 and self.behind_fall_frames>0,'construction_in_central_view':self.bad,
+                'offscreen_restorations':self.offscreen_restorations,'incoming_motion_during_play':self.incoming_motion,
+                'prepared_offscreen_and_falls_behind':self.offscreen_restorations>0 and not self.incoming_motion and self.behind_fall_frames>0,
                 'unbuilt_central_cells':self.core_missing,'construction_stays_at_rim':not self.bad,
                 'central_view_is_built':not self.core_missing}

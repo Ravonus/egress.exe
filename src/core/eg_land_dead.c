@@ -12,12 +12,16 @@ typedef char dead_state_layout[(S_UNUSED+1u==EL_DEAD_BYTES) ? 1 : -1];
 static uint8_t minimum(uint8_t a,uint8_t b) {return a<b ? a : b;}
 static void count(uint8_t *s,uint8_t piece) {
   uint8_t k=255u;
+  if(piece==EG_ASSIST_COLD){s[S_UNUSED]|=1u;return;}
+  if(piece==EG_ASSIST_POWER){s[S_UNUSED]|=2u;return;}
+  if(piece==EG_ASSIST_MUD){s[S_UNUSED]|=4u;return;}
   if(EG_PIECE_HOT(piece) && s[C_HOT]<3u)s[C_HOT]++;
   switch(piece) {
     case P_FIRE:k=C_FIRE;break;case P_MUD:k=C_MUD;break;case P_EARTH:k=C_EARTH;break;
     case P_WATER:k=C_WATER;break;case P_BRICK:k=C_BRICK;break;case P_ENERGY:k=C_ENERGY;break;
     case P_METAL:k=C_METAL;break;case P_AIR:k=C_AIR;break;case P_ELECTRIC:k=C_ELECTRIC;break;
     case P_RAIN:k=C_RAIN;break;case P_SNOW:k=C_SNOW;break;case P_ICE:k=C_ICE;break;
+    case EG_ASSIST_WEIGHT:k=C_BRICK;break;
   }
   if(k!=255u && s[k]<3u)s[k]++;
 }
@@ -84,6 +88,7 @@ uint8_t eg_land_dead_step(eg_land_dead *state,const eg_land *p,const eg_view *vi
         if(t!=(n->kind==EL_HEAT ? T_PAPER : T_WATER)) {advance(s,p);continue;}
       }
       for(k=C_FIRE;k<=C_ICE;k++)s[k]=0u;
+      s[S_UNUSED]=0u;
       for(k=0u;k<nbag;k++)count(s,bag[k]);s[S_ITEM]=0u;s[S_MODE]=D_ITEMS;continue;
     }
     if(s[S_MODE]==D_ITEMS) {
@@ -94,11 +99,11 @@ uint8_t eg_land_dead_step(eg_land_dead *state,const eg_land *p,const eg_view *vi
       }
       if(n->kind==EL_HEAT) {if(s[C_HOT])advance(s,p);else s[S_MODE]=D_LOST;continue;}
       if(n->kind==EL_POWER) {
-        if(s[C_ELECTRIC] || (s[C_METAL] && (s[C_ENERGY] || (s[C_FIRE] && s[C_AIR]))))advance(s,p);else s[S_MODE]=D_LOST;
+        if((s[S_UNUSED]&2u) || s[C_ELECTRIC] || (s[C_METAL] && (s[C_ENERGY] || (s[C_FIRE] && s[C_AIR]))))advance(s,p);else s[S_MODE]=D_LOST;
         continue;
       }
       if(n->kind==EL_COLD) {
-        if(s[C_SNOW] || s[C_ICE] || (s[C_AIR] && (s[C_RAIN] || (s[C_AIR]>=2u && s[C_WATER]))))advance(s,p);else s[S_MODE]=D_LOST;
+        if((s[S_UNUSED]&1u) || s[C_SNOW] || s[C_ICE] || (s[C_AIR] && (s[C_RAIN] || (s[C_AIR]>=2u && s[C_WATER]))))advance(s,p);else s[S_MODE]=D_LOST;
         continue;
       }
       crafts=(uint8_t)(s[C_BRICK]+minimum(s[C_FIRE],(uint8_t)(s[C_MUD]+minimum(s[C_EARTH],s[C_WATER]))));

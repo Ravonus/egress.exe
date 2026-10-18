@@ -50,9 +50,14 @@ class WorldPlayer:
         self.pixels=Pixels(g,rom) if rom is not None else None
         self.meter=OamMeter(g);self.grid=GridObserver(g);self.look_window=LookWindow(g)
         self.tick0=g.tick;g.tick=self.tick
+        self.runtime_tile_queries=0
+        at=g.sym['_eg_land_cached_at'];g.pb.hook_register(at>>16,at&65535,self.tile_query,None)
         at=g.sym['_frame_wait'];g.pb.hook_register(at>>16,at&65535,self.completed,None)
-        g.pb.memory[1,0xddd0:0xddf0]=[0xa7]*32
+        g.pb.memory[1,0xde78:0xde98]=[0xa7]*32
         self.observe()
+    def tile_query(self,_):
+        if self.monitor and self.g.peek('game_mode')==2 and self.g.peek('floor_no')==self.floor:
+            self.runtime_tile_queries+=1
     def xy(self,u,v):return (v,u) if self.vertical else (u,v)
     def raw_pos(self):
         g=self.g
@@ -93,7 +98,7 @@ class WorldPlayer:
         if self.stream_wait in (1,8,16,24) and len(self.stream_wait_samples)<12:
             self.stream_wait_samples.append({'frame':g.frames,'waiting':self.stream_wait,'position':pos,
                 'view':[vx,vy],'preparation':list(g.pb.memory[self.preparation:self.preparation+10]),'joy':joy})
-        if g.peek('pl_state') not in (5,6):
+        if not paused:
             self.pool_peak=max(self.pool_peak,g.pb.memory[self.pool_queue]+g.pb.memory[self.pool_live])
             self.live_peak=max(self.live_peak,g.pb.memory[self.pool_live])
             n=g.pb.memory[self.body_count]
@@ -110,6 +115,10 @@ class WorldPlayer:
         view=tuple(g.peek('world_view',i) for i in range(2))
         if view!=self.last_view:
             dx,dy=view[0]-self.last_view[0],view[1]-self.last_view[1]
+            medicine={c for c in range(224) if g.peek('room',c)&63==37}
+            cached={g.peek('health_cell',k) for k in range(4)}
+            cached={c for c in cached if c<224 and g.peek('room',c)&63==37}
+            assert cached==medicine,('medicine cache after transfer',view,sorted(medicine),sorted(cached))
             for y in range(14):
                 for x in range(16):
                     if not ((dx>0 and x>=12) or (dx<0 and x<4) or (dy>0 and y>=10) or (dy<0 and y<4)):continue
@@ -232,9 +241,11 @@ class WorldPlayer:
                     side=1 if (int.from_bytes(self.plan[:2],'little')>>self.nodes.index([kind,u,v,condition,needs,alts]))&1 else -1
                     self.walk(self.xy(u-2,v+side))
                 if kind==2:
+                    assert bench_act(g,'Cbc',self.log,prepare_use=self.face_tool),self.log
                     assert bench_act(g,'Ccg',self.log,prepare_use=self.face_tool),self.log
                     piece=9;target=(u,v)
                 elif kind==3:
+                    assert bench_act(g,'Cac',self.log,prepare_use=self.face_tool),self.log
                     assert bench_act(g,'Cef',self.log,prepare_use=self.face_tool),self.log
                     piece=12;target=(u-3,v-1)
                 else:piece=1;target=(u,v)
@@ -246,6 +257,12 @@ class WorldPlayer:
         door=next((i%self.w,i//self.w) for i,t in enumerate(self.cells) if t&31==7)
         if self.cells[self.key[1]*self.w+self.key[0]]&31==6:self.walk(self.key)
         self.walk(door)
+        # Faster streaming can align exactly on the first exit tick. Observe
+        # the real door transition instead of assuming walk()'s 16 idle ticks
+        # have already completed the native twenty-tick departure animation.
+        for _ in range(180):
+            if g.peek('floor_no')!=self.floor or g.peek('game_mode')!=2:break
+            g.tick()
         return g.peek('floor_no')!=self.floor or g.peek('game_mode')!=2
     def report(self):
         g=self.g;f=self.fc
@@ -260,6 +277,7 @@ class WorldPlayer:
                 'view':list(g.pb.memory[g.addr('world_view'):g.addr('world_view')+4]),
                 'camera':[g.peek('cam_x'),g.peek('cam_y')],
                 'incoming_pit_presentation_checks':self.pit_checks,
+                'runtime_default_tile_queries':self.runtime_tile_queries,
                 'maximum_pending_terrain':self.pool_peak,'maximum_animated_cards':self.live_peak,
                 'maximum_stream_wait_frames':self.stream_wait_max,'total_stream_wait_frames':self.stream_wait_total,
                 'stream_wait_samples':self.stream_wait_samples,
@@ -273,9 +291,9 @@ class WorldPlayer:
                 'missing_floor':self.missing[:30],'missing_body':self.body[:30],
                 'oam_max':self.meter.max_line,'oam_over':self.meter.over,'grid':self.grid.report(),
                 'presentation_window':self.look_window.report(),
-                'stack_canary':bytes(g.pb.memory[1,0xddd0:0xddf0])==bytes([0xa7]*32)}
+                'stack_canary':bytes(g.pb.memory[1,0xde78:0xde98])==bytes([0xa7]*32)}
 
-def run(rom,out,tool,seeds,rule=None,size=None,biome=0,floor=7):
+def run(rom,out,tool,seeds,rule=None,size=None,biome=0,floor=7,pet=0):
     out.mkdir(parents=True,exist_ok=True);reports=[]
     for seed in seeds:
         case=out/f'{seed:04x}';case.mkdir(exist_ok=True)
@@ -283,10 +301,39 @@ def run(rom,out,tool,seeds,rule=None,size=None,biome=0,floor=7):
         if rule is not None:
             assert g.wait_mode(1,1500)
             g.poke('dbg_world_rule',rule+1);g.poke('dbg_world_size',0 if size is None else size+1);g.poke('dbg_world_biome',biome)
+        entries=[];loading_frames=[];loading_clean=[]
+        def beginning(_):entries.append(g.frames)
+        def loading_frame(_):
+            if g.peek('game_mode')==3 and g.peek('world_on'):
+                loading_frames.append(g.frames)
+                if len(loading_frames)==3:
+                    g.shot(case/'loading.png')
+                    loading_clean.append(not any(0<g.pb.memory[0xfe00+k*4]<160 and 0<g.pb.memory[0xfe01+k*4]<168 for k in range(40)))
+        enter=g.sym['_world_begin'];wait=g.sym['_frame_wait']
+        g.pb.hook_register(enter>>16,enter&65535,beginning,None)
+        g.pb.hook_register(wait>>16,wait&65535,loading_frame,None)
         assert start_run(g,True,True,seed=seed,floor=floor);assert g.peek('world_on')
+        preparation_frames=g.frames-40-entries[-1]
+        g.pb.hook_deregister(enter>>16,enter&65535);g.pb.hook_deregister(wait>>16,wait&65535)
+        patterns=set()
+        if pet:
+            hp=[8,6,6,14,7,7,16,9,10,6,8,7][pet-433]
+            for k in range(16):g.poke('companion',0,k)
+            g.poke16('companion',pet);g.poke('companion',240,2);g.poke('companion',4,3);g.poke('companion',255,7);g.poke('companion',hp,8);g.poke('pet_instance',1)
+            entry=bytearray(90);entry[:16]=bytes(g.peek('companion',k) for k in range(16));entry[16:18]=bytes((1,1));g.pb.memory[0,0xa3c0:0xa41a]=entry
+            def pet_frame(_):
+                if g.peek('companion',7)!=255:
+                    at=0x8000+(124+(4 if g.peek('companion',6)&64 else 0))*16;patterns.add(bytes(g.pb.memory[0,at:at+64]))
+            at=g.sym['_companion_draw'];g.pb.hook_register(at>>16,at&65535,pet_frame,None)
         p=WorldPlayer(g,tool,rom);p.out=case
         try:
             g.tick(160);g.shot(case/'start.png');won=p.solve(case);r=p.report();r['solved']=won;r['seed']=seed
+            r['stage_preparation_frames']=preparation_frames
+            r['loading_progress_visible']=len(loading_frames)>=3 and (case/'loading.png').exists()
+            r['loading_has_no_stale_sprites']=loading_clean==[True]
+            if pet:
+                r['companion']={'id':pet,'health_preserved':g.peek16('companion')==pet and g.peek('companion',8)==hp,'poses':len(patterns)}
+                r['solved'] &= r['companion']['health_preserved'] and len(patterns)>=3 and r['windows']>1
             reports.append(r);print(json.dumps(r,indent=2),flush=True)
         except BaseException:
             g.shot(case/'failure.png');r=p.report();(case/'failure.json').write_text(json.dumps(r,indent=2)+'\n');raise
@@ -299,10 +346,12 @@ def run(rom,out,tool,seeds,rule=None,size=None,biome=0,floor=7):
                r['grid']['all_map_and_attributes_match'] and
                r['presentation_window']['all_cards_spans_queues_and_bitmaps_match'] and
                r['presentation_window']['native_transfers']==r['seams'] and
+               r['runtime_default_tile_queries']==0 and
+               0<r['stage_preparation_frames']<=1200 and r['loading_progress_visible'] and r['loading_has_no_stale_sprites'] and
                r['maximum_stream_wait_frames']<=12 for r in reports)
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('rom',type=Path);p.add_argument('out',type=Path)
     p.add_argument('--tool',type=Path,default=Path('build/host/land_one'));p.add_argument('--seeds',nargs='+',type=lambda v:int(v,0),default=[0x5fed])
-    p.add_argument('--floor',type=int,default=7);p.add_argument('--rule',type=int);p.add_argument('--size',type=int);p.add_argument('--biome',type=int,default=0)
-    a=p.parse_args();raise SystemExit(0 if run(a.rom,a.out,a.tool,a.seeds,a.rule,a.size,a.biome,a.floor) else 1)
+    p.add_argument('--floor',type=int,default=7);p.add_argument('--rule',type=int);p.add_argument('--size',type=int);p.add_argument('--biome',type=int,default=0);p.add_argument('--pet',type=int,default=0,choices=[0]+list(range(433,445)))
+    a=p.parse_args();raise SystemExit(0 if run(a.rom,a.out,a.tool,a.seeds,a.rule,a.size,a.biome,a.floor,a.pet) else 1)

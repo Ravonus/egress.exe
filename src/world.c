@@ -7,12 +7,15 @@
 #include "world.h"
 #include "gen/world_art.h"
 #include "core/eg_stage.h"
+#include "ui.h"
 eg_land world_plan;
 eg_view world_view;
 uint8_t world_on,world_latched,world_glitch;
 static uint8_t synchronized[7];
 static uint8_t binding_valid,binding_x,binding_y;
 static uint8_t read_link(void *ctx,uint8_t x,uint8_t y) NONBANKED;
+void eg_land_cached_at(const eg_land *p,uint8_t x,uint8_t y,eg_land_cell *out) BANKED;
+uint8_t eg_land_void4(const eg_land *p,uint8_t x,uint8_t y) BANKED;
 uint8_t world_binding_ready(int8_t dx,int8_t dy) NONBANKED {
   return binding_valid && binding_x==(uint8_t)(world_view.x+dx) && binding_y==(uint8_t)(world_view.y+dy);
 }
@@ -116,8 +119,9 @@ uint8_t world_skin(uint8_t design,uint8_t variant) NONBANKED {
 }
 static uint8_t skin_ok(uint8_t skin,uint8_t type) NONBANKED {
   if(!skin)return 1u;skin--;
-  if(skin==M_WORLD_FERN0 || skin==M_WORLD_FERN1 || skin==M_WORLD_FLOWER0 || skin==M_WORLD_FLOWER1 ||
-     skin==M_WORLD_REED0 || skin==M_WORLD_REED1)return type==T_DIRT;
+  if(skin==M_WORLD_FERN1)return type==T_DIRT || type==T_PAPER;
+  if(skin==M_WORLD_FERN0 || skin==M_WORLD_FLOWER0 || skin==M_WORLD_FLOWER1)return type==T_DIRT || type==T_EMPTY;
+  if(skin==M_WORLD_REED0 || skin==M_WORLD_REED1)return type==T_DIRT;
   if(skin==M_WORLD_PROP0 || skin==M_WORLD_PROP1)return type==T_EMPTY;
   if(skin==M_WORLD_RIVER0 || skin==M_WORLD_RIVER1 || skin==M_WORLD_FALL0 || skin==M_WORLD_FALL1)return type==T_WATER;
   return 1u;
@@ -129,7 +133,7 @@ static void generate(uint8_t x,uint8_t y) NONBANKED {
   eg_land_cell cell;uint8_t k;
   eg_window_packet[8]=0u;
   for(k=0u;k<4u;k++) {
-    eg_land_at(&world_plan,x+k,y,&cell);eg_window_packet[k]=cell.material;
+    eg_land_cached_at(&world_plan,x+k,y,&cell);eg_window_packet[k]=cell.material;
     eg_window_packet[k+4u]=world_skin(cell.design,cell.variant);
     if(cell.flags&EL_PROTECTED)eg_window_packet[8]|=look_bits[k];
   }
@@ -178,24 +182,71 @@ uint8_t world_write(uint8_t x,uint8_t y,uint8_t material) NONBANKED {
   if(EG_CRATE(material) || (material&T_MASK)==T_ROCK || (material&F_OB))note_weight(x,y);
   return EG_LINK_NONE;
 }
+uint8_t world_read_skin(uint8_t x,uint8_t y) BANKED {
+  uint8_t c;
+  if(!world_on)return x<EG_W && y<EG_H ? look_skin[EG_IDX(x,y)] : 0u;
+  if(x>=world_view.width || y>=world_view.height)return 0u;
+  c=local(x,y);if(c<EG_N)return look_skin[c];
+  world_cache_load(0,(uint8_t)(x&252u),y,eg_window_packet);return eg_window_packet[(x&3u)+4u];
+}
+uint8_t world_write_skin(uint8_t x,uint8_t y,uint8_t material,uint8_t skin) BANKED {
+  uint8_t c=world_write(x,y,material);
+  if(c<EG_N){look_skin[c]=skin;if(world_on)world_touch(c);return c;}
+  if(!world_on || x>=world_view.width || y>=world_view.height)return EG_LINK_NONE;
+  world_cache_load(0,(uint8_t)(x&252u),y,eg_window_packet);eg_window_packet[(x&3u)+4u]=skin;
+  view_store(0,(uint8_t)(x&252u),y,eg_window_packet);return EG_LINK_NONE;
+}
 void world_bind(void) BANKED {eg_land_bind(&world_plan,&world_view,&room,world_latched,read_link,0);eg_plates_dirty=1u;}
 static uint8_t origin(uint8_t cell,uint8_t span,uint8_t size) {
   uint8_t pos=cell>span/2u ? (uint8_t)((cell-span/2u)&252u) : 0u;
   return pos>size-span ? size-span : pos;
 }
+static void loading(void) {
+  uint8_t k;
+  DISPLAY_OFF;HIDE_WIN;HIDE_SPRITES;hud_line=144u;move_bkg(0u,0u);
+  for(k=0u;k<40u;k++)move_sprite(k,0u,0u);
+  art_load_game();ui_load();ui_colours();
+  ui_page("EGRESS","GENERATING STAGE");ui_frame(0u,1u,7u,18u,7u,UI_DARK);
+  text_at(0u,3u,8u,"PLANNING ROUTES",UI_DARK);
+  text_at(0u,2u,10u,"................",UI_DARK);
+  pal_commit(8u);SHOW_BKG;DISPLAY_ON;frame_wait();
+}
+static void precache(void) {
+  uint8_t x,y,k,n;char progress[17];
+  text_at(0u,3u,8u,"STORING FLOOR  ",UI_DARK);
+  num_at(0u,5u,5u,world_view.width,3u,UI_DARK);text_at(0u,9u,5u,"X",UI_DARK);num_at(0u,11u,5u,world_view.height,2u,UI_DARK);
+  for(y=0u;y<world_view.height;y++) {
+    for(x=0u;x<world_view.width;x+=4u) {
+      if(eg_land_void4(&world_plan,x,y)) {
+        memset(eg_window_packet,T_PIT|F_ABYSS,4u);memset(eg_window_packet+4u,0,5u);
+        view_store(0,x,y,eg_window_packet);world_mark_cached(x,y);
+      }else generate(x,y);
+    }
+    n=(uint8_t)(((uint16_t)(y+1u)*16u)/world_view.height);
+    for(k=0u;k<16u;k++)progress[k]=k<n ? '-' : '.';progress[16]=0;
+    text_at(0u,2u,10u,progress,UI_DARK);
+    num_at(0u,6u,12u,y+1u,2u,UI_DARK);text_at(0u,9u,12u,"/",UI_DARK);num_at(0u,11u,12u,world_view.height,2u,UI_DARK);
+    frame_wait();sound_tick();
+  }
+}
 uint8_t world_begin(uint16_t seed,uint8_t rule,uint8_t size,uint8_t biome) BANKED {
-  uint8_t k,x,y;
+  uint8_t k,x,y,previous_mode=game_mode;
   world_on=world_latched=world_glitch=binding_valid=0u;
-  if(!eg_land_plan(&world_plan,seed,rule,size,biome))return 0u;
+  game_mode=MODE_CLEAR;loading();
+  if(!eg_land_plan(&world_plan,seed,rule,size,biome)){game_mode=previous_mode;return 0u;}
   world_view.width=world_plan.width;world_view.height=world_plan.height;
   k=eg_land_lane(&world_plan,2u);x=EL_X(&world_plan,2u,k);y=EL_Y(&world_plan,2u,k);
   world_view.x=origin(x,EG_W,world_view.width);world_view.y=origin(y,EG_H,world_view.height);
   memset(world_mask_packet,0,9u);
   for(k=0u;k<27u;k++) {CRITICAL {view_put9((uint16_t)(0x4000u+(uint16_t)k*9u),world_mask_packet);}}
   memset(&room,0,sizeof room);world_on=1u;
+  /* All supported stages already fit the persistent WRAM packet store.
+   * Fill it once while loading; camera travel reuses these same packets,
+   * including subsequent mutations, without live geometry generation. */
+  precache();
   memset(synchronized,0,sizeof synchronized);
   eg_view_load(&world_view,&room,look_skin,cracked,world_cache_load,0);
-  room.keys=1u;world_bind();return 1u;
+  room.keys=1u;world_bind();game_mode=previous_mode;return 1u;
 }
 void world_show(void) BANKED {
   if(!world_on)return;
@@ -242,6 +293,10 @@ uint8_t world_shift_data(int8_t dx,int8_t dy) BANKED {
 uint8_t world_shift_prepared(int8_t dx,int8_t dy) BANKED {
   uint8_t k;
   if(!world_on || !world_preserved(dx,dy) || !world_binding_ready(dx,dy))return 0u;
+  /* Validate the display deadline after the variable certificate checks,
+   * immediately before the atomic copy. The standalone geometry API keeps
+   * its unrestricted behavior outside active gameplay. */
+  if(game_mode==MODE_PLAY && LY_REG<144u)return 0u;
   if(!eg_view_shift_prepared(&world_view,&room,look_skin,cracked,dx,dy))return 0u;
   binding_valid=0u;
   /* Preserved overlap stays identical to its backing packet. Retain those

@@ -13,6 +13,7 @@
 #include "heir.h"
 #include "gen/eg_seeds.h"
 #include "look.h"
+#include "gen/world_art.h"
 #include "stage.h"       /* B2 */
 #include "stage_spawn.h" /* B2 */
 #include "boss_api.h" /* B2 bosses */
@@ -25,6 +26,9 @@
 #include "world.h"
 #include "world_play.h"
 #include "ui.h"
+#include "collection.h"
+#include "companion.h"
+#include "health.h"
 void sprites_budget(void) NONBANKED;
 uint8_t heir_cache_flush(void) BANKED;
 extern volatile uint8_t video_epoch;
@@ -55,13 +59,14 @@ static uint8_t controls_pause(void) {
   text_at(1,1,7,tutorial_on==2u ? "START EXIT B BACK" : "START / B RESUME",LOOK_PAL_HUD);
   hud_line=80u;move_win(7,80);
   while(1) {
-    frame_wait();look_pause_tick();flush_cells(8u);sound_tick();draw_sprites();input_poll();
+    frame_wait();DISABLE_OAM_DMA;look_pause_tick();flush_cells(8u);sound_tick();draw_sprites();input_poll();
     if((joy_pressed&J_SELECT) && stage_type==SG_HEIST) {stage_select();break;}
     if(joy_pressed&J_A) {open_bench=1u;break;}
     if(joy_pressed&(J_START|J_B)) {leave_course=(uint8_t)(tutorial_on==2u && (joy_pressed&J_START));break;}
   }
   cam_y=old_y;move_bkg(BG_SCROLL_X(cam_x),BG_SCROLL_Y(cam_y));
   clear_map(1,LOOK_PAL_HUD);hud_draw();hud_charge();move_win(7,128);hud_line=128u;
+  draw_sprites();
   frame_wait();bench_on=0u;
   return leave_course ? 1u : open_bench ? 2u : 0u;
 }
@@ -107,6 +112,7 @@ static void floor_build(void) {
   }
   /* A room without CRTs cannot acquire one through ordinary reactions. A
    * queued new CRT promotes this flag; boss arenas keep their full physics. */
+  if(!world_on && tutorial_on!=2u)eg_health_room(&room,floor_seed);
   floor_has_crt=0u;
   for(i=0u;i!=EG_N;i++)if(cell_type(i)==T_ROCK) {floor_has_crt=1u;break;}
   /* game randomness from here on: seeded by the run and the floor */
@@ -184,6 +190,7 @@ static void floor_show(void) {
   look_load(world_on ? world_plan.biome : BIOME_OFFICE);
   stage_show(); /* B2: the stage's cards and skins */
   if(world_on)world_show();
+  else environment_art_load(meta_pal,&meta_tile[0][0]);
   camera(1);
   look_roam_begin((uint8_t)(!boss_floor && stage_type!=SG_DARK && stage_type!=SG_CHASE));
   look_assemble(room.start);
@@ -262,6 +269,7 @@ static void assemble_wait(void) {
   pl_inv = 0; /* no blinking while the world arrives */
   while (look_busy()) {
     frame_wait();
+    DISABLE_OAM_DMA;
     look_tick();
     sound_tick();
     input_poll();
@@ -277,7 +285,7 @@ static void assemble_wait(void) {
 static uint8_t floor_play(void) {
   uint8_t end_t = 0,roaming,late,streamed;
   floor_tokens0 = tokens;
-  pocket_enter();
+  if(tutorial_on==2u)pocket_enter();
   if(tutorial_on==2u) {}
   else if(restored_floor) {stage_resume_floor();restored_floor=0u;narrator_event(NE_RETURN,0u);}
   else {
@@ -301,13 +309,22 @@ static uint8_t floor_play(void) {
     frame_wait();
     input_poll(); /* sample before variable-cost VRAM/audio work can cross a display boundary */
     DISABLE_OAM_DMA;
+    if(pet_save_dirty)resume_pet_flush();
+    /* Score rows vary in cost. Spend their time before deciding whether an
+     * atomic world transfer still fits this VBlank's early allowance. */
+    if(world_on)sound_tick();
     /* A busy previous frame may have offered a complete pose without spare
      * time to cache it. Preserve it before another composition replaces the
      * buffer, and give that copy this frame's early composition allowance. */
     late=world_on ? world_frame_begin() : heir_cache_flush();
     streamed=world_on ? late : 0u;
     if(!late)heir_prepare();
-    late=(uint8_t)(roaming && (world_on || enemies_alive || stage_type!=SG_PUZZLE));
+    if(!streamed && companion.id)companion_art_tick();
+    /* Quiet floors also cast elements and analyse irreversible puzzles.
+     * Every roaming room shares one bounded early terrain allowance, then
+     * composes actors before advancing the flying cards. A quiet room must
+     * not stack a second unrestricted terrain pass ahead of those actions. */
+    late=roaming;
     if (boss_floor) boss_vblank(); /* B2 bosses: in VBlank, before the look's writes */
     if (pal_dirty && !look_busy()) {
       set_sprite_palette(2u, 6u, &pal_sp[8]);
@@ -327,7 +344,7 @@ static uint8_t floor_play(void) {
     } else if(roaming) {flush_cells(2u);look_tick();}
     else {look_tick();flush_cells(8u);}
     scroll();
-    sound_tick();
+    if(!world_on)sound_tick();
     hud_tick();
     /* Admit speculative queries after variable BG, audio and HUD work, so
      * their scanline limit reserves the actual remaining simulation budget. */
@@ -402,13 +419,15 @@ static uint8_t floor_play(void) {
       continue;
     }
     stage_tick(); /* B2 */
+    if(companion.id)companion_tick();
     puzzle_tick(); /* B1: fragile floor, the beat, the dead-room hint */
-    obstacle_tick();
+    if(room.nob)obstacle_tick();
     /* An impact starts hitstop immediately. Publish the new hit/pose below,
      * rather than moving every live actor once more before the frozen ticks. */
     if(!freeze) {
-      enemies_update();
-      if(!freeze)orbs_update();
+      if(nen)enemies_update();
+      if(!freeze && (orbs[0].live|orbs[1].live|orbs[2].live|orbs[3].live|
+                     orbs[4].live|orbs[5].live|orbs[6].live|orbs[7].live))orbs_update();
       if (!freeze && !--grav_t) {
         grav_t = GRAVITY_FRAMES;
         gravity_tick();
@@ -434,6 +453,7 @@ static uint8_t floor_play(void) {
 
 void play_run(void) BANKED {
   uint16_t new_seed=run_seed;
+  collection_pause();
   if(tutorial_on==1u) {
     tutorial_on=2u;run_loading=1u;
     art_copy_tables(&meta_tile[0][0],meta_pal,pal_bg,pal_sp,people);
@@ -441,7 +461,7 @@ void play_run(void) BANKED {
     memset(family_stat,0,sizeof family_stat);stamina_begin();pocket_begin();stage_run_begin();
     floor_no=1u;floor_seed=0x600du;floor_tier=0u;tokens=0u;restored_floor=0u;run_loading=0u;
     if(floor_play()) {tutorial_seen|=0x8000u;tutorial_save();}
-    HIDE_WIN;hud_line=144u;tutorial_on=0u;return;
+    collection_pause();HIDE_WIN;hud_line=144u;tutorial_on=0u;return;
   }
   run_loading=1u;
   art_copy_tables(&meta_tile[0][0], meta_pal, pal_bg, pal_sp, people);

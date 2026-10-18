@@ -5,6 +5,9 @@
 #include <gb/gb.h>
 #include <gb/cgb.h>
 #include "play.h"
+#include "companion.h"
+#include "elements.h"
+#include "health.h"
 #include "mob.h" /* B2: hit_src */
 #include "obstacle.h"
 #include "boss_api.h"
@@ -23,6 +26,7 @@ void play_camera_warp(void) BANKED;
 #include "stamina.h"
 #include "tutorial.h"
 #include "look.h"
+extern uint8_t floor_has_crt;
 
 uint8_t pl_x, pl_y, pl_hp, pl_hp_max, pl_state, pl_face;
 /* Health remains in half-heart units; this bit subtracts one quarter. */
@@ -34,6 +38,13 @@ floor_acts_t acts;
 /* B1: the resolver, the mover and what the sprite code reads */
 eg_input_t pin;
 eg_mover_t pmv;
+/* Two existing two-byte gaps, between movement/stamina and effect/bag state.
+ * The fixed RAM budget is full on MBC3; lifting adds no general WRAM data. */
+typedef struct {uint8_t cell,height;} lift_position;
+typedef struct {uint8_t load,strength;} lift_force;
+lift_position __at(0xDB9E) pl_lift;
+lift_force __at(0xDBBE) pl_lift_force;
+typedef char lift_slots_fit[(sizeof(lift_position)==2u && sizeof(lift_force)==2u) ? 1 : -1];
 uint8_t pl_iframe; /* dodge i-frames this frame */
 uint8_t pl_arc;    /* the lead's arc to draw: 0 none, 1 a strike toward pl_face, 2 the spin */
 uint8_t pl_level;  /* the last charged attack's level, 1..3 */
@@ -50,6 +61,7 @@ static uint8_t __at(0xDB9C) air_void;
 static uint8_t __at(0xDB9D) fall_safe;
 static const uint8_t jump_z[20]={0,3,5,7,9,10,11,12,12,12,11,10,9,7,5,3,1,0,0,0};
 static void overlay(uint8_t st,uint8_t t);
+static uint8_t built_cell(uint8_t x,uint8_t y);
 
 /* 8-way facing (EG_FACE_*: N NE E SE S SW W NW) as vectors and d-pad bits */
 static const int8_t f8x[8] = {0, 1, 1, 1, 0, -1, -1, -1}, f8y[8] = {-1, -1, 0, 1, 1, 1, 0, -1};
@@ -107,6 +119,7 @@ void player_hurt(uint8_t n, uint8_t fromx, uint8_t fromy) BANKED {
     freeze = 2u;
     return;
   }
+  if(!dbg_god){n=elements_protect(n);n=companion_protect(n);if(!n){pl_inv=12u;freeze=2u;return;}}
   if (!dbg_god) pl_hp = pl_hp > n ? (uint8_t)(pl_hp - n) : 0u;
   if(!pl_hp)pl_quarter=0u;
   if (!pl_hp && boss_floor) boss_death_record();
@@ -184,12 +197,14 @@ static void collect(void) {
   uint8_t i = cell_at(pl_x, pl_y), t = cell_type(i);
   if (t == T_DIRT) {
     room.c[i] = T_EMPTY;
+    look_skin[i]=0u; /* clearing wild foliage must not create a planted seed */
     queue_cell(i);
     sfx(SFX_DIG);
     if (acts.dug != 255u) acts.dug++;
     puff((uint8_t)(EG_X(i) * 16u + 8u), (uint8_t)(EG_Y(i) * 16u + 8u), 2, ST_PUFF);
     overlay(HA_DIG, 12u);
   } else if (t == T_TOKEN) {
+    if(EG_HEALTH(room.c[i])){health_pick(i);return;}
     room.c[i] = T_EMPTY;
     queue_cell(i);
     if (tokens != 255u) tokens++;
@@ -211,9 +226,41 @@ static void collect(void) {
     puzzle_pick(i); /* B1: a piece into the pocket */
 }
 
-/* a push request from the mover: CRTs go sideways only (the solver's rules), into an empty cell */
+static uint8_t lift_body_free(uint8_t base) {
+  uint8_t x0=(uint8_t)((pmv.x+96)>>4)-6u,y0=(uint8_t)((pmv.y+96)>>4)-22u;
+  uint8_t k,c;
+  for(k=0u;k!=4u;k++) {
+    c=cell_at((uint8_t)(x0+((k&1u) ? 11u : 0u)),(uint8_t)(y0+((k&2u) ? 11u : 0u)));
+    if(c>=EG_N || !built_cell(EG_X(c),EG_Y(c)) || enemy_in_cell(c) ||
+       (c!=base && pmap[room.c[c]]!=EG_C_FREE))return 0u;
+  }
+  return 1u;
+}
+static void do_lift(uint8_t c) {
+  uint8_t n=eg_lift_load(&room,c),h=pl_lift.cell==c ? (uint8_t)(pl_lift.height+1u) : 1u;
+  uint8_t cost=eg_lift_cost(n,heir.weapon,family_stat[G_POWER],0u),k,top;
+  if(!eg_lift_allowed(n,h,pl_lift_force.strength)) {hud_msg("LIFT LIMIT");sfx(SFX_DENY);return;}
+  if(EG_Y(c)<n || !lift_body_free(c)) {sfx(SFX_DENY);return;}
+  top=(uint8_t)(c-n*EG_W);
+  if(enemy_in_cell(top) || !EG_ROCK_OPEN(room.c[top])) {sfx(SFX_DENY);return;}
+  if(stamina.value<cost) {hud_msg("NEED STAMINA");sfx(SFX_DENY);return;}
+  if(!eg_lift_raise(&room,c,pl_lift_force.strength))return;
+  eg_stamina_spend(&stamina,cost);
+  pl_lift.cell=(uint8_t)(c-EG_W);pl_lift.height=h;pl_lift_force.load=n;
+  /* Keep the grounded body beneath the raised load before the next gravity
+   * tick. The full destination footprint was checked against the real map. */
+  pmv.y-=256;pmv.push_t=0u;
+  for(k=0u;k!=eg_ndirty;k++)queue_cell(eg_dirty[k]);
+  puzzle_dirty=1u;grav_t=1u;sfx(SFX_PUSH);overlay(HA_PUSH,16u);
+  puff(pl_x,(uint8_t)(pl_y-14u),3u,ST_PUFF);
+  if(acts.pushes!=255u)acts.pushes++;
+  narrator_event(NE_PUSH,0u);
+}
+
+/* Cardinal contact pushes crates normally; UP raises a resting CRT load. */
 static void do_push(void) {
   uint8_t c = (uint8_t)(pmv.req_cy * EG_W + pmv.req_cx), beyond, crate = EG_CRATE(room.c[c]);
+  if(!crate && pmv.req_dir==EG_DP_UP) {do_lift(c);return;}
   if (!crate && pmv.req_dir != EG_DP_LEFT && pmv.req_dir != EG_DP_RIGHT) return;
   if (!crate && (cell_type(c) != T_ROCK || (room.c[c] & F_FALL))) return;
   beyond = (uint8_t)(c + (pmv.req_dir == EG_DP_RIGHT ? 1 : pmv.req_dir == EG_DP_LEFT ? -1 :
@@ -261,6 +308,7 @@ static uint8_t built_box(int16_t x,int16_t y) {
 }
 /* one mover step from the player's centre (psx, psy are the centre, the mover's box is 12x12 from its corner) */
 static void mstep(uint8_t dpad, uint8_t speed, uint8_t synth) {
+  if(!synth && companion.hp && (companion.buff&PB_HASTE)){speed+=(speed>>2);if(speed>64u)speed=64u;}
   uint8_t prev=0u,o0=0u,o1=0u,o2=0u,o3=0u;
   int16_t old_x=(int16_t)psx-96,old_y=(int16_t)psy-96;
   if(synth) {prev=pmv.prev;o0=pmv.order[0];o1=pmv.order[1];o2=pmv.order[2];o3=pmv.order[3];}
@@ -320,6 +368,11 @@ static void break_brick(uint8_t i, uint8_t force) {
   narrator_event(NE_BREAK,0u);
   puff((uint8_t)(EG_X(i) * 16u + 8u), (uint8_t)(EG_Y(i) * 16u + 8u), 4, ST_PUFF);
   grav_t = 1u;
+}
+
+void player_break_cell(uint8_t cell,uint8_t force) BANKED {
+  if(cell>=EG_N || cell_type(cell)!=T_BRICK)return;
+  break_brick(cell,force);puzzle_dirty=1u;
 }
 
 static void deflect(orb_t *o, uint8_t perfect) {
@@ -592,6 +645,8 @@ static void walk(uint8_t speed, uint8_t anim) {
 }
 
 void player_floor_start(void) BANKED {
+  pl_lift.cell=EG_LINK_NONE;pl_lift.height=pl_lift_force.load=0u;
+  pl_lift_force.strength=eg_lift_strength(heir.weapon,family_stat[G_POWER],family.generation);
   portal_lock=EG_LINK_NONE;
   pl_z=0;pl_air=air_void=0u;
   grid_map(); /* here, not on the first step: 256 entries cost most of a frame */
@@ -619,7 +674,9 @@ void player_shift_view(int8_t dx,int8_t dy) BANKED {
   int16_t sx=(int16_t)dx*256,sy=(int16_t)dy*256;
   psx=(uint16_t)(psx-sx);psy=(uint16_t)(psy-sy);pmv.x-=sx;pmv.y-=sy;
   pl_x=(uint8_t)(pl_x-dx*16);pl_y=(uint8_t)(pl_y-dy*16);
+  companion_shift_view(dx,dy);
   portal_lock=eg_view_rebase(portal_lock,dx,dy);fall_safe=eg_view_rebase(fall_safe,dx,dy);
+  pl_lift.cell=eg_view_rebase(pl_lift.cell,dx,dy);
   if(fall_safe>=EG_N)fall_safe=cell_at(pl_x,pl_y);
   c=eg_view_rebase(EG_IDX(pmv.push_cx,pmv.push_cy),dx,dy);
   if(c<EG_N) {pmv.push_cx=EG_X(c);pmv.push_cy=EG_Y(c);}else pmv.push_t=0u;
@@ -674,6 +731,47 @@ static void portal_tick(void) {
   puff(x,y,4u,ST_SPARK);collect();
 }
 
+/* A held load is physical contact, not a held button. Releasing UP, opening
+ * the bag, or a companion's haste must never turn it into free recovery. */
+static void player_support(uint8_t busy) {
+  uint8_t c=EG_LINK_NONE,c2,n=0u,n2=0u,cost;
+  if(!pl_air && pl_hp && (floor_has_crt || boss_floor)) {
+    c=cell_at((uint8_t)(pl_x-6u),(uint8_t)(pl_y-6u));
+    c2=cell_at((uint8_t)(pl_x+5u),(uint8_t)(pl_y-6u));
+    if(c>=EG_W && (room.c[c-EG_W]&(T_MASK|F_FALL))==T_ROCK && EG_ROCK_OPEN(room.c[c])) {c-=EG_W;n=eg_lift_load(&room,c);}
+    if(c2>=EG_W && c2%EG_W!=(c%EG_W) && (room.c[c2-EG_W]&(T_MASK|F_FALL))==T_ROCK && EG_ROCK_OPEN(room.c[c2])) {
+      c2-=EG_W;n2=eg_lift_load(&room,c2);
+      if(!n)c=c2;
+    }
+  }
+  pl_lift_force.load=(uint8_t)(n+n2);
+  if(!pl_lift_force.load) {
+    if(pl_lift.cell<EG_N && ((room.c[pl_lift.cell]&(T_MASK|F_FALL))!=T_ROCK ||
+       pl_lift.cell>=EG_N-EG_W || !EG_ROCK_OPEN(room.c[pl_lift.cell+EG_W]))) {
+      pl_lift.cell=EG_LINK_NONE;pl_lift.height=0u;
+    }
+    stamina_tick(busy);return;
+  }
+  if(pl_lift.cell!=c) {pl_lift.cell=c;pl_lift.height=0u;}
+  stamina_tick(1u);
+  if(!(frame_count&15u)) {
+    cost=eg_lift_cost(pl_lift_force.load,heir.weapon,family_stat[G_POWER],1u);
+    if(!eg_stamina_spend(&stamina,cost))stamina.value=0u;
+    if(!(frame_count&31u))puff(pl_x,(uint8_t)(pl_y-12u),1u,ST_PUFF);
+  }
+  if(!stamina.value || !eg_lift_allowed(pl_lift_force.load,pl_lift.height ? pl_lift.height : 1u,pl_lift_force.strength)) {
+    player_hurt(1u,pl_x,(uint8_t)(pl_y-16u));
+    /* Invulnerability or a guard can prevent damage, never provide an
+     * infinite brace. Losing the brace still knocks the body out below it. */
+    if(pl_hp && pl_state!=PS_HURT) {
+      pl_state=PS_HURT;pl_t=8u;kb_dx=0;kb_dy=1;pl_air=0u;
+      heir_idle_stop();heir_play(HA_HURT,1u);
+    }
+    return;
+  }
+  if(pin.move==EG_MV_IDLE && !(joy&0x0fu)) {heir_idle_stop();heir_play(HA_PUSH,0u);}
+}
+
 void player_update(void) BANKED {
   uint8_t st, mv, prev = pin.move, ph, dmg, was_air=pl_air;
   eg_frames_t fd;
@@ -724,7 +822,9 @@ void player_update(void) BANKED {
     overlay(HA_RECOVER,10u);
   }
   if(st!=EG_NO_MOVE) on_start(st);
-  stamina_tick((uint8_t)(mv!=EG_MV_IDLE && mv!=EG_MV_SKID));
+  /* Most combat floors have no CRTs. Keep their original short recovery
+   * path and phase; physical support work is needed only on CRT floors. */
+  if(!floor_has_crt)stamina_tick((uint8_t)(mv!=EG_MV_IDLE && mv!=EG_MV_SKID));
   pl_iframe = (uint8_t)(pin.flags & EG_FL_IFRAME);
   ph = pin.phase;
   pl_t = pin.frame;
@@ -854,6 +954,7 @@ void player_update(void) BANKED {
     pl_charge = 0;
     hud_charge();
   }
+  if(floor_has_crt)player_support((uint8_t)(mv!=EG_MV_IDLE && mv!=EG_MV_SKID));
   ha_dir = (uint8_t)((4u - pmv.facing) & 7u);
   if(room.portal_need&EG_PORTAL_ON) portal_tick();
   st=cell_type(cell_at(pl_x,pl_y));

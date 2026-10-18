@@ -25,6 +25,22 @@ void eg_stamina_tick(eg_stamina *s,uint8_t busy) EG_BANKED {
   if(s->wait) {s->wait--;return;}
   if(s->value<s->cap && ++s->pulse==4u) {s->pulse=0u;s->value=(uint8_t)(s->cap-s->value<2u ? s->cap : s->value+2u);}
 }
+uint8_t eg_lift_strength(uint8_t weapon,uint8_t power,uint16_t generation) EG_BANKED {
+  if((weapon!=1u && weapon!=3u) || power<2u || generation<6u) return 1u;
+  return (uint8_t)(weapon==1u && power>=3u && generation>=18u ? 3u : 2u);
+}
+uint8_t eg_lift_allowed(uint8_t load,uint8_t height,uint8_t strength) EG_BANKED {
+  if(!load || !height || !strength || strength>3u || load>strength || height>strength) return 0u;
+  return (uint8_t)(load*height<=strength);
+}
+uint8_t eg_lift_cost(uint8_t load,uint8_t weapon,uint8_t power,uint8_t holding) EG_BANKED {
+  uint8_t unit=weapon==1u ? 2u : weapon==3u ? 3u : 4u;
+  uint16_t cost;
+  if(!load || load>28u) return 0u;
+  if(power>=3u)unit--;
+  cost=(uint16_t)load*(holding ? unit : unit*3u);
+  return (uint8_t)(cost>255u ? 255u : cost);
+}
 #if defined(__SDCC) && defined(__PORT_sm83)
 static uint8_t meter_div5(uint16_t amount,uint16_t denom) __naked {
   amount;denom;

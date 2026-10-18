@@ -1,0 +1,1 @@
+lift: weight x height, class/generation limits, atomic stacks, plates, gravity release and no held recovery pass

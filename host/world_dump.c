@@ -19,7 +19,9 @@ static uint8_t skin_of(uint8_t design,uint8_t variant) {
 }
 static uint8_t clean(uint8_t s,uint8_t raw) {
   unsigned t=raw&31u;if(!s)return s;s--;
-  if(s==31 || s==33 || s==35 || s==38 || s==39 || s==40)return t==T_DIRT ? s+1 : 0;
+  if(s==33)return t==T_DIRT || t==T_PAPER ? s+1 : 0;
+  if(s==31 || s==35 || s==38)return t==T_DIRT || t==T_EMPTY ? s+1 : 0;
+  if(s==39 || s==40)return t==T_DIRT ? s+1 : 0;
   if(s==41 || s==42)return t==T_EMPTY ? s+1 : 0;
   if(s>=43 && s<=46)return t==T_WATER ? s+1 : 0;
   return s+1;
@@ -47,6 +49,7 @@ static uint8_t wg_begin(uint8_t which) {
   if(v.x>v.width-16)v.x=v.width-16;if(v.y>v.height-14)v.y=v.height-14;
   for(y=0;y<v.height;y++)for(x=0;x<v.width;x++) {
     eg_land_cell c;eg_land_at(&p,x,y,&c);full[y][x][0]=c.material;full[y][x][1]=skin_of(c.design,c.variant);full[y][x][2]=c.flags&1;
+    cached[y][x/4u]=1u; /* the constructor prepares the complete packet store */
   }
   eg_view_load(&v,&r,skin,crack,load,0);r.keys=1;wg_bind();return 1;
 }

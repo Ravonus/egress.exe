@@ -7,7 +7,7 @@
 
 void eg_physics_gen(eg_room *r, uint8_t motif, uint16_t seed, uint8_t level) EG_BANKED {
   uint8_t x, y, c, wall, px, doorx, row;
-  if(motif==PH_PORTAL) {eg_portal_gen(r,seed,level);return;}
+  if(motif==PH_PORTAL) {eg_portal_gen(r,seed,level);eg_health_room(r,seed);return;}
   memset(r, 0, sizeof *r);
   eg_rs = seed ? seed : 1u;
   for (y = 0; y != EG_H; y++)
@@ -70,13 +70,17 @@ void eg_physics_gen(eg_room *r, uint8_t motif, uint16_t seed, uint8_t level) EG_
   r->c[EG_IDX(13u,12u)] = T_WALL;
   r->tokens = 1u;
   if (motif != PH_BRIDGE) {
-    r->nitem = 2u;
+    r->nitem = motif==PH_DROP ? 3u : 2u;
     r->item_cell[0] = EG_IDX(2u,11u); r->item_cell[1] = EG_IDX(3u,11u);
     r->item_piece[0] = motif == PH_DROP ? P_METAL : P_EARTH;
-    r->item_piece[1] = motif == PH_DROP ? P_ENERGY : P_WATER;
+    r->item_piece[1] = motif == PH_DROP ? P_AIR : P_WATER;
+    /* The chute's switch can occupy (4,11); keep the third reagent in the
+     * clear approach instead of replacing an apparatus cell for that seed. */
+    if(motif==PH_DROP){r->item_cell[2]=EG_IDX(2u,10u);r->item_piece[2]=P_FIRE;r->c[r->item_cell[2]]=T_ITEM;}
     r->c[r->item_cell[0]] = r->c[r->item_cell[1]] = T_ITEM;
   }
   eg_island_edges(r);
+  eg_health_room(r,seed);
 }
 
 void eg_physics_goal(uint8_t motif, char *out) EG_BANKED {

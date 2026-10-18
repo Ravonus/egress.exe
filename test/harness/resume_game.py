@@ -57,7 +57,7 @@ def run(rom,out,tool):
         assert started,(cut,g.peek('game_mode'),g.peek('floor_no'),g.peek16('meta'),g.peek16_at('family',279),g.peek('family',283),g.peek('resume_state'))
         res['end_transaction_'+cut]=g.peek16('meta')==1 and g.peek16_at('family',279)==generation+1 and g.peek('family',284)==1
         g.stop()
-    res['current_save_epoch_written']=any(dead_save[pos:pos+3]==b'FA\x03' for pos in FAMILY) and any(dead_save[pos]==2 for pos in CONT) and any(dead_save[pos:pos+3]==b'EG\x02' for pos in (0,32))
+    res['current_save_epoch_written']=any(dead_save[pos:pos+3]==b'FA\x04' for pos in FAMILY) and any(dead_save[pos]==3 for pos in CONT) and any(dead_save[pos:pos+3]==b'EG\x03' for pos in (0,32))
     # Invalid newest floor record must leave the preceding valid checkpoint usable.
     damaged=bytearray(save);pos=newest(save,CONT,1);damaged[pos+100]^=128
     g=Game(rom,sram=bytes(damaged));assert start_run(g,True,False)

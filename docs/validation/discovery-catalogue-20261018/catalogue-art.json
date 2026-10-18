@@ -1,0 +1,13 @@
+{
+  "sha256": "7e8ab370796955b77b8425ae044a4e3cfcc8590ea2fd23e3490f6ae65381e6d7",
+  "warmupFrames": 70,
+  "requests": 4836,
+  "maxFramesToUpload": 2,
+  "results": {
+    "all_discovery_poses_match_codec": true,
+    "all_pet_views_and_states_match_codec": true,
+    "west_views_use_correct_mirroring": true,
+    "seeded_palette_matches_every_pose": true
+  },
+  "scope": "Isolated native art cartridge. Gameplay, bench integration and physical hardware remain separate gates."
+}

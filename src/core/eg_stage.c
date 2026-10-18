@@ -645,7 +645,7 @@ uint16_t eg_stage_gen(eg_room *r, eg_stage *s, uint8_t type, uint16_t seed, uint
     if (d <= 1u || (best && t + 1u >= EG_STAGE_TRIES)) break; /* in the band, or the tries are spent */
   }
   if (best && best != sd) build(r, s, type, best, level, m);
-  if(best) eg_island_edges(r);
+  if(best) {eg_island_edges(r);eg_health_room(r,seed);}
   return best;
 }
 

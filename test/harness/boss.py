@@ -376,8 +376,11 @@ class Bot:
                 clear=all((s["cells"][((py+dy*i//probes)//16)*16+(px+dx*i//probes)//16]&31) not in (2,3,4,7)
                           for i in range(1,probes+1))
                 flight=6+(max(0,distance-12)*4+8)//9
-                if 36<distance<=88 and aim and clear and s["bs_t"]>flight:
-                    self.queue=[aim,aim|{"b"},aim|{"b"},aim]
+                if s["bs_st"]==BS["ATTACK"] and 36<distance<=88 and aim and clear and s["bs_t"]>flight+4:
+                    # Tap B resolves on release, then its shot has startup.
+                    # Keep the chosen aim until that real projectile exists;
+                    # ordinary routing must not turn it away in the meantime.
+                    self.queue=[aim,aim|{"b"},aim|{"b"}]+[aim]*8
                     self.log.append(f"{s['fc']} shoot opening")
                     return set()
             spots = [(x, y, f) for x, y, f in self.strike_from(s, *t) if (x, y) in nodes or standable(s["cells"], x, y)]
@@ -404,6 +407,11 @@ class Bot:
         if self.kind == BOSS_BIOME:
             low = 136 if s["bs_phase"] < 2 else 120
             return (128, low)
+        # Once the middle shatters, wait on a reachable firing line. A diagonal
+        # corner can be safe yet never line up a tap shot or reach a short stun.
+        if s["bs_phase"]:
+            y=max(84,min(168,s["bs_y"]+(56 if s["bs_y"]<120 else -56)))
+            if standable(s["cells"],s["bs_x"],y):return (s["bs_x"],y)
         # LAST FAX: keep 56 px off it, on the far side of the room's middle
         fx, fy = s["bs_x"], s["bs_y"]
         return (72 if fx > 128 else 184, 140 if fy < 120 else 100)

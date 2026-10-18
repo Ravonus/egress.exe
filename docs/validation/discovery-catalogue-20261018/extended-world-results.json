@@ -1,0 +1,44 @@
+[
+  {
+    "mapper": "mbc5",
+    "size": 1,
+    "pet": 436,
+    "code": 0,
+    "seconds": 2.1
+  },
+  {
+    "mapper": "mbc5",
+    "size": 3,
+    "pet": 443,
+    "code": 0,
+    "seconds": 2.65
+  },
+  {
+    "mapper": "mbc5",
+    "size": 5,
+    "pet": 436,
+    "code": 0,
+    "seconds": 4.75
+  },
+  {
+    "mapper": "mbc3",
+    "size": 1,
+    "pet": 436,
+    "code": 0,
+    "seconds": 2.15
+  },
+  {
+    "mapper": "mbc3",
+    "size": 3,
+    "pet": 443,
+    "code": 0,
+    "seconds": 2.7
+  },
+  {
+    "mapper": "mbc3",
+    "size": 5,
+    "pet": 436,
+    "code": 0,
+    "seconds": 4.95
+  }
+]

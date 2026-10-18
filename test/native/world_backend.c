@@ -10,6 +10,29 @@
 #include "core/eg_stage.h"
 #include "world_cases.h"
 #include "gen/world_art.h"
+#include "ui.h"
+#include "mapper.h"
+#include "save_map.h"
+/* This cartridge verifies persistent geometry, not presentation. The main
+ * ROM's world_play checks exercise the real loading UI, audio and OAM. */
+uint8_t game_mode,hud_line;
+uint8_t __at(0xDBBD) effect_n;
+void art_load_game(void) BANKED {}
+void ui_load(void) BANKED {}
+void ui_colours(void) BANKED {}
+void ui_shell(void) BANKED {}
+void ui_frame(uint8_t win,uint8_t x,uint8_t y,uint8_t w,uint8_t h,uint8_t pal) BANKED {
+  (void)win;(void)x;(void)y;(void)w;(void)h;(void)pal;
+}
+void text_at(uint8_t win,uint8_t x,uint8_t y,const char *s,uint8_t pal) {
+  (void)win;(void)x;(void)y;(void)s;(void)pal;
+}
+void num_at(uint8_t win,uint8_t x,uint8_t y,uint16_t n,uint8_t digits,uint8_t pal) {
+  (void)win;(void)x;(void)y;(void)n;(void)digits;(void)pal;
+}
+void pal_commit(uint8_t level) {(void)level;}
+void sound_tick(void) BANKED {}
+void frame_wait(void) {vsync();}
 uint8_t eg_window_packet[9],world_mask_packet[9],world_pre_x[9],world_pre_y[9];
 eg_stage_scratch eg_stage_work;
 uint8_t meta_tile[M_COUNT][4],meta_pal[M_COUNT];
@@ -65,7 +88,7 @@ static uint8_t wg_shift(int8_t dx,int8_t dy) {
   world_prepare_binding(dx,dy);
   return world_shift_prepared(dx,dy);
 }
-static uint8_t warm_shift(int8_t dx,int8_t dy) {
+static uint8_t prepared_shift(int8_t dx,int8_t dy) {
   uint8_t x,y,k;
   if(dx) {
     x=dx>0 ? world_view.x+16u : world_view.x-4u;
@@ -77,19 +100,39 @@ static uint8_t warm_shift(int8_t dx,int8_t dy) {
   return wg_shift(dx,dy);
 }
 static void retained_certificates(void) {
-  int8_t dx,dy;uint8_t x,y,gx,gy,c,mask;
+  int8_t dx,dy;uint8_t x,y,gx,gy,c,mask,byte,k,saved[9];uint16_t address;
   if(!world_begin(17u,5u,2u,0u)) {result[3]=13u;return;}
   dx=world_view.x+8u<=world_view.width-16u ? 4 : -4;
   dy=world_view.y<world_view.height-14u ? 4 : -4;
+  /* Normal construction prepares every packet. Explicitly retract one
+   * incoming certificate to retain the defensive unprepared-transfer test. */
+  x=dx>0 ? world_view.x+16u : world_view.x-4u;y=world_view.y;
+  address=(uint16_t)(0x4000u+(uint8_t)((y>>1)*9u));
+  CRITICAL {view_get9(address,world_mask_packet);}
+  memcpy(saved,world_mask_packet,9u);byte=(uint8_t)(((y&1u)<<2)+(x>>5));
+  world_mask_packet[byte]&=(uint8_t)~look_bits[(x>>2)&7u];
+  CRITICAL {view_put9(address,world_mask_packet);}
+  wg_capture(0u,0u,output);
+  if(world_shift_data(dx,0) || memcmp(&room,output,320u) || memcmp(look_skin,output+320u,224u) ||
+     memcmp(cracked,output+544u,28u) || memcmp(&world_view,output+572u,4u))result[3]=14u;
+  CRITICAL {view_put9(address,saved);}
+  /* Paired environment edits must survive inactive packets across the WRAM
+   * row-bank boundary, without consulting default geometry again. */
+  gx=world_view.width-1u;
+  for(k=0u;k<3u;k++){
+    gy=k==0u ? 13u : k==1u ? 14u : world_view.height-1u;
+    (void)world_write_skin(gx,gy,T_EMPTY,(uint8_t)(M_WORLD_FERN0+1u+k));
+    if(world_read(0,gx,gy)!=T_EMPTY || world_read_skin(gx,gy)!=(uint8_t)(M_WORLD_FERN0+1u+k))result[3]=15u;
+  }
   x=dx>0 ? 4u : 11u;gx=world_view.x+x;gy=world_view.y+6u;c=EG_IDX(x,6u);mask=look_bits[c&7u];
   (void)world_write(gx,gy,T_DIRT);look_skin[c]=M_WORLD_FERN0+1u;room.prot[c>>3]|=mask;cracked[c>>3]|=mask;world_touch(c);
   for(y=0u;y<14u;y++)for(x=0u;x<16u;x+=4u)world_preserve(x,y);
-  if(!warm_shift(dx,0))result[3]=13u;
+  if(!prepared_shift(dx,0))result[3]=13u;
   c=eg_view_local(&world_view,gx,gy);if(c>=EG_N) {result[3]=13u;return;}mask=look_bits[c&7u];
   (void)world_write(gx,gy,T_WATER);look_skin[c]=M_WORLD_RIVER0+1u;room.prot[c>>3]&=(uint8_t)~mask;cracked[c>>3]&=(uint8_t)~mask;world_touch(c);
   /* This changed overlap survives a perpendicular transfer before leaving
    * the window. Its former certificate must not suppress the new packet. */
-  if(!warm_shift(0,dy) || !warm_shift(dx,0) || !warm_shift(-dx,0) || !warm_shift(0,-dy) || !warm_shift(-dx,0))result[3]=13u;
+  if(!prepared_shift(0,dy) || !prepared_shift(dx,0) || !prepared_shift(-dx,0) || !prepared_shift(0,-dy) || !prepared_shift(-dx,0))result[3]=13u;
   c=eg_view_local(&world_view,gx,gy);if(c>=EG_N) {result[3]=13u;return;}mask=look_bits[c&7u];
   if(room.c[c]!=T_WATER || look_skin[c]!=M_WORLD_RIVER0+1u || (room.prot[c>>3]&mask) || (cracked[c>>3]&mask))result[3]=13u;
 }
@@ -104,8 +147,12 @@ static uint16_t bitmap_hash(void) {
 }
 static uint8_t check_dead(void) {
   uint8_t status=255u;uint16_t tries=0u,before=bitmap_hash();
+  /* These fixtures supply native effect IDs 1..16 directly. Populate the
+   * current SRAM effect-vector interface; no inventory conversion is faked. */
+  effect_n=pocket_n;EG_SRAM_OPEN();memcpy((uint8_t *)SAVE_FUSION_SCRATCH,pocket,pocket_n);
   world_dead_begin();
   do {status=world_dead_step(255u,2u);dead_after();if(status==255u)vsync();}while(status==255u && ++tries<2000u);
+  EG_SRAM_CLOSE();
   if(status==255u)result[3]=5u;
   if(before!=bitmap_hash())result[3]=6u;
   return status;

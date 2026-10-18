@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "variants": 64,
+  "ink": "#382544",
+  "highlight": "#fff1df",
+  "families": [
+    {
+      "name": "FIRE",
+      "body": "#ff7830",
+      "hueSpread": 9
+    },
+    {
+      "name": "WATER",
+      "body": "#5094ec",
+      "hueSpread": 14
+    },
+    {
+      "name": "AIR",
+      "body": "#8cd2cc",
+      "hueSpread": 14
+    },
+    {
+      "name": "EARTH",
+      "body": "#bca468",
+      "hueSpread": 14
+    },
+    {
+      "name": "METAL",
+      "body": "#b6bbc8",
+      "hueSpread": 14
+    },
+    {
+      "name": "ENERGY",
+      "body": "#dcb4ff",
+      "hueSpread": 14
+    },
+    {
+      "name": "RAIN",
+      "body": "#7ca8f8",
+      "hueSpread": 14
+    },
+    {
+      "name": "MUD",
+      "body": "#a07952",
+      "hueSpread": 6,
+      "highlight": "#d9b991"
+    },
+    {
+      "name": "SNOW",
+      "body": "#b4dbf2",
+      "hueSpread": 14
+    },
+    {
+      "name": "ICE",
+      "body": "#72e4ee",
+      "hueSpread": 14
+    },
+    {
+      "name": "BRICK",
+      "body": "#df8b78",
+      "hueSpread": 14
+    },
+    {
+      "name": "ELECTRIC",
+      "body": "#ffcf54",
+      "hueSpread": 14
+    },
+    {
+      "name": "STEAM",
+      "body": "#c7bce7",
+      "hueSpread": 14
+    },
+    {
+      "name": "LAVA",
+      "body": "#ff623c",
+      "hueSpread": 9
+    },
+    {
+      "name": "DUST",
+      "body": "#b4a7c8",
+      "hueSpread": 14
+    },
+    {
+      "name": "CLOUD",
+      "body": "#b4bce6",
+      "hueSpread": 14
+    },
+    {
+      "name": "GLASS",
+      "body": "#78d2d8",
+      "hueSpread": 14
+    },
+    {
+      "name": "LIFE",
+      "body": "#84cf92",
+      "hueSpread": 14
+    },
+    {
+      "name": "SALT",
+      "body": "#ebe4c6",
+      "hueSpread": 14
+    },
+    {
+      "name": "VINE",
+      "body": "#8dcd70",
+      "hueSpread": 14
+    },
+    {
+      "name": "WOOD",
+      "body": "#c49d72",
+      "hueSpread": 14
+    },
+    {
+      "name": "ASH",
+      "body": "#a399ac",
+      "hueSpread": 14
+    },
+    {
+      "name": "MAGNET",
+      "body": "#8ba7ee",
+      "hueSpread": 14
+    },
+    {
+      "name": "CRYSTAL",
+      "body": "#c093ed",
+      "hueSpread": 14
+    }
+  ]
+}

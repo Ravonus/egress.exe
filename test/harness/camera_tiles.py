@@ -10,7 +10,7 @@ def present(g,c):return bool(g.peek('look_present',c>>3)&(1<<(c&7)))
 
 def run(rom,out,measure=False):
     out.mkdir(parents=True,exist_ok=True);g=Game(rom);assert start_run(g,True,True,physical_fixture=1);g.tick(40)
-    log=[];r={};meter=OamMeter(g);rim=TerrainRim(g,out);tick=g.tick;frames=[];fc=[];missing=[];body_missing=[];moves=set()
+    log=[];r={};meter=OamMeter(g);rim=TerrainRim(g,out);tick=g.tick;frames=[];fc=[];missing=[];body_missing=[];moves=set();fallen=set()
     symbols=(Path(__file__).resolve().parents[2]/'build/obj/heir.sym').read_text()
     offsets={m[1]:int(m[2],16) for m in re.finditer(r'^\s*2\s+(_\w+)\s+([0-9A-F]+)',symbols,re.M)}
     mask_addr=g.addr('ha_dir')-offsets['_ha_dir']+offsets['_spr_mask']
@@ -25,6 +25,10 @@ def run(rom,out,measure=False):
         for _ in range(n):
             previous=g.pb.memory[1,mask_addr].bit_count()
             tick();rim.observe();fc.append(g.peek16('frame_count'))
+            for k in range(8):
+                a=rim.addr['_c_kind']+k;kind=g.pb.memory[1,a] if a>=0xd000 else g.pb.memory[a]
+                if kind==7:
+                    a=rim.addr['_c_cell']+k;fallen.add(g.pb.memory[1,a] if a>=0xd000 else g.pb.memory[a])
             moves.add(g.peek('pin',2))
             x,y=g.player();c=(y//16)*16+x//16
             if g.peek('game_mode')==2 and not g.peek('pl_air') and g.peek('pl_state')==0 and not present(g,c):missing.append((len(fc),c,x,y))
@@ -34,7 +38,7 @@ def run(rom,out,measure=False):
             actual=sum(bool(g.pb.memory[0xfe00+4*k]) and g.pb.memory[0xfe02+4*k]<16 and not(g.pb.memory[0xfe03+4*k]&8) for k in range(40))
             if actual not in (previous,expected) or not actual:body_missing.append((len(fc),actual,previous,expected))
             if len(fc)%4==0:frames.append(g.pb.screen.image.convert('RGB'))
-    g.tick=record;g.pb.memory[1,0xddd0:0xddf0]=[0xa7]*32
+    g.tick=record;g.pb.memory[1,0xde78:0xde98]=[0xa7]*32
     pickup=178;left=194;right=205
     assert walk(g,pickup,log);g.hold(set());g.tick(30)
     bag=pocket(g);r['real_ingredient_collected']=g.room()[pickup]==0 and bag==[4]
@@ -47,16 +51,18 @@ def run(rom,out,measure=False):
     r['crate_moved_by_normal_push']=g.room()[crate]==0 and g.room()[crate+1]==21
     assert walk(g,left,log);g.hold(set());g.tick(40)
     board=bytes(g.room()[:224]);r['starting_floor_present']=present(g,left)
+    east_drops=rim.behind_fall_frames
     assert walk(g,right,log);g.hold(set());g.tick(100)
     r['camera_travel_exposes_east']=g.peek('cam_x')>=90
     r['floor_arrives_to_east']=present(g,right)
-    r['floor_behind_camera_collapses']=not present(g,left)
+    r['floor_behind_camera_collapses']=rim.behind_fall_frames>east_drops
     r['travel_preserves_puzzle_board']=bytes(g.room()[:224])==board
     g.shot(out/'east.png')
+    west_drops=rim.behind_fall_frames
     assert walk(g,left,log);g.hold(set());g.tick(100)
     r['camera_returns_west']=g.peek('cam_x')<8
     r['old_floor_reassembles']=present(g,left)
-    r['east_floor_collapses_on_return']=not present(g,right)
+    r['east_floor_collapses_on_return']=rim.behind_fall_frames>west_drops
     r['collected_item_does_not_respawn']=g.room()[pickup]==0 and pocket(g)==bag
     r['board_mutations_survive_backtracking']=bytes(g.room()[:224])==board
     r['moved_crate_stays_moved']=g.room()[crate]==0 and g.room()[crate+1]==21
@@ -76,17 +82,19 @@ def run(rom,out,measure=False):
     r['floor_under_feet_stays_present']=not missing
     r['complete_body_retained']=not body_missing
     r['sprite_line_budget']=meter.over==0
-    r['floor_stack_canary']=bytes(g.pb.memory[1,0xddd0:0xddf0])==bytes([0xa7]*32)
+    r['floor_stack_canary']=bytes(g.pb.memory[1,0xde78:0xde98])==bytes([0xa7]*32)
     spans=[(fc[i]-fc[i-120])&65535 for i in range(120,len(fc))]
     windows=[epochs[i]-epochs[i-120] for i in range(120,len(epochs))]
     r['movement_frames_120_per_120']=bool(windows) and min(windows)==max(windows)==120
     r['completes_before_vblank']=not late
     terrain=rim.report();r['construction_stays_at_rim']=terrain['construction_stays_at_rim'];r['central_view_is_built']=terrain['central_view_is_built']
-    r['both_edge_effects_are_visible']=terrain['build_and_fall_are_visible']
+    r['trailing_drop_is_visible']=terrain['behind_fall_frames']>0
     g.shot(out/'returned.png');g.stop()
     if frames:frames[0].save(out/'camera-travel.gif',save_all=True,append_images=frames[1:],duration=68,loop=0)
     report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':r,'frames':len(fc),'minimum_game_frames_per_120':min(windows) if windows else None,'maximum_game_frames_per_120':max(windows) if windows else None,'raw_counter_minimum_at_lcd_boundary':min(spans) if spans else None,'late_frames':late[:20],'oam_max':meter.max_line,'missing_floor':missing[:20],'missing_body':body_missing[:20],'log':log}
     report['terrain_rim']=terrain
+    report['departed_cells']=sorted(fallen)
+    report['departure_contract']='Visible trailing drops on both travel legs; offscreen background may already be restored for the next approach.'
     (out/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2));return measure or all(r.values())
 
 if __name__=='__main__':

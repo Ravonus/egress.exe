@@ -11,8 +11,10 @@ PY := .venv/bin/python
 HOSTCC ?= cc
 HOSTCFLAGS := -O2 -std=c99 -Wall -Wextra -Werror
 MAPPER ?= mbc5
+ROOM_SRC := src/core/eg_room.c src/core/eg_link.c src/core/eg_link_gen.c src/core/eg_gen.c src/core/eg_piece.c src/core/eg_physics.c src/core/eg_obst.c src/core/eg_ogen.c host/eg_osolve.c
 
-SRC := src/main.c src/screens.c src/play.c src/grid.c src/hud.c src/player.c src/actors.c src/sprites.c src/boss.c \
+
+SRC := src/main.c src/screens.c src/play.c src/grid.c src/hud.c src/player.c src/actors.c src/sprites.c \
 	src/sound.c src/boot/keel_boot.c src/core/eg_room.c src/core/eg_gen.c src/core/eg_piece.c src/core/eg_plan.c \
 	src/core/eg_obst.c src/core/eg_ogen.c src/core/eg_clock.c src/gen/art.c src/gen/art_pics.c \
 	src/gen/look_art.c src/look.c src/gen/eg_seeds.c src/puzzle.c \
@@ -31,8 +33,12 @@ SRC += src/gen/world_art.c
 SRC += src/world.c src/core/eg_land.c src/core/eg_land_bind.c
 SRC += src/world_dead.c src/core/eg_land_dead.c
 SRC += src/world_play.c
-SRC += src/ui.c src/bench.c
-SRC += $(sort $(wildcard src/gen/bench_*.c))
+SRC += src/ui.c src/bench.c src/inventory.c src/collection.c
+SRC += src/core/eg_catalogue.c src/core/eg_bag.c src/core/eg_collection.c
+SRC += src/companion.c src/health.c src/core/eg_pet.c src/core/eg_pet_bag.c src/core/eg_health.c src/core/eg_journal_patch.c
+SRC += $(sort $(wildcard src/gen/catalogue_*.c)) src/gen/health_art.c
+SRC += src/catalogue_fusion.c src/elements.c
+SRC += src/core/eg_environment.c
 SRC += src/pose_cache.c
 SRC += src/core/eg_family.c
 SRC += src/items.c
@@ -67,8 +73,11 @@ endif
 CFLAGS := -c -Isrc -Wf--Werror -Wf--disable-warning -Wf110 -Wf--disable-warning -Wf126
 # Native simulation/rendering spends the frame budget here. Prefer SDCC's
 # faster instruction choices; generated art/data keep their normal build.
-HOT_SRC := play player actors grid mob mob_draw sprites look stage fx heir hud puzzle world_play core/eg_input core/eg_move core/eg_combat core/eg_stamina core/eg_land
-$(addprefix build/obj/,$(addsuffix .o,$(HOT_SRC))): CFLAGS += -Wf--opt-code-speed
+HOT_SRC := play player actors grid mob mob_draw sprites look stage fx heir hud puzzle world_play core/eg_input core/eg_move core/eg_combat core/eg_stamina core/eg_land companion health elements inventory catalogue_fusion core/eg_pet core/eg_pet_bag core/eg_health core/eg_catalogue core/eg_bag core/eg_journal_patch
+HOT_SRC += core/eg_land_bind
+$(addprefix build/obj/,$(addsuffix .o,$(HOT_SRC))) build/obj-mbc5/resume.o build/obj-mbc3/resume.o: CFLAGS += -Wf--opt-code-speed
+# Spend compiler time on the two terrain hot paths rather than display time.
+build/obj/core/eg_land.o build/obj/core/eg_land_bind.o build/obj/world_play.o build/obj/companion.o: CFLAGS += -Wf--max-allocs-per-node -Wf100000
 # RAM + battery, CGB only, 2 MiB declared (trimmed afterwards), 8 KiB SRAM declared on both mappers. Autobank stops at
 # bank 114: bank 115 would end past the 1,900,000-byte gate. MBC3 addresses 128 banks of 16 KiB, so the same gate holds.
 LDFLAGS := -Wm-yC -Wm-ya1 -Wm-yo128 -autobank -Wb-ext=.rel -Wb-max=114 -Wl-j -Wl-m
@@ -82,6 +91,127 @@ rom: $(ROM_$(MAPPER))
 all: build/egress.gbc build/egress-rtc.gbc
 
 rtc: build/egress-rtc.gbc
+
+build/host/test_catalogue: host/test_catalogue.c src/core/eg_catalogue.c src/core/eg_catalogue.h src/core/eg_catalogue_data.inc
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc/core -o $@ host/test_catalogue.c src/core/eg_catalogue.c
+
+build/host/test_bag: host/test_bag.c src/core/eg_bag.c src/core/eg_bag.h src/core/eg_catalogue.h
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc/core -o $@ host/test_bag.c src/core/eg_bag.c
+
+build/host/test_collection: host/test_collection.c src/core/eg_collection.c src/core/eg_collection.h src/core/eg_catalogue.c src/core/eg_catalogue_data.inc src/core/eg_journal.c
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc/core -o $@ host/test_collection.c src/core/eg_collection.c src/core/eg_catalogue.c src/core/eg_journal.c
+
+build/host/test_pet: host/test_pet.c src/core/eg_pet.c src/core/eg_pet.h src/core/eg_pet_data.inc
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc/core -o $@ host/test_pet.c src/core/eg_pet.c
+
+build/host/test_health: host/test_health.c src/core/eg_health.c src/core/eg_health.h src/core/eg_pet.c src/core/eg_pet_data.inc
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc/core -o $@ host/test_health.c src/core/eg_health.c src/core/eg_pet.c
+
+build/host/test_environment: host/test_environment.c src/core/eg_environment.c src/core/eg_environment.h
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc/core -o $@ host/test_environment.c src/core/eg_environment.c
+
+build/host/test_pet_bag: host/test_pet_bag.c src/core/eg_pet_bag.c src/core/eg_pet_bag.h src/core/eg_pet.c src/core/eg_pet_data.inc src/core/eg_bag.c src/core/eg_journal.c
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc/core -o $@ host/test_pet_bag.c src/core/eg_pet_bag.c src/core/eg_pet.c src/core/eg_bag.c src/core/eg_journal.c
+
+build/host/test_journal_patch: host/test_journal_patch.c src/core/eg_journal_patch.c src/core/eg_journal_patch.inc src/core/eg_journal.c
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc/core -o $@ host/test_journal_patch.c src/core/eg_journal_patch.c src/core/eg_journal.c
+
+build/host/test_pickups: host/test_pickups.c src/core/eg_room.c src/core/eg_link.c src/core/eg_piece.c src/core/eg_land.c
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc/core -o $@ $^
+
+build/host/test_base_loot: host/test_base_loot.c $(ROOM_SRC) src/core/eg_stage.c src/core/eg_plan.c src/core/eg_land.c src/gen/eg_seeds.c
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc/core -o $@ $^
+
+test-catalogue: build/host/test_environment build/host/test_catalogue build/host/test_bag build/host/test_collection build/host/test_pet build/host/test_health build/host/test_pet_bag build/host/test_journal_patch build/host/test_pickups
+	$(PY) tools/bake_catalogue.py --check
+	$(PY) tools/bake_companions.py --check
+	$(PY) tools/bake_journal_patch.py --check
+	build/host/test_catalogue
+	build/host/test_bag
+	build/host/test_collection
+	build/host/test_pet
+	build/host/test_health
+	build/host/test_environment
+	build/host/test_pet_bag
+	build/host/test_journal_patch
+	build/host/test_pickups
+	$(PY) test/test_catalogue_art.py
+
+test-catalogue-art: build/catalogue-art-test.gbc
+	$(PY) test/harness/catalogue_art.py $< build/sprints/catalogue-art
+
+build/journal-check/main.o: test/native/journal.c src/core/eg_journal.h
+	@mkdir -p $(dir $@)
+	$(LCC) -c -Isrc -o $@ $<
+build/journal-check/journal.o: src/core/eg_journal.c src/core/eg_journal.h
+	@mkdir -p $(dir $@)
+	$(LCC) -c -Isrc -o $@ $<
+build/journal-test.gbc: build/journal-check/main.o build/journal-check/journal.o
+	$(LCC) -Wm-yC -Wm-yt0x19 -Wm-yo4 -autobank -Wb-ext=.rel -Wb-max=2 -Wl-j -Wl-m -o $@ $^
+test-native-journal: build/journal-test.gbc
+	$(PY) test/harness/journal.py $< build/sprints/native-journal
+
+build/obj/health.o: src/health_scan.inc
+build/health-scan-test.gbc: test/native/health_scan.c src/health_scan.inc
+	@mkdir -p build
+	$(LCC) -Isrc -Wm-yC -Wm-yt0x19 -Wm-yo2 -Wl-j -o $@ $<
+test-native-health-scan: build/health-scan-test.gbc
+	$(PY) test/harness/health_scan.py $< build/sprints/native-health-scan
+
+build/obj/look.o: src/look_scan.inc
+build/look-scan-test.gbc: test/native/look_scan.c src/look_scan.inc src/sprites_start.inc
+	@mkdir -p build
+	$(LCC) -Isrc -Wf--opt-code-speed -Wm-yC -Wm-yt0x19 -Wm-yo2 -Wl-j -o $@ $<
+test-native-look-scan: build/look-scan-test.gbc
+	$(PY) test/harness/look_scan.py $< build/sprints/native-look-scan
+
+CAT_ART_SRC := src/core/eg_catalogue.c $(sort $(wildcard src/gen/catalogue_*.c))
+CAT_ART_OBJ := $(patsubst src/%.c,build/art-check/%.o,$(CAT_ART_SRC))
+build/art-check/main.o: test/native/catalogue_art.c src/catalogue_art.h
+	@mkdir -p $(dir $@)
+	$(LCC) -c -Isrc -o $@ $<
+build/art-check/%.o: src/%.c src/catalogue_art.h src/core/eg_catalogue.h src/core/eg_room.h
+	@mkdir -p $(dir $@)
+	$(LCC) -c -Isrc -o $@ $<
+build/catalogue-art-test.gbc: build/art-check/main.o $(CAT_ART_OBJ)
+	$(LCC) -Wm-yC -Wm-yt0x19 -Wm-yo32 -autobank -Wb-ext=.rel -Wb-max=30 -Wl-j -Wl-m -o $@ $^
+
+build/art-check/fusion-main.o: test/native/catalogue_fusion.c src/catalogue_art.h
+	@mkdir -p $(dir $@)
+	$(LCC) -c -Isrc -o $@ $<
+build/art-check/catalogue_fusion.o: src/catalogue_fusion.c src/catalogue_art.h src/save_map.h
+	@mkdir -p $(dir $@)
+	$(LCC) -c -Isrc -o $@ $<
+build/catalogue-fusion-test.gbc: build/art-check/fusion-main.o build/art-check/catalogue_fusion.o $(CAT_ART_OBJ)
+	$(LCC) -Wm-yC -Wm-yt0x1B -Wm-ya1 -Wm-yo32 -autobank -Wb-ext=.rel -Wb-max=30 -Wl-j -Wl-m -o $@ $^
+test-catalogue-fusion: build/catalogue-fusion-test.gbc
+	$(PY) test/harness/catalogue_fusion.py $< build/sprints/catalogue-fusion
+
+test-base-loot: build/host/test_base_loot
+	$<
+
+test-native-companions: all
+	$(PY) test/harness/companions.py build/egress.gbc build/sprints/companions-mbc5
+	$(PY) test/harness/companions.py build/egress-rtc.gbc build/sprints/companions-mbc3
+
+test-native-companion-world: all build/host/land_one
+	$(PY) test/harness/world_play.py build/egress.gbc build/sprints/companion-world-mbc5 --seeds 0x5101 --rule 0 --size 0 --floor 1 --pet 436
+	$(PY) test/harness/world_play.py build/egress-rtc.gbc build/sprints/companion-world-mbc3 --seeds 0x5101 --rule 0 --size 0 --floor 1 --pet 436
+
+test-native-crafted-effects: all
+	$(PY) test/harness/crafted_effects.py build/egress.gbc build/sprints/crafted-effects-mbc5
+	$(PY) test/harness/crafted_effects.py build/egress-rtc.gbc build/sprints/crafted-effects-mbc3
+
 
 build/obj/%.o: src/%.c $(HDRS)
 	@mkdir -p $(dir $@)
@@ -97,7 +227,24 @@ build/obj-mbc3/%.o: src/%.c $(HDRS)
 
 build/obj/sound.o: src/gen/music_data.h
 build/obj/items.o: src/gen/item_idle.inc
-build/obj/sprites.o: src/gen/diag_arc.inc src/gen/hammer.inc
+build/obj/core/eg_catalogue.o: src/core/eg_catalogue_data.inc
+build/obj/core/eg_pet.o: src/core/eg_pet_data.inc
+build/obj/core/eg_journal_patch.o: src/core/eg_journal_patch.inc
+
+src/core/eg_catalogue_data.inc: tools/bake_catalogue.py assets/alchemy/catalogue.json
+	$(PY) tools/bake_catalogue.py
+src/core/eg_pet_data.inc: tools/bake_companions.py assets/alchemy/companions.json assets/alchemy/catalogue.json
+	$(PY) tools/bake_companions.py
+src/core/eg_journal_patch.inc: tools/bake_journal_patch.py
+	$(PY) tools/bake_journal_patch.py
+src/gen/health_art.c: tools/bake_health.py assets/alchemy/pickups/health.json
+	$(PY) tools/bake_health.py
+build/catalogue-art.stamp: tools/bake_catalogue_art.py tools/element_pixels.py tools/catalogue_colours.py assets/alchemy/catalogue.json assets/alchemy/colours.json $(wildcard assets/alchemy/pets/[0-9]*.json)
+	$(PY) tools/bake_catalogue_art.py
+	@touch $@
+$(filter build/obj/gen/catalogue_%.o,$(OBJ)) $(filter build/art-check/gen/catalogue_%.o,$(CAT_ART_OBJ)): build/catalogue-art.stamp
+build/obj/sprites.o: src/gen/diag_arc.inc src/gen/hammer.inc src/sprites_start.inc
+build/obj/elements.o: src/environment.inc
 
 src/gen/hammer.inc: tools/bake_hammer.py
 	$(PY) tools/bake_hammer.py
@@ -110,7 +257,7 @@ build/overlap-check/overlap.gbc: test/native/overlap.c src/overlap.inc
 test-native-overlap: build/overlap-check/overlap.gbc
 	$(PY) tools/test_native_overlap.py $<
 
-src/gen/item_idle.inc: tools/bake_item_idle.py tools/bake_look.py
+src/gen/item_idle.inc: tools/bake_item_idle.py tools/bake_look.py tools/element_pixels.py
 	$(PY) tools/bake_item_idle.py
 
 # the heir's baked frame records (tools/bake_heir.py): plain data, no headers but GBDK's
@@ -136,7 +283,9 @@ $(TB_HOST)/bake_host: tools/title3d/bake_host.c tools/title3d/core/core2.c tools
 		tools/title3d/bake_host.c tools/title3d/core/core2.c $(TB_HOST)/tables2.c
 $(TB_GEN)/chunks.mk: $(TB_TOOLS) $(TB_HOST)/bake_host
 	$(PY) tools/title3d/bake.py $(TB_GEN) $(TB_HOST)
-$(TB_GEN)/tb.h $(TB_GEN)/tb_index.s $(TB_GEN)/tb_l%.s: $(TB_GEN)/chunks.mk
+$(TB_GEN)/tb.h $(TB_GEN)/tb_index.s: $(TB_GEN)/chunks.mk
+	@:
+$(TB_GEN)/tb_l%.s: $(TB_GEN)/chunks.mk
 	@:
 build/obj/tb/%.o: $(TB_GEN)/%.s
 	@mkdir -p $(dir $@)
@@ -176,7 +325,7 @@ src/gen/art.c src/gen/art_pics.c src/gen/art.h: tools/bake_art.py
 	$(PY) tools/bake_art.py src/gen --sheet docs/shots/art_sheet.png
 
 # the floor's look: the office cards, the biome palettes (tools/bake_look.py borrows bake_art.py's helpers)
-src/gen/look_art.c src/gen/look_art.h: tools/bake_look.py tools/bake_art.py
+src/gen/look_art.c src/gen/look_art.h: tools/bake_look.py tools/bake_art.py tools/element_pixels.py
 	$(PY) tools/bake_look.py src/gen --sheet docs/shots/b1_look_tiles.png --fragile docs/shots/b1_fragile_tiles.png --items docs/shots/b1_items_tiles.png
 
 # B2 stages: the temp and the shopkeeper (BG cards, src/stage.c)
@@ -192,7 +341,6 @@ src/gen/boss_art.h src/gen/boss_art_data.h: tools/bake_boss.py tools/mock/mobgen
 src/gen/music_data.h: tools/compose.py
 	$(PY) tools/compose.py $@
 
-ROOM_SRC := src/core/eg_room.c src/core/eg_link.c src/core/eg_link_gen.c src/core/eg_gen.c src/core/eg_piece.c src/core/eg_physics.c src/core/eg_obst.c src/core/eg_ogen.c host/eg_osolve.c
 ROOM_HDR := src/core/eg_room.h src/core/eg_piece.h host/eg_solve.h src/core/eg_obst.h host/eg_osolve.h
 build/host/egtool: host/egtool.c host/eg_solve.c host/eg_walls.c $(ROOM_SRC) $(ROOM_HDR)
 	@mkdir -p $(dir $@)
@@ -359,7 +507,7 @@ test-native-window: build/host/window_stream_dump build/window-check/window.gbc
 src/gen/stage_codec.inc: assets/stages/codec.json tools/bake_stage_codec.py
 	$(PY) tools/bake_stage_codec.py
 
-src/gen/world_art.c src/gen/world_art.h: tools/bake_world_art.py tools/bake_look.py tools/bake_art.py
+src/gen/world_art.c src/gen/world_art.h: tools/bake_world_art.py tools/bake_look.py tools/bake_art.py tools/element_pixels.py
 	$(PY) tools/bake_world_art.py
 
 build/obj/core/eg_land.o: src/gen/stage_codec.inc Makefile
@@ -513,10 +661,15 @@ build/host/test_stamina: host/test_stamina.c src/core/eg_stamina.c src/core/eg_s
 	@mkdir -p $(dir $@)
 	$(HOSTCC) $(HOSTCFLAGS) -Isrc -o $@ host/test_stamina.c src/core/eg_stamina.c
 
-test-runtime-core: build/host/test_plate build/host/test_deadlock build/host/test_stamina test-narrator test-journal
+build/host/test_lift: host/test_lift.c src/core/eg_room.c src/core/eg_link.c src/core/eg_stamina.c src/core/eg_stamina.h src/core/eg_room.h
+	@mkdir -p $(dir $@)
+	$(HOSTCC) $(HOSTCFLAGS) -Isrc -o $@ host/test_lift.c src/core/eg_room.c src/core/eg_link.c src/core/eg_stamina.c
+
+test-runtime-core: build/host/test_plate build/host/test_deadlock build/host/test_stamina build/host/test_lift test-narrator test-journal
 	build/host/test_plate
 	build/host/test_deadlock
 	build/host/test_stamina
+	build/host/test_lift
 	$(PY) tools/narrator/bake_assets.py --check
 
 build/cache-check/test.o: test/native/wram_cache.c src/wram_cache.h
@@ -563,6 +716,10 @@ test-runtime: all test-runtime-core test-native-overlap
 	$(PY) test/harness/menu.py build/egress-rtc.gbc build/sprints/menu-mbc3
 	$(PY) test/harness/stamina.py build/egress.gbc build/sprints/stamina-mbc5
 	$(PY) test/harness/stamina.py build/egress-rtc.gbc build/sprints/stamina-mbc3
+	$(PY) test/harness/lift.py build/egress.gbc build/sprints/lift-mbc5
+	$(PY) test/harness/lift.py build/egress-rtc.gbc build/sprints/lift-mbc3
+	$(PY) test/harness/lift_course.py build/egress.gbc build/sprints/lift-course-mbc5
+	$(PY) test/harness/lift_course.py build/egress-rtc.gbc build/sprints/lift-course-mbc3
 	$(PY) test/harness/interaction_runtime.py build/egress.gbc build/sprints/interactions-mbc5
 	$(PY) test/harness/interaction_runtime.py build/egress-rtc.gbc build/sprints/interactions-mbc3
 	$(PY) test/harness/diagonal.py build/egress.gbc build/sprints/diagonal-mbc5
@@ -648,7 +805,11 @@ test-procedural: all build/host/land_one
 	$(PY) test/harness/procedural_runs.py build/egress.gbc build/fresh-runs/mbc5
 	$(PY) test/harness/procedural_runs.py build/egress-rtc.gbc build/fresh-runs/mbc3
 
-test: build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-physics test-island-edges test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-runtime test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera test-linked-puzzles test-native-links test-native-linked-puzzles test-window test-native-window test-land test-native-land test-view test-native-view test-native-land-bind test-native-world test-native-world-art test-world-play test-world-environments test-world-failure test-procedural
+test-native-environment: all build/host/land_one
+	$(PY) test/harness/environment.py build/egress.gbc build/sprints/environment-mbc5
+	$(PY) test/harness/environment.py build/egress-rtc.gbc build/sprints/environment-mbc3
+
+test: test-native-look-scan test-native-journal test-native-health-scan test-base-loot test-catalogue test-catalogue-art test-catalogue-fusion test-native-companions test-native-companion-world test-native-crafted-effects test-native-environment build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-physics test-island-edges test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-runtime test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera test-linked-puzzles test-native-links test-native-linked-puzzles test-window test-native-window test-land test-native-land test-view test-native-view test-native-land-bind test-native-world test-native-world-art test-world-play test-world-environments test-world-failure test-procedural
 	build/host/test_obst
 	build/host/test_room src/gen/eg_seeds.c
 	build/host/egplan check 1000
@@ -667,6 +828,10 @@ clean:
 .PHONY: test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera test-links test-linked-puzzles test-native-links test-native-linked-puzzles
 .PHONY: test-window test-native-window test-land test-native-land
 .PHONY: test-view test-native-view test-native-land-bind test-native-world test-native-world-art test-world-play test-world-environments test-world-failure
-.PHONY: test-procedural
+.PHONY: test-base-loot test-catalogue test-catalogue-art test-catalogue-fusion test-native-companions test-native-companion-world test-native-crafted-effects test-procedural
+.PHONY: test-native-journal test-native-health-scan
 
 .PHONY: test-native-overlap
+
+.PHONY: test-native-look-scan
+.PHONY: test-native-environment

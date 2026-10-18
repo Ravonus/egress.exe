@@ -52,12 +52,13 @@ static uint16_t hum[2]; /* the open door's pulse: the HUD/door palette's accent,
 static uint16_t lk_rs;
 static uint8_t flick_next, flick_t;
 
-/* A fixed downward arrival: drop, decelerate, one-pixel settle, commit. */
-static const int8_t ease_in[5] = {-16, -9, -3, 1, 0};
-#define EASE_FRAMES 5u
+/* The loading scene rises out of empty space, then settles. During play,
+ * incoming floor is prepared offscreen; only departures animate. */
+static const int8_t ease_in[11] = {24, 20, 14, 8, 3, 0, -1, 1, 0, 0, 0};
+#define EASE_FRAMES 11u
 /* the fall: crack, split, accelerate, drift apart */
-static const uint8_t fall_dy[12] = {0, 1, 2, 4, 6, 9, 12, 16, 21, 26, 32, 38};
-#define FALL_FRAMES 12u
+static const uint8_t fall_dy[16] = {0, 0, 1, 2, 3, 5, 7, 10, 14, 19, 25, 32, 40, 49, 59, 70};
+#define FALL_FRAMES 16u
 
 static uint8_t lk_rnd(void) {
   lk_rs = (uint16_t)(lk_rs * 25173u + 13849u);
@@ -244,13 +245,10 @@ void look_raise_cell(uint8_t i) BANKED {
 }
 
 void look_roam_begin(uint8_t enabled) BANKED {
-  uint8_t i;
   roam_on=enabled;roam_scan=near_cursor=roam_dir=0u;roam_left=EG_N;roam_x=cam_x;roam_y=cam_y;
   memset(roam_hidden,0,sizeof roam_hidden);
-  if(!enabled) return;
-  for(i=0u;i!=EG_N;i++) if(!on_screen(i) && !look_void_cell(i) && cell_type(i)!=T_PIT) {
-    roam_hidden[i>>3]|=BIT(i);look_present[i>>3]&=(uint8_t)~BIT(i);
-  }
+  /* floor_show draws the complete backing map while the display is off.
+   * Keep its offscreen floor ready, rather than hiding it to animate later. */
 }
 
 static uint8_t roam_pending(uint8_t i) {
@@ -265,7 +263,7 @@ static uint8_t roam_wants(uint8_t i) {
   if((roam_dir&J_LEFT) && x>=136)return 0u;
   if((roam_dir&J_DOWN) && y<=8)return 0u;
   if((roam_dir&J_UP) && y>=104)return 0u;
-  return (uint8_t)(x>-24 && x<168 && y>-24 && y<136);
+  return (uint8_t)(x>-40 && x<184 && y>-40 && y<152);
 }
 static void roam_raise(uint8_t i) {
   if(!(roam_hidden[i>>3]&BIT(i)) || look_here(i) || roam_pending(i)) return;
@@ -281,8 +279,8 @@ static void roam_probe(uint8_t i) {
   if(roam_hidden[i>>3]&BIT(i)) {
     if(look_here(i)) {
       if(!look_void_cell(i) && cell_type(i)!=T_PIT)roam_hidden[i>>3]&=(uint8_t)~BIT(i);
-    } else if(roam_wants(i) && !look_void_cell(i) && cell_type(i)!=T_PIT)roam_raise(i);
-  } else if(look_here(i) && !roam_wants(i) && (uint8_t)(q_n+n_flying)<12u) {
+    } else if((!on_screen(i) || roam_wants(i)) && !look_void_cell(i) && cell_type(i)!=T_PIT)roam_raise(i);
+  } else if(look_here(i) && on_screen(i) && !roam_wants(i) && (uint8_t)(q_n+n_flying)<12u) {
     if(look_void_cell(i) || cell_type(i)==T_PIT)return;
     roam_hidden[i>>3]|=BIT(i);look_drop_cell(i);
   }
@@ -311,12 +309,12 @@ void look_roam_tick(void) BANKED {
   limit=vertical ? 11u : 9u;
   if(prep_cursor>=limit)prep_cursor=0u;
   a=vertical ? cam_y : cam_x;
-  /* Discover an approaching card half a slab before it enters the screen,
-   * rather than discovering it and safety-landing it on the same edge row. */
-  if(roam_dir&(vertical ? J_UP : J_LEFT))a=a>=8u ? (uint8_t)(a-8u) : 0u;
+  /* Restore a complete extra slab before it enters view. Both existing
+   * edge probes and the bounded backing scan share the normal BG budget. */
+  if(roam_dir&(vertical ? J_UP : J_LEFT))a=a>=24u ? (uint8_t)(a-24u) : 0u;
   a>>=4;
   b=(uint8_t)(((uint16_t)(vertical ? cam_y : cam_x)+
-    (vertical ? ((roam_dir&J_DOWN) ? 135u : 127u) : ((roam_dir&J_RIGHT) ? 167u : 159u)))>>4);
+    (vertical ? ((roam_dir&J_DOWN) ? 151u : 127u) : ((roam_dir&J_RIGHT) ? 183u : 159u)))>>4);
   cross=(vertical ? cam_x : cam_y)>>4;
   for(k=0u;roam_dir && k<(roam_late ? 4u : 2u) && (uint8_t)(q_n+n_flying)<12u;k++) {
     if(video_epoch!=frame_epoch || (LY_REG>=(enemies_alive ? 48u : 64u) && LY_REG<144u))break;
@@ -397,10 +395,13 @@ static uint8_t band_ok(int16_t top, int16_t bot) {
 
 static uint8_t launch(uint8_t i) {
   uint8_t k,h,cached=0u,fall=(uint8_t)(look_here(i)!=0u);
-  int16_t y=(int16_t)((uint16_t)EG_Y(i)<<4),top=y-(fall ? 0 : 16),bot=y+16+(fall ? 38 : 1);
+  int16_t y=(int16_t)((uint16_t)EG_Y(i)<<4),top=y-(fall ? 0 : 1),bot=y+16+(fall ? 70 : 24);
   /* Seven reusable OBJ cards. The eighth slot remains available to a real
    * fragile-floor break, which uses its resident bank-0 art. */
-  if(!band_ok(top,bot))return 0u;
+  /* Roaming cards are composed after actors through oam_card_pair's actual
+   * per-line allocator. Whole-path overlap is far too conservative for a
+   * loading-scene rise: adjacent cards remain separated as they enter. */
+  if(!roam_on && !band_ok(top,bot))return 0u;
   if(!fall)look_present[i>>3]|=BIT(i);
   h=cell_meta(i);
   if(!fall)look_present[i>>3]&=(uint8_t)~BIT(i);
@@ -414,8 +415,7 @@ static uint8_t launch(uint8_t i) {
      * heir preparation. Office movement/combat keeps its original cutoff;
      * a resting quiet office may finish one later bounded upload. */
     if(roam_on && game_mode==MODE_PLAY && LY_REG>=
-       (!(joy&(J_LEFT|J_RIGHT|J_UP|J_DOWN)) && pl_state==PS_FREE && !world_on &&
-        !enemies_alive && stage_type==SG_PUZZLE ? 32u : world_on ? 32u : 12u) && LY_REG<144u)return 0u;
+       (!world_on && !enemies_alive && stage_type==SG_PUZZLE ? 32u : world_on ? 32u : 12u) && LY_REG<144u)return 0u;
     look_art_card(h,k);budget=0u;
   }
   c_kind[k]=fall ? K_FALL : K_DROP;c_cell[k]=i;c_meta[k]=h;c_t[k]=0u;
@@ -492,6 +492,9 @@ static void incoming_pits(uint8_t i) NONBANKED NAKED {
     jr nz,4$
     set 3,b
   4$:
+    ld a,b
+    or a,a
+    jr z,8$
     bit 2,c
     jr z,5$
     swap b
@@ -513,6 +516,7 @@ static void incoming_pits(uint8_t i) NONBANKED NAKED {
     cpl
     and a,(hl)
     ld (hl),a
+  8$:
     pop de
     pop bc
     ret
@@ -586,18 +590,20 @@ static void shift_spans(int8_t dy) NAKED {
   __endasm;
 }
 void look_shift_view(int8_t dx,int8_t dy) BANKED {
-  uint8_t k,i,keep=0u;
+  uint8_t k,i,c,keep=0u,mask,lo,hi,delta;
+  if(dx){mask=15u;lo=dx>0 ? 4u : 0u;hi=dx>0 ? 16u : 12u;delta=(uint8_t)dx;}
+  else {mask=255u;lo=dy>0 ? 64u : 0u;hi=dy>0 ? 224u : 160u;delta=(uint8_t)(dy*16);}
   /* Each card is tested in its old coordinates. Recycle leaving slots and
    * rebase retained slots without changing material or object state. */
   for(k=0u;k<LOOK_MAX_CARDS;k++)if(c_kind[k]) {
-    i=eg_view_rebase(c_cell[k],dx,dy);
-    if(i>=EG_N)finish(k);
-    else c_cell[k]=i;
+    i=c_cell[k];c=i&mask;
+    if(i>=EG_N || c<lo || c>=hi)finish(k);
+    else c_cell[k]=(uint8_t)(i-delta);
   }
   if(dy)shift_spans(dy);
   for(k=0u;k<q_n;k++) {
-    i=eg_view_rebase(q[(uint8_t)(q_head+k)],dx,dy);
-    if(i<EG_N)q[(uint8_t)(q_head+keep++)]=i;
+    i=q[(uint8_t)(q_head+k)];c=i&mask;
+    if(i<EG_N && c>=lo && c<hi)q[(uint8_t)(q_head+keep++)]=(uint8_t)(i-delta);
   }
   q_n=keep;
   eg_view_bits(look_present,dx,dy,0u);eg_view_bits(roam_hidden,dx,dy,1u);eg_view_bits(redraw,dx,dy,1u);
@@ -688,7 +694,7 @@ static void step_card(uint8_t k) {
   uint8_t tile = c_brk[k] ? meta_tile[c_meta[k]][0] : (k<3u ? (uint8_t)(4u+(k<<2)) : (uint8_t)(100u+(k<<2))), prop;
   int16_t wx = (int16_t)((uint16_t)EG_X(i) << 4), wy = (int16_t)((uint16_t)EG_Y(i) << 4);
   if(kind==K_FALL && roam_on && !c_brk[k] && (roam_hidden[i>>3]&BIT(i)) && roam_wants(i))
-    {kind=c_kind[k]=K_DROP;t=c_t[k]=0u;}
+    {kind=c_kind[k]=K_DROP;t=c_t[k]=EASE_FRAMES;}
   if (kind >= K_WOBBLE) {
     step_break(k, wx, wy, tile);
     return;
@@ -707,10 +713,22 @@ static void step_card(uint8_t k) {
     c_t[k]++;
     return;
   }
+  /* Prepare the canonical texture ahead of the camera, but start the fall
+   * when its destination enters view. Spending the whole flight offscreen
+   * made the approaching ground appear already landed. */
+  if(roam_on && !on_screen(i)) {
+    /* A reversal can abandon a prepared destination. Release its flight
+     * slot instead of holding it forever and starving departures. */
+    if(!roam_wants(i)) {
+      finish(k);look_present[i>>3]&=(uint8_t)~BIT(i);
+      roam_hidden[i>>3]|=BIT(i);hide_card(k);return;
+    }
+    if(!t){hide_card(k);return;}
+  }
   /* assembly */
   if (t >= EASE_FRAMES) {
     if (budget < (roam_on ? 1u : 2u) || !roam_bg_time()) {
-      sprite_pair(k,wx,wy,tile,(uint8_t)(S_BANK|(meta_pal[c_meta[k]]&LOOK_META_FLIP)|(is_wallish(c_meta[k]) ? 7u : 6u)),0u);
+      sprite_pair(k,wx,wy,tile,(uint8_t)(S_BANK|S_PRIORITY|(meta_pal[c_meta[k]]&LOOK_META_FLIP)|(is_wallish(c_meta[k]) ? 7u : 6u)),0u);
       return;
     }
     look_present[i >> 3] |= BIT(i);
@@ -718,7 +736,7 @@ static void step_card(uint8_t k) {
     finish(k);
     return;
   }
-  prop = (uint8_t)(S_BANK|(meta_pal[c_meta[k]]&LOOK_META_FLIP)|(is_wallish(c_meta[k]) ? 7u : 6u));
+  prop = (uint8_t)(S_BANK|S_PRIORITY|(meta_pal[c_meta[k]]&LOOK_META_FLIP)|(is_wallish(c_meta[k]) ? 7u : 6u));
   wy += ease_in[t];
   sprite_pair(k, wx, wy, tile, prop, 0);
   c_t[k]++;
@@ -858,24 +876,30 @@ static uint8_t anchor_at(uint8_t x,uint8_t y) {
   if(look_here(i) || !(roam_hidden[i>>3]&BIT(i)))return 0u;
   look_anchor(i);return 1u;
 }
-static uint8_t missing_column(uint8_t cell,uint8_t count) {
-  uint8_t at=cell>>3,mask=BIT(cell);
-  do {
-    if((roam_hidden[at] & (uint8_t)~look_present[at]) & mask)return cell;
-    cell+=EG_W;at+=2u;
-  } while(--count);
-  return 0xffu;
+#include "look_scan.inc"
+static uint8_t ground_contacts(int8_t dx,int8_t dy) {
+  int16_t x=pl_x,y=pl_y;uint8_t n=0u,x0,x1,y0,y1;
+  x+=dx*7;y+=dy*7;
+  x0=(uint8_t)((x-6)>>4);x1=(uint8_t)((x+5)>>4);
+  y0=(uint8_t)((y-6)>>4);y1=(uint8_t)((y+5)>>4);
+  n+=anchor_at(x0,y0);
+  if(n<2u && x1!=x0)n+=anchor_at(x1,y0);
+  if(n<2u && y1!=y0)n+=anchor_at(x0,y1);
+  if(n<2u && y1!=y0 && x1!=x0)n+=anchor_at(x1,y1);
+  return n;
 }
-static uint8_t missing_row(uint8_t cell,uint8_t count) {
-  uint8_t at=cell>>3,mask=BIT(cell);
-  do {
-    if((roam_hidden[at] & (uint8_t)~look_present[at]) & mask)return cell;
-    cell++;mask<<=1;if(!mask) {mask=1u;at++;}
-  } while(--count);
-  return 0xffu;
+static uint8_t ground_returning(int8_t dx,int8_t dy) {
+  uint8_t k,c,n=0u;int16_t x,y;
+  for(k=0u;k<LOOK_MAX_CARDS && n<2u;k++)if(c_kind[k] && !c_brk[k]) {
+    c=c_cell[k];x=(int16_t)(EG_X(c)<<4)-cam_x;y=(int16_t)(EG_Y(c)<<4)-cam_y;
+    if(x<143 && x+16>17 && y<111 && y+16>17 &&
+       ((dx>0 && x>=80) || (dx<0 && x<80) || (dy>0 && y>=64) || (dy<0 && y<64)))
+      n+=anchor_at(EG_X(c),EG_Y(c));
+  }
+  return n;
 }
 static uint8_t ground_ahead(uint8_t essential) {
-  int16_t x=pl_x,y=pl_y;int8_t dx=0,dy=0;uint8_t n=0u,k,c,x0,x1,y0,y1,vertical,limit,wide;
+  int8_t dx=0,dy=0;uint8_t x,y,n,k,c,x0,x1,vertical,limit,wide;
   /* A blink travels at most 6.5px/tick. Prepare the next 7px step's complete
    * 12x12 foot box, including diagonal corners and released rolls. A farther
    * point can skip the two adjacent cells crossed by a diagonal step. */
@@ -887,13 +911,7 @@ static uint8_t ground_ahead(uint8_t essential) {
     if((joy&(J_LEFT|J_RIGHT))!= (J_LEFT|J_RIGHT))dx=joy&J_RIGHT ? 1 : joy&J_LEFT ? -1 : 0;
     if((joy&(J_UP|J_DOWN))!= (J_UP|J_DOWN))dy=joy&J_DOWN ? 1 : joy&J_UP ? -1 : 0;
   }
-  x+=dx*7;y+=dy*7;
-  x0=(uint8_t)((x-6)>>4);x1=(uint8_t)((x+5)>>4);
-  y0=(uint8_t)((y-6)>>4);y1=(uint8_t)((y+5)>>4);
-  n+=anchor_at(x0,y0);
-  if(n<2u && x1!=x0)n+=anchor_at(x1,y0);
-  if(n<2u && y1!=y0)n+=anchor_at(x0,y1);
-  if(n<2u && y1!=y0 && x1!=x0)n+=anchor_at(x1,y1);
+  n=ground_contacts(dx,dy);
   if(n || video_epoch!=frame_epoch)return n;
   if(enemies_alive>=2u && (pl_state==PS_LASH || pl_state==PS_SPIN))return n;
   if(LY_REG<144u && LY_REG>=(world_on ? 24u : 32u))return 0u;
@@ -913,9 +931,9 @@ static uint8_t ground_ahead(uint8_t essential) {
       vertical=(uint8_t)(x0^k);
       if(vertical ? !dy : !dx)continue;
       limit=vertical ? 11u : 9u;
-      x=vertical ? cam_x>>4 : ((uint16_t)cam_x+(dx>0 ? 143u : 17u))>>4;
-      y=vertical ? ((uint16_t)cam_y+(dy>0 ? 111u : 17u))>>4 : cam_y>>4;
-      if((uint16_t)x>=EG_W || (uint16_t)y>=EG_H)continue;
+      x=vertical ? cam_x>>4 : (uint8_t)(cam_x+(dx>0 ? 143u : 17u))>>4;
+      y=vertical ? (uint8_t)(cam_y+(dy>0 ? 111u : 17u))>>4 : cam_y>>4;
+      if(x>=EG_W || y>=EG_H)continue;
       c=vertical ? (uint8_t)(EG_W-x) : (uint8_t)(EG_H-y);
       if(limit>c)limit=c;
       /* Walk the two bitmaps directly. Repeating coordinate conversion and
@@ -935,12 +953,7 @@ static uint8_t ground_ahead(uint8_t essential) {
    * camera step can carry them through the inner edge of the 24px band. */
   wide=(uint8_t)((dx>0 ? J_LEFT : dx<0 ? J_RIGHT : 0u)|(dy>0 ? J_UP : dy<0 ? J_DOWN : 0u));
   if(!essential && ((roam_dir&wide) || (roam_dir&0xf0u)))
-  for(k=0u;k<LOOK_MAX_CARDS && n<2u;k++)if(c_kind[k] && !c_brk[k]) {
-    c=c_cell[k];x=(int16_t)(EG_X(c)<<4)-cam_x;y=(int16_t)(EG_Y(c)<<4)-cam_y;
-    if(x<143 && x+16>17 && y<111 && y+16>17 &&
-       ((dx>0 && x>=80) || (dx<0 && x<80) || (dy>0 && y>=64) || (dy<0 && y<64)))
-      n+=anchor_at(EG_X(c),EG_Y(c));
-  }
+    n=ground_returning(dx,dy);
   if(n>=2u)return n;
   /* A slow/busy card must land before it leaves the edge band. This sweep is
    * a half slab INSIDE the approaching screen edge, after its visible entrance,
@@ -950,8 +963,8 @@ static uint8_t ground_ahead(uint8_t essential) {
   vertical=(uint8_t)(dy && (!dx || (frame_count&(essential ? 2u : 1u))));
   limit=vertical ? 11u : 9u;
   if(near_cursor>=limit)near_cursor=0u;
-  x=vertical ? cam_x>>4 : ((uint16_t)cam_x+(dx>0 ? 152u : 8u))>>4;
-  y=vertical ? ((uint16_t)cam_y+(dy>0 ? 120u : 8u))>>4 : cam_y>>4;
+  x=vertical ? cam_x>>4 : (uint8_t)(cam_x+(dx>0 ? 152u : 8u))>>4;
+  y=vertical ? (uint8_t)(cam_y+(dy>0 ? 120u : 8u))>>4 : cam_y>>4;
   /* Visible BG readiness also runs while speculative generation is pending;
    * it needs no cold OBJ upload. Quiet puzzles can ease as fast as worlds. Inspect their
    * complete edge and land up to two slabs; a single repair cannot cover all
@@ -991,17 +1004,24 @@ void look_frame_begin(void) BANKED {
      * bounded ready card / launch here; animation stays after the actors. */
     roam_late=0u;
     k=ground_ahead(waiting);
-    /* A multi-target swing can spend another thirty scanlines before the
-     * complete actor list is drawn. Keep its speculative terrain admission
-     * free; swept feet above and existing flying cards still advance. */
+    /* New input or a pending wave can add actor work later in this frame.
+     * Reserve live combat for actors regardless of the previous pose/count.
+     * Swept feet above and existing flying cards still advance. */
     if(k<2u && prepare_time() && grav_t!=1u && !push_t &&
-       !(enemies_alive>=2u && (pl_state==PS_LASH || pl_state==PS_SPIN)) &&
        (stage_type==SG_PUZZLE || (frame_count&3u))) {
       /* Share the early window with seed queries on alternate ticks. Existing
        * flights still animate every frame; one resident card may launch or
        * settle on the presentation turn, with no cold texture upload. */
-      if(waiting) {if(!k && (frame_count&1u))look_update(3u);}
-      else {if(!(frame_count&1u))look_roam_tick();look_update((uint8_t)(1u+k));}
+      if(!enemies_alive && (stage_type!=SG_HOLDOUT || stage_won)) {
+        if(waiting) {if(!k && (frame_count&1u))look_update(3u);}
+        else {if(!(frame_count&1u))look_roam_tick();look_update((uint8_t)(1u+k));}
+      } else if(enemies_alive && !waiting && !(frame_count&1u) &&
+                (pin.move==EG_MV_IDLE || pin.move==EG_MV_SPRINT) &&
+                (joy&(J_A|J_B|0x0fu))==pin.prev) {
+        /* One queued operation, including at most one cold departure.
+         * No extra discovery scan and no new-input/attack/spawn frame. */
+        look_update(4u);
+      }
     }
     roam_late=1u;
   }
@@ -1013,7 +1033,7 @@ static void look_update(uint8_t prepare) {
   /* Gravity, obstacles and actor composition share the frame. Defer BG commits
    * on that heavy tick; moving/falling cards still animate, and a settled card
    * waits for the next tick's bounded two-cell commit. */
-  budget = roam_late && roam_on && !prepare ? 0u : game_mode == MODE_PLAY ? (grav_t==1u || (roam_on && push_t) ? 0u : prepare>=2u ? 1u : 2u) : LOOK_COMMITS_PER_FRAME;
+  budget = roam_late && roam_on && !prepare ? 0u : game_mode == MODE_PLAY ? (grav_t==1u || (roam_on && push_t) ? 0u : prepare>=2u && prepare!=4u ? 1u : 2u) : LOOK_COMMITS_PER_FRAME;
   if (look_dbg_kind) { /* the harness: 0x80 applies a poked skin, else a break of that kind */
     if (look_dbg_kind == 0x80u) look_skin_set(look_dbg_cell, (uint8_t)(look_skin[look_dbg_cell] - 1u));
     else look_break_tile(look_dbg_cell, look_dbg_kind);
@@ -1045,7 +1065,12 @@ static void look_update(uint8_t prepare) {
     if(roam_on && (roam_hidden[i>>3]&BIT(i)) && look_here(i) && roam_wants(i)) {
       roam_hidden[i>>3]&=(uint8_t)~BIT(i);queued[i>>3]&=(uint8_t)~BIT(i);q_head++;q_n--;continue;
     }
-    if (!on_screen(i) && !(roam_on && roam_wants(i))) {
+    if(roam_on && game_mode==MODE_PLAY && !look_here(i)) {
+      /* Incoming background is canonical and ready before camera exposure.
+       * No OBJ upload or flight slot competes with the approved departures. */
+      look_present[i>>3]|=BIT(i);roam_hidden[i>>3]&=(uint8_t)~BIT(i);
+      settle(i);
+    } else if (!on_screen(i) && !(roam_on && roam_wants(i))) {
       if(roam_on) {
         /* A queued arrival abandoned by a reversal stays hidden. */
         look_present[i>>3]&=(uint8_t)~BIT(i);roam_hidden[i>>3]|=BIT(i);
@@ -1055,7 +1080,7 @@ static void look_update(uint8_t prepare) {
     } else {
       /* the head, or one of the next few if the head's band is full (the wave keeps its order, roughly) */
       uint8_t j, ii = 0, found = 0;
-      if (launches == (prepare==3u ? 1u : prepare ? 2u : 3u)) break;
+      if (launches == (prepare>=3u ? 1u : prepare ? 2u : 3u)) break;
       for (j = 0; j != (prepare ? 2u : 4u) && j < q_n && roam_bg_time() && (!prepare || prepare_time()); j++) {
         ii = q[(uint8_t)(q_head + j)];
         if ((on_screen(ii) || (roam_on && roam_wants(ii))) && look_here(ii) == look_here(i) && launch(ii)) {
@@ -1079,6 +1104,7 @@ static void look_update(uint8_t prepare) {
     queued[i >> 3] &= (uint8_t)~BIT(i);
     q_head++;
     q_n--;
+    if(prepare==4u){budget=0u;break;}
     if(prepare && !budget)break;
   }
   /* skins and stages changed: redraw with what is left of the budget */
@@ -1109,6 +1135,13 @@ void look_frame_end(void) BANKED {
    * state intact when only the VBlank publication margin remains. */
   if(roam_on && (video_epoch!=frame_epoch || LY_REG>=108u))return;
   look_update(0u);
+  /* Offscreen preloads can keep the roaming queue busy indefinitely. Animate
+   * visible items after terrain has used its allowance, only on sparse idle
+   * turns with enough display time left. Never steal a cold card's early slot. */
+  if(roam_on && game_mode==MODE_PLAY && !enemies_alive && look_busy_n &&
+     (world_on || stage_type==SG_PUZZLE) &&
+     (!(frame_count&3u) || (frame_count&15u)==2u) &&
+     video_epoch==frame_epoch && LY_REG<98u)items_tick();
 }
 void look_tick(void) BANKED {
   roam_late=0u;look_frame_begin();

@@ -1,0 +1,10 @@
+{
+  "activeBranch": "codex/discovery-catalogue-444",
+  "worktrees": "worktree /Users/ravonus/dev/egress\nHEAD ad859cab67bf1807169778200a87950e8bc3f5d8\nbranch refs/heads/codex/discovery-catalogue-444\n\n",
+  "alreadyMergedRemoteBranches": [
+    "origin/codex/crucible-bench-scene"
+  ],
+  "unmergedRemoteBranches": [
+    "origin/codex/discovery-catalogue-444"
+  ]
+}

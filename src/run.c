@@ -12,6 +12,7 @@
 #include "run.h"
 #include "tutorial.h"
 #include "mapper.h"
+#include "collection.h"
 #include "clock.h"
 #include "family.h"
 #include "resume.h"
@@ -204,6 +205,7 @@ void run_end(uint8_t won) BANKED {
 
 void run_record_end(uint8_t won) BANKED {
   if(run_finished || tutorial_on==2u) return;
+  collection_pause();
   run_finished=1u;
   narrator_event(won ? NE_CLEAR : NE_DEATH,0u);
   resume_save(won ? RES_WON : RES_DEAD);

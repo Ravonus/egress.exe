@@ -12,4 +12,4 @@ Twenty focused native reports pass on the exact current ROMs: separate pages, al
 
 Standard SHA-256: `ab05de7b48168d8ba30451fcd038266ba7a846f237a2481c9125287db6efe92e`. RTC SHA-256: `ca6bdd6a1b186ac1e5982c94923719001cd43f274aea5843f14e2362d98ee42d`. Each ROM uses 1,376,256 bytes of the 1,900,000-byte budget.
 
-Website build, browser and public release verification are pending. This remains the ten-floor development build; the full campaign ledger remains open. The proposed 444-discovery catalogue and craftable pets are not part of these ROMs.
+Website build, native browser animation and public release verification pass. [PR #6](https://github.com/Ravonus/egress.exe/pull/6) is merged as `35f88831fe39bde3da737d78963ef63a87eb1a01`. At publication, the public player fetched this exact standard ROM; actual standard/RTC downloads, source links and widths 320/390/768/1280 pass. All 65 preexisting website changes are preserved. See `site-release.json`. This remains the ten-floor development build; the full campaign ledger remains open. The proposed 444-discovery catalogue and craftable pets are not part of these ROMs.

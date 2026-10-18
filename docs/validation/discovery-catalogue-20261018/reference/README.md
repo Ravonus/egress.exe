@@ -1,0 +1,1 @@
+Owner-supplied visual targets, retained unchanged. These are reference images, not claimed captures of the current ROM and not used as current website gameplay illustrations. Match their slab bevels, restrained dithering, raised wall faces and dark floating-floor undersides. Native arrival/departure motion requires separate current-ROM evidence.

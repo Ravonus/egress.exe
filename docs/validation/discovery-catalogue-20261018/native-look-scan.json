@@ -1,0 +1,12 @@
+{
+  "sha256": "a63b9eeeab53fe6f60cbbfd449e270999280854331575590d0966ceea8821607",
+  "cases": 45056,
+  "patterns": 12,
+  "maxDisplayFramesPerOperation": 1,
+  "results": {
+    "every_valid_row_and_column_interval_matches": true,
+    "source_bitmaps_unchanged": true,
+    "all_sprite_rotations_match_remainder": true,
+    "bounded_native_operation": true
+  }
+}

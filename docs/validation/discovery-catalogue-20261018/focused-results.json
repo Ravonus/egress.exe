@@ -1,0 +1,220 @@
+{
+  "running": null,
+  "results": [
+    {
+      "name": "build-v96",
+      "code": 0,
+      "seconds": 19.79
+    },
+    {
+      "name": "host-lift-v96",
+      "code": 0,
+      "seconds": 0.0
+    },
+    {
+      "name": "lift-mbc5-v96",
+      "code": 0,
+      "seconds": 3.47
+    },
+    {
+      "name": "lift-mbc3-v96",
+      "code": 0,
+      "seconds": 3.4
+    },
+    {
+      "name": "lift-course-mbc5-v96",
+      "code": 0,
+      "seconds": 2.69
+    },
+    {
+      "name": "lift-course-mbc3-v96",
+      "code": 0,
+      "seconds": 2.61
+    },
+    {
+      "name": "offscreen-arrival-v96",
+      "code": 0,
+      "seconds": 6.05
+    },
+    {
+      "name": "terrain-effect-mbc5-v96",
+      "code": 0,
+      "seconds": 4.69
+    },
+    {
+      "name": "terrain-effect-mbc3-v96",
+      "code": 0,
+      "seconds": 3.6
+    },
+    {
+      "name": "waves-mbc3-v96",
+      "code": 0,
+      "seconds": 53.2
+    },
+    {
+      "name": "boss-route-v96",
+      "code": 0,
+      "seconds": 9.67
+    },
+    {
+      "name": "gameplay-route-v96",
+      "code": 0,
+      "seconds": 8.2
+    },
+    {
+      "name": "linked-route-v96",
+      "code": 0,
+      "seconds": 8.09
+    },
+    {
+      "name": "native-look-scan-v96",
+      "code": 0,
+      "seconds": 11.77
+    },
+    {
+      "name": "camera-mbc5-v96",
+      "code": 0,
+      "seconds": 2.65
+    },
+    {
+      "name": "interaction-mbc5-v96",
+      "code": 0,
+      "seconds": 1.95
+    },
+    {
+      "name": "camera-mbc3-v96",
+      "code": 0,
+      "seconds": 2.65
+    },
+    {
+      "name": "interaction-mbc3-v96",
+      "code": 0,
+      "seconds": 1.9
+    },
+    {
+      "name": "waves-mbc5-v96",
+      "code": 0,
+      "seconds": 54.85
+    },
+    {
+      "name": "native-land-parity-v96",
+      "code": 0,
+      "seconds": 2.94
+    },
+    {
+      "name": "physical-motifs-v96",
+      "code": 0,
+      "seconds": 2.78
+    },
+    {
+      "name": "native-health-scan-v96",
+      "code": 0,
+      "seconds": 0.91
+    },
+    {
+      "name": "world-pets-v96",
+      "code": 0,
+      "seconds": 19.36
+    },
+    {
+      "name": "native-journal-v96",
+      "code": 0,
+      "seconds": 1.64
+    },
+    {
+      "name": "host-discovery-v96",
+      "code": 0,
+      "seconds": 2.12
+    },
+    {
+      "name": "curriculum-v96",
+      "code": 0,
+      "seconds": 4.33
+    },
+    {
+      "name": "environment-mbc5-v96",
+      "code": 0,
+      "seconds": 4.1
+    },
+    {
+      "name": "companions-mbc5-v96",
+      "code": 0,
+      "seconds": 12.94
+    },
+    {
+      "name": "crafted-mbc5-v96",
+      "code": 0,
+      "seconds": 7.33
+    },
+    {
+      "name": "companion-world-mbc5-v96",
+      "code": 0,
+      "seconds": 1.62
+    },
+    {
+      "name": "bench-mbc5-v96",
+      "code": 0,
+      "seconds": 2.1
+    },
+    {
+      "name": "pet-combat-mbc5-v96",
+      "code": 0,
+      "seconds": 6.62
+    },
+    {
+      "name": "environment-mbc3-v96",
+      "code": 0,
+      "seconds": 4.19
+    },
+    {
+      "name": "companions-mbc3-v96",
+      "code": 0,
+      "seconds": 12.6
+    },
+    {
+      "name": "crafted-mbc3-v96",
+      "code": 0,
+      "seconds": 7.22
+    },
+    {
+      "name": "companion-world-mbc3-v96",
+      "code": 0,
+      "seconds": 1.67
+    },
+    {
+      "name": "bench-mbc3-v96",
+      "code": 0,
+      "seconds": 2.2
+    },
+    {
+      "name": "pet-combat-mbc3-v96",
+      "code": 0,
+      "seconds": 6.36
+    },
+    {
+      "name": "fresh-save-mbc5-v96",
+      "code": 0,
+      "seconds": 7.2
+    },
+    {
+      "name": "fresh-save-mbc3-v96",
+      "code": 0,
+      "seconds": 7.2
+    },
+    {
+      "name": "advanced-bench-v96",
+      "code": 0,
+      "seconds": 3.74
+    },
+    {
+      "name": "fusion-v96",
+      "code": 0,
+      "seconds": 9.62
+    },
+    {
+      "name": "art-v96",
+      "code": 0,
+      "seconds": 5.88
+    }
+  ]
+}

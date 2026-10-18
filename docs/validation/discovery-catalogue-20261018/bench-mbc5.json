@@ -1,0 +1,28 @@
+{
+  "sha256": "a9d31dcf3c41d66f9b783388061a8f16c4aa9bded13ca7740e26234de5ecb1c1",
+  "results": {
+    "real_ingredients_picked": true,
+    "scene_uses_full_native_screen": true,
+    "select_toggles_separate_merge_and_inventory_pages": true,
+    "discovery_log_is_separate": true,
+    "scene_preserves_exact_terrain_and_mob_tiles_in_scratch": true,
+    "horizontal_selection_moves_between_materials": true,
+    "selection_never_discards": true,
+    "body_contact_deformation_and_reveal": true,
+    "ingredients_stay_finite_until_collected": true,
+    "result_waits_for_collection": true,
+    "collect_commits_exactly_two_units_and_equips_result": true,
+    "bench_closes_and_restores_hud": true,
+    "exact_borrowed_vram_restored": true,
+    "meters_and_palettes_restored": true
+  },
+  "phases": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "deforming_poses": 17,
+  "scene_frames": 187,
+  "log": []
+}

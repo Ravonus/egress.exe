@@ -47,7 +47,7 @@ def run(rom,out,tool):
         assert len(host)==320 and bytes(g.peek('room',i) for i in range(320))==host
         meter=OamMeter(g);grid=GridObserver(g);items=ItemObserver(g);log=[];warps=[];snapshots=[]
         tick=g.tick;last=g.player();ports=list(host[317:319]);active=[];missing=[];hitches=[];prior_fc=g.peek16('frame_count')
-        g.pb.memory[1,0xDDD0:0xDDF0]=[0xA7]*32
+        g.pb.memory[1,0xDE78:0xDE98]=[0xA7]*32
         def record(n=1):
             nonlocal last,prior_fc
             for _ in range(n):
@@ -92,18 +92,19 @@ def run(rom,out,tool):
                  'native_bg_reference':grid_report['all_map_and_attributes_match'],
                  'native_item_uploads':item_report['mapped_destination_and_pixels_match'],
                  'sprite_line_budget':meter.over==0,'active_frames_120_per_120':bool(spans) and min(spans)==120,
-                 'stack_canary':bytes(g.pb.memory[1,0xDDD0:0xDDF0])==bytes([0xA7]*32)}
+                 'stack_canary':bytes(g.pb.memory[1,0xDE78:0xDE98])==bytes([0xA7]*32)}
         results['backtracking_keeps_objects_and_inventory']=backtracked
         reports.append({'seed':seed,'approach':approach,'results':results,'plan':plan,'warps':len(warps),'missing_floor':missing[:20],
                         'minimum_game_frames_per_120':min(spans) if spans else None,'hitches':hitches,'oam_max':meter.max_line,'items':item_report,'grid':grid_report})
         g.stop()
-    # Real bench mistakes consume both HOT units. The normal sliced checker
+    # Fuse both FIRE units, then AIR: the ENERGY shard spends both HOT units.
+    # The normal sliced checker
     # must identify the cut and offer the existing token reset, without a warp.
     g=Game(rom);assert start_run(g,True,True,seed=0x5EEC,floor=7,physical_fixture=4)
     log=[];cells=bytes(g.peek('room',i) for i in range(320));start=cells[224]
     direction='R' if start%16<8 else 'L'
     for _ in range(5):assert step(g,direction,log)
-    assert bench_act(g,'Cah',log) and bench_act(g,'Cac',log)
+    assert bench_act(g,'Caa',log) and bench_act(g,'Ccy',log),log
     g.tick(260);assert g.peek('dead_t')==1,{'wrong_spend_pocket':pocket(g),'cue':g.peek('dead_t')}
     tokens=g.peek('tokens');g.shot(out/'wrong-spend-reset-cue.png')
     g.hold({'select'});g.tick(62);g.hold(set());g.tick(240)

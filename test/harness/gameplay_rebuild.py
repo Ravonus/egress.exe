@@ -1,4 +1,4 @@
-"""Input-driven legacy-motif regression route. Explicit push/drop/bridge fixtures preserve isolated recipe and save checks; procedural_runs.py exercises ordinary generation and death/restart.
+"""Input-driven physical-motif regression route. Explicit push/drop/bridge fixtures preserve isolated recipe and save checks; procedural_runs.py exercises ordinary generation and death/restart.
 God mode only removes health loss during the combat route. No player/room warps or forced wave kills are used.
 """
 import argparse
@@ -45,6 +45,8 @@ def run(rom,out,tool):
     for d in 'URDL': assert step(g,d,log)
     result['pickup_units']=pocket(g)==[4,2]
     g.hold({'select'});g.tick(62);g.hold(set());g.tick(180)
+    assert g.wait_mode(2,1200),'reset must finish its native assembly before the route resumes'
+    g.tick(2)
     result['reset_restores_entry_bag_and_pickups']=pocket(g)==[] and g.room()[178]==17 and g.room()[179]==17
     for d in 'URDL': assert step(g,d,log)
     assert bench_open(g,log); bench_cursor(g,0);g.shot(out/'02-bench.png')

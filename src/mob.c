@@ -23,6 +23,8 @@
 #include <gb/cgb.h>
 #include <string.h>
 #include "play.h"
+#include "companion.h"
+#include "look.h"
 #include "mob.h"
 #include "oam.h"
 #include "heir.h"
@@ -402,7 +404,7 @@ void mobs_floor(void) BANKED {
 /* ---- the AI ---- */
 static enemy_t *E;
 static mob_t *Mb;
-static uint8_t K, ex, ey;
+static uint8_t K, ex, ey,aim_x,aim_y;
 
 static void tell(uint8_t frames) {
   E->st = ES_TELL;
@@ -444,13 +446,13 @@ static void pick(uint8_t bit) {
   /* Steering is retried at the current cell centre next tick. Position,
    * collision, attack tells and statuses still update every simulation tick. */
   if(video_epoch!=frame_epoch || (LY_REG>=56u && LY_REG<144u))return;
-  uint8_t c = cell_at(ex, ey), d, best = 255u, bd = 255u, n, k, j, gx = pl_x, gy = pl_y, nx, ny, dist;
+  uint8_t c = cell_at(ex, ey), d, best = 255u, bd = 255u, n, k, j, gx = aim_x, gy = aim_y, nx, ny, dist;
   uint8_t rotation=eg_rnd(),wobble=eg_rnd();
   enemy_t *other;
   if (Mb->status & MS_BLIND) { gx=(uint8_t)(eg_rnd()&0xf0u); gy=(uint8_t)(eg_rnd()&0xb0u); }
   if (Mb->ax.beh == MH_FLANK) { /* aim beside the player, on the side it already is */
-    if (absdiff(ex, pl_x) < absdiff(ey, pl_y)) gx = (uint8_t)(pl_x + (K & 1u ? 24u : (uint8_t)-24));
-    else gy = (uint8_t)(pl_y + (K & 1u ? 24u : (uint8_t)-24));
+    if (absdiff(ex, aim_x) < absdiff(ey, aim_y)) gx = (uint8_t)(aim_x + (K & 1u ? 24u : (uint8_t)-24));
+    else gy = (uint8_t)(aim_y + (K & 1u ? 24u : (uint8_t)-24));
   }
   for (k = 0; k != 4u; k++) {
     /* Visit each neighbour once in a seeded order. Re-rolling every probe
@@ -480,7 +482,7 @@ static void pick(uint8_t bit) {
   E->tx = (uint8_t)(EG_X(n) * 16u + 8u);
   E->ty = (uint8_t)(EG_Y(n) * 16u + 8u);
   if (Mb->ax.def == MD_ARMOR) /* the clipboard turns to the player */
-    E->face = absdiff(ex, pl_x) > absdiff(ey, pl_y) ? (ex < pl_x ? F_RIGHT : F_LEFT) : (ey < pl_y ? F_DOWN : F_UP);
+    E->face = absdiff(ex, aim_x) > absdiff(ey, aim_y) ? (ex < aim_x ? F_RIGHT : F_LEFT) : (ey < aim_y ? F_DOWN : F_UP);
   else
     E->face = best;
 }
@@ -496,12 +498,12 @@ static uint8_t clear_line(uint8_t a, uint8_t b, uint8_t step) {
 
 /* at a cell centre: lined up with the player, close, nothing between: face and tell */
 static uint8_t try_lunge(uint8_t range) {
-  uint8_t c = cell_at(ex, ey), p = cell_at(pl_x, pl_y);
+  uint8_t c = cell_at(ex, ey), p = cell_at(aim_x, aim_y);
   if (E->cd) return 0;
-  if (EG_Y(c) == EG_Y(p) && absdiff(ex, pl_x) < range && clear_line(c, p, ex < pl_x ? 1u : 255u)) {
-    E->face = ex < pl_x ? F_RIGHT : F_LEFT;
-  } else if (EG_X(c) == EG_X(p) && absdiff(ey, pl_y) < range && clear_line(c, p, ey < pl_y ? 16u : 240u)) {
-    E->face = ey < pl_y ? F_DOWN : F_UP;
+  if (EG_Y(c) == EG_Y(p) && absdiff(ex, aim_x) < range && clear_line(c, p, ex < aim_x ? 1u : 255u)) {
+    E->face = ex < aim_x ? F_RIGHT : F_LEFT;
+  } else if (EG_X(c) == EG_X(p) && absdiff(ey, aim_y) < range && clear_line(c, p, ey < aim_y ? 16u : 240u)) {
+    E->face = ey < aim_y ? F_DOWN : F_UP;
   } else
     return 0;
   tell(Mb->tell);
@@ -525,7 +527,7 @@ static void walker(void) {
         ex = nx;
         ey = ny;
         if (Mb->ax.atk == MA_SLAM) {
-          if (!E->cd && absdiff(ex, pl_x) + absdiff(ey, pl_y) < 34u) tell(Mb->tell);
+          if (!E->cd && absdiff(ex, aim_x) + absdiff(ey, aim_y) < 34u) tell(Mb->tell);
           else pick(bit);
         } else if (!try_lunge(Mb->fam == FAM_STAPLES ? 48u : 72u))
           pick(bit);
@@ -539,6 +541,7 @@ static void walker(void) {
           shake = 6u;
           sfx(SFX_THUD);
           fx_burst(ex, ey, FX_STONE, 4u);
+          if(companion.id)companion_touch(2u,ex,ey,28u);
           if (absdiff(ex, pl_x) < 28u && absdiff(ey, pl_y) < 28u) player_hurt(2u, ex, ey);
           E->st = ES_REST;
           E->t = 50u;
@@ -576,7 +579,7 @@ static void walker(void) {
 
 static void shoot(void) {
   orb_shooter = K;
-  fire_orb_at(ex, (uint8_t)(ey - 6u), (int16_t)pl_x - ex, (int16_t)pl_y - (int16_t)(ey - 6u), 20u);
+  fire_orb_at(ex, (uint8_t)(ey - 6u), (int16_t)aim_x - ex, (int16_t)aim_y - (int16_t)(ey - 6u), 20u);
   orb_shooter = 255u;
   sfx(SFX_SHOT);
 }
@@ -589,20 +592,20 @@ static void flyer(void) {
     case ES_REST:
     case ES_FLOAT:
       E->st = ES_FLOAT;
-      d = (uint8_t)(absdiff(ex, pl_x) + absdiff(ey, pl_y));
+      d = (uint8_t)(absdiff(ex, aim_x) + absdiff(ey, aim_y));
       if (d > 72u) {
-        mx = ex < pl_x ? 6 : -6;
-        my = ey < pl_y ? 6 : -6;
+        mx = ex < aim_x ? 6 : -6;
+        my = ey < aim_y ? 6 : -6;
       } else if (d < 46u) {
-        mx = ex < pl_x ? -8 : 8;
-        my = ey < pl_y ? -8 : 8;
+        mx = ex < aim_x ? -8 : 8;
+        my = ey < aim_y ? -8 : 8;
       } else {
         mx = (E->anim & 128u) ? 5 : -5;
         my = (E->anim & 128u) ? -5 : 5;
-        if (absdiff(ex, pl_x) > absdiff(ey, pl_y)) mx = 0;
+        if (absdiff(ex, aim_x) > absdiff(ey, aim_y)) mx = 0;
         else my = 0;
       }
-      E->face = ex < pl_x ? F_RIGHT : F_LEFT;
+      E->face = ex < aim_x ? F_RIGHT : F_LEFT;
       if (E->cd) E->cd--;
       else if (d < 110u)
         tell(Mb->tell);
@@ -626,7 +629,7 @@ static void flyer(void) {
 }
 
 static void turret(void) {
-  E->face = ex < pl_x ? F_RIGHT : F_LEFT;
+  E->face = ex < aim_x ? F_RIGHT : F_LEFT;
   if (E->st == ES_TELL) {
     if (!--E->t) {
       shoot();
@@ -637,7 +640,7 @@ static void turret(void) {
   }
   E->st = ES_REST;
   if (E->cd) E->cd--;
-  else if (absdiff(ex, pl_x) + absdiff(ey, pl_y) < 120u)
+  else if (absdiff(ex, aim_x) + absdiff(ey, aim_y) < 120u)
     tell(Mb->tell);
 }
 
@@ -651,10 +654,10 @@ static void burrower(void) {
       ey = E->ty;
       c = cell_at(ex, ey);
       if (E->cd) E->cd--;
-      if (!E->cd && cell_ok[cell_type(c)] & CW && absdiff(ex, pl_x) + absdiff(ey, pl_y) < 40u) {
+      if (!E->cd && cell_ok[cell_type(c)] & CW && absdiff(ex, aim_x) + absdiff(ey, aim_y) < 40u) {
         Mb->status &= (uint8_t)~MS_UNDER; /* up: the tell */
         fx_burst(ex, ey, FX_STONE, 2u);
-        E->face = absdiff(ex, pl_x) > absdiff(ey, pl_y) ? (ex < pl_x ? F_RIGHT : F_LEFT) : (ey < pl_y ? F_DOWN : F_UP);
+        E->face = absdiff(ex, aim_x) > absdiff(ey, aim_y) ? (ex < aim_x ? F_RIGHT : F_LEFT) : (ey < aim_y ? F_DOWN : F_UP);
         tell(Mb->tell);
       } else
         pick(CU);
@@ -729,6 +732,7 @@ static void status_tick(void) {
   if (!--Mb->st_t) {
     if (Mb->status & MS_FROZEN) fx_burst(ex, ey, FX_COLD, 2u);
     Mb->status &= MS_UNDER;
+    Mb->flags&=(uint8_t)~MOBF_EXPOSE;
     return;
   }
   if ((Mb->status & MS_BURN) && (Mb->st_t & 31u) == 0u) {
@@ -749,6 +753,8 @@ void mobs_update(void) BANKED {
     Mb = &mob[K];
     ex = (uint8_t)(E->x >> 4);
     ey = (uint8_t)(E->y >> 4);
+    aim_x=pl_x;aim_y=pl_y;
+    if(companion.threat&look_bits[K])companion_aim(K,&aim_x,&aim_y);
     E->anim++;
     if (E->flash) E->flash--;
     status_tick();
@@ -785,6 +791,7 @@ void mobs_update(void) BANKED {
       default: walker(); break;
     }
     /* touch and lunge damage (a tell, the burrowed and the frozen don't hurt) */
+    if(companion.id && E->st!=ES_TELL && !(Mb->status&MS_UNDER))companion_touch(E->st==ES_LUNGE && Mb->fam!=FAM_STAPLES ? 2u : 1u,ex,ey,11u);
     if (E->st != ES_TELL && !(Mb->status & MS_UNDER) && overlap(ex, ey, pl_x, pl_y, 11u, 11u)) {
       uint8_t taken = acts.hits_taken;
       player_hurt(E->st == ES_LUNGE && Mb->fam != FAM_STAPLES ? 2u : 1u, ex, ey);
@@ -815,14 +822,17 @@ uint8_t combat_react(uint8_t tags, uint8_t el, uint8_t status) BANKED {
   return eg_combat_reaction(tags,el,status,(uint8_t)(hit_src==HS_FUSE || (hit_src==HS_SPIN && pl_level>=3u)));
 }
 
-uint8_t mob_tool(uint8_t k, uint8_t piece) BANKED {
+uint8_t mob_tool(uint8_t k,uint8_t piece) BANKED {
+ return mob_element(k,piece,piece==P_ELECTRIC ? HS_FUSE : HS_HIT1,pl_x,pl_y,1u);
+}
+uint8_t mob_element(uint8_t k,uint8_t piece,uint8_t source,uint8_t fromx,uint8_t fromy,uint8_t power) BANKED {
   mob_t *m=&mob[k]; enemy_t *e=&en[k];
   uint8_t x=(uint8_t)(e->x>>4),y=(uint8_t)(e->y>>4);
   if(e->kind!=SPAWN_MOB || e->st==ES_DEAD || (m->status&MS_UNDER)) return 0u;
   if(piece==P_AIR) {
     if(m->ax.body==MB_HEAVY || m->ax.body==MB_TURRET) return 0u;
-    e->vx=x>pl_x ? 56 : x<pl_x ? -56 : 0;
-    e->vy=y>pl_y ? 56 : y<pl_y ? -56 : 0;
+    e->vx=x>fromx ? 56 : x<fromx ? -56 : 0;
+    e->vy=y>fromy ? 56 : y<fromy ? -56 : 0;
     e->st=ES_HURT;e->t=10u;fx_burst(x,y,FX_KILL,3u);return 1u;
   }
   if(piece==P_WATER || piece==P_RAIN || piece==P_CLOUD) {
@@ -837,9 +847,10 @@ uint8_t mob_tool(uint8_t k, uint8_t piece) BANKED {
     e->tx=x;e->ty=y;fx_burst(x,y,FX_KILL,4u);return 1u;
   }
   if(piece==P_ELECTRIC && m->ax.el==TAG_STONE && !(m->status&MS_WET)) return 0u;
-  hit_src=piece==P_ELECTRIC ? HS_FUSE : HS_HIT1;
+  hit_src=source;
   hit_tags=eg_piece_tags(piece);hit_result=HR_MISS;
-  enemy_hit(k,piece==P_LAVA ? 2u : 1u,pl_x,pl_y);
+  if(!power)power=1u;if(power>4u)power=4u;
+  enemy_hit(k,(uint8_t)(piece==P_LAVA && power<4u ? power+1u : power),fromx,fromy);
   if(hit_result==HR_MISS || hit_result==HR_BLOCK) return 0u;
   if(piece==P_ELECTRIC && e->st!=ES_DEAD && !(m->status&MS_STUN)) { m->status|=MS_STUN;m->st_t=30u; }
   return 1u;
@@ -881,7 +892,7 @@ void mob_hit(uint8_t k, uint8_t dmg, uint8_t fromx, uint8_t fromy) BANKED {
   switch (Mb->ax.def) {
     case MD_CRUSH: ok = (uint8_t)(hit_src == HS_CRUSH || hit_src == HS_VOID || hit_src == HS_REACT); break;
     case MD_REFLECT: ok = (uint8_t)(hit_src == HS_ORB && hit_orb_from == k); break;
-    case MD_ARMOR: ok = (uint8_t)(hit_src >= HS_ORB || !from_front(fromx, fromy)); break;
+    case MD_ARMOR: ok = (uint8_t)((hit_src >= HS_ORB && hit_src!=HS_PET && hit_src!=HS_ELEMENT) || !from_front(fromx, fromy)); break;
   }
   if ((Mb->flags & MOBF_HUNT_BACK) && !roll_recent) ok = 0u;
   if (Mb->shield && hit_src != HS_REACT) {
@@ -890,6 +901,7 @@ void mob_hit(uint8_t k, uint8_t dmg, uint8_t fromx, uint8_t fromy) BANKED {
     if (!Mb->shield) hud_msg("SHIELD BREAKS");
     ok = 0;
   }
+  if(ok && (Mb->flags&MOBF_EXPOSE) && hit_src<=HS_PARRY)dmg++;
   tags = weapon_tags();
   rx = ok ? combat_react(tags, Mb->ax.el, Mb->status) : RX_NONE;
   /* reactions on mobs (5.2): statuses and multipliers */

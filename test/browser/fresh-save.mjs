@@ -39,7 +39,7 @@ try {
  const image=await page.locator('.game-canvas').evaluate(c=>c.toDataURL('image/png'));await writeFile('build/sprints/browser-fresh-save.png',Buffer.from(image.split(',')[1],'base64'));
  await press('KeyX');await wait('family_page',1);await wait('family_ready',1);await press('KeyX');await wait('game_mode',2);
  const playing=await snapshot();assert.equal(playing.floor,1);assert.equal(playing.pocket,0);assert.equal(playing.generation,1);
- await page.waitForFunction(sha=>{const text=localStorage.getItem('egress:battery:v1:'+sha);if(!text)return false;const b=atob(JSON.parse(text).data);return [0x570,0xa6c].some(p=>b.slice(p,p+3)==='FA'+String.fromCharCode(3));},sha,{timeout:30000});
+ await page.waitForFunction(sha=>{const text=localStorage.getItem('egress:battery:v1:'+sha);if(!text)return false;const b=atob(JSON.parse(text).data);return [0x570,0xa6c].some(p=>b.slice(p,p+3)==='FA'+String.fromCharCode(4));},sha,{timeout:30000});
  assert.ok(await page.evaluate(old=>localStorage.getItem('egress:battery:v1:'+old)===window.__oldBattery,fixture.previousSha256));assert.deepEqual(errors,[]);
  const report={base,viewport:page.viewportSize(),input:'DOM keyboard events with bounded native tick waits; no LCD-paint dependency.',sha256:sha,previousSha256:fixture.previousSha256,previousGeneration:fixture.generation,clockPrompt,results:{previousSaveIgnored:true,oldStorageUntouched:true,freshGenerationOne:true,noInheritedProgress:true,currentSaveWritten:true,nativeGameStarted:true,pageErrors:true}};
  await writeFile('build/sprints/browser-fresh-save-report.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));

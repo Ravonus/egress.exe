@@ -1,0 +1,12 @@
+{
+  "sha256": "e39dbffe56e966c6a2b7ec010a4c3a4d148257e292cb0a2865225703b2808c62",
+  "results": {
+    "standing_on_plate_opens_gate": true,
+    "leaving_plate_releases_gate": true,
+    "crate_reaches_unpushable_rim": true,
+    "stranded_crate_shows_reset_cue": true,
+    "hold_select_restores_original_crate": true,
+    "floor_stack_does_not_reach_skin_scratch": true
+  },
+  "log": []
+}

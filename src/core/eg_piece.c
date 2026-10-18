@@ -158,6 +158,7 @@ static uint8_t power(eg_room *r, uint8_t n) {
 
 uint8_t eg_use_rx(uint8_t piece, uint8_t type) EG_BANKED {
   uint8_t k, rx, tt;
+  if(EG_HEALTH(type))type=T_EMPTY;
   if (!piece || piece >= P_COUNT) return RX_NONE;
   if (piece == P_AIR && EG_CRATE(type)) return RX_PUSH;
   if (piece == P_MUD && type == T_PIT) return RX_MUD;
@@ -178,6 +179,7 @@ uint8_t eg_apply(eg_room *r, uint8_t piece, uint8_t cell, const uint8_t *occ, ui
   int8_t dx,dy,dir;
   eg_ndirty = 0u;
   eg_plates_dirty = 1u; /* a brick may land on a plate, or burn off one */
+  if(EG_HEALTH(v))v=T_EMPTY;
   if (!piece || piece >= P_COUNT || EG_ABYSS(v) || in_occ(cell, occ, nocc)) return RX_NONE;
   if (piece == P_AIR && EG_CRATE(v) && nocc) {
     for(k=0u;k!=nocc;k++) {

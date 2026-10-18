@@ -20,6 +20,11 @@
 #include "gen/diag_arc.inc"
 #include "gen/hammer.inc"
 #include "core/eg_input.h"
+#include "companion.h"
+#include "elements.h"
+#include "health.h"
+#include "puzzle.h"
+#include "gen/mob_art.h"
 extern eg_input_t pin;
 extern eg_mover_t pmv;
 extern volatile uint8_t video_epoch;
@@ -102,7 +107,9 @@ void sprites_reset(void) BANKED {
   VBK_REG=1u;set_sprite_data(0u,4u,heir.weapon==1u ? hammer_diagonal : diagonal_arc);VBK_REG=0u;
   if(heir.weapon==1u)set_sprite_data(ST_ARC_DOWN,24u,hammer_arc);
   heir_reset(); /* the floor's art was reloaded over the heir's tiles */
-  if (!boss_floor) mobs_reload(); /* B2: and over the mobs' looks */
+  if (!boss_floor) mobs_reload(); /* and over the mobs' looks */
+  else mob_art_fx(MOB_FX_TILE); /* current boss art owns 158..205, not the FX atlas */
+  health_load();companion_reset_position();companion_art_tick();
 }
 
 /* --- the per-line budget (src/oam.h) --- */
@@ -549,15 +556,6 @@ static uint8_t spr16(int16_t wx, int16_t wy, uint8_t tile, uint8_t pal, uint8_t 
 static uint8_t spr8(int16_t wx, int16_t wy, uint8_t tile, uint8_t pal) {
   return oam_group(wx - cam_x - 4, wy - cam_y - 4, 1u, tile, 0, pal);
 }
-/* 32x32: two rows of four, each row all or nothing */
-static void spr32(int16_t wx, int16_t wy, uint8_t tile, uint8_t pal) {
-  int16_t sx = wx - cam_x, sy = wy - cam_y;
-  oam_group(sx, sy, 4u, tile, 2u, pal);
-  oam_group(sx, sy + 16, 4u, (uint8_t)(tile + 8u), 2u, pal);
-}
-
-static const int8_t bob[8] = {0, 0, -1, -1, 0, 0, 1, 1};
-
 /* No projection or allocation is needed after the FX deadline. Age every
  * existing puff in place, preserving its lifetime without a C pointer walk. */
 static void age_puffs(void) NAKED {
@@ -579,51 +577,6 @@ static void age_puffs(void) NAKED {
 }
 typedef char puff_native_stride[(sizeof(puff_t)==5u && MAXP==6u) ? 1 : -1];
 
-/* the B1 kinds: mite, eye, the Watchman (boss.c) */
-static void draw_b1(enemy_t *e) {
-  uint8_t base, pal, flip;
-  int16_t x, y;
-  x = (int16_t)(e->x >> 4);
-  y = (int16_t)(e->y >> 4);
-  if (e->kind == SPAWN_MITE) {
-    base = (uint8_t)(ST_MITE + (((e->anim >> 3) & 1u) << 2));
-    pal = 2;
-    if (e->st == ES_TELL) {
-      base = ST_MITE + 8u;
-      x += (e->t & 2u) ? 1 : -1;
-      pal = (e->t & 4u) ? 7u : 2u;
-    } else if (e->st == ES_LUNGE)
-      base = ST_MITE + 8u;
-    else if (e->st == ES_REST && (e->t & 8u))
-      base = ST_MITE;
-    flip = (uint8_t)((e->anim >> 4) & 1u);
-  } else {
-    base = ST_EYE;
-    pal = 3;
-    y += bob[(e->anim >> 3) & 7u];
-    if (e->st == ES_TELL) {
-      base = ST_EYE + 4u;
-      pal = (e->t & 4u) ? 7u : 3u;
-    }
-    flip = 0;
-  }
-  if (e->flash) pal = (e->flash & 2u) ? 6u : pal;
-  spr16(x, y, base, pal, flip);
-}
-
-static void draw_boss(enemy_t *e) {
-  uint8_t base = ST_BOSS, pal = 3;
-  int16_t y = (int16_t)(e->y >> 4) - 16 + bob[(e->anim >> 3) & 7u], x = (int16_t)(e->x >> 4) - 16;
-  if (e->st == ES_TELL) {
-    base = ST_BOSS + 16u;
-    pal = (e->t & 4u) ? 7u : 3u;
-    x += (e->t & 2u) ? 1 : -1;
-  } else if (e->st == ES_STUN)
-    base = ST_BOSS + 32u;
-  if (e->flash) pal = (e->flash & 2u) ? 6u : pal;
-  spr32(x, y, base, pal);
-}
-
 /* Projectiles retain their full twelve-bit pixel coordinates. The stack packet
  * avoids spilling each source member and projection through the outer loop. */
 static void draw_orbs(void) NAKED {
@@ -644,6 +597,8 @@ static void draw_orbs(void) NAKED {
     ld a,(hl+)
     or a,a
     jp z,8$
+    bit 7,(hl)
+    jp nz,8$
     ld a,(hl)
     ld b,#4
     or a,a
@@ -754,6 +709,7 @@ static void draw_orbs(void) NAKED {
 typedef char native_orb_draw_layout[(MAXO==8u && sizeof(orb_t)==10u && offsetof(orb_t,live)==0u &&
   offsetof(orb_t,friendly)==1u && offsetof(orb_t,x)==4u && offsetof(orb_t,y)==6u && ST_ORB==132u) ? 1 : -1];
 
+#include "sprites_start.inc"
 void draw_sprites(void) BANKED {
   uint8_t k, fr, start;
   int16_t x, y;
@@ -807,20 +763,19 @@ void draw_sprites(void) BANKED {
   else if (nen) mobs_draw(OP_MARK);
   /* OP_BOSS */
   if (boss_floor) boss_draw_body();
-  else for (k = 0; k != nen; k++)
-    if (en[k].kind == SPAWN_BOSS && en[k].st != ES_DEAD) draw_boss(&en[k]);
   /* OP_SHOT: projectiles keep their priority ahead of mob bodies. */
   if(orbs[0].live|orbs[1].live|orbs[2].live|orbs[3].live|orbs[4].live|orbs[5].live|orbs[6].live|orbs[7].live)draw_orbs();
+  if(elemental_active)elements_draw();
+  if(companion.id)companion_draw();
   /* OP_MOB: bodies, from a rotating start so a crowded line flickers fairly */
   if (room.nob) obstacle_draw();
   if (nen && !(boss_floor && nen == 1u)) {
-    start = (uint8_t)(oam_spin % nen);
+    start = sprite_start(oam_spin,nen);
     k = start;
     do {
       enemy_t *e = &en[k];
       if (e->st != ES_DEAD) {
         if (e->kind == SPAWN_MOB) mob_draw(k);
-        else if (e->kind != SPAWN_BOSS) draw_b1(e);
       }
       if (++k == nen) k = 0;
     } while (k != start);
@@ -828,7 +783,8 @@ void draw_sprites(void) BANKED {
     mobs_draw(OP_OVER);
   }
   /* OP_FX: particles, then puffs (cosmetic: left out where a line is full) */
-  if (!boss_floor) fx_draw(); /* boss art owns the mob/FX tile block in an arena */
+  health_draw();
+  fx_draw();
   if(puffs[0].t|puffs[1].t|puffs[2].t|puffs[3].t|puffs[4].t|puffs[5].t) {
     puff_t *p = puffs;
     int16_t py;
@@ -847,8 +803,8 @@ void draw_sprites(void) BANKED {
   if (look_busy_n && was_busy) {
     /* Flying cards occupy the high OAM slots outside the actor allocator. They
      * still share the hardware's ten-OBJ line limit with actors and shots. */
-    if(!boss_floor && stage_type!=SG_DARK && stage_type!=SG_CHASE &&
-       (world_on || enemies_alive || stage_type!=SG_PUZZLE)) {
+    if(game_mode==MODE_PLAY && !bench_on && !boss_floor &&
+       stage_type!=SG_DARK && stage_type!=SG_CHASE) {
       /* The late look pass rebuilds these after actors, against their fresh
        * bands. Do not reserve yesterday's cards only to remove them again. */
       hide_range(24u,40u);
