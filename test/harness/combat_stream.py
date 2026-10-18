@@ -7,6 +7,7 @@ import argparse,hashlib,json
 from pathlib import Path
 from play import Game,start_run
 from heir import OamMeter
+from fx_window import FxWindow
 
 def actors(g):
     ox,oy=g.peek('world_view'),g.peek('world_view',1);rows=[]
@@ -23,6 +24,7 @@ def run(rom,out):
     out.mkdir(parents=True,exist_ok=True);rows=[]
     for seed in (0x69,0x99):
         g=Game(rom);assert start_run(g,True,False,seed=seed);meter=OamMeter(g)
+        particles=FxWindow(g) if '_fx_shift_view' in g.sym else None
         initial=[g.peek('world_view'),g.peek('world_view',1)];alive=g.peek('enemies_alive');initial_actors=actors(g)
         assert initial[0]>0 and alive
         epochs=[];late=[];positions=[];seams=[];parked={};resumed=set();park_errors=[];images=[]
@@ -55,7 +57,8 @@ def run(rom,out):
            'no_fight_clear_required':g.peek('kills_run')==0 and g.peek('enemies_alive')==alive,
            'parked_actor_state_frozen':not park_errors,'resumed_slots':sorted(resumed),
            'seams':seams,'late_frames':late,'oam_over':meter.over,
-           'timing':[min(spans),max(spans)] if spans else [],'final_actors':actors(g)}
+           'timing':[min(spans),max(spans)] if spans else [],'final_actors':actors(g),
+           'particles':particles.report() if particles else None}
         g.shot(out/f'{seed:04x}-returned.png')
         if images:images[0].save(out/f'{seed:04x}-combat-travel.gif',save_all=True,append_images=images[1:],duration=50,loop=0)
         rows.append(r);print(json.dumps(r),flush=True);g.stop()

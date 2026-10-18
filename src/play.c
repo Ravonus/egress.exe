@@ -31,6 +31,7 @@
 #include "health.h"
 void sprites_budget(void) NONBANKED;
 uint8_t heir_cache_flush(void) BANKED;
+uint8_t look_camera_ready(uint8_t x,uint8_t y) BANKED;
 extern volatile uint8_t video_epoch;
 extern uint8_t frame_epoch;
 
@@ -165,8 +166,9 @@ static void camera(uint8_t snap) {
     cam_y = (uint8_t)ty;
     return;
   }
-  cam_x=camera_follow(cam_x,tx);
-  cam_y=camera_follow(cam_y,ty);
+  tx=camera_follow(cam_x,tx);ty=camera_follow(cam_y,ty);
+  if(world_on && (tx!=cam_x || ty!=cam_y) && !look_camera_ready(tx,ty))return;
+  cam_x=tx;cam_y=ty;
 }
 
 static void scroll(void) {

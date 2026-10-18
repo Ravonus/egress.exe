@@ -85,15 +85,76 @@ void fx_reset(void) BANKED {
   fx_next = 0;
 }
 
-void fx_shift_view(int8_t dx,int8_t dy) BANKED {
-  uint8_t k;int16_t x,y;
-  if(!(fx[0].t|fx[1].t|fx[2].t|fx[3].t|fx[4].t|fx[5].t|fx[6].t|fx[7].t))return;
-  for(k=0u;k<FXN;k++)if(fx[k].t) {
-    x=(int16_t)fx[k].x-dx*16;y=(int16_t)fx[k].y-dy*16;
-    if((uint16_t)x>=256u || (uint16_t)y>=224u)fx[k].t=0u;
-    else {fx[k].x=(uint8_t)x;fx[k].y=(uint8_t)y;}
-  }
+/* Camera transfers are exactly four cells. Keep the eight seven-byte records
+ * in registers; the general indexed C loop spent nineteen display lines. */
+static void shift_fx(int8_t dx,int8_t dy) NAKED {
+  dx;dy;
+  __asm
+    push bc
+    push de
+    ld d,a
+    ld hl,#_fx
+    ld b,#8
+  1$:
+    ld a,(hl)
+    or a,a
+    jr z,8$
+    push hl
+    inc hl
+    inc hl
+    inc hl
+    ld a,d
+    or a,a
+    jr z,4$
+    bit 7,d
+    ld a,(hl)
+    jr nz,2$
+    sub a,#64
+    jr c,7$
+    jr 3$
+  2$:
+    add a,#64
+    jr c,7$
+  3$:
+    ld (hl),a
+  4$:
+    inc hl
+    ld a,e
+    or a,a
+    ld a,(hl)
+    jr z,6$
+    bit 7,e
+    jr nz,5$
+    sub a,#64
+    jr c,7$
+    jr 6$
+  5$:
+    add a,#64
+    jr c,7$
+  6$:
+    cp a,#224
+    jr nc,7$
+    ld (hl),a
+    pop hl
+    jr 8$
+  7$:
+    pop hl
+    ld (hl),#0
+  8$:
+    ld a,l
+    add a,#7
+    ld l,a
+    jr nc,9$
+    inc h
+  9$:
+    dec b
+    jr nz,1$
+    pop de
+    pop bc
+    ret
+  __endasm;
 }
+void fx_shift_view(int8_t dx,int8_t dy) BANKED {shift_fx(dx,dy);}
 
 void fx_burst(uint8_t x, uint8_t y, uint8_t kind, uint8_t n) BANKED {
   fx_t *p;

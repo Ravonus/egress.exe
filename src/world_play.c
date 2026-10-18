@@ -194,7 +194,9 @@ uint8_t world_frame_begin(void) BANKED {
   /* Clock polling and pending VBlank uploads sometimes consume the start of
    * this frame. Publish a prepared seam only while its complete budget fits. */
   if(LY_REG<144u || LY_REG>149u)return 0u;
-  if((joy^joy_prev)&(J_A|J_B|J_START|J_SELECT))return 0u;
+  /* A fresh direction can change the heir's pose and start a move. Give that
+   * input its own actor budget; a held direction can transfer next tick. */
+  if(joy!=joy_prev)return 0u;
   if(companion.id && (companion.shown==255u || !(frame_count&7u)))return 0u;
   mx=pl_x<128u ? pl_x : (uint8_t)(255u-pl_x);
   my=pl_y<112u ? pl_y : (uint8_t)(223u-pl_y);
@@ -216,7 +218,9 @@ uint8_t world_frame_begin(void) BANKED {
   retained=dx ? py : px;
   room_origin_x=world_view.x;room_origin_y=world_view.y;
   cam_x=(uint8_t)(cam_x-dx*16);cam_y=(uint8_t)(cam_y-dy*16);
-  player_shift_view(dx,dy);puzzle_shift_view(dx,dy);mobs_shift_view(dx,dy);effects(dx,dy);fx_shift_view(dx,dy);grid_shift_view(dx,dy);look_shift_view(dx,dy);
+  player_shift_view(dx,dy);puzzle_shift_view(dx,dy);
+  if(enemies_alive)mobs_shift_view(dx,dy);
+  effects(dx,dy);fx_shift_view(dx,dy);grid_shift_view(dx,dy);look_shift_view(dx,dy);
   memset(&px,0,sizeof px);memset(&py,0,sizeof py);
   if(retained.dir) {
     preparation *p=dx ? &py : &px;
