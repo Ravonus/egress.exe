@@ -8,4 +8,8 @@ Crafting still requires an adjacent physical bench and cleared enemies plus pend
 
 Ledges and interior holes cost one quarter-heart at most, return the heir to the last safe ground and stop at the last quarter-heart. Half-heart HP storage gains one fractional bit; the HUD uses native quarter/half/three-quarter heart fills. The fraction is included in the continue checkpoint.
 
-Validation is pending on the exact current ROMs. This remains the ten-floor development build; the full campaign ledger remains open.
+Twenty focused native reports pass on the exact current ROMs: separate pages, all eleven recipes in either order, seventeen complete deformation poses, explicit collection, exact borrowed-VRAM restoration, physical bench locks, inventory navigation and discard confirmation, quarter-heart falls and power-off persistence, elemental use, tutorial, continue journals and consecutive gameplay. The four-seed camera-edge animation stress test passes for both mappers, including one complete gameplay update per display. Falls write a checkpoint only when health changes.
+
+Standard SHA-256: `ab05de7b48168d8ba30451fcd038266ba7a846f237a2481c9125287db6efe92e`. RTC SHA-256: `ca6bdd6a1b186ac1e5982c94923719001cd43f274aea5843f14e2362d98ee42d`. Each ROM uses 1,376,256 bytes of the 1,900,000-byte budget.
+
+Website build, browser and public release verification are pending. This remains the ten-floor development build; the full campaign ledger remains open. The proposed 444-discovery catalogue and craftable pets are not part of these ROMs.

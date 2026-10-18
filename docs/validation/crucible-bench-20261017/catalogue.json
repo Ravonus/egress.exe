@@ -1,0 +1,109 @@
+{
+  "sha256": "ab05de7b48168d8ba30451fcd038266ba7a846f237a2481c9125287db6efe92e",
+  "results": {
+    "recipe_2_1_makes_13_on_collection": true,
+    "recipe_2_4_makes_8_on_collection": true,
+    "recipe_4_1_makes_14_on_collection": true,
+    "recipe_3_4_makes_15_on_collection": true,
+    "recipe_3_2_makes_7_on_collection": true,
+    "recipe_1_3_makes_6_on_collection": true,
+    "recipe_3_13_makes_16_on_collection": true,
+    "recipe_7_3_makes_9_on_collection": true,
+    "recipe_2_9_makes_10_on_collection": true,
+    "recipe_8_1_makes_11_on_collection": true,
+    "recipe_6_5_makes_12_on_collection": true,
+    "all_sixteen_materials_can_be_selected_without_discard": true
+  },
+  "recipes": [
+    {
+      "ingredients": [
+        2,
+        1
+      ],
+      "result": 13,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        2,
+        4
+      ],
+      "result": 8,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        4,
+        1
+      ],
+      "result": 14,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        3,
+        4
+      ],
+      "result": 15,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        3,
+        2
+      ],
+      "result": 7,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        1,
+        3
+      ],
+      "result": 6,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        3,
+        13
+      ],
+      "result": 16,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        7,
+        3
+      ],
+      "result": 9,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        2,
+        9
+      ],
+      "result": 10,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        8,
+        1
+      ],
+      "result": 11,
+      "collects": true
+    },
+    {
+      "ingredients": [
+        6,
+        5
+      ],
+      "result": 12,
+      "collects": true
+    }
+  ],
+  "fixture": "Material quantities only; physical approach, selection, mixing and collection use controller input.",
+  "log": []
+}

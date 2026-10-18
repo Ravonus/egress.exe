@@ -1,0 +1,126 @@
+{
+  "sha256": "ab05de7b48168d8ba30451fcd038266ba7a846f237a2481c9125287db6efe92e",
+  "results": {
+    "water_extinguishes": true,
+    "wet_cold_freezes": true,
+    "wet_shock_stuns": true,
+    "mud_slows": true,
+    "steam_blinds": true,
+    "dust_blinds": true,
+    "whip_and_launcher_reach_farther": true,
+    "hammer_has_force": true,
+    "long_weapons_have_narrower_arc": true,
+    "invalid_recipe_keeps_both_units": true,
+    "navigation_never_discards_materials": true,
+    "discard_requires_confirmation": true,
+    "full_bag_can_discard_one_unit": true,
+    "discard_does_not_repeat": true,
+    "mob_0_idle_walk_tell_hurt": true,
+    "mob_0_dead_body_removed": true,
+    "mob_1_idle_walk_tell_hurt": true,
+    "mob_1_dead_body_removed": true,
+    "mob_2_idle_walk_tell_hurt": true,
+    "mob_2_dead_body_removed": true,
+    "mob_3_idle_walk_tell_hurt": true,
+    "mob_3_dead_body_removed": true,
+    "mob_4_idle_walk_tell_hurt": true,
+    "mob_4_dead_body_removed": true,
+    "mob_5_idle_walk_tell_hurt": true,
+    "mob_5_dead_body_removed": true,
+    "mob_6_idle_walk_tell_hurt": true,
+    "mob_6_dead_body_removed": true,
+    "item_1_four_native_phases": true,
+    "item_1_preserves_every_other_card": true,
+    "item_2_four_native_phases": true,
+    "item_2_preserves_every_other_card": true,
+    "item_3_four_native_phases": true,
+    "item_3_preserves_every_other_card": true,
+    "item_4_four_native_phases": true,
+    "item_4_preserves_every_other_card": true,
+    "item_5_four_native_phases": true,
+    "item_5_preserves_every_other_card": true,
+    "item_6_four_native_phases": true,
+    "item_6_preserves_every_other_card": true,
+    "item_7_four_native_phases": true,
+    "item_7_preserves_every_other_card": true,
+    "item_8_four_native_phases": true,
+    "item_8_preserves_every_other_card": true,
+    "item_9_four_native_phases": true,
+    "item_9_preserves_every_other_card": true,
+    "item_10_four_native_phases": true,
+    "item_10_preserves_every_other_card": true,
+    "item_11_four_native_phases": true,
+    "item_11_preserves_every_other_card": true,
+    "item_12_four_native_phases": true,
+    "item_12_preserves_every_other_card": true,
+    "item_13_four_native_phases": true,
+    "item_13_preserves_every_other_card": true,
+    "item_14_four_native_phases": true,
+    "item_14_preserves_every_other_card": true,
+    "item_15_four_native_phases": true,
+    "item_15_preserves_every_other_card": true,
+    "item_16_four_native_phases": true,
+    "item_16_preserves_every_other_card": true,
+    "paused_animation_preserves_physics_counters": true
+  },
+  "details": {
+    "water_extinguishes": {
+      "status": 1,
+      "hp": 19,
+      "bag": []
+    },
+    "wet_cold_freezes": {
+      "status": 8,
+      "hp": 19,
+      "bag": []
+    },
+    "wet_shock_stuns": {
+      "status": 32,
+      "hp": 17,
+      "bag": []
+    },
+    "mud_slows": {
+      "status": 4,
+      "hp": 20,
+      "bag": []
+    },
+    "steam_blinds": {
+      "status": 128,
+      "hp": 20,
+      "bag": []
+    },
+    "dust_blinds": {
+      "status": 128,
+      "hp": 20,
+      "bag": []
+    },
+    "weapon_damage_far_wide_close": [
+      [
+        0,
+        1,
+        1
+      ],
+      [
+        0,
+        2,
+        2
+      ],
+      [
+        1,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        1
+      ],
+      [
+        1,
+        0,
+        1
+      ]
+    ]
+  },
+  "log": []
+}

@@ -138,9 +138,10 @@ void player_fall(uint8_t safe) BANKED {
   pl_inv=pl_iframe=0u;pin.flags=0u;pl_air=0u;pl_z=0;fall_safe=safe;
   if(!dbg_god && (pl_hp>1u || !pl_quarter)) {
     if(pl_quarter){pl_hp--;pl_quarter=0u;}else pl_quarter=1u;
+    resume_damage();
   }
   if(acts.hits_taken!=255u)acts.hits_taken++;
-  hud_dirty=1u;sfx(SFX_HURT);resume_damage();heir_idle_stop();heir_play(HA_HURT,1u);
+  hud_dirty=1u;sfx(SFX_HURT);heir_idle_stop();heir_play(HA_HURT,1u);
   pl_state=PS_FALL;pl_t=0u;freeze=0u;pl_arc=pl_charge=0u;air_void=0u;
   narrator_event(NE_FALL,0u);
 }
