@@ -1,0 +1,89 @@
+{
+  "sha256": "c04e9703b973173112911aa94769b1a6871803c0a33edb637960d897770e923d",
+  "results": {
+    "real_wave_mobs_present": true,
+    "both_action_buttons_used": true,
+    "actual_player_kills": true,
+    "sprite_line_budget": true,
+    "combat_and_travel_120_per_120": true,
+    "floor_under_feet_stays_present": true,
+    "complete_body_retained": true,
+    "floor_stack_canary": true,
+    "visible_animation_keeps_advancing": true,
+    "native_allocator_matches_reference": true,
+    "native_map_and_attributes_match": true
+  },
+  "frames": 3888,
+  "minimum_game_frames_per_120": 120,
+  "oam_max": 10,
+  "max_enemies": 2,
+  "allocator": {
+    "calls": {
+      "groups": 10595,
+      "size_1": 1616,
+      "off_y": 56,
+      "full": 10166,
+      "size_2": 8979,
+      "right_clip": 153,
+      "left_clip": 220,
+      "refused": 230,
+      "off_x": 28
+    },
+    "mismatches": [],
+    "all_allocations_match": true
+  },
+  "grid": {
+    "native_quads": 402,
+    "distinct_cells": 224,
+    "attributes": [
+      0,
+      2,
+      3,
+      8,
+      9,
+      10,
+      11,
+      13,
+      14,
+      35
+    ],
+    "max_masked_cycles": 964,
+    "all_map_and_attributes_match": true
+  },
+  "moves": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    8,
+    11,
+    12
+  ],
+  "missing_floor": [],
+  "missing_body": [],
+  "log": [],
+  "partial_emitted_poses": [],
+  "initial_combat_frames": 3888,
+  "additional_victory_and_terrain_frames": 0,
+  "raw_counter_minimum_at_lcd_boundary": 120,
+  "vblank_span_for_120_completed_updates": [
+    120,
+    120
+  ],
+  "animation": {
+    "samples": 3297,
+    "requested_poses": 89,
+    "compositions": 765,
+    "visible_sprite_buffers": 83,
+    "maximum_unserved_pose_frames": 2,
+    "cache_reads": 765,
+    "cache_hits": 637,
+    "starved": [],
+    "invalid_pose_or_direction": [],
+    "animation_keeps_advancing": true
+  },
+  "timing_samples": [],
+  "late_completions": []
+}

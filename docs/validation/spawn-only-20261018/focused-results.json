@@ -1,0 +1,77 @@
+[
+  {
+    "name": "spawn-only-mbc5",
+    "code": 0,
+    "seconds": 0.51
+  },
+  {
+    "name": "terrain-boundary-mbc5",
+    "code": 0,
+    "seconds": 3.46
+  },
+  {
+    "name": "camera-mbc5",
+    "code": 0,
+    "seconds": 0.76
+  },
+  {
+    "name": "stable-terrain-mbc5",
+    "code": 0,
+    "seconds": 3.77
+  },
+  {
+    "name": "combat-camera-mbc5",
+    "code": 0,
+    "seconds": 1.71
+  },
+  {
+    "name": "void-mbc5",
+    "code": 0,
+    "seconds": 1.13
+  },
+  {
+    "name": "islands-mbc5",
+    "code": 0,
+    "seconds": 0.62
+  },
+  {
+    "name": "spawn-only-mbc3",
+    "code": 0,
+    "seconds": 0.44
+  },
+  {
+    "name": "terrain-boundary-mbc3",
+    "code": 0,
+    "seconds": 3.44
+  },
+  {
+    "name": "camera-mbc3",
+    "code": 0,
+    "seconds": 0.76
+  },
+  {
+    "name": "stable-terrain-mbc3",
+    "code": 0,
+    "seconds": 3.92
+  },
+  {
+    "name": "combat-camera-mbc3",
+    "code": 0,
+    "seconds": 1.81
+  },
+  {
+    "name": "void-mbc3",
+    "code": 0,
+    "seconds": 1.16
+  },
+  {
+    "name": "islands-mbc3",
+    "code": 0,
+    "seconds": 0.63
+  },
+  {
+    "name": "procedural",
+    "code": 0,
+    "seconds": 7.05
+  }
+]

@@ -8,8 +8,10 @@ from stage2 import teleport
 from heir import OamMeter
 from companions import wait,target
 
-def fresh(rom,id):
- g=Game(rom);assert start_run(g,True,True,physical_fixture=1);g.poke('stage_type',0);teleport(g,120,104);g.tick(3)
+def fresh(rom,id,observer=None):
+ g=Game(rom)
+ if observer:observer(g)
+ assert start_run(g,True,True,physical_fixture=1);g.poke('stage_type',0);teleport(g,120,104);g.tick(3)
  for y in range(4,11):
   for x in range(3,13):g.poke('room',0,y*16+x)
  for k in range(24):g.poke('pocket',0,k)

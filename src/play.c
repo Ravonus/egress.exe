@@ -352,8 +352,8 @@ static uint8_t floor_play(void) {
     if (pl_state == PS_EXIT) {
       if(late) look_frame_end();
       sprites_budget();
-      /* look: the floor falls apart behind you, from the edges in to the door */
-      if (++end_t == 2u) look_collapse(cell_at(pl_x, pl_y), 1u);
+      /* Spawn assembly is cosmetic; departure keeps the floor intact. */
+      ++end_t;
       if (end_t >= 20u && (!look_busy() || end_t >= 110u)) {
         look_freeze();
         music_fade(1);
@@ -366,8 +366,7 @@ static uint8_t floor_play(void) {
     }
     if (pl_hp == 0u) {
       if(pl_state==PS_FALL) player_update();
-      /* look: the world lets go around the body, leaving it on one tile and its neighbours (B3 owns the rest) */
-      if (++end_t == 20u) look_collapse(cell_at(pl_x, pl_y), 2u);
+      ++end_t;
       if (end_t >= 60u && (!look_busy() || end_t >= 150u)) {
         look_freeze();
         music_fade(1);
@@ -439,7 +438,7 @@ static uint8_t floor_play(void) {
       hud_msg("EGRESS");
     }
     camera(0);
-    if(!boss_floor && !streamed) look_roam_tick();
+    if(world_on && !streamed)look_roam_tick();
     tutorial_tick();
     if(!(frame_count&63u)) narrator_tick();
     draw_sprites();

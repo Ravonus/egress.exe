@@ -57,6 +57,8 @@ TB_OBJ := $(patsubst %,build/obj/tb/%.o,$(TB_CHUNKS) tb_index)
 OBJ := $(patsubst src/%.c,build/obj/%.o,$(SRC)) $(TB_OBJ)
 # Keep the page-aligned pixel module first, then the fixed upload state before
 # banked sources. Clean links must not depend on a previous autobank rewrite.
+# Assign banks separately, then preserve input order when linking: lcc's
+# autobank output order varies by host and can move the aligned DATA page.
 # The linker also gates
 # the shared pose's GDMA alignment and the fixed-WRAM stream packets below.
 OBJ_mbc5 := build/obj/main.o build/obj-mbc5/heir_draw.o $(filter-out build/obj/main.o,$(OBJ)) $(patsubst src/%.c,build/obj-mbc5/%.o,$(filter-out src/heir_draw.c,$(MAPPER_SRC)))
@@ -293,7 +295,8 @@ build/obj/tb/%.o: $(TB_GEN)/%.s
 	cp $< $(@:.o=.asm) # beside the object, like SDCC's output, for tools/mapper_audit.py
 
 build/linked-%.gbc: $$(OBJ_$$*)
-	$(LCC) $(LDFLAGS) -Wm-yt$(CART_$*) -o $@ $(OBJ_$*)
+	$(GBDK_HOME)/bin/bankpack -ext=.rel -max=114 -yt$(CART_$*) $(OBJ_$*)
+	$(LCC) $(filter-out -autobank -Wb-%,$(LDFLAGS)) -Wm-yt$(CART_$*) -o $@ $(OBJ_$*:.o=.rel)
 	@end=$$(grep -oE '[0-9A-F]{8}  s__HEAP ' build/linked-$*.map | head -1 | cut -c5-8); \
 	[ $$((0x$$end)) -le $$((0xD800)) ] || { echo "WRAM: game data ends at 0x$$end, past 0xD800 (the title mirrors \
 	0xD000-0xD7FF and keeps its buffers above it, src/title3d/t3d.h)" >&2; rm -f $@; exit 1; }
@@ -694,6 +697,8 @@ test-island-edges: build/host/test_edges
 	build/host/test_edges
 
 test-runtime: all test-runtime-core test-native-overlap
+	$(PY) test/harness/spawn_only.py build/egress.gbc build/sprints/spawn-only-mbc5
+	$(PY) test/harness/spawn_only.py build/egress-rtc.gbc build/sprints/spawn-only-mbc3
 	$(PY) test/harness/element_slot.py build/egress.gbc build/sprints/element-slot-mbc5
 	$(PY) test/harness/element_slot.py build/egress-rtc.gbc build/sprints/element-slot-mbc3
 	$(PY) test/harness/terrain_effect.py build/egress.gbc build/sprints/terrain-effect-mbc5

@@ -11,13 +11,17 @@ from play import Game,start_run
 from companions import fixture
 
 def run(rom,out,measure=False,pet=0):
-    out.mkdir(parents=True,exist_ok=True);g=fresh(rom,1,enemies=True);g.tick(40)
+    out.mkdir(parents=True,exist_ok=True);g=Game(rom);grid=GridObserver(g)
+    # Observe the real initial map writes before assembly; camera travel no
+    # longer creates artificial retire/restore writes just for coverage.
+    assert g.wait_mode(1,1500);g.poke('dbg_stage',2)
+    assert start_run(g,True,False,seed=0xB222,floor=2);g.tick(40)
     if pet:
         # Load a matching continue/pet journal pair. Injecting only the live
         # entry would create an impossible first-save CRC path mid-combat.
         saved=fixture(g.stop(),pet,auto_cd=0)
-        g=Game(rom,sram=saved);assert start_run(g,True,False,seed=None);g.tick(40)
-    meter=OamMeter(g);observer=OamObserver(g);grid=GridObserver(g);animation=AnimationProgress(g);tick=g.tick;fc=[];max_alive=0;moves=set();log=[];frames=[];missing=[];bodies=[]
+        g=Game(rom,sram=saved);grid=GridObserver(g);assert start_run(g,True,False,seed=None);g.tick(40)
+    meter=OamMeter(g);observer=OamObserver(g);animation=AnimationProgress(g);tick=g.tick;fc=[];max_alive=0;moves=set();log=[];frames=[];missing=[];bodies=[]
     heir_symbols=Path(__file__).resolve().parents[2]/'build/obj/heir.sym'
     mask_offset=int(re.search(r'^\s*2\s+_spr_mask\s+([0-9A-F]+)',heir_symbols.read_text(),re.M)[1],16)
     mask_addr=g.addr('heir')+mask_offset
@@ -71,19 +75,6 @@ def run(rom,out,measure=False,pet=0):
         g.hold(aim if live else set());g.tick(26)
         if turn%4==3:g.hold({'a'});g.tick(34);g.hold(set());g.tick(25)
     combat_frames=len(fc)
-    if grid.calls<=20:
-        # Actor-first scheduling can leave the already-built arena unchanged
-        # during the fight. Keep the original map-write coverage threshold:
-        # clear the real waves, then traverse the recovering camera rim.
-        from procedural_runs import fight
-        for _ in range(32):
-            if g.peek('stage_won'):break
-            if g.peek('enemies_alive'):assert fight(g,log),'survival enemies must be defeated by real attacks'
-            else:g.hold(set());g.tick(30)
-        assert g.peek('stage_won'),'terrain recovery follows actual survival victory'
-        for target in (163,172,131,140)*3:
-            walk(g,target,log);g.hold(set());g.tick(24)
-            if grid.calls>20:break
     spans=[(fc[i]-fc[i-120])&65535 for i in range(120,len(fc))]
     windows=[epochs[i]-epochs[i-120] for i in range(120,len(epochs))]
     r={'real_wave_mobs_present':max_alive>=2,'both_action_buttons_used':5 in moves and 11 in moves,

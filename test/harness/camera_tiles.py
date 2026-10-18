@@ -55,14 +55,14 @@ def run(rom,out,measure=False):
     assert walk(g,right,log);g.hold(set());g.tick(100)
     r['camera_travel_exposes_east']=g.peek('cam_x')>=90
     r['floor_arrives_to_east']=present(g,right)
-    r['floor_behind_camera_collapses']=rim.behind_fall_frames>east_drops
+    r['floor_behind_camera_stays_present']=rim.behind_fall_frames==east_drops and present(g,left)
     r['travel_preserves_puzzle_board']=bytes(g.room()[:224])==board
     g.shot(out/'east.png')
     west_drops=rim.behind_fall_frames
     assert walk(g,left,log);g.hold(set());g.tick(100)
     r['camera_returns_west']=g.peek('cam_x')<8
     r['old_floor_reassembles']=present(g,left)
-    r['east_floor_collapses_on_return']=rim.behind_fall_frames>west_drops
+    r['east_floor_stays_present_on_return']=rim.behind_fall_frames==west_drops and present(g,right)
     r['collected_item_does_not_respawn']=g.room()[pickup]==0 and pocket(g)==bag
     r['board_mutations_survive_backtracking']=bytes(g.room()[:224])==board
     r['moved_crate_stays_moved']=g.room()[crate]==0 and g.room()[crate+1]==21
@@ -88,13 +88,13 @@ def run(rom,out,measure=False):
     r['movement_frames_120_per_120']=bool(windows) and min(windows)==max(windows)==120
     r['completes_before_vblank']=not late
     terrain=rim.report();r['construction_stays_at_rim']=terrain['construction_stays_at_rim'];r['central_view_is_built']=terrain['central_view_is_built']
-    r['trailing_drop_is_visible']=terrain['behind_fall_frames']>0
+    r['no_camera_build_or_drop']=terrain['visible_assembly_frames']==terrain['visible_collapse_frames']==0
     g.shot(out/'returned.png');g.stop()
     if frames:frames[0].save(out/'camera-travel.gif',save_all=True,append_images=frames[1:],duration=68,loop=0)
     report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':r,'frames':len(fc),'minimum_game_frames_per_120':min(windows) if windows else None,'maximum_game_frames_per_120':max(windows) if windows else None,'raw_counter_minimum_at_lcd_boundary':min(spans) if spans else None,'late_frames':late[:20],'oam_max':meter.max_line,'missing_floor':missing[:20],'missing_body':body_missing[:20],'log':log}
     report['terrain_rim']=terrain
     report['departed_cells']=sorted(fallen)
-    report['departure_contract']='Visible trailing drops on both travel legs; offscreen background may already be restored for the next approach.'
+    report['departure_contract']='Spawn-only assembly. Camera travel preserves the complete backing floor, without assembly or departure motion.'
     (out/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2));return measure or all(r.values())
 
 if __name__=='__main__':

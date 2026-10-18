@@ -1,0 +1,32 @@
+{
+  "running": false,
+  "command": [
+    "make",
+    "-k",
+    "-j1",
+    "-o",
+    "src/look.h",
+    "-o",
+    "build/t3d_bake/gen/chunks.mk",
+    "-o",
+    "build/egress.gbc",
+    "-o",
+    "build/egress-rtc.gbc",
+    "HOSTCC=clang",
+    "test"
+  ],
+  "sourceCommit": "f19136c84a4294f33270ffcad93ce92137d147ba",
+  "roms": {
+    "egress.gbc": {
+      "bytes": 1556480,
+      "sha256": "c04e9703b973173112911aa94769b1a6871803c0a33edb637960d897770e923d"
+    },
+    "egress-rtc.gbc": {
+      "bytes": 1572864,
+      "sha256": "38364434c967c53c844236736c886708d3ac2ac31ef7c6069655a7184daeacef"
+    }
+  },
+  "code": 0,
+  "seconds": 404.65,
+  "sourceAndRomHashesUnchanged": true
+}

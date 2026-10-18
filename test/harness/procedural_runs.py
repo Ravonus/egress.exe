@@ -154,7 +154,7 @@ def run(rom,out,tool):
     g.tick=travel
     res['ordinary_opening_puzzle_solved_by_input']=p.solve(out)
     g.tick=travel_tick;p.monitor=False;g.tick(240)
-    rr=rim.report();res['ordinary_world_prepares_offscreen_and_falls_behind']=rr['prepared_offscreen_and_falls_behind']
+    rr=rim.report();res['ordinary_world_has_spawn_only_terrain_motion']=rr['visible_assembly_frames']==rr['visible_collapse_frames']==0
     res['ordinary_world_keeps_effects_at_the_edge']=rr['central_view_is_built'] and rr['construction_stays_at_rim']
     (out/'ordinary-world-effects.json').write_text(json.dumps(rr,indent=2)+'\n')
     if images:images[0].save(out/'ordinary-world-travel.gif',save_all=True,append_images=images[1:],duration=68,loop=0)
