@@ -3,9 +3,26 @@ No board, camera, actor-health or animation-state writes. God mode only protects
 health so the same route can be observed under live enemy load.
 """
 import argparse,hashlib,json
+from collections import deque
 from pathlib import Path
-from play import Game,start_run
+from play import Game,start_run,step
 from terrain_rim import TerrainRim
+
+def stable_route(g):
+ # A fixed rectangle can repeatedly run into a generated abyss. Follow real
+ # stable floor when that route never produces actual camera travel.
+ cells=g.room();x,y=g.player();start=y//16*16+x//16
+ q=deque([start]);prev={start:None};directions={};last=start
+ while q:
+  c=q.popleft();last=c
+  for d,delta in [('R',1),('D',16),('L',-1),('U',-16)]:
+   n=c+delta
+   if not 0<=n<224 or n in prev or abs(c%16-n%16)+abs(c//16-n//16)!=1:continue
+   if cells[n]&31 not in (0,1,5,6,10,12,17,19) or cells[n]&128:continue
+   prev[n]=c;directions[n]=d;q.append(n)
+ path=[]
+ while last!=start:path.append(directions[last]);last=prev[last]
+ return path[::-1]
 
 def run(rom,out):
  out.mkdir(parents=True,exist_ok=True);rows=[];results={};frames=[]
@@ -45,12 +62,30 @@ def run(rom,out):
      expected=bytes(m[bank,addr+b] for b in range(16))
      if actual!=expected:art_bad.append([g.frames,k,meta,j]);break
   at=g.sym['_frame_wait'];g.pb.hook_register(at>>16,at&65535,completed,None)
+  tick0=g.tick
+  def tick(n=1):
+   for _ in range(n):
+    tick0()
+    if seed==0x5105 and g.frames%2==0:frames.append(g.pb.screen.image.convert('RGB'))
+  g.tick=tick
   for buttons,n in [({'right'},50),({'up'},40),({'left'},50),({'down'},45),({'up','right'},30),({'down','left'},25),(set(),30)]:
    g.hold(buttons)
    for _ in range(n):
     g.tick()
-    if seed==0x5105 and g.frames%2==0:frames.append(g.pb.screen.image.convert('RGB'))
-  row=rim.report();row.update(seed=seed,updates=updates,arrival_steps=len(arrivals),departure_steps=len(departures),wrong_motion_kinds=wrong[:5],art_mismatches=art_bad[:5],late_updates=late[:5]);rows.append(row)
+  safe_steps=0;log=[]
+  for _ in range(6):
+   if len(arrivals)>=3 and len(departures)>=3:break
+   g.hold(set())
+   for __ in range(96):
+    if g.peek('pl_state')==0 and not g.peek('pl_air') and g.peek('pin',2)==0:break
+    g.tick()
+   g.tick(16);view=tuple(g.peek('world_view',k) for k in range(2))
+   for d in stable_route(g):
+    if not step(g,d,log):break
+    safe_steps+=1
+    if tuple(g.peek('world_view',k) for k in range(2))!=view:break
+   g.hold(set());g.tick(30)
+  row=rim.report();row.update(seed=seed,updates=updates,arrival_steps=len(arrivals),departure_steps=len(departures),additional_safe_steps=safe_steps,driver_log=log,wrong_motion_kinds=wrong[:5],art_mismatches=art_bad[:5],late_updates=late[:5]);rows.append(row)
   results[f'{seed:04x}_visible_downward_arrival_and_departure']=len(arrivals)>=3 and len(departures)>=3
   results[f'{seed:04x}_consistent_motion']=not wrong
   results[f'{seed:04x}_canonical_ground_art']=not art_bad
