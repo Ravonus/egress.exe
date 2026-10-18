@@ -1008,13 +1008,20 @@ void look_frame_begin(void) BANKED {
      * Reserve live combat for actors regardless of the previous pose/count.
      * Swept feet above and existing flying cards still advance. */
     if(k<2u && prepare_time() && grav_t!=1u && !push_t &&
-       !enemies_alive && (stage_type!=SG_HOLDOUT || stage_won) &&
        (stage_type==SG_PUZZLE || (frame_count&3u))) {
       /* Share the early window with seed queries on alternate ticks. Existing
        * flights still animate every frame; one resident card may launch or
        * settle on the presentation turn, with no cold texture upload. */
-      if(waiting) {if(!k && (frame_count&1u))look_update(3u);}
-      else {if(!(frame_count&1u))look_roam_tick();look_update((uint8_t)(1u+k));}
+      if(!enemies_alive && (stage_type!=SG_HOLDOUT || stage_won)) {
+        if(waiting) {if(!k && (frame_count&1u))look_update(3u);}
+        else {if(!(frame_count&1u))look_roam_tick();look_update((uint8_t)(1u+k));}
+      } else if(enemies_alive && !waiting && !(frame_count&1u) &&
+                (pin.move==EG_MV_IDLE || pin.move==EG_MV_SPRINT) &&
+                (joy&(J_A|J_B|0x0fu))==pin.prev) {
+        /* One queued operation, including at most one cold departure.
+         * No extra discovery scan and no new-input/attack/spawn frame. */
+        look_update(4u);
+      }
     }
     roam_late=1u;
   }
@@ -1026,7 +1033,7 @@ static void look_update(uint8_t prepare) {
   /* Gravity, obstacles and actor composition share the frame. Defer BG commits
    * on that heavy tick; moving/falling cards still animate, and a settled card
    * waits for the next tick's bounded two-cell commit. */
-  budget = roam_late && roam_on && !prepare ? 0u : game_mode == MODE_PLAY ? (grav_t==1u || (roam_on && push_t) ? 0u : prepare>=2u ? 1u : 2u) : LOOK_COMMITS_PER_FRAME;
+  budget = roam_late && roam_on && !prepare ? 0u : game_mode == MODE_PLAY ? (grav_t==1u || (roam_on && push_t) ? 0u : prepare>=2u && prepare!=4u ? 1u : 2u) : LOOK_COMMITS_PER_FRAME;
   if (look_dbg_kind) { /* the harness: 0x80 applies a poked skin, else a break of that kind */
     if (look_dbg_kind == 0x80u) look_skin_set(look_dbg_cell, (uint8_t)(look_skin[look_dbg_cell] - 1u));
     else look_break_tile(look_dbg_cell, look_dbg_kind);
@@ -1073,7 +1080,7 @@ static void look_update(uint8_t prepare) {
     } else {
       /* the head, or one of the next few if the head's band is full (the wave keeps its order, roughly) */
       uint8_t j, ii = 0, found = 0;
-      if (launches == (prepare==3u ? 1u : prepare ? 2u : 3u)) break;
+      if (launches == (prepare>=3u ? 1u : prepare ? 2u : 3u)) break;
       for (j = 0; j != (prepare ? 2u : 4u) && j < q_n && roam_bg_time() && (!prepare || prepare_time()); j++) {
         ii = q[(uint8_t)(q_head + j)];
         if ((on_screen(ii) || (roam_on && roam_wants(ii))) && look_here(ii) == look_here(i) && launch(ii)) {
@@ -1097,6 +1104,7 @@ static void look_update(uint8_t prepare) {
     queued[i >> 3] &= (uint8_t)~BIT(i);
     q_head++;
     q_n--;
+    if(prepare==4u){budget=0u;break;}
     if(prepare && !budget)break;
   }
   /* skins and stages changed: redraw with what is left of the budget */
