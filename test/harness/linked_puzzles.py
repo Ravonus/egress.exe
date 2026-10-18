@@ -97,14 +97,14 @@ def run(rom,out,tool):
         reports.append({'seed':seed,'approach':approach,'results':results,'plan':plan,'warps':len(warps),'missing_floor':missing[:20],
                         'minimum_game_frames_per_120':min(spans) if spans else None,'hitches':hitches,'oam_max':meter.max_line,'items':item_report,'grid':grid_report})
         g.stop()
-    # Fusing both FIRE units leaves one HOT shard for two separate barriers.
+    # Fuse both FIRE units, then AIR: the ENERGY shard spends both HOT units.
     # The normal sliced checker
     # must identify the cut and offer the existing token reset, without a warp.
     g=Game(rom);assert start_run(g,True,True,seed=0x5EEC,floor=7,physical_fixture=4)
     log=[];cells=bytes(g.peek('room',i) for i in range(320));start=cells[224]
     direction='R' if start%16<8 else 'L'
     for _ in range(5):assert step(g,direction,log)
-    assert bench_act(g,'Caa',log),log
+    assert bench_act(g,'Caa',log) and bench_act(g,'Ccy',log),log
     g.tick(260);assert g.peek('dead_t')==1,{'wrong_spend_pocket':pocket(g),'cue':g.peek('dead_t')}
     tokens=g.peek('tokens');g.shot(out/'wrong-spend-reset-cue.png')
     g.hold({'select'});g.tick(62);g.hold(set());g.tick(240)
