@@ -1,4 +1,4 @@
-"""Native lazy cache versus an independently materialized complete world."""
+"""Native persistent packets versus an independently materialized complete world."""
 import argparse,hashlib,io,json,re,subprocess
 from pathlib import Path
 from pyboy import PyBoy
@@ -26,4 +26,4 @@ try:
     assert r[0]==0xA5 and count==792 and negative==22 and len(expected)==count*580,(r,count,negative)
 finally:g.stop(save=False)
 assert max(times)<=40000,{'dead_slice_budget_exceeded':max(times)}
-print(json.dumps({'rom_sha256':hashlib.sha256(a.rom.read_bytes()).hexdigest(),'trace_sha256':hashlib.sha256(expected).hexdigest(),'frames':frame+1,'states':count,'bytes_per_state':580,'all_bytes_match':True,'lazy_initialization_mutation_backtracking_reset':True,'retained_certificate_material_skin_protection_crack':True,'valid_states_keep_routes':True,'resource_and_weight_certificates':negative,'checker_does_not_generate_unseen_chunks':True,'max_dead_slice_cycles':max(times),'bank_one_and_stack_canary':True},indent=2))
+print(json.dumps({'rom_sha256':hashlib.sha256(a.rom.read_bytes()).hexdigest(),'trace_sha256':hashlib.sha256(expected).hexdigest(),'frames':frame+1,'states':count,'bytes_per_state':580,'all_bytes_match':True,'prepared_initialization_mutation_backtracking_reset':True,'unprepared_transfer_rejected_without_mutation':True,'retained_certificate_material_skin_protection_crack':True,'valid_states_keep_routes':True,'resource_and_weight_certificates':negative,'checker_does_not_generate_unseen_chunks':True,'max_dead_slice_cycles':max(times),'bank_one_and_stack_canary':True},indent=2))

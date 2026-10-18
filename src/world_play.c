@@ -295,7 +295,9 @@ void world_prefetch(void) BANKED {
   }
   /* Resolve a ready transfer before spending its spare time on a different
    * strip. A tight vertical edge must not starve after a horizontal turn. */
-  if(spare(32u))bind_requested();
+  /* Binding a long route can cost seventy-five lines even with every
+   * terrain packet resident. Keep the complete mover and actor tail free. */
+  if(spare(16u))bind_requested();
   /* At the approaching edge, a generated strip needs its remaining BG and
    * save packets. Cold speculative work on the other axis must not consume
    * that finishing allowance while the player waits for this transfer. */

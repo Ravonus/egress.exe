@@ -47,6 +47,7 @@ static uint8_t wg_begin(uint8_t which) {
   if(v.x>v.width-16)v.x=v.width-16;if(v.y>v.height-14)v.y=v.height-14;
   for(y=0;y<v.height;y++)for(x=0;x<v.width;x++) {
     eg_land_cell c;eg_land_at(&p,x,y,&c);full[y][x][0]=c.material;full[y][x][1]=skin_of(c.design,c.variant);full[y][x][2]=c.flags&1;
+    cached[y][x/4u]=1u; /* the constructor prepares the complete packet store */
   }
   eg_view_load(&v,&r,skin,crack,load,0);r.keys=1;wg_bind();return 1;
 }

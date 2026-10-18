@@ -328,6 +328,10 @@ def bench_open(g: Game,log: list[str],*,craft: bool=False) -> bool:
 
 
 def bench_cursor(g: Game, slot: int) -> None:
+    # Materials occupy one quantity card; each pet keeps its own card.
+    inv = pocket(g)
+    if slot < len(inv) and inv[slot] < 433:
+        slot = inv.index(inv[slot])
     if g.peek('bench_mode') and not g.peek('bench_page'):
         g.press('select',4);g.tick(12)
     for _ in range(24):
