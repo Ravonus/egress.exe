@@ -414,10 +414,12 @@ void puzzle_tick(void) BANKED {
       if(world_on)world_dead_begin();else eg_dead_begin(c);
       dead_run = 1u;
     }
-  } else if (dead_run && !(effect_n&128u) && grav_t != 1u && (!world_on ||
-             (video_epoch==frame_epoch && (LY_REG<80u || LY_REG>=144u)))) {
+  } else if (dead_run && !(effect_n&128u) && grav_t != 1u &&
+             video_epoch==frame_epoch && (LY_REG<80u || LY_REG>=144u)) {
     /* Named dependencies add portal and resource probes to each flood pop.
-     * Keep that work bounded beside an active camera/animation frame. */
+     * A bench caption may already have spent the early window. Resume the
+     * same slice next tick, keeping reset hints prompt without running this
+     * analysis into the time reserved for complete actor rendering. */
     EG_SRAM_OPEN();
     j = world_on ? world_dead_step(c,1u) : eg_dead_step(&room,(const uint8_t *)SAVE_FUSION_SCRATCH,effect_n,(room.nlink || (room.portal_need&EG_PORTAL_ON)) ? 2u : DEAD_SLICE);
     EG_SRAM_CLOSE();

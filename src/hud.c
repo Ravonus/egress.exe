@@ -189,10 +189,10 @@ void hud_msg_w(void) BANKED {
     msg_t = 1u; /* closes on the next tick */
     return;
   }
-  /* Pickup/save work can finish late in a streamed frame. Keep the copied
-   * caption and compose it in the next early HUD turn, before more terrain
-   * is admitted. Normal captions use 1..150; 255 is a pending publication. */
-  if(game_mode==MODE_PLAY && world_on && !bench_on && LY_REG>=72u && LY_REG<144u) {
+  /* Pickup and dead-room work can finish late in any gameplay frame. Keep
+   * the copied caption for the next early HUD turn. Normal captions use
+   * 1..150; 255 is a pending publication. Paused panels still draw at once. */
+  if(game_mode==MODE_PLAY && !bench_on && LY_REG>=72u && LY_REG<144u) {
     msg_t=255u;return;
   }
   if (!top) hud_layout(1u);
