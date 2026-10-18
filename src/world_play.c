@@ -56,8 +56,10 @@ void world_play_reset(void) BANKED {
 static int8_t wanted(uint8_t vertical) {
   uint8_t position=vertical ? pl_y : pl_x,origin=vertical ? world_view.y : world_view.x;
   uint8_t max=vertical ? world_view.height-EG_H : world_view.width-EG_W;
-  if(joy&(vertical ? J_DOWN : J_RIGHT))return origin<max && position>=(vertical ? 48u : 64u) ? 1 : 0;
-  if(joy&(vertical ? J_UP : J_LEFT))return origin && position<=(vertical ? 176u : 192u) ? -1 : 0;
+  /* A vertical strip has sixteen packets. Start it a tile earlier so a
+   * sprint out of a horizontal turn can finish before the swept feet arrive. */
+  if(joy&(vertical ? J_DOWN : J_RIGHT))return origin<max && position>=(vertical ? 32u : 64u) ? 1 : 0;
+  if(joy&(vertical ? J_UP : J_LEFT))return origin && position<=192u ? -1 : 0;
   if(origin && position<=96u)return -1;
   if(origin<max && position>=(vertical ? 144u : 160u))return 1;
   if(joy&(J_UP|J_DOWN|J_LEFT|J_RIGHT))return 0;
@@ -281,5 +283,7 @@ void world_frame_end(void) BANKED {
       if(!world_chunk_preserved(a,b)) {world_preserve(a,b);break;}
     }
   }
-  goal_hint();
+  /* A newly approached apparatus may compose a full HUD row. Keep that
+   * pending until it fits after the outgoing-strip work above. */
+  if(spare(100u))goal_hint();
 }

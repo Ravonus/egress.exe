@@ -293,6 +293,9 @@ uint8_t puzzle_bench_interact(void) BANKED {
 static void bench_near_tick(void) {
   uint8_t c,ready;
   if(frame_count&15u)return;
+  /* A new toast composes a complete HUD row. Leave its hint pending when
+   * a streamed seam has already spent this frame's early display budget. */
+  if(world_on && (video_epoch!=frame_epoch || (LY_REG>=80u && LY_REG<144u)))return;
   c=near_bench();
   if(c==255u) {bench_hint=255u;return;}
   ready=stage_bench_ready();
@@ -606,7 +609,10 @@ void puzzle_tick(void) BANKED {
   if(pl_state==PS_FALL) return;
   on = beat_phase();
   if(world_on && world_glitch)has_glitch=1u;
-  if (on != beat_was && has_glitch) { /* the glitched glass changes phase (solid, flicker, gone) */
+  /* Collision uses the current beat immediately. Its visual scans can wait
+   * until the next early window when a seam has consumed this frame. */
+  if (on != beat_was && has_glitch && (!world_on ||
+      (video_epoch==frame_epoch && (LY_REG<80u || LY_REG>=144u)))) {
     beat_was = on;
     look_glitch_beat(on);
     j = 0;
