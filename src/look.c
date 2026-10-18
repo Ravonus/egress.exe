@@ -401,7 +401,10 @@ static uint8_t launch(uint8_t i) {
   int16_t y=(int16_t)((uint16_t)EG_Y(i)<<4),top=y-(fall ? 0 : 72),bot=y+16+(fall ? 70 : 2);
   /* Seven reusable OBJ cards. The eighth slot remains available to a real
    * fragile-floor break, which uses its resident bank-0 art. */
-  if(!band_ok(top,bot))return 0u;
+  /* Roaming cards are composed after actors through oam_card_pair's actual
+   * per-line allocator. Whole-path overlap is far too conservative for a
+   * tall sky fall: adjacent cards remain separated as they descend. */
+  if(!roam_on && !band_ok(top,bot))return 0u;
   if(!fall)look_present[i>>3]|=BIT(i);
   h=cell_meta(i);
   if(!fall)look_present[i>>3]&=(uint8_t)~BIT(i);
@@ -415,8 +418,7 @@ static uint8_t launch(uint8_t i) {
      * heir preparation. Office movement/combat keeps its original cutoff;
      * a resting quiet office may finish one later bounded upload. */
     if(roam_on && game_mode==MODE_PLAY && LY_REG>=
-       (!(joy&(J_LEFT|J_RIGHT|J_UP|J_DOWN)) && pl_state==PS_FREE && !world_on &&
-        !enemies_alive && stage_type==SG_PUZZLE ? 32u : world_on ? 32u : 12u) && LY_REG<144u)return 0u;
+       (!world_on && !enemies_alive && stage_type==SG_PUZZLE ? 32u : world_on ? 32u : 12u) && LY_REG<144u)return 0u;
     look_art_card(h,k);budget=0u;
   }
   c_kind[k]=fall ? K_FALL : K_DROP;c_cell[k]=i;c_meta[k]=h;c_t[k]=0u;
@@ -713,6 +715,18 @@ static void step_card(uint8_t k) {
     }
     c_t[k]++;
     return;
+  }
+  /* Prepare the canonical texture ahead of the camera, but start the fall
+   * when its destination enters view. Spending the whole flight offscreen
+   * made the approaching ground appear already landed. */
+  if(roam_on && !on_screen(i)) {
+    /* A reversal can abandon a prepared destination. Release its flight
+     * slot instead of holding it forever and starving departures. */
+    if(!roam_wants(i)) {
+      finish(k);look_present[i>>3]&=(uint8_t)~BIT(i);
+      roam_hidden[i>>3]|=BIT(i);hide_card(k);return;
+    }
+    if(!t){hide_card(k);return;}
   }
   /* assembly */
   if (t >= EASE_FRAMES) {

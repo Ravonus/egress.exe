@@ -23,6 +23,7 @@
 #include "companion.h"
 #include "elements.h"
 #include "health.h"
+#include "puzzle.h"
 #include "gen/mob_art.h"
 extern eg_input_t pin;
 extern eg_mover_t pmv;
@@ -802,8 +803,8 @@ void draw_sprites(void) BANKED {
   if (look_busy_n && was_busy) {
     /* Flying cards occupy the high OAM slots outside the actor allocator. They
      * still share the hardware's ten-OBJ line limit with actors and shots. */
-    if(!boss_floor && stage_type!=SG_DARK && stage_type!=SG_CHASE &&
-       (world_on || enemies_alive || stage_type!=SG_PUZZLE)) {
+    if(game_mode==MODE_PLAY && !bench_on && !boss_floor &&
+       stage_type!=SG_DARK && stage_type!=SG_CHASE) {
       /* The late look pass rebuilds these after actors, against their fresh
        * bands. Do not reserve yesterday's cards only to remove them again. */
       hide_range(24u,40u);
