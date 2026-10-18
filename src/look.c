@@ -1004,11 +1004,11 @@ void look_frame_begin(void) BANKED {
      * bounded ready card / launch here; animation stays after the actors. */
     roam_late=0u;
     k=ground_ahead(waiting);
-    /* A multi-target swing can spend another thirty scanlines before the
-     * complete actor list is drawn. Keep its speculative terrain admission
-     * free; swept feet above and existing flying cards still advance. */
+    /* New input or a pending wave can add actor work later in this frame.
+     * Reserve live combat for actors regardless of the previous pose/count.
+     * Swept feet above and existing flying cards still advance. */
     if(k<2u && prepare_time() && grav_t!=1u && !push_t &&
-       !(enemies_alive>=2u && (pl_state==PS_LASH || pl_state==PS_SPIN)) &&
+       !enemies_alive && (stage_type!=SG_HOLDOUT || stage_won) &&
        (stage_type==SG_PUZZLE || (frame_count&3u))) {
       /* Share the early window with seed queries on alternate ticks. Existing
        * flights still animate every frame; one resident card may launch or

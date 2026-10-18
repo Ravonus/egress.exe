@@ -822,6 +822,9 @@ void player_update(void) BANKED {
     overlay(HA_RECOVER,10u);
   }
   if(st!=EG_NO_MOVE) on_start(st);
+  /* Most combat floors have no CRTs. Keep their original short recovery
+   * path and phase; physical support work is needed only on CRT floors. */
+  if(!floor_has_crt)stamina_tick((uint8_t)(mv!=EG_MV_IDLE && mv!=EG_MV_SKID));
   pl_iframe = (uint8_t)(pin.flags & EG_FL_IFRAME);
   ph = pin.phase;
   pl_t = pin.frame;
@@ -951,7 +954,7 @@ void player_update(void) BANKED {
     pl_charge = 0;
     hud_charge();
   }
-  player_support((uint8_t)(mv!=EG_MV_IDLE && mv!=EG_MV_SKID));
+  if(floor_has_crt)player_support((uint8_t)(mv!=EG_MV_IDLE && mv!=EG_MV_SKID));
   ha_dir = (uint8_t)((4u - pmv.facing) & 7u);
   if(room.portal_need&EG_PORTAL_ON) portal_tick();
   st=cell_type(cell_at(pl_x,pl_y));
