@@ -864,24 +864,30 @@ static uint8_t anchor_at(uint8_t x,uint8_t y) {
   if(look_here(i) || !(roam_hidden[i>>3]&BIT(i)))return 0u;
   look_anchor(i);return 1u;
 }
-static uint8_t missing_column(uint8_t cell,uint8_t count) {
-  uint8_t at=cell>>3,mask=BIT(cell);
-  do {
-    if((roam_hidden[at] & (uint8_t)~look_present[at]) & mask)return cell;
-    cell+=EG_W;at+=2u;
-  } while(--count);
-  return 0xffu;
+#include "look_scan.inc"
+static uint8_t ground_contacts(int8_t dx,int8_t dy) {
+  int16_t x=pl_x,y=pl_y;uint8_t n=0u,x0,x1,y0,y1;
+  x+=dx*7;y+=dy*7;
+  x0=(uint8_t)((x-6)>>4);x1=(uint8_t)((x+5)>>4);
+  y0=(uint8_t)((y-6)>>4);y1=(uint8_t)((y+5)>>4);
+  n+=anchor_at(x0,y0);
+  if(n<2u && x1!=x0)n+=anchor_at(x1,y0);
+  if(n<2u && y1!=y0)n+=anchor_at(x0,y1);
+  if(n<2u && y1!=y0 && x1!=x0)n+=anchor_at(x1,y1);
+  return n;
 }
-static uint8_t missing_row(uint8_t cell,uint8_t count) {
-  uint8_t at=cell>>3,mask=BIT(cell);
-  do {
-    if((roam_hidden[at] & (uint8_t)~look_present[at]) & mask)return cell;
-    cell++;mask<<=1;if(!mask) {mask=1u;at++;}
-  } while(--count);
-  return 0xffu;
+static uint8_t ground_returning(int8_t dx,int8_t dy) {
+  uint8_t k,c,n=0u;int16_t x,y;
+  for(k=0u;k<LOOK_MAX_CARDS && n<2u;k++)if(c_kind[k] && !c_brk[k]) {
+    c=c_cell[k];x=(int16_t)(EG_X(c)<<4)-cam_x;y=(int16_t)(EG_Y(c)<<4)-cam_y;
+    if(x<143 && x+16>17 && y<111 && y+16>17 &&
+       ((dx>0 && x>=80) || (dx<0 && x<80) || (dy>0 && y>=64) || (dy<0 && y<64)))
+      n+=anchor_at(EG_X(c),EG_Y(c));
+  }
+  return n;
 }
 static uint8_t ground_ahead(uint8_t essential) {
-  int16_t x=pl_x,y=pl_y;int8_t dx=0,dy=0;uint8_t n=0u,k,c,x0,x1,y0,y1,vertical,limit,wide;
+  int8_t dx=0,dy=0;uint8_t x,y,n,k,c,x0,x1,vertical,limit,wide;
   /* A blink travels at most 6.5px/tick. Prepare the next 7px step's complete
    * 12x12 foot box, including diagonal corners and released rolls. A farther
    * point can skip the two adjacent cells crossed by a diagonal step. */
@@ -893,13 +899,7 @@ static uint8_t ground_ahead(uint8_t essential) {
     if((joy&(J_LEFT|J_RIGHT))!= (J_LEFT|J_RIGHT))dx=joy&J_RIGHT ? 1 : joy&J_LEFT ? -1 : 0;
     if((joy&(J_UP|J_DOWN))!= (J_UP|J_DOWN))dy=joy&J_DOWN ? 1 : joy&J_UP ? -1 : 0;
   }
-  x+=dx*7;y+=dy*7;
-  x0=(uint8_t)((x-6)>>4);x1=(uint8_t)((x+5)>>4);
-  y0=(uint8_t)((y-6)>>4);y1=(uint8_t)((y+5)>>4);
-  n+=anchor_at(x0,y0);
-  if(n<2u && x1!=x0)n+=anchor_at(x1,y0);
-  if(n<2u && y1!=y0)n+=anchor_at(x0,y1);
-  if(n<2u && y1!=y0 && x1!=x0)n+=anchor_at(x1,y1);
+  n=ground_contacts(dx,dy);
   if(n || video_epoch!=frame_epoch)return n;
   if(enemies_alive>=2u && (pl_state==PS_LASH || pl_state==PS_SPIN))return n;
   if(LY_REG<144u && LY_REG>=(world_on ? 24u : 32u))return 0u;
@@ -919,9 +919,9 @@ static uint8_t ground_ahead(uint8_t essential) {
       vertical=(uint8_t)(x0^k);
       if(vertical ? !dy : !dx)continue;
       limit=vertical ? 11u : 9u;
-      x=vertical ? cam_x>>4 : ((uint16_t)cam_x+(dx>0 ? 143u : 17u))>>4;
-      y=vertical ? ((uint16_t)cam_y+(dy>0 ? 111u : 17u))>>4 : cam_y>>4;
-      if((uint16_t)x>=EG_W || (uint16_t)y>=EG_H)continue;
+      x=vertical ? cam_x>>4 : (uint8_t)(cam_x+(dx>0 ? 143u : 17u))>>4;
+      y=vertical ? (uint8_t)(cam_y+(dy>0 ? 111u : 17u))>>4 : cam_y>>4;
+      if(x>=EG_W || y>=EG_H)continue;
       c=vertical ? (uint8_t)(EG_W-x) : (uint8_t)(EG_H-y);
       if(limit>c)limit=c;
       /* Walk the two bitmaps directly. Repeating coordinate conversion and
@@ -941,12 +941,7 @@ static uint8_t ground_ahead(uint8_t essential) {
    * camera step can carry them through the inner edge of the 24px band. */
   wide=(uint8_t)((dx>0 ? J_LEFT : dx<0 ? J_RIGHT : 0u)|(dy>0 ? J_UP : dy<0 ? J_DOWN : 0u));
   if(!essential && ((roam_dir&wide) || (roam_dir&0xf0u)))
-  for(k=0u;k<LOOK_MAX_CARDS && n<2u;k++)if(c_kind[k] && !c_brk[k]) {
-    c=c_cell[k];x=(int16_t)(EG_X(c)<<4)-cam_x;y=(int16_t)(EG_Y(c)<<4)-cam_y;
-    if(x<143 && x+16>17 && y<111 && y+16>17 &&
-       ((dx>0 && x>=80) || (dx<0 && x<80) || (dy>0 && y>=64) || (dy<0 && y<64)))
-      n+=anchor_at(EG_X(c),EG_Y(c));
-  }
+    n=ground_returning(dx,dy);
   if(n>=2u)return n;
   /* A slow/busy card must land before it leaves the edge band. This sweep is
    * a half slab INSIDE the approaching screen edge, after its visible entrance,
@@ -956,8 +951,8 @@ static uint8_t ground_ahead(uint8_t essential) {
   vertical=(uint8_t)(dy && (!dx || (frame_count&(essential ? 2u : 1u))));
   limit=vertical ? 11u : 9u;
   if(near_cursor>=limit)near_cursor=0u;
-  x=vertical ? cam_x>>4 : ((uint16_t)cam_x+(dx>0 ? 152u : 8u))>>4;
-  y=vertical ? ((uint16_t)cam_y+(dy>0 ? 120u : 8u))>>4 : cam_y>>4;
+  x=vertical ? cam_x>>4 : (uint8_t)(cam_x+(dx>0 ? 152u : 8u))>>4;
+  y=vertical ? (uint8_t)(cam_y+(dy>0 ? 120u : 8u))>>4 : cam_y>>4;
   /* Visible BG readiness also runs while speculative generation is pending;
    * it needs no cold OBJ upload. Quiet puzzles can ease as fast as worlds. Inspect their
    * complete edge and land up to two slabs; a single repair cannot cover all

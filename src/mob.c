@@ -541,7 +541,7 @@ static void walker(void) {
           shake = 6u;
           sfx(SFX_THUD);
           fx_burst(ex, ey, FX_STONE, 4u);
-          companion_touch(2u,ex,ey,28u);
+          if(companion.id)companion_touch(2u,ex,ey,28u);
           if (absdiff(ex, pl_x) < 28u && absdiff(ey, pl_y) < 28u) player_hurt(2u, ex, ey);
           E->st = ES_REST;
           E->t = 50u;
@@ -791,7 +791,7 @@ void mobs_update(void) BANKED {
       default: walker(); break;
     }
     /* touch and lunge damage (a tell, the burrowed and the frozen don't hurt) */
-    if(E->st!=ES_TELL && !(Mb->status&MS_UNDER))companion_touch(E->st==ES_LUNGE && Mb->fam!=FAM_STAPLES ? 2u : 1u,ex,ey,11u);
+    if(companion.id && E->st!=ES_TELL && !(Mb->status&MS_UNDER))companion_touch(E->st==ES_LUNGE && Mb->fam!=FAM_STAPLES ? 2u : 1u,ex,ey,11u);
     if (E->st != ES_TELL && !(Mb->status & MS_UNDER) && overlap(ex, ey, pl_x, pl_y, 11u, 11u)) {
       uint8_t taken = acts.hits_taken;
       player_hurt(E->st == ES_LUNGE && Mb->fam != FAM_STAPLES ? 2u : 1u, ex, ey);

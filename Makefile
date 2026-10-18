@@ -162,6 +162,13 @@ build/health-scan-test.gbc: test/native/health_scan.c src/health_scan.inc
 test-native-health-scan: build/health-scan-test.gbc
 	$(PY) test/harness/health_scan.py $< build/sprints/native-health-scan
 
+build/obj/look.o: src/look_scan.inc
+build/look-scan-test.gbc: test/native/look_scan.c src/look_scan.inc src/sprites_start.inc
+	@mkdir -p build
+	$(LCC) -Isrc -Wf--opt-code-speed -Wm-yC -Wm-yt0x19 -Wm-yo2 -Wl-j -o $@ $<
+test-native-look-scan: build/look-scan-test.gbc
+	$(PY) test/harness/look_scan.py $< build/sprints/native-look-scan
+
 CAT_ART_SRC := src/core/eg_catalogue.c $(sort $(wildcard src/gen/catalogue_*.c))
 CAT_ART_OBJ := $(patsubst src/%.c,build/art-check/%.o,$(CAT_ART_SRC))
 build/art-check/main.o: test/native/catalogue_art.c src/catalogue_art.h
@@ -230,7 +237,7 @@ build/catalogue-art.stamp: tools/bake_catalogue_art.py tools/catalogue_colours.p
 	$(PY) tools/bake_catalogue_art.py
 	@touch $@
 $(filter build/obj/gen/catalogue_%.o,$(OBJ)) $(filter build/art-check/gen/catalogue_%.o,$(CAT_ART_OBJ)): build/catalogue-art.stamp
-build/obj/sprites.o: src/gen/diag_arc.inc src/gen/hammer.inc
+build/obj/sprites.o: src/gen/diag_arc.inc src/gen/hammer.inc src/sprites_start.inc
 
 src/gen/hammer.inc: tools/bake_hammer.py
 	$(PY) tools/bake_hammer.py
@@ -782,7 +789,7 @@ test-procedural: all build/host/land_one
 	$(PY) test/harness/procedural_runs.py build/egress.gbc build/fresh-runs/mbc5
 	$(PY) test/harness/procedural_runs.py build/egress-rtc.gbc build/fresh-runs/mbc3
 
-test: test-native-journal test-native-health-scan test-base-loot test-catalogue test-catalogue-art test-catalogue-fusion test-native-companions test-native-companion-world test-native-crafted-effects build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-physics test-island-edges test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-runtime test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera test-linked-puzzles test-native-links test-native-linked-puzzles test-window test-native-window test-land test-native-land test-view test-native-view test-native-land-bind test-native-world test-native-world-art test-world-play test-world-environments test-world-failure test-procedural
+test: test-native-look-scan test-native-journal test-native-health-scan test-base-loot test-catalogue test-catalogue-art test-catalogue-fusion test-native-companions test-native-companion-world test-native-crafted-effects build/host/test_room build/host/test_obst build/host/egplan build/egress.gbc build/egress-rtc.gbc test-rtc test-heir test-character-art test-cartridge-gravity test-b2 test-physics test-island-edges test-family test-interactions test-curriculum test-gameplay test-aim test-continue test-runtime test-run-stream test-native-run-stream test-native-move test-gen-fingerprint test-camera test-linked-puzzles test-native-links test-native-linked-puzzles test-window test-native-window test-land test-native-land test-view test-native-view test-native-land-bind test-native-world test-native-world-art test-world-play test-world-environments test-world-failure test-procedural
 	build/host/test_obst
 	build/host/test_room src/gen/eg_seeds.c
 	build/host/egplan check 1000
@@ -805,3 +812,5 @@ clean:
 .PHONY: test-native-journal test-native-health-scan
 
 .PHONY: test-native-overlap
+
+.PHONY: test-native-look-scan

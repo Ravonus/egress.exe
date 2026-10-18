@@ -708,6 +708,7 @@ static void draw_orbs(void) NAKED {
 typedef char native_orb_draw_layout[(MAXO==8u && sizeof(orb_t)==10u && offsetof(orb_t,live)==0u &&
   offsetof(orb_t,friendly)==1u && offsetof(orb_t,x)==4u && offsetof(orb_t,y)==6u && ST_ORB==132u) ? 1 : -1];
 
+#include "sprites_start.inc"
 void draw_sprites(void) BANKED {
   uint8_t k, fr, start;
   int16_t x, y;
@@ -764,11 +765,11 @@ void draw_sprites(void) BANKED {
   /* OP_SHOT: projectiles keep their priority ahead of mob bodies. */
   if(orbs[0].live|orbs[1].live|orbs[2].live|orbs[3].live|orbs[4].live|orbs[5].live|orbs[6].live|orbs[7].live)draw_orbs();
   if(elemental_active)elements_draw();
-  companion_draw();
+  if(companion.id)companion_draw();
   /* OP_MOB: bodies, from a rotating start so a crowded line flickers fairly */
   if (room.nob) obstacle_draw();
   if (nen && !(boss_floor && nen == 1u)) {
-    start = (uint8_t)(oam_spin % nen);
+    start = sprite_start(oam_spin,nen);
     k = start;
     do {
       enemy_t *e = &en[k];
