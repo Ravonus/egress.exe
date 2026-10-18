@@ -1125,6 +1125,13 @@ void look_frame_end(void) BANKED {
    * state intact when only the VBlank publication margin remains. */
   if(roam_on && (video_epoch!=frame_epoch || LY_REG>=108u))return;
   look_update(0u);
+  /* Offscreen preloads can keep the roaming queue busy indefinitely. Animate
+   * visible items after terrain has used its allowance, only on sparse idle
+   * turns with enough display time left. Never steal a cold card's early slot. */
+  if(roam_on && game_mode==MODE_PLAY && !enemies_alive && look_busy_n &&
+     (world_on || stage_type==SG_PUZZLE) &&
+     (!(frame_count&3u) || (frame_count&15u)==2u) &&
+     video_epoch==frame_epoch && LY_REG<98u)items_tick();
 }
 void look_tick(void) BANKED {
   roam_late=0u;look_frame_begin();

@@ -59,7 +59,7 @@ static uint8_t controls_pause(void) {
   text_at(1,1,7,tutorial_on==2u ? "START EXIT B BACK" : "START / B RESUME",LOOK_PAL_HUD);
   hud_line=80u;move_win(7,80);
   while(1) {
-    frame_wait();look_pause_tick();flush_cells(8u);sound_tick();draw_sprites();input_poll();
+    frame_wait();DISABLE_OAM_DMA;look_pause_tick();flush_cells(8u);sound_tick();draw_sprites();input_poll();
     if((joy_pressed&J_SELECT) && stage_type==SG_HEIST) {stage_select();break;}
     if(joy_pressed&J_A) {open_bench=1u;break;}
     if(joy_pressed&(J_START|J_B)) {leave_course=(uint8_t)(tutorial_on==2u && (joy_pressed&J_START));break;}
@@ -269,6 +269,7 @@ static void assemble_wait(void) {
   pl_inv = 0; /* no blinking while the world arrives */
   while (look_busy()) {
     frame_wait();
+    DISABLE_OAM_DMA;
     look_tick();
     sound_tick();
     input_poll();

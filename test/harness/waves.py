@@ -68,7 +68,15 @@ def run(rom,out):
             aim=set()
             if abs(dx)*2>=abs(dy):aim.add('right' if dx>0 else 'left')
             if abs(dy)*2>=abs(dx):aim.add('down' if dy>0 else 'up')
-            g.hold(aim);g.tick(1);g.hold({'a'});g.tick(34);g.hold(set());g.tick(40)
+            g.hold(aim);g.tick(1);g.hold({'a'})
+            for _ in range(34):
+                g.tick()
+                if g.peek('stage_won'):break
+            g.hold(set())
+            if g.peek('stage_won'):break
+            for _ in range(40):
+                g.tick()
+                if g.peek('stage_won'):break
         results[f'level_{level}_victory_requires_real_kills']=bool(g.peek('stage_won')) and g.peek('kills_run')>0 and g.peek('stage_pct')==100
         results[f'level_{level}_finite_complete_waves']=g.peek('stage_wave')==g.peek('stg',5) and not g.peek('enemies_alive')
         results[f'level_{level}_pooled_three_live_enemies']=max_alive<=3 and meter.over==0
