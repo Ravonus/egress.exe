@@ -106,6 +106,24 @@ void puzzle_pick(uint8_t cell) BANKED {
   }
 }
 
+/* A pressed source always responds, including an incomplete two-load circuit.
+ * Report its own dependency rather than implying every plate opens a gate. */
+void puzzle_plate(uint8_t cell,const uint8_t *occ,uint8_t n) BANKED {
+  uint8_t k,g=EG_LINK_NONE,powered=1u,latch=0u;
+  if(room.nlink) {
+    for(k=0u;k<room.nlink;k++)if(room.link[k].a==cell || room.link[k].b==cell) {
+      g=room.link[k].gate;powered=eg_link_power(&room,k,occ,n);
+      latch=room.link[k].rule&EG_LINK_LATCH;break;
+    }
+    if(k==room.nlink)return;
+  }
+  hud_msg(!room.nlink ? "PLATE: USE A BOX" : !powered ? "WEIGHT BOTH PLATES" :
+          latch ? "GATE LATCHED OPEN" : "GATE OPEN: ADD A BOX");
+  sfx(powered ? SFX_TELL : SFX_PUSH);
+  puff((uint8_t)(EG_X(cell)*16u+8u),(uint8_t)(EG_Y(cell)*16u+8u),4u,ST_SPARK);
+  if(g<EG_N)puff((uint8_t)(EG_X(g)*16u+8u),(uint8_t)(EG_Y(g)*16u+8u),4u,ST_SPARK);
+}
+
 /* --- the cards (b1-look, src/gen/look_art.h) the puzzle cells show; a fragile kind's stage is its first card + the
  * steps taken, the same order as the cell ids (src/core/eg_room.h) --- */
 static const uint8_t card[T_TYPES - T_CRUMBLE] = {

@@ -45,6 +45,10 @@ enum {
 #define MOBF_HUNT_BACK 0x08u /* hunt: a rear hit must follow a dodge */
 #define MOBF_MEANS 0x04u  /* its kill condition's means were checked or placed (7.3) */
 #define MOBF_EXPOSE 0x10u /* temporary critter mark; respects conditional kill rules */
+/* A streamed-out live actor uses the three spare flag bits for state+1.
+ * ES_DEAD keeps it out of local collision/AI/render loops; this mask retains
+ * its identity, HP, timers and pool slot until its coordinates return. */
+#define MOBF_PARKED 0xe0u
 
 typedef struct {
   mob_axes_t ax;
@@ -144,6 +148,8 @@ uint8_t mob_look_draw(uint8_t slot, uint8_t f, int16_t sx, int16_t sy, uint8_t p
 
 /* ---- hooks called from the B1 modules (small edits there) ---- */
 void mobs_update(void) BANKED;      /* from enemies_update: every SPAWN_MOB */
+void mobs_shift_view(int8_t dx,int8_t dy) BANKED;
+void fx_shift_view(int8_t dx,int8_t dy) BANKED;
 void mobs_draw(uint8_t pass) BANKED; /* from draw_sprites: OP_MARK (elite crowns), OP_OVER (overlays) */
 void mob_hit(uint8_t k, uint8_t dmg, uint8_t fromx, uint8_t fromy) BANKED; /* from enemy_hit for SPAWN_MOB */
 void mob_died(uint8_t k) BANKED;    /* from enemy_kill: splits, tokens, fx */

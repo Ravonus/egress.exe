@@ -582,7 +582,7 @@ static void shift_spans(int8_t dy) NAKED {
   __endasm;
 }
 void look_shift_view(int8_t dx,int8_t dy) BANKED {
-  uint8_t k,i,c,keep=0u,mask,lo,hi,delta;
+  uint8_t k,i,c,keep=0u,mask,lo,hi,delta,membership=(uint8_t)(q_n|n_flying);
   if(dx){mask=15u;lo=dx>0 ? 4u : 0u;hi=dx>0 ? 16u : 12u;delta=(uint8_t)dx;}
   else {mask=255u;lo=dy>0 ? 64u : 0u;hi=dy>0 ? 224u : 160u;delta=(uint8_t)(dy*16);}
   /* Each card is tested in its old coordinates. Recycle leaving slots and
@@ -601,7 +601,9 @@ void look_shift_view(int8_t dx,int8_t dy) BANKED {
   eg_view_bits(look_present,dx,dy,0u);eg_view_bits(roam_hidden,dx,dy,1u);eg_view_bits(redraw,dx,dy,1u);
   /* Membership is a spatial bit field too. Shift the existing pools instead
    * of clearing and rebuilding every queued/card membership individually. */
-  eg_view_bits(queued,dx,dy,0u);eg_view_bits(in_flight,dx,dy,0u);
+  if(membership) {
+    eg_view_bits(queued,dx,dy,0u);eg_view_bits(in_flight,dx,dy,0u);
+  }
   if(dx) {
     i=dx>0 ? 12u : 0u;k=14u;
     do {incoming_pits(i);i=(uint8_t)(i+16u);}while(--k);

@@ -209,7 +209,7 @@ static void floor_show(void) {
 }
 
 static void gravity_tick(void) {
-  uint8_t occ[4], n = 1u, c, k, g, weights=0u;
+  uint8_t occ[4], n = 1u, c, k, g, weights=0u,pressed=EG_LINK_NONE;
   uint8_t x0=(uint8_t)(pl_x-6u),x1=(uint8_t)(pl_x+5u);
   uint8_t y0=(uint8_t)(pl_y-6u),y1=(uint8_t)(pl_y+5u);
   /* The same ordered unique corners of the 12x12 feet box, without a nested
@@ -226,6 +226,7 @@ static void gravity_tick(void) {
     for(k=0u;k!=n;k++) if(room.c[occ[k]]==T_PLATE) {
       if(weights>=weight_n || weight_cells[weights]!=occ[k]) {
         eg_plates_dirty=1u;queue_cell(occ[k]);
+        pressed=occ[k];
         if(weights<weight_n) queue_cell(weight_cells[weights]);
       }
       weight_cells[weights++]=occ[k];
@@ -235,6 +236,7 @@ static void gravity_tick(void) {
   g = floor_has_crt || boss_floor ? eg_gravity(&room, occ, pl_hp && !pl_air && pl_state!=PS_FALL ? n : 0u)
                                 : eg_shutters(&room, occ, pl_hp && !pl_air && pl_state!=PS_FALL ? n : 0u);
   if(world_on)world_sources(occ,(uint8_t)(pl_hp && !pl_air && pl_state!=PS_FALL ? n : 0u));
+  if(pressed<EG_N)puzzle_plate(pressed,occ,n);
   if (eg_ndirty > EG_DIRTY_MAX) {
     for (c = 0; c != (uint8_t)EG_N; c++)
       if (cell_type(c) == T_ROCK || cell_type(c) == T_EMPTY) queue_cell(c);
@@ -424,7 +426,9 @@ static uint8_t floor_play(void) {
     /* An impact starts hitstop immediately. Publish the new hit/pose below,
      * rather than moving every live actor once more before the frozen ticks. */
     if(!freeze) {
-      if(nen)enemies_update();
+      /* A seam spends the actor budget rebasing the same encounter. Keep
+       * player input and the complete body publication; AI resumes next tick. */
+      if(nen && !streamed)enemies_update();
       if(!freeze && (orbs[0].live|orbs[1].live|orbs[2].live|orbs[3].live|
                      orbs[4].live|orbs[5].live|orbs[6].live|orbs[7].live))orbs_update();
       if (!freeze && !--grav_t) {

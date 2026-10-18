@@ -85,6 +85,16 @@ void fx_reset(void) BANKED {
   fx_next = 0;
 }
 
+void fx_shift_view(int8_t dx,int8_t dy) BANKED {
+  uint8_t k;int16_t x,y;
+  if(!(fx[0].t|fx[1].t|fx[2].t|fx[3].t|fx[4].t|fx[5].t|fx[6].t|fx[7].t))return;
+  for(k=0u;k<FXN;k++)if(fx[k].t) {
+    x=(int16_t)fx[k].x-dx*16;y=(int16_t)fx[k].y-dy*16;
+    if((uint16_t)x>=256u || (uint16_t)y>=224u)fx[k].t=0u;
+    else {fx[k].x=(uint8_t)x;fx[k].y=(uint8_t)y;}
+  }
+}
+
 void fx_burst(uint8_t x, uint8_t y, uint8_t kind, uint8_t n) BANKED {
   fx_t *p;
   uint8_t life,tile,pal,v;
