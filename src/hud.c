@@ -18,6 +18,7 @@
 #include "puzzle.h"
 #include "core/eg_piece.h"
 #include "stage.h" /* B2 */
+#include "companion.h"
 
 #pragma bank 255
 
@@ -94,13 +95,18 @@ static void clear_rim(uint8_t start) {
 /* Keep the equipped finite unit beside the existing meters. A sparse narrator
  * caption temporarily borrows the same rim and restores the slot afterward. */
 static void draw_tool(void) {
-  char name[5];uint8_t count;
+  char name[5];uint8_t count,i,lit;eg_pet_profile p;
   if(narr_t)return;
   clear_rim(6u);hud_text(6u,top,"S:");
-  if(tool_piece && tool_piece<P_COUNT) {
-    eg_piece_abbr(tool_piece,name);hud_text(8u,top,name);
-    count=pocket_count(tool_piece);hud_text(13u,top,"x");hud_num(14u,top,count,2u);
+  if(tool_piece && tool_piece<=EG_DISCOVERIES) {
+    eg_catalogue_abbr(tool_piece,name);hud_text(8u,top,name);
+    if(tool_piece==companion.id)hud_text(13u,top,companion.cd ? "..." : "RDY");
+    else {count=pocket_count(tool_piece);hud_text(13u,top,"x");hud_num(14u,top,count,2u);}
   } else hud_text(8u,top,"--");
+  if(companion.id && eg_pet_get(companion.id,&p)){
+    hud_text(16u,top,"P");lit=eg_stamina_meter(companion.hp,p.hp,24u);
+    for(i=0u;i<3u;i++){hud_tile(17u+i,top,BT_BAR+(lit>8u ? 8u : lit));lit=lit>8u ? lit-8u : 0u;}
+  }
   rows_dirty|=(uint8_t)(1u<<top);
 }
 static void hud_layout(uint8_t toast) {
@@ -111,9 +117,9 @@ static void hud_layout(uint8_t toast) {
     else {hud_copy20(sh[0],sh[1]);hud_copy20(sh[1],sh[2]);memset(sh[2],BT_FONT,20u);}
     top=toast;
     counter_top=top; /* the counter row moved intact */
-    clear_rim(5u);draw_tool();
+    clear_rim(5u);
     rows_dirty=7u;
-    if(hud_dirty)draw_n();
+    if(hud_dirty)draw_n();else draw_tool();
     return;
   }
   top = toast;
@@ -121,7 +127,7 @@ static void hud_layout(uint8_t toast) {
   counter_top=255u;
   shown_stamina=shown_cap=shown_charge=255u;
   rows_dirty = 7u;
-  clear_rim(5u);draw_tool();
+  clear_rim(5u); /* draw_n below composes the tool/pet rim once */
   charge_n();
   draw_n();
 }

@@ -18,6 +18,7 @@
 #include "heir.h"
 #include "look.h"
 #include "core/eg_input.h"
+#include "mob.h"
 
 extern eg_input_t pin; /* player.c */
 
@@ -136,8 +137,10 @@ void bc_break_shelf(uint8_t c) BANKED {
 void boss_hit(uint8_t dmg, uint8_t fromx, uint8_t fromy) BANKED {
   (void)fromx;
   (void)fromy;
+  hit_result=HR_MISS;
   if (bs_st != BS_ATTACK && bs_st != BS_IDLE) return;
   if (!bs_open) { /* armour, a shut screen: it clinks off */
+    hit_result=HR_BLOCK;
     sfx(SFX_B_CLINK);
     puff((uint8_t)(en[0].x >> 4), (uint8_t)((en[0].y >> 4) - 6u), 5, ST_SPARK);
     freeze = 2u;
@@ -150,6 +153,7 @@ void boss_hit(uint8_t dmg, uint8_t fromx, uint8_t fromy) BANKED {
   freeze = dmg >= 2u ? 5u : 3u;
   sfx(SFX_HIT);
   if (bs_hits != 255u) bs_hits++;
+  hit_result=HR_HURT;
   if (bs_hp <= dmg) {
     bs_hp = 0;
     bc_gate();

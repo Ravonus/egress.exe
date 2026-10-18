@@ -34,7 +34,7 @@ def run(rom,out,measure=False):
             actual=sum(bool(g.pb.memory[0xfe00+4*k]) and g.pb.memory[0xfe02+4*k]<16 and not(g.pb.memory[0xfe03+4*k]&8) for k in range(40))
             if actual not in (previous,expected) or not actual:body_missing.append((len(fc),actual,previous,expected))
             if len(fc)%4==0:frames.append(g.pb.screen.image.convert('RGB'))
-    g.tick=record;g.pb.memory[1,0xddd0:0xddf0]=[0xa7]*32
+    g.tick=record;g.pb.memory[1,0xde78:0xde98]=[0xa7]*32
     pickup=178;left=194;right=205
     assert walk(g,pickup,log);g.hold(set());g.tick(30)
     bag=pocket(g);r['real_ingredient_collected']=g.room()[pickup]==0 and bag==[4]
@@ -76,7 +76,7 @@ def run(rom,out,measure=False):
     r['floor_under_feet_stays_present']=not missing
     r['complete_body_retained']=not body_missing
     r['sprite_line_budget']=meter.over==0
-    r['floor_stack_canary']=bytes(g.pb.memory[1,0xddd0:0xddf0])==bytes([0xa7]*32)
+    r['floor_stack_canary']=bytes(g.pb.memory[1,0xde78:0xde98])==bytes([0xa7]*32)
     spans=[(fc[i]-fc[i-120])&65535 for i in range(120,len(fc))]
     windows=[epochs[i]-epochs[i-120] for i in range(120,len(epochs))]
     r['movement_frames_120_per_120']=bool(windows) and min(windows)==max(windows)==120

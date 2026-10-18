@@ -191,7 +191,7 @@ static uint8_t meta_for(uint8_t i) {
     case T_ROCK:
       return (x & 1u) ? M_CRT_A : M_CRT_B;
     case T_TOKEN:
-      return M_TOKEN;
+      return EG_HEALTH(room.c[i]) ? M_SLAB_A : M_TOKEN;
     case T_KEY:
       return M_KEY;
     default:

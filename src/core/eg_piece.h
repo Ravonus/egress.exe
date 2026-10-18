@@ -52,7 +52,10 @@ enum {
 /* The current recipe subset never creates HOT without a HOT ingredient.
  * Kept as IDs for the room bank's bounded resource-reachability check; the
  * host circuit gate verifies this list against every piece and recipe. */
-#define EG_PIECE_HOT(p) ((p)==P_FIRE || (p)==P_STEAM || (p)==P_LAVA)
+/* Capability markers are solver input, never carried/craftable items. A pet
+ * can perform the direct verb without donating a finite recipe ingredient. */
+enum {EG_ASSIST_HOT=240u,EG_ASSIST_COLD,EG_ASSIST_POWER,EG_ASSIST_MUD,EG_ASSIST_WEIGHT};
+#define EG_PIECE_HOT(p) ((p)==P_FIRE || (p)==P_STEAM || (p)==P_LAVA || (p)==EG_ASSIST_HOT)
 #define PC_MAG(p) ((uint8_t)(eg_piece[p][3] >> 4))
 #define PC_CD(p) ((uint8_t)(eg_piece[p][3] & 15u))
 #define PC_FLAGS(p) (eg_piece[p][4])

@@ -45,11 +45,6 @@ static uint8_t expand(uint8_t obj, uint8_t d, uint8_t *out) {
       out[0] = P_FIRE;
       return 1u;
     case P_SNOW:
-      if (d < 2u) {
-        out[0] = P_RAIN;
-        out[1] = P_AIR;
-        return 2u;
-      }
       out[0] = P_WATER;
       out[1] = P_AIR;
       out[2] = P_AIR;
@@ -59,19 +54,11 @@ static uint8_t expand(uint8_t obj, uint8_t d, uint8_t *out) {
       return (uint8_t)(1u + expand(P_SNOW, (uint8_t)(d - 1u), out + 1));
     case P_BRICK:
       out[0] = P_FIRE;
-      if (d < 2u) {
-        out[1] = P_MUD;
-        return 2u;
-      }
       out[1] = P_EARTH;
       out[2] = P_WATER;
       return 3u;
     default: /* ELECTRIC */
       out[0] = P_METAL;
-      if (d < 2u) {
-        out[1] = P_ENERGY;
-        return 2u;
-      }
       out[1] = P_AIR;
       out[2] = P_FIRE;
       return 3u;
@@ -97,7 +84,7 @@ static uint8_t add_lock(uint8_t trick, uint8_t want, uint8_t minz, uint8_t *dept
   }
   if (nneed + n > EG_MAX_ITEM) return 0u;
   /* the depth reached: chains of found pieces */
-  k = trick == TRICK_BURN ? 0u : (d >= 3u && trick == TRICK_COLD ? 3u : (d >= 2u ? 2u : 1u));
+  k = trick == TRICK_BURN ? 0u : (d >= 3u && trick == TRICK_COLD ? 3u : 2u);
   if (k > *depth) *depth = k;
   for (k = 0u; k != n; k++) {
     need[nneed] = buf[k];
@@ -344,14 +331,20 @@ uint8_t eg_generate(eg_room *r, uint16_t seed, uint8_t tier) EG_BANKED {
   for (k = 0u; k != EG_MAX_RUN; k++) r->run[k] = 0u;
   if (TRICK_OBSTACLE(r->trick)) { /* B2: the living-obstacle rooms are built in eg_ogen.c */
     r->support = 0u;
-    n=eg_gen_obstacles(r,tier);if(n) eg_island_edges(r);return n;
+    n=eg_gen_obstacles(r,tier);if(n){eg_island_edges(r);eg_health_room(r,seed);}return n;
   }
   nsup = tier < 2u ? 0u : (tier < 4u ? 1u : 2u);
   r->support = 0u;
   nb = 0u;
   if (r->trick <= TRICK_COLD || r->trick >= TRICK_GLASS) band[nb++] = r->trick;
+  /* Preflight base reagents before constructing any lock. Optional cold cuts
+   * become heat cuts when their three roots would exceed the six-item room
+   * record. The named goal retains its complete recipe and geometry. */
+  n=r->trick==TRICK_BURN ? 1u : r->trick==TRICK_COLD ? (tier>=4u ? 4u : 3u) : r->trick<TRICK_GLASS ? 3u : 0u;
   for (k = 0u; k != nsup; k++) {
     t = (uint8_t)(eg_rnd() & 1u);
+    if(t && n+3u+(nsup-k-1u)>EG_MAX_ITEM)t=0u;
+    n+=(uint8_t)(t ? 3u : 1u);
     band[nb++] = t;
     r->support |= (uint8_t)(1u << t);
   }
@@ -598,5 +591,6 @@ uint8_t eg_generate(eg_room *r, uint16_t seed, uint8_t tier) EG_BANKED {
   }
   settle(r);
   eg_island_edges(r);
+  eg_health_room(r,seed);
   return (uint8_t)(c[r->start] == T_EMPTY);
 }

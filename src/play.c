@@ -25,6 +25,9 @@
 #include "world.h"
 #include "world_play.h"
 #include "ui.h"
+#include "collection.h"
+#include "companion.h"
+#include "health.h"
 void sprites_budget(void) NONBANKED;
 uint8_t heir_cache_flush(void) BANKED;
 extern volatile uint8_t video_epoch;
@@ -62,6 +65,7 @@ static uint8_t controls_pause(void) {
   }
   cam_y=old_y;move_bkg(BG_SCROLL_X(cam_x),BG_SCROLL_Y(cam_y));
   clear_map(1,LOOK_PAL_HUD);hud_draw();hud_charge();move_win(7,128);hud_line=128u;
+  draw_sprites();
   frame_wait();bench_on=0u;
   return leave_course ? 1u : open_bench ? 2u : 0u;
 }
@@ -107,6 +111,7 @@ static void floor_build(void) {
   }
   /* A room without CRTs cannot acquire one through ordinary reactions. A
    * queued new CRT promotes this flag; boss arenas keep their full physics. */
+  if(!world_on && tutorial_on!=2u)eg_health_room(&room,floor_seed);
   floor_has_crt=0u;
   for(i=0u;i!=EG_N;i++)if(cell_type(i)==T_ROCK) {floor_has_crt=1u;break;}
   /* game randomness from here on: seeded by the run and the floor */
@@ -277,7 +282,7 @@ static void assemble_wait(void) {
 static uint8_t floor_play(void) {
   uint8_t end_t = 0,roaming,late,streamed;
   floor_tokens0 = tokens;
-  pocket_enter();
+  if(tutorial_on==2u)pocket_enter();
   if(tutorial_on==2u) {}
   else if(restored_floor) {stage_resume_floor();restored_floor=0u;narrator_event(NE_RETURN,0u);}
   else {
@@ -301,12 +306,14 @@ static uint8_t floor_play(void) {
     frame_wait();
     input_poll(); /* sample before variable-cost VRAM/audio work can cross a display boundary */
     DISABLE_OAM_DMA;
+    if(pet_save_dirty)resume_pet_flush();
     /* A busy previous frame may have offered a complete pose without spare
      * time to cache it. Preserve it before another composition replaces the
      * buffer, and give that copy this frame's early composition allowance. */
     late=world_on ? world_frame_begin() : heir_cache_flush();
     streamed=world_on ? late : 0u;
     if(!late)heir_prepare();
+    companion_art_tick();
     late=(uint8_t)(roaming && (world_on || enemies_alive || stage_type!=SG_PUZZLE));
     if (boss_floor) boss_vblank(); /* B2 bosses: in VBlank, before the look's writes */
     if (pal_dirty && !look_busy()) {
@@ -402,13 +409,15 @@ static uint8_t floor_play(void) {
       continue;
     }
     stage_tick(); /* B2 */
+    companion_tick();
     puzzle_tick(); /* B1: fragile floor, the beat, the dead-room hint */
-    obstacle_tick();
+    if(room.nob)obstacle_tick();
     /* An impact starts hitstop immediately. Publish the new hit/pose below,
      * rather than moving every live actor once more before the frozen ticks. */
     if(!freeze) {
-      enemies_update();
-      if(!freeze)orbs_update();
+      if(nen)enemies_update();
+      if(!freeze && (orbs[0].live|orbs[1].live|orbs[2].live|orbs[3].live|
+                     orbs[4].live|orbs[5].live|orbs[6].live|orbs[7].live))orbs_update();
       if (!freeze && !--grav_t) {
         grav_t = GRAVITY_FRAMES;
         gravity_tick();
@@ -434,6 +443,7 @@ static uint8_t floor_play(void) {
 
 void play_run(void) BANKED {
   uint16_t new_seed=run_seed;
+  collection_pause();
   if(tutorial_on==1u) {
     tutorial_on=2u;run_loading=1u;
     art_copy_tables(&meta_tile[0][0],meta_pal,pal_bg,pal_sp,people);
@@ -441,7 +451,7 @@ void play_run(void) BANKED {
     memset(family_stat,0,sizeof family_stat);stamina_begin();pocket_begin();stage_run_begin();
     floor_no=1u;floor_seed=0x600du;floor_tier=0u;tokens=0u;restored_floor=0u;run_loading=0u;
     if(floor_play()) {tutorial_seen|=0x8000u;tutorial_save();}
-    HIDE_WIN;hud_line=144u;tutorial_on=0u;return;
+    collection_pause();HIDE_WIN;hud_line=144u;tutorial_on=0u;return;
   }
   run_loading=1u;
   art_copy_tables(&meta_tile[0][0], meta_pal, pal_bg, pal_sp, people);

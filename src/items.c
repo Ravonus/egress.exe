@@ -24,14 +24,3 @@ void items_tick(void) BANKED {
   VBK_REG=0;
   set_bkg_data(t,4u,&item_idle[(frame_count>>5)&3u][(uint16_t)(p-1u)<<6]);
 }
-
-/* Bench cards share the canonical four baked poses and their existing VRAM.
- * Upload one card per four frames even when all three recipe slots are shown. */
-void items_bench_tick(uint8_t a,uint8_t b,uint8_t result) BANKED {
-  uint8_t p,k;
-  if(frame_count&3u)return;
-  k=(uint8_t)((frame_count>>2)%3u);p=k==0u ? a : k==1u ? b : result;
-  if(!p || p>=P_COUNT)return;
-  VBK_REG=0u;
-  set_bkg_data(meta_tile[M_ITEM0+p-1u][0],4u,&item_idle[(frame_count>>5)&3u][(uint16_t)(p-1u)<<6]);
-}

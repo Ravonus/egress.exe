@@ -227,7 +227,15 @@ static uint8_t shutters(eg_room *r, const uint8_t *occ, uint8_t nocc);
  * changes its marker; collision, doors, resources and the generator's route
  * stay intact. The two bitsets are loading-only stack scratch. */
 static uint8_t bench_floor(uint8_t v) {
-  return (uint8_t)(v==T_EMPTY || v==T_DIRT || v==T_TOKEN || v==T_KEY || v==T_ITEM || v==T_PLATE || v==T_GATE_OPEN);
+  return (uint8_t)(v==T_EMPTY || v==T_DIRT || v==T_TOKEN || EG_HEALTH(v) || v==T_KEY || v==T_ITEM || v==T_PLATE || v==T_GATE_OPEN);
+}
+void eg_health_room(eg_room *r,uint16_t seed) EG_BANKED {
+ uint8_t k,i=(uint8_t)((seed^(seed>>8))%EG_N);
+ for(k=0u;k<EG_N;k++)if(EG_HEALTH(r->c[k]))return;
+ for(k=0u;k<EG_N;k++){
+  if(EG_X(i)>1u && EG_X(i)<14u && EG_Y(i)>1u && EG_Y(i)<12u && i!=r->start && !EG_PROT(r,i) && r->c[i]==T_EMPTY){r->c[i]=T_TOKEN|F_HEALTH;return;}
+  if(++i==EG_N)i=0u;
+ }
 }
 void eg_benches(eg_room *r,uint16_t seed) EG_BANKED {
   uint8_t seen[EG_N/8u],reach[EG_N/8u],i,j,k,changed,best,score,lowest;
@@ -446,7 +454,7 @@ uint8_t eg_push_block(eg_room *r, uint8_t from, uint8_t to) EG_BANKED {
   if (!EG_CRATE(f)) return 0u;
   if (t == T_GLASS || t == T_CEIL || t == T_CEIL_1)
     t = T_PIT; /* through it, into the void: both gone */
-  else if (t == T_EMPTY)
+  else if (t == T_EMPTY || EG_HEALTH(t))
     t = T_BLOCK;
   else if (t == T_PLATE)
     t = T_BLOCK_PLATE;
@@ -565,7 +573,7 @@ static uint8_t dd_weight_tools(const eg_room *r,const uint8_t *pocket,uint8_t n)
   for(i=0u;i<(uint8_t)(n+r->nitem);i++) {
     if(i<n) p=pocket[i];
     else {t=(uint8_t)(i-n);if((r->c[r->item_cell[t]]&T_MASK)!=T_ITEM) continue;p=r->item_piece[t];}
-    if(p==P_BRICK) return 1u;
+    if(p==P_BRICK || p==EG_ASSIST_WEIGHT) return 1u;
     if(p==P_FIRE) tools|=1u;
     if(p==P_MUD) tools|=2u;
     if(p==P_EARTH) tools|=4u;
@@ -586,6 +594,7 @@ uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, u
     dd_mode=3u;dd_scan=dd_flags=dd_n=dd_h=0u;
     dd_heat=0u;
     for(i=0u;i<npocket;i++)if(EG_PIECE_HOT(pocket[i]))dd_heat=1u;
+    for(i=0u;i<npocket;i++)if(pocket[i]>=EG_ASSIST_HOT && pocket[i]<=EG_ASSIST_WEIGHT)dd_flags|=128u;
     for(i=0u;i<r->nitem;i++)if((r->c[r->item_cell[i]]&T_MASK)==T_ITEM && EG_PIECE_HOT(r->item_piece[i]))dd_heat=1u;
     for(i=0u;i!=EG_N/8u;i++) dd_seen[i]=0u;
     /* Separate circuits and portals need their dependency proof; the cheap
@@ -645,7 +654,7 @@ uint8_t eg_dead_step(const eg_room *r, const uint8_t *pocket, uint8_t npocket, u
      * can cross a gap too. Never announce a lost room while that route remains. */
     for (i = 0u; i != npocket; i++) {
       p = pocket[i];
-      if (p == P_MUD) bridge |= 4u;
+      if (p == P_MUD || p==EG_ASSIST_MUD) bridge |= 4u;
       if (p == P_EARTH) bridge |= 1u;
       if (p == P_WATER) bridge |= 2u;
     }
@@ -676,6 +685,7 @@ check_keys:
     return EG_DEAD_BUSY;
   }
   /* a piece the room needs (not a herring) out of reach, with no twin in reach and none in the pocket */
+  if(dd_flags&128u)return 0u; /* final capabilities can replace those original recipe ingredients */
   for (k = 0u; k != (uint8_t)(r->nitem - r->herrings); k++) {
     i = r->item_cell[k];
     if ((r->c[i] & T_MASK) != T_ITEM || DD_SEEN(i)) continue;

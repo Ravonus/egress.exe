@@ -25,21 +25,17 @@
 #include "stamina.h"
 #include "stage.h"
 #include "core/eg_move.h"
+#include "companion.h"
+#include "elements.h"
+#include "health.h"
+#include "mapper.h"
+#include "save_map.h"
 extern eg_mover_t pmv;
-void items_bench_tick(uint8_t a,uint8_t b,uint8_t result) BANKED;
 void items_tick(void) BANKED;
 extern volatile uint8_t video_epoch;
 extern uint8_t frame_epoch;
 
 /* Bank 1 floor state, after the mover map; title playback uses bank 2 here. */
-uint8_t __at(0xDBC0) pocket[POCKET_CAP];
-uint8_t pocket_n;
-static uint8_t __at(0xDBD8) entry_pocket[POCKET_CAP];
-static uint8_t entry_n;
-/* Bank 1 has 28 spare bytes between the four-byte stamina record and bag. */
-static uint8_t __at(0xDBA4) entry_tool;
-typedef char tool_entry_spare[(sizeof(eg_stamina)==4u) ? 1 : -1];
-uint8_t tool_piece,tool_cd;
 uint8_t __at(0xDBA5) bench_mode;
 static uint8_t __at(0xDBA6) bench_hint;
 static uint8_t __at(0xDBA7) bench_ready;
@@ -56,10 +52,6 @@ static uint8_t told;
 /* Shared floor text scratch; the paused bench uses this same gap. */
 static char __at(0xDBA9) buf[20];
 
-void pocket_begin(void) BANKED { memset(pocket, 0, sizeof pocket); pocket_n = tool_piece = tool_cd = 0; }
-void pocket_enter(void) BANKED { memcpy(entry_pocket, pocket, sizeof pocket); entry_n = pocket_n; entry_tool=tool_piece; }
-void pocket_restore(void) BANKED { memcpy(pocket, entry_pocket, sizeof pocket); pocket_n = entry_n; tool_piece=entry_tool;tool_cd=0u;hud_dirty=1u; }
-
 void pocket_reset(void) BANKED {
   uint8_t i;
   memset(frag_t, 0, sizeof frag_t);
@@ -68,7 +60,7 @@ void pocket_reset(void) BANKED {
   puzzle_dirty = frag_skip = dead_t = dead_run = 0;
   beat_was = 255u;
   look_glitch_period = 0; /* the puzzle drives the beat (frame-based, EG_BEAT_LEN; the solver's model is a window) */
-  bench_on=tool_cd=bench_mode=0u;bench_hint=bench_ready=255u;
+  bench_on=tool_cd=bench_mode=0u;elemental_active=elemental_ward=0u;bench_hint=bench_ready=255u;effect_n=128u;
   bench_cur = 0;
   last_rx = 0;
   has_glitch = 0;
@@ -80,6 +72,7 @@ void puzzle_shift_view(int8_t dx,int8_t dy) BANKED {
   pl_cell=eg_view_rebase(pl_cell,dx,dy);pl_safe=eg_view_rebase(pl_safe,dx,dy);frag_pend=eg_view_rebase(frag_pend,dx,dy);
   if(pl_cell>=EG_N)pl_cell=c;if(pl_safe>=EG_N)pl_safe=c;
   dead_run=0u;puzzle_dirty=1u;
+  health_shift_view(dx,dy);
   if(world_on) {has_glitch|=world_glitch;return;}
   if(has_glitch)return;
   if(dx) {
@@ -91,22 +84,13 @@ void puzzle_shift_view(int8_t dx,int8_t dy) BANKED {
   }
 }
 
-static void pocket_take(uint8_t slot) {
-  uint8_t k;
-  for (k = slot; k + 1u < pocket_n; k++) pocket[k] = pocket[(uint8_t)(k + 1u)];
-  pocket_n--;
-  pocket[pocket_n] = 0;
-  hud_dirty=1u;
-}
-
 /* the player walked into a piece lying in the room */
 void puzzle_pick(uint8_t cell) BANKED {
   tutorial_queue(TE_BENCH);
   uint8_t p = eg_item_at(&room, cell);
   if (!p) return;
   if (pocket_n >= POCKET_CAP) { hud_msg("SATCHEL FULL: USE IT"); return; }
-  pocket[pocket_n++] = p;
-  if(!tool_piece)tool_piece=p;
+  if(!pocket_add(p))return;
   hud_dirty=1u;
   room.c[cell] = T_EMPTY;
   queue_cell(cell);
@@ -202,11 +186,6 @@ static void wait_frames(uint8_t n) {
 }
 
 /* A stable piece ID is the quick slot; compacting the satchel never changes it. */
-uint8_t pocket_count(uint8_t piece) BANKED {
-  uint8_t k,n=0u;
-  for(k=0u;k<pocket_n;k++)if(pocket[k]==piece)n++;
-  return n;
-}
 static uint8_t tool_fx(uint8_t p) {
   if(p==P_FIRE || p==P_LAVA)return FX_HOT;
   if(p==P_WATER || p==P_RAIN || p==P_CLOUD)return FX_WET;
@@ -233,6 +212,14 @@ void puzzle_tool_use(void) BANKED {
   uint8_t order[EG_DIRTY_MAX];
   int16_t x=(int16_t)EG_X(here)+dx[pmv.facing],y=(int16_t)EG_Y(here)+dy[pmv.facing];
   if(tool_cd || pl_state!=PS_FREE || pl_air || freeze)return;
+  if(tool_piece>=EG_PETS_FIRST){
+    if(companion.id!=tool_piece){
+      for(slot=0u;slot<pocket_n;slot++)if(pocket_id(slot)==tool_piece){companion_equip(slot);return;}
+      sfx(SFX_DENY);hud_msg("EQUIP A CRITTER");return;
+    }
+    companion_command();return;
+  }
+  if(tool_piece>16u){elements_use();return;}
   if(!p || p>=P_COUNT) {sfx(SFX_DENY);hud_msg("START: INVENTORY");return;}
   for(slot=0u;slot<pocket_n;slot++)if(pocket[slot]==p)break;
   if(slot==pocket_n) {sfx(SFX_DENY);hud_msg("EMPTY: EQUIP AN ITEM");return;}
@@ -374,6 +361,7 @@ static uint8_t body_on(uint8_t cell) {
 void puzzle_tick(void) BANKED {
   uint8_t c = cell_at(pl_x, pl_y), t, on = (uint8_t)eg_beat_on(frame_count), j;
   if(tool_cd)tool_cd--;
+  if(elemental_active || elemental_ward)elements_tick();
   if(!boss_floor && !bench_on && !enemies_alive)bench_near_tick();
   if(pl_state==PS_FALL) return;
   on = beat_phase();
@@ -419,16 +407,20 @@ void puzzle_tick(void) BANKED {
         if(restored<EG_N) {look_skin[restored]=0u;queue_cell(restored);}
       }
   if (puzzle_dirty) { /* (re)start the dead-room check; it runs a slice a frame so walking never drops a frame */
-    puzzle_dirty = 0;
-    if (!dead_t && !boss_floor) { /* B2 bosses: an arena is never a dead room */
+    if(boss_floor){puzzle_dirty=dead_run=0u;}
+    else if(!enemies_alive && !elemental_active && pl_state==PS_FREE && video_epoch==frame_epoch && (LY_REG<32u || LY_REG>=144u)) {
+      puzzle_dirty=0u;
+      if(effect_n&128u){EG_SRAM_OPEN();effect_n=pocket_effects((uint8_t *)SAVE_FUSION_SCRATCH);EG_SRAM_CLOSE();}
       if(world_on)world_dead_begin();else eg_dead_begin(c);
       dead_run = 1u;
     }
-  } else if (dead_run && grav_t != 1u && (!world_on ||
+  } else if (dead_run && !(effect_n&128u) && grav_t != 1u && (!world_on ||
              (video_epoch==frame_epoch && (LY_REG<80u || LY_REG>=144u)))) {
     /* Named dependencies add portal and resource probes to each flood pop.
      * Keep that work bounded beside an active camera/animation frame. */
-    j = world_on ? world_dead_step(c,1u) : eg_dead_step(&room, pocket, pocket_n,(room.nlink || (room.portal_need&EG_PORTAL_ON)) ? 2u : DEAD_SLICE);
+    EG_SRAM_OPEN();
+    j = world_on ? world_dead_step(c,1u) : eg_dead_step(&room,(const uint8_t *)SAVE_FUSION_SCRATCH,effect_n,(room.nlink || (room.portal_need&EG_PORTAL_ON)) ? 2u : DEAD_SLICE);
+    EG_SRAM_CLOSE();
     if (j != EG_DEAD_BUSY) {
       dead_run = 0u;
       if (j && !dead_t) {
@@ -437,6 +429,8 @@ void puzzle_tick(void) BANKED {
         hud_msg("THE ROOM FORGETS");
         sfx(SFX_TELL);
         shake = 4u;
+      } else if(!j && dead_t) {
+        dead_t=0u;hud_msg("A WAY REMAINS");
       }
     }
   }

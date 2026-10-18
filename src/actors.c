@@ -13,6 +13,8 @@
 #include "mob.h"
 #include "narrator.h"
 #include "core/eg_move.h"
+#include "companion.h"
+#include "health.h"
 
 enemy_t en[MAXE];
 uint8_t nen;
@@ -37,6 +39,7 @@ void enemy_kill(uint8_t k, uint8_t crushed) BANKED {
   if (kills_run != 255u) kills_run++;
   if ((mods & MOD_SPLICE) && kills_run % 3u == 0u && pl_hp && pl_hp < pl_hp_max) pl_hp++;
   hud_dirty = 1;
+  if(!(((uint8_t)floor_seed^kills_run^k)&15u))health_drop(cell_at((uint8_t)(e->x>>4),(uint8_t)(e->y>>4)));
   sfx(SFX_KILL);
   if (enemies_alive) enemies_alive--;
   if (e->kind == SPAWN_BOSS) {
@@ -97,197 +100,16 @@ void fire_orb_at(uint8_t ex, uint8_t ey, int16_t dx, int16_t dy, uint8_t speed) 
   eg_aim(dx,dy,speed,&o->vx,&o->vy);
 }
 
-/* a straight, open line of carpet between two cells? */
-static uint8_t clear_line(uint8_t a, uint8_t b, uint8_t step) {
-  while (a != b) {
-    a = (uint8_t)(a + step);
-    if (room.c[a] != T_EMPTY) return 0;
-  }
-  return 1u;
-}
-
-static void mite_pick(enemy_t *e) {
-  uint8_t ex = (uint8_t)(e->x >> 4), ey = (uint8_t)(e->y >> 4), c = cell_at(ex, ey), d, best = 255u, bd = 255u, n, k;
-  uint8_t chase = (uint8_t)(absdiff(ex, pl_x) + absdiff(ey, pl_y) < 112u && (eg_rnd() & 3u));
-  for (k = 0; k != 4u; k++) {
-    d = (uint8_t)((k + (eg_rnd() & 3u)) & 3u);
-    n = (uint8_t)(c + (int8_t)(fdy[d] * 16 + fdx[d]));
-    if (room.c[n] != T_EMPTY) continue;
-    if (chase) {
-      uint8_t nx = (uint8_t)(EG_X(n) * 16u + 8u), ny = (uint8_t)(EG_Y(n) * 16u + 8u);
-      uint8_t dist = (uint8_t)(absdiff(nx, pl_x) + absdiff(ny, pl_y));
-      if (dist < bd) {
-        bd = dist;
-        best = d;
-      }
-    } else if ((d ^ 1u) != e->face || best == 255u) {
-      best = d;
-      if ((d ^ 1u) != e->face) break;
-    }
-  }
-  if (best == 255u) {
-    e->tx = (uint8_t)(EG_X(c) * 16u + 8u);
-    e->ty = (uint8_t)(EG_Y(c) * 16u + 8u);
-    return;
-  }
-  e->face = best;
-  n = (uint8_t)(c + (int8_t)(fdy[best] * 16 + fdx[best]));
-  e->tx = (uint8_t)(EG_X(n) * 16u + 8u);
-  e->ty = (uint8_t)(EG_Y(n) * 16u + 8u);
-}
-
-static void approach(uint16_t *v, uint8_t target, uint8_t speed) {
-  uint16_t t = (uint16_t)target << 4;
-  if (*v < t) *v = (uint16_t)(*v + speed) > t ? t : (uint16_t)(*v + speed);
-  else if (*v > t) *v = (uint16_t)(*v - speed) < t ? t : (uint16_t)(*v - speed);
-}
-
-static void tell(enemy_t *e, uint8_t frames) {
-  e->st = ES_TELL;
-  e->t = frames;
-  sfx(SFX_TELL);
-}
-
-static void mite_update(enemy_t *e) {
-  uint8_t ex = (uint8_t)(e->x >> 4), ey = (uint8_t)(e->y >> 4), nx, ny;
-  switch (e->st) {
-    case ES_WALK:
-      approach(&e->x, e->tx, 12u);
-      approach(&e->y, e->ty, 12u);
-      if (ex == e->tx && ey == e->ty) {
-        uint8_t c = cell_at(ex, ey), p = cell_at(pl_x, pl_y);
-        if (!e->cd && EG_Y(c) == EG_Y(p) && absdiff(ex, pl_x) < 72u && clear_line(c, p, ex < pl_x ? 1u : 255u)) {
-          e->face = ex < pl_x ? F_RIGHT : F_LEFT;
-          tell(e, 26u);
-        } else if (!e->cd && EG_X(c) == EG_X(p) && absdiff(ey, pl_y) < 72u &&
-                   clear_line(c, p, ey < pl_y ? 16u : 240u)) {
-          e->face = ey < pl_y ? F_DOWN : F_UP;
-          tell(e, 26u);
-        } else
-          mite_pick(e);
-      }
-      if (e->cd) e->cd--;
-      break;
-    case ES_TELL:
-      if (!--e->t) {
-        e->st = ES_LUNGE;
-        e->t = 22u;
-        e->vx = (int8_t)(fdx[e->face] * 50);
-        e->vy = (int8_t)(fdy[e->face] * 50);
-      }
-      break;
-    case ES_LUNGE:
-      nx = (uint8_t)((uint16_t)(e->x + e->vx) >> 4);
-      ny = (uint8_t)((uint16_t)(e->y + e->vy) >> 4);
-      if (!mite_free(nx, ny) || !--e->t) {
-        e->st = ES_REST;
-        e->t = 40u;
-        e->cd = 50u;
-      } else {
-        e->x = (uint16_t)(e->x + e->vx);
-        e->y = (uint16_t)(e->y + e->vy);
-      }
-      break;
-    case ES_REST:
-      if (!--e->t) {
-        uint8_t c = cell_at(ex, ey);
-        e->st = ES_WALK;
-        e->tx = (uint8_t)(EG_X(c) * 16u + 8u);
-        e->ty = (uint8_t)(EG_Y(c) * 16u + 8u);
-      }
-      break;
-    case ES_HURT:
-      nx = (uint8_t)((uint16_t)(e->x + e->vx) >> 4);
-      ny = (uint8_t)((uint16_t)(e->y + e->vy) >> 4);
-      if (mite_free(nx, ny)) {
-        e->x = (uint16_t)(e->x + e->vx);
-        e->y = (uint16_t)(e->y + e->vy);
-      }
-      e->vx = (int8_t)(e->vx / 2 + e->vx / 4);
-      e->vy = (int8_t)(e->vy / 2 + e->vy / 4);
-      if (!--e->t) {
-        e->st = ES_REST;
-        e->t = 12u;
-        e->cd = 30u;
-      }
-      break;
-  }
-  if (e->st != ES_TELL && overlap(ex, ey, pl_x, pl_y, 11u, 11u)) player_hurt(e->st == ES_LUNGE ? 2u : 1u, ex, ey);
-}
-
-static void eye_update(enemy_t *e) {
-  uint8_t ex = (uint8_t)(e->x >> 4), ey = (uint8_t)(e->y >> 4), d;
-  int8_t mx = 0, my = 0;
-  uint16_t nx, ny;
-  switch (e->st) {
-    case ES_FLOAT:
-      d = (uint8_t)(absdiff(ex, pl_x) + absdiff(ey, pl_y));
-      if (d > 70u) {
-        mx = ex < pl_x ? 7 : -7;
-        my = ey < pl_y ? 7 : -7;
-      } else if (d < 44u) {
-        mx = ex < pl_x ? -9 : 9;
-        my = ey < pl_y ? -9 : 9;
-      } else { /* circle: strafe across the line to the player */
-        mx = (e->anim & 128u) ? 6 : -6;
-        my = (e->anim & 128u) ? -6 : 6;
-        if (absdiff(ex, pl_x) > absdiff(ey, pl_y)) mx = 0;
-        else my = 0;
-      }
-      if (e->cd) e->cd--;
-      else if (d < 110u)
-        tell(e, 40u);
-      break;
-    case ES_TELL:
-      if (!--e->t) {
-        fire_orb_at(ex, ey, (int16_t)pl_x - ex, (int16_t)pl_y - ey, 22u);
-        sfx(SFX_SHOT);
-        e->st = ES_FLOAT;
-        e->cd = (uint8_t)(110u + eg_rndn(70u));
-      }
-      break;
-    case ES_HURT:
-      mx = e->vx;
-      my = e->vy;
-      e->vx = (int8_t)(e->vx / 2 + e->vx / 4);
-      e->vy = (int8_t)(e->vy / 2 + e->vy / 4);
-      if (!--e->t) {
-        e->st = ES_FLOAT;
-        if (e->cd < 30u) e->cd = 30u;
-      }
-      break;
-  }
-  if (mx) {
-    nx = (uint16_t)(e->x + mx);
-    if (eye_free((uint8_t)(nx >> 4), ey)) e->x = nx;
-  }
-  if (my) {
-    ny = (uint16_t)(e->y + my);
-    if (eye_free((uint8_t)(e->x >> 4), (uint8_t)(ny >> 4))) e->y = ny;
-  }
-  if (overlap(ex, ey, pl_x, pl_y, 10u, 10u)) player_hurt(1u, ex, ey);
-}
-
+/* Every generated spawn is a matrix mob; the two current arena bosses have
+ * their own shared controller. There is no second enemy renderer/AI. */
 void enemies_update(void) BANKED {
-  uint8_t k;
-  uint8_t mobs = 0;
-  for (k = 0; k != nen; k++) {
-    enemy_t *e = &en[k];
-    if (e->st == ES_DEAD) continue;
-    if (e->kind == SPAWN_MOB) { /* B2: src/mob.c, all at once */
-      mobs = 1u;
-      continue;
-    }
-    e->anim++;
-    if (e->flash) e->flash--;
-    if (e->kind == SPAWN_MITE)
-      mite_update(e);
-    else if (e->kind == SPAWN_EYE)
-      eye_update(e);
-    else
-      boss_update(k);
+  uint8_t k,mobs=0u;
+  for(k=0u;k<nen;k++) {
+    enemy_t *e=&en[k];if(e->st==ES_DEAD)continue;
+    if(e->kind==SPAWN_MOB){mobs=1u;continue;}
+    if(e->kind==SPAWN_BOSS && bs_kind){e->anim++;if(e->flash)e->flash--;boss_update_all();}
   }
-  if (mobs) mobs_update();
+  if(mobs)mobs_update();
 }
 
 void orbs_update(void) BANKED {
@@ -298,7 +120,7 @@ void orbs_update(void) BANKED {
   uint16_t x,y;
   orb_t *o=orbs;
   for (k = 0; k != MAXO; k++,o++) {
-    if (!o->live) continue;
+    if (!o->live || (o->friendly&128u)) continue;
     x = (uint16_t)(o->x + o->vx);
     y = (uint16_t)(o->y + o->vy);
     o->x=x;o->y=y;
@@ -329,6 +151,9 @@ void orbs_update(void) BANKED {
           break;
         }
       }
+    } else if(companion.hp && (t=companion_intercept(ox,oy))) {
+      if(t==2u){o->friendly=1u;o->vx=-o->vx;o->vy=-o->vy;o->life=80u;}
+      else o->live=0u;
     } else if (overlap(ox, oy, pl_x, pl_y, 6u, 6u) && !pl_iframe && !pl_inv) {
       o->live = 0;
       player_hurt(1u, ox, oy);

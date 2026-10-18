@@ -16,6 +16,8 @@ def run(rom,out):
     g.press('select',4);g.tick(12);g.shot(out/'01-inventory-page.png')
     r['select_toggles_separate_merge_and_inventory_pages']=g.peek('bench_page')==1
     g.press('select',4);g.tick(12)
+    r['discovery_log_is_separate']=g.peek('bench_page')==2
+    g.press('select',4);g.tick(12)
     r['select_toggles_separate_merge_and_inventory_pages'] &= g.peek('bench_page')==0
     saved=bytes(g.pb.memory[0,0xb500:0xb940])
     r['scene_preserves_exact_terrain_and_mob_tiles_in_scratch']=len(saved)==1088 and any(saved)

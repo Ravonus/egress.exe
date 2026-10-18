@@ -1,4 +1,4 @@
-/* Pin seeded benches while preserving every other accepted-room byte and RNG. */
+/* Pin puzzle geometry/RNG, normalising the optional medical-pickup decoration. */
 #include <assert.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -18,7 +18,9 @@ int main(void) {
     if(k<EG_SEEDS)eg_seed_get((uint16_t)k,&rec);
     else {rec.seed=(uint16_t)((k-EG_SEEDS)*7919u+1u);rec.tier=(uint8_t)((k-EG_SEEDS)%6u);}
     ok=eg_generate(&room,rec.seed,rec.tier);if(k<EG_SEEDS)assert(ok);
-    accepted+=ok;hash(&digest,&ok,1u);hash(&digest,&room,308u);hash(&digest,&eg_rs,sizeof eg_rs);
+    accepted+=ok;
+    for(unsigned i=0u;i<EG_N;i++)if(EG_HEALTH(room.c[i]))room.c[i]=T_EMPTY;
+    hash(&digest,&ok,1u);hash(&digest,&room,308u);hash(&digest,&eg_rs,sizeof eg_rs);
     /* A bench replaces an existing wall before island_edges opens its rim.
      * Normalize that one intentional delta to retain the prior geometry,
      * resources, obstacle data, acceptance decisions and RNG contract. */
@@ -26,8 +28,10 @@ int main(void) {
       room.c[i]=!EG_X(i) || EG_X(i)==15u || EG_Y(i)==13u ? T_PIT|F_ABYSS : T_WALL;
     hash(&baseline,&ok,1u);hash(&baseline,&room,308u);hash(&baseline,&eg_rs,sizeof eg_rs);
   }
-  assert(baseline==UINT64_C(0x0c29c3fce3a2a2f2));
-  assert(digest==UINT64_C(0xda18ae1385267dab));
   printf("generator fingerprint: %u cases (%u constructed), %016llx; baseline %016llx\n",k,accepted,(unsigned long long)digest,(unsigned long long)baseline);
+  fflush(stdout);
+  /* Base-only reagent expansion and the fully re-proven 768-room seed bank. */
+  assert(baseline==UINT64_C(0x1512912f0d8e6989));
+  assert(digest==UINT64_C(0xf12971b1b99ee60e));
   return 0;
 }

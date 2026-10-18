@@ -8,5 +8,7 @@ uint8_t resume_restore(void) BANKED;
 uint8_t resume_finish_pending(void) BANKED;
 void resume_save(uint8_t state) BANKED;
 void resume_damage(void) BANKED;
+extern uint8_t __at(0xDDDB) pet_save_dirty;
+void resume_pet_flush(void) BANKED;
 void resume_clear(void) BANKED;
 #endif

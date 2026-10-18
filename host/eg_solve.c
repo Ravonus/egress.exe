@@ -607,6 +607,7 @@ int eg_solve_ban(const eg_room *r, int budget, uint64_t ban, char *moves, size_t
   node *root = &nodes[count];
   memset(root, 0, sizeof *root);
   memcpy(root->c, r->c, EG_N);
+  for(unsigned i=0u;i<EG_N;i++)if(EG_HEALTH(root->c[i]))root->c[i]=T_EMPTY;
   root->keys = r->keys;
   root->land = r->start;
   root->p = canon(root->c, r->start);

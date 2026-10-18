@@ -22,7 +22,7 @@ def run(previous,rom,out):
                  'matches_a_blank_save':gene==fresh_gene and bytes(g.room())==fresh_board,
                  'tutorial_starts_uncompleted':not g.peek16('tutorial_seen')}
         g.shot(out/(label+'-fresh.png'));current=g.stop()
-        results['new_family_and_continue_versions']=any(current[p:p+3]==b'FA\x03' for p in FAMILY) and any(current[p]==2 for p in CONT)
+        results['new_family_and_continue_versions']=any(current[p:p+3]==b'FA\x04' for p in FAMILY) and any(current[p]==3 for p in CONT)
         again=Game(rom,sram=current);assert start_run(again,True,True,seed=None)
         results['current_save_resumes']=again.peek16('run_seed')==seed and bytes(again.peek('family',k) for k in range(19))==gene and again.peek('floor_no')==1
         again.stop();cases.append({'case':label,'results':results})

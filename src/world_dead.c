@@ -10,6 +10,7 @@
 #include "world_dead.h"
 #include "core/eg_land_dead.h"
 #include "core/eg_stage.h"
+#include "save_map.h"
 typedef char world_dead_scratch_layout[(sizeof(eg_stage_work.world_dead)==sizeof(eg_land_dead)) ? 1 : -1];
 static uint8_t known(void *ctx,uint8_t x,uint8_t y) NONBANKED {
   (void)ctx;
@@ -34,5 +35,5 @@ void world_dead_begin(void) NONBANKED {
 uint8_t world_dead_step(uint8_t from,uint8_t budget) NONBANKED {
   if(!world_on || enemies_alive)return 0u;
   return eg_land_dead_step((eg_land_dead *)eg_stage_work.world_dead,&world_plan,&world_view,&room,from,
-                          pocket,pocket_n,world_latched,&io,budget);
+                          (const uint8_t *)SAVE_FUSION_SCRATCH,effect_n,world_latched,&io,budget);
 }

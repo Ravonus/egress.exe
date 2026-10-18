@@ -4,13 +4,32 @@
 #include <gb/gb.h>
 #include <stdint.h>
 #include "core/eg_room.h"
+#include "core/eg_catalogue.h"
+#include "core/eg_bag.h"
+#include "core/eg_pet_bag.h"
 
 #define POCKET_CAP 24u
+#define POCKET_EFFECT_CAP 29u
 extern uint8_t __at(0xDBC0) pocket[POCKET_CAP]; /* finite carried units, insertion order */
-extern uint8_t pocket_n,tool_piece,tool_cd;
+extern uint8_t __at(0xDDD0) pocket_hi[3];
+extern uint8_t __at(0xDDF0) pet_meta[EG_PET_BAG_BYTES];
+extern uint8_t __at(0xDDDA) pet_serial;
+extern uint8_t __at(0xDBBD) effect_n;
+extern uint8_t pocket_n,tool_cd;
+extern eg_item_id tool_piece;
+extern const uint8_t look_bits[8];
+/* A checked slot, without side effects. Inline reads avoid both ROM0 growth
+ * and a bank switch per inventory comparison. */
+#define pocket_id(slot) EG_BAG_VALUE_MASK(pocket,pocket_hi,(slot),look_bits[(slot)&7u])
+uint8_t pocket_add(eg_item_id id) BANKED;
+uint8_t pocket_add_pet(eg_item_id id,uint8_t hp,uint8_t spent,uint8_t cooldown,uint8_t instance) BANKED;
+uint8_t pocket_pet_event(uint8_t instance,const eg_pet_state *state,uint8_t dead) BANKED;
+void pocket_entry_snapshot(uint8_t *lo,uint8_t *hi,uint8_t *n,eg_item_id *tool) BANKED;
+void pocket_take(uint8_t slot) BANKED;
+uint8_t pocket_effects(uint8_t *out) BANKED;
 extern uint8_t __at(0xDBA5) bench_mode; /* 0 satchel/equip, 1 physical crafting bench */
 uint8_t puzzle_bench_interact(void) BANKED;
-uint8_t pocket_count(uint8_t piece) BANKED;
+uint8_t pocket_count(eg_item_id piece) BANKED;
 void puzzle_tool_use(void) BANKED;
 void pocket_begin(void) BANKED;
 void pocket_enter(void) BANKED;

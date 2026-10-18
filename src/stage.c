@@ -422,7 +422,7 @@ static void mixp_tick(void) {
   uint8_t k;
   ring_spark(in_ring());
   if(stage_wave>=stg.waves && !wv_pend && !mobs_alive()) {
-    for(k=0u;k!=pocket_n;k++)if(pocket[k]==stg.piece) {win("MADE. GET OUT");return;}
+    for(k=0u;k!=pocket_n;k++)if(pocket_id(k)==stg.piece) {win("MADE. GET OUT");return;}
     if(stage_goal[0]!='M') {
       eg_piece_name(stg.piece,sbuf);strcpy(stage_goal,"MAKE ");
       for(k=0u;sbuf[k] && k<8u;k++)stage_goal[5u+k]=sbuf[k];stage_goal[5u+k]=0u;
@@ -467,7 +467,7 @@ static void dark_radius(void) {
   uint8_t k;
   dk_r = 1u;
   for (k = 0; k != pocket_n; k++)
-    if (pocket[k] == P_FIRE) dk_r = 2u; /* GLOWS: the tealight lights a wider ring */
+    if (pocket_id(k) == P_FIRE) dk_r = 2u; /* GLOWS: the tealight lights a wider ring */
 }
 static void dark_tick(void) {
   uint8_t c = pcell(), x, y, r, x0, y0, x1, y1, n;

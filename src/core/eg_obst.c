@@ -22,14 +22,14 @@ static void chg(uint8_t c) {
 uint8_t eg_ob_walk(uint8_t v, uint8_t rider) {
   if (v & F_OB) return 0u;
   if (v == T_EMPTY || v == T_PLATE || v == T_GATE_OPEN || v == T_PLANK || v == T_KEY || v == T_TOKEN ||
-      v == T_ITEM || v == T_GLITCH || EG_FRAGILE(v))
+      v == T_ITEM || v == T_GLITCH || EG_HEALTH(v) || EG_FRAGILE(v))
     return 1u;
   return (uint8_t)(rider && v == T_PIT);
 }
 
 /* plain floor the player can be shoved onto (anything else pins them) */
 static uint8_t shove_ok(uint8_t v) {
-  return (uint8_t)(v == T_EMPTY || v == T_PLATE || v == T_GATE_OPEN || v == T_PLANK || EG_FRAGILE(v));
+  return (uint8_t)(v == T_EMPTY || v == T_PLATE || v == T_GATE_OPEN || v == T_PLANK || EG_HEALTH(v) || EG_FRAGILE(v));
 }
 
 static uint8_t absd(uint8_t a, uint8_t b) { return a > b ? (uint8_t)(a - b) : (uint8_t)(b - a); }
@@ -358,7 +358,7 @@ void eg_ob_tick(eg_room *r, eg_ob *ob, eg_otick *t) EG_BANKED {
         }
         if (ru == OB_EATER && o->cell != o->from) {
           n = r->c[o->cell] & T_MASK;
-          if ((n == T_TOKEN || n == T_ITEM) && o->belly < 4u) {
+          if ((n == T_TOKEN || n == T_ITEM) && !EG_HEALTH(r->c[o->cell]) && o->belly < 4u) {
             r->c[o->cell] = T_EMPTY | F_OB;
             o->belly++;
             chg(o->cell);

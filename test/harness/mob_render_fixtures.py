@@ -14,7 +14,7 @@ def run(rom,out):
     out.mkdir(parents=True,exist_ok=True);g=fresh(rom,0,family=0)
     g.poke('stage_type',0);g.poke('tutorial_on',0);g.poke('mob_has_elite',1)
     for c in range(224):g.poke('room',2 if c%16 in (0,15) or c//16 in (0,13) else 0,c)
-    g.pb.memory[1,0xddd0:0xddf0]=[0xa7]*32
+    g.pb.memory[1,0xde78:0xde98]=[0xa7]*32
     positions=[(-20,56),(-15,56),(-8,56),(-7,56),(-1,56),(0,56),(144,56),(145,56),(151,56),(152,56),(159,56),(160,56),(80,-20),(80,-15),(80,-1),(80,0),(80,143),(80,144)]
     cases=list(itertools.product(range(16),range(4),(0,1,2,3,4,5,7,8),(0,8,16,24,56),(0,8,64)))
     done=0;coverage=set()
@@ -55,7 +55,7 @@ def run(rom,out):
              'all_allocations_match_portable_rules':b['all_allocations_match'],
              'all_column_masks_and_flips_exercised':set(a['column_masks'])=={0,1,2,3} and a['flips']==[False,True],
              'projectile_requests_match_full_coordinate_range':s['shot_requests_match'] and s['maximum_pixel_coordinate']==4095 and s['groups']>1000,
-             'stack_canary':bytes(g.pb.memory[1,0xddd0:0xddf0])==bytes([0xa7]*32)}
+             'stack_canary':bytes(g.pb.memory[1,0xde78:0xde98])==bytes([0xa7]*32)}
     g.stop();report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'source':__doc__,'fixtures':done,'results':results,'art':a,'shots':s,'allocator':b}
     (out/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2));return all(results.values())
 if __name__=='__main__':

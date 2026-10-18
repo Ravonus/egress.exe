@@ -5,8 +5,8 @@
  * the data a mob needs every frame lives in WRAM (mob[], en[]).
  *
  * A matrix mob is an en[k] (play.h enemy_t: position, state, timers, hp) with en[k].kind == SPAWN_MOB, plus its
- * record mob[k] below (the axes, the family and look, statuses, elite affixes). The B1 kinds (SPAWN_MITE, SPAWN_EYE,
- * SPAWN_BOSS) keep working unchanged; boss.c's summons may stay mites or call mob_spawn. */
+ * record mob[k] below (the axes, the family and look, statuses, elite affixes).
+ * Room spawn descriptors choose current matrix families; bosses use boss_api.h. */
 #include "play.h"
 #include "core/eg_piece.h"
 
@@ -44,6 +44,7 @@ enum {
 #define MOBF_BACK 0x02u   /* the last hit came from behind (armoured fronts) */
 #define MOBF_HUNT_BACK 0x08u /* hunt: a rear hit must follow a dodge */
 #define MOBF_MEANS 0x04u  /* its kill condition's means were checked or placed (7.3) */
+#define MOBF_EXPOSE 0x10u /* temporary critter mark; respects conditional kill rules */
 
 typedef struct {
   mob_axes_t ax;
@@ -97,6 +98,8 @@ enum {
   HS_VOID,   /* knocked into a pit */
   HS_FUSE,   /* MOD_FUSE's shock after a dodge */
   HS_REACT,  /* a reaction (burn tick, short circuit) */
+  HS_PET,    /* a companion's own strike, independent of the heir's weapon mods */
+  HS_ELEMENT, /* a crafted activation; never privileged ongoing reaction damage */
   HS_COUNT
 };
 extern uint8_t hit_src, hit_orb_from;
@@ -118,6 +121,7 @@ extern uint8_t cond_kills; /* bit per MD_* defence killed by its condition */
 /* the reaction a hit with `tags` makes on a mob of element `el` with statuses `status` (RX_* of eg_piece.h) */
 uint8_t combat_react(uint8_t tags, uint8_t el, uint8_t status) BANKED;
 uint8_t mob_tool(uint8_t k, uint8_t piece) BANKED;
+uint8_t mob_element(uint8_t k,uint8_t piece,uint8_t source,uint8_t fromx,uint8_t fromy,uint8_t power) BANKED;
 /* the particle pool: 8, oldest recycled first; drawn as OP_FX (dropped first on a full line) */
 void fx_burst(uint8_t x, uint8_t y, uint8_t kind, uint8_t n) BANKED; /* FX_* below, n particles */
 enum { FX_HIT = 0, FX_KILL, FX_HOT, FX_COLD, FX_WET, FX_SHOCK, FX_SHINY, FX_ALIVE, FX_MAGIC, FX_GLITCH, FX_STONE,

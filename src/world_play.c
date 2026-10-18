@@ -306,5 +306,5 @@ void world_frame_end(void) BANKED {
   }
   /* A newly approached apparatus may compose a full HUD row. Keep that
    * pending until it fits after the outgoing-strip work above. */
-  if(spare(100u))goal_hint();
+  if(!bench_on && spare(100u))goal_hint();
 }

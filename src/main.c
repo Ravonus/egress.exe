@@ -5,6 +5,7 @@
 #include "egress.h"
 #include "gen/art.h"
 #include "clock.h"
+#include "collection.h"
 #include "tutorial.h"
 #include "core/eg_window.h"
 #include "core/eg_stage.h"
@@ -72,6 +73,7 @@ void frame_wait(void) {
     if(clock_due && video_epoch==frame_epoch && LY_REG<104u) {
       clock_due=0u;clock_poll();
     }
+    if(collection_ready && collection_dirty && video_epoch==frame_epoch && LY_REG<72u)collection_flush();
     /* Wait for our monotonic epoch. HALT with IME disabled wakes on a pending
      * enabled interrupt, then EI/NOP services it before checking the epoch.
      * The first NOP also makes the pending-at-HALT duplicate fetch harmless.

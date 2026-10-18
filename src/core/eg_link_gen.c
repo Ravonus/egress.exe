@@ -29,9 +29,9 @@ void eg_portal_gen(eg_room *r,uint16_t seed,uint8_t level) EG_BANKED {
   r->c[EG_IDX(13u,7u+((seed>>4)&1u))]=T_BLOCK;
   r->portal[0]=EG_IDX(ax,5u+((seed>>2)&1u));r->portal[1]=EG_IDX(12u,10u);
   r->portal_need=EG_PORTAL_ON|1u;
-  r->nitem=5u;
-  r->item_piece[0]=r->item_piece[1]=P_FIRE;r->item_piece[2]=P_MUD;
-  r->item_piece[3]=P_WATER;r->item_piece[4]=P_AIR;
+  r->nitem=6u;
+  r->item_piece[0]=r->item_piece[1]=P_FIRE;r->item_piece[2]=P_EARTH;
+  r->item_piece[3]=P_WATER;r->item_piece[4]=P_AIR;r->item_piece[5]=P_WATER;
   for(k=0u;k!=r->nitem;k++) {r->item_cell[k]=EG_IDX(3u+k,12u);r->c[r->item_cell[k]]=T_ITEM;}
   r->trick=TRICK_WEIGHT;r->support=(1u<<TRICK_BURN);r->depth=1u;
   if(seed&0x20u) {

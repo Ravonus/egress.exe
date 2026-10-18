@@ -142,10 +142,10 @@ uint8_t eg_land_plan(eg_land *p,uint16_t seed,uint8_t rule,uint8_t size,uint8_t 
     n->alternatives=r[4];
     /* Every resource is supplied before its own cut, with persistent identity.
      * A physical load route preserves the two optional crafting ingredients. */
-    if(kind==EL_LOAD) {item(p,u-5u,v-2u,P_FIRE);item(p,u-5u,v-1u,P_MUD);}
+    if(kind==EL_LOAD) {item(p,u-5u,v-2u,P_FIRE);item(p,u-5u,v-1u,P_EARTH);item(p,u-5u,v,P_WATER);}
     else if(kind==EL_HEAT)item(p,u-5u,v-2u,P_FIRE);
-    else if(kind==EL_COLD) {item(p,u-5u,v-2u,P_AIR);item(p,u-5u,v-1u,P_RAIN);item(p,u-5u,v,P_MUD);}
-    else if(kind==EL_POWER) {item(p,u-5u,v-2u,P_ENERGY);item(p,u-5u,v-1u,P_METAL);}
+    else if(kind==EL_COLD) {item(p,u-5u,v-2u,P_AIR);item(p,u-5u,v-1u,P_WATER);item(p,u-5u,v,P_AIR);}
+    else if(kind==EL_POWER) {item(p,u-5u,v-2u,P_AIR);item(p,u-5u,v-1u,P_FIRE);item(p,u-5u,v,P_METAL);}
   }
   return 1u;
 }
@@ -243,4 +243,10 @@ void eg_land_at(const eg_land *p,uint8_t x,uint8_t y,eg_land_cell *o) EG_BANKED 
   if(eg_land_item_at(p,x,y))o->material=T_ITEM;
   if(u==EL_LENGTH(p)-3u && v==eg_land_lane(p,u)) {o->material=T_DOOR;o->flags=EL_PROTECTED;}
   if(u==EL_LENGTH(p)-4u && v==eg_land_lane(p,u)) {o->material=T_KEY;o->flags=EL_PROTECTED;}
+  /* At most one medicine in a 16x16 region; any active 16x14 view contains
+   * at most four. Stateless coordinates add no RNG or query-order dependency. */
+  if(o->material==T_EMPTY && !(o->flags&EL_PROTECTED) &&
+     !(((uint8_t)p->seed+(x>>4)*5u+(y>>4)*11u)&3u) &&
+     (x&15u)==4u+(((uint8_t)p->seed+(x>>4)*7u+(y>>4)*13u)&7u) &&
+     (y&15u)==4u+(((uint8_t)(p->seed>>3)+(x>>4)*3u+(y>>4)*5u)&7u))o->material=T_TOKEN|F_HEALTH;
 }

@@ -5,6 +5,9 @@
 #include <gb/gb.h>
 #include <gb/cgb.h>
 #include "play.h"
+#include "companion.h"
+#include "elements.h"
+#include "health.h"
 #include "mob.h" /* B2: hit_src */
 #include "obstacle.h"
 #include "boss_api.h"
@@ -107,6 +110,7 @@ void player_hurt(uint8_t n, uint8_t fromx, uint8_t fromy) BANKED {
     freeze = 2u;
     return;
   }
+  if(!dbg_god){n=elements_protect(n);n=companion_protect(n);if(!n){pl_inv=12u;freeze=2u;return;}}
   if (!dbg_god) pl_hp = pl_hp > n ? (uint8_t)(pl_hp - n) : 0u;
   if(!pl_hp)pl_quarter=0u;
   if (!pl_hp && boss_floor) boss_death_record();
@@ -190,6 +194,7 @@ static void collect(void) {
     puff((uint8_t)(EG_X(i) * 16u + 8u), (uint8_t)(EG_Y(i) * 16u + 8u), 2, ST_PUFF);
     overlay(HA_DIG, 12u);
   } else if (t == T_TOKEN) {
+    if(EG_HEALTH(room.c[i])){health_pick(i);return;}
     room.c[i] = T_EMPTY;
     queue_cell(i);
     if (tokens != 255u) tokens++;
@@ -261,6 +266,7 @@ static uint8_t built_box(int16_t x,int16_t y) {
 }
 /* one mover step from the player's centre (psx, psy are the centre, the mover's box is 12x12 from its corner) */
 static void mstep(uint8_t dpad, uint8_t speed, uint8_t synth) {
+  if(!synth && companion.hp && (companion.buff&PB_HASTE)){speed+=(speed>>2);if(speed>64u)speed=64u;}
   uint8_t prev=0u,o0=0u,o1=0u,o2=0u,o3=0u;
   int16_t old_x=(int16_t)psx-96,old_y=(int16_t)psy-96;
   if(synth) {prev=pmv.prev;o0=pmv.order[0];o1=pmv.order[1];o2=pmv.order[2];o3=pmv.order[3];}
@@ -320,6 +326,11 @@ static void break_brick(uint8_t i, uint8_t force) {
   narrator_event(NE_BREAK,0u);
   puff((uint8_t)(EG_X(i) * 16u + 8u), (uint8_t)(EG_Y(i) * 16u + 8u), 4, ST_PUFF);
   grav_t = 1u;
+}
+
+void player_break_cell(uint8_t cell,uint8_t force) BANKED {
+  if(cell>=EG_N || cell_type(cell)!=T_BRICK)return;
+  break_brick(cell,force);puzzle_dirty=1u;
 }
 
 static void deflect(orb_t *o, uint8_t perfect) {
@@ -619,6 +630,7 @@ void player_shift_view(int8_t dx,int8_t dy) BANKED {
   int16_t sx=(int16_t)dx*256,sy=(int16_t)dy*256;
   psx=(uint16_t)(psx-sx);psy=(uint16_t)(psy-sy);pmv.x-=sx;pmv.y-=sy;
   pl_x=(uint8_t)(pl_x-dx*16);pl_y=(uint8_t)(pl_y-dy*16);
+  companion_shift_view(dx,dy);
   portal_lock=eg_view_rebase(portal_lock,dx,dy);fall_safe=eg_view_rebase(fall_safe,dx,dy);
   if(fall_safe>=EG_N)fall_safe=cell_at(pl_x,pl_y);
   c=eg_view_rebase(EG_IDX(pmv.push_cx,pmv.push_cy),dx,dy);

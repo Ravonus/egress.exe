@@ -6,4 +6,6 @@ uint16_t eg_save_crc(const uint8_t *p, uint16_t n) EG_BANKED;
 uint8_t eg_save_valid(const uint8_t *p, uint16_t n, uint8_t version) EG_BANKED;
 uint8_t eg_save_newer(uint8_t a, uint8_t b) EG_BANKED;
 void eg_save_seal(uint8_t *p, uint16_t n) EG_BANKED;
+void eg_save_patch256(uint8_t *p,uint8_t at,uint8_t value) EG_BANKED;
+void eg_save_patch112(uint8_t *p,uint8_t at,uint8_t value) EG_BANKED;
 #endif

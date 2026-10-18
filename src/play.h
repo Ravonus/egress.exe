@@ -102,6 +102,7 @@ uint8_t enemy_in_cell(uint8_t c) NONBANKED;
 /* --- player.c --- */
 void player_update(void) BANKED;
 void player_tool_cast(void) BANKED;
+void player_break_cell(uint8_t cell,uint8_t force) BANKED;
 void player_hurt(uint8_t n, uint8_t fromx, uint8_t fromy) BANKED;
 void player_fall(uint8_t safe) BANKED;
 void open_door(void) BANKED;
@@ -124,8 +125,6 @@ void hud_msg(const char *s) NONBANKED;
 void hud_tick(void) BANKED;
 void hud_init(void) BANKED; /* a floor's HUD, no toast: the window at 128 */
 /* --- boss.c --- */
-void boss_build(void) BANKED;
-void boss_update(uint8_t k) BANKED;
 #define CHARGE_FULL (mods & MOD_STATIC ? 22u : 34u)
 
 #endif

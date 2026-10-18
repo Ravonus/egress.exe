@@ -111,7 +111,12 @@ static uint8_t plan_floor(eg_plan_state *ps, uint8_t floor, eg_seed_rec *rec, ui
         best = i;
       }
     }
-    if (best_cost != 0xffffu) break;
+    if (best_cost != 0xffffu) {
+      eg_seed_get(best,&e);
+      /* A narrow first pass can contain only the preceding trick/level.
+       * Try the remaining already-known choices before accepting a repeat. */
+      if(e.trick!=ps->prev_trick || (uint8_t)(e.diff>>4)!=ps->prev_level)break;
+    }
   }
   eg_seed_get(best, rec);
   ps->pick = best;

@@ -4,6 +4,8 @@
 #include <gb/gb.h>
 #include <stddef.h>
 #include "play.h"
+#include "companion.h"
+#include "look.h"
 #include "mob.h"
 #include "oam.h"
 #include "gen/mob_art.h"
@@ -648,10 +650,12 @@ static void mob_marks(void) {
   uint8_t k;
   mob_t *m=mob;
   enemy_t *e=en;
-  if(!mob_has_elite)return;
+  if(!mob_has_elite && !companion.threat)return;
   for(k=nen;k;k--,m++,e++) {
-    if(!(m->flags&MOBF_ELITE) || (m->status&MS_UNDER) ||
-       e->kind!=SPAWN_MOB || e->st==ES_DEAD)continue;
+    if((m->status&MS_UNDER) || e->kind!=SPAWN_MOB || e->st==ES_DEAD)continue;
+    if(companion.threat&look_bits[(uint8_t)(nen-k)])
+      oam_group((int16_t)(e->x>>4)-4-cam_x,(int16_t)(e->y>>4)-28-cam_y,1u,(uint8_t)(MOB_FX_TILE+FXT_RING*2u),0u,4u);
+    if(!(m->flags&MOBF_ELITE))continue;
     oam_group((int16_t)(e->x>>4)-12-cam_x,
               (int16_t)(e->y>>4)-25-cam_y+((e->anim>>4)&1u),
               1u,(uint8_t)(MOB_FX_TILE+FXT_CROWN*2u),0u,7u);

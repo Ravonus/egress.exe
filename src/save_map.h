@@ -1,10 +1,10 @@
 #ifndef EG_SAVE_MAP_H
 #define EG_SAVE_MAP_H
 /* Native 8 KiB SRAM allocation. Keep these boundaries in step with redesign.md 9.5. */
-#define SAVE_META_VERSION 2u
-#define SAVE_CONT_VERSION 2u
-#define SAVE_FAMILY_VERSION 3u
-#define SAVE_PREF_VERSION 2u
+#define SAVE_META_VERSION 3u
+#define SAVE_CONT_VERSION 3u
+#define SAVE_FAMILY_VERSION 4u
+#define SAVE_PREF_VERSION 3u
 #define SAVE_META_A 0xA000u
 #define SAVE_META_B 0xA020u
 #define SAVE_CONT_A 0xA040u
@@ -14,6 +14,15 @@
 #define SAVE_LINE_A 0xA2C0u
 #define SAVE_LINE_B 0xA300u
 #define SAVE_LINE_BYTES 64u
+#define SAVE_COLLECTION_A 0xA340u
+#define SAVE_COLLECTION_B 0xA380u
+#define SAVE_COLLECTION_BYTES 64u
+#define SAVE_PET_ENTRY 0xA3C0u
+#define SAVE_PET_ENTRY_BYTES 90u
+#define SAVE_PET_A 0xA420u
+#define SAVE_PET_B 0xA490u
+#define SAVE_PET_SCRATCH 0xA500u
+#define SAVE_PET_BYTES 112u
 #define SAVE_FAMILY_A 0xA570u
 #define SAVE_FAMILY_B 0xAA6Cu
 #define SAVE_FAMILY_BYTES 1276u
@@ -23,9 +32,14 @@
 #define SAVE_CLOCK 0xB4C0u
 #define SAVE_HOST_CLOCK 0xB4E0u
 #define SAVE_RTC 0xB4F0u
-/* Volatile bench VRAM backup: 68 OBJ tiles, never a save record. */
+/* Volatile paused-scene workspace and exact OBJ/BG backups. */
+#define SAVE_FUSION_SCRATCH 0xB000u
+#define SAVE_FUSION_BYTES 1126u
 #define SAVE_BENCH_SCRATCH 0xB500u
-#define SAVE_BENCH_BYTES 1088u
+#define SAVE_BENCH_OBJ_BYTES 1088u
+#define SAVE_BENCH_BG_SCRATCH 0xB940u
+#define SAVE_BENCH_BG_BYTES 576u
+#define SAVE_BENCH_BYTES 1664u
 #define SAVE_STATS_A 0xBC00u
 #define SAVE_STATS_B 0xBD80u
 #define SAVE_STATS_BYTES 384u
