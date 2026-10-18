@@ -882,6 +882,17 @@ static uint8_t ground_ahead(uint8_t essential) {
   if(cam_y<96u && pl_y>cam_y+64u)dy=1;
   else if(cam_y && pl_y<cam_y+64u)dy=-1;
   if(!dx && !dy)return 0u;
+  /* A reversal can return a departing slab from the opposite edge. The
+   * ordinary incoming-column sweep no longer visits that slab. Reuse the
+   * same two-anchor allowance to finish pooled cards before the next eased
+   * camera step can carry them through the inner edge of the 24px band. */
+  for(k=0u;k<LOOK_MAX_CARDS && n<2u;k++)if(c_kind[k] && !c_brk[k]) {
+    c=c_cell[k];x=(int16_t)(EG_X(c)<<4)-cam_x;y=(int16_t)(EG_Y(c)<<4)-cam_y;
+    if(x<143 && x+16>17 && y<111 && y+16>17 &&
+       ((dx>0 && x>=80) || (dx<0 && x<80) || (dy>0 && y>=64) || (dy<0 && y<64)))
+      n+=anchor_at(EG_X(c),EG_Y(c));
+  }
+  if(n>=2u)return n;
   /* A slow/busy card must land before it leaves the edge band. This sweep is
    * a half slab INSIDE the approaching screen edge, after its visible entrance,
    * rather than two slabs outside the screen as in the previous release. */
