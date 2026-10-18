@@ -933,9 +933,10 @@ void look_frame_begin(void) BANKED {
     if(k<2u && prepare_time() && grav_t!=1u && !push_t &&
        !(enemies_alive>=2u && (pl_state==PS_LASH || pl_state==PS_SPIN)) &&
        (stage_type==SG_PUZZLE || (frame_count&3u))) {
-      /* Give generation its turn without freezing the visible rim. One
-       * resident card may launch or settle; cold texture uploads still wait. */
-      if(waiting)look_update(3u);
+      /* Share the early window with seed queries on alternate ticks. Existing
+       * flights still animate every frame; one resident card may launch or
+       * settle on the presentation turn, with no cold texture upload. */
+      if(waiting) {if(frame_count&1u)look_update(3u);}
       else {if(!(frame_count&1u))look_roam_tick();look_update((uint8_t)(1u+k));}
     }
     roam_late=1u;
