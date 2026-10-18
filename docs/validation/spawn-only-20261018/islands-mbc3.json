@@ -1,0 +1,14 @@
+{
+  "sha256": "38364434c967c53c844236736c886708d3ac2ac31ef7c6069655a7184daeacef",
+  "results": {
+    "generated_boundary_is_real_abyss": true,
+    "walking_off_actual_edge_falls": true,
+    "real_edge_fall_costs_one_quarter": true,
+    "edge_fall_returns_to_safe_ground": true,
+    "quarter_heart_cost_survives_poweroff": true,
+    "pushed_crate_is_lost_to_open_void": true,
+    "lost_required_crate_prompts_reset": true,
+    "reset_restores_crate_and_abyss": true
+  },
+  "log": []
+}

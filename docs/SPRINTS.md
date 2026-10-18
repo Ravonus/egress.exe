@@ -23,6 +23,8 @@ An integrated prototype, a passing host simulation, a native build and a played 
 
 ## Current work
 
+Owner correction, 2026-10-18: terrain now assembles only at spawn. Camera travel, backtracking, exits and death keep ordinary floor resident. Real destructible terrain still animates. Material collision owns movement and lifting; visual-presence flags cannot block open floor. The complete native regression and final website/browser checks pass; evidence is in `validation/spawn-only-20261018/`. This supersedes the camera build/drop presentation described in earlier dated checkpoints.
+
 The current release requires a fresh save, as requested by the owner on 2026-10-17. Earlier family, run,
 meta-progress and tutorial journals are rejected; the FA1/FA2 family migration and saved-floor migration paths
 are deleted. The browser reads only the current cartridge's battery namespace. Current floor-entry/landing

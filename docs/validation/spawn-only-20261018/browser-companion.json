@@ -1,0 +1,27 @@
+{
+  "base": "http://127.0.0.1:3287",
+  "sha256": "c04e9703b973173112911aa94769b1a6871803c0a33edb637960d897770e923d",
+  "pet": 436,
+  "source": "Explicit CRC-sealed saved encounter; ordinary DOM keyboard movement after native assembly, published native sprite list and direct VRAM reads, no gameplay RAM writes.",
+  "results": {
+    "exactRomFetch": true,
+    "nativePetKeptVisible": true,
+    "walkAndIdleAnimate": true,
+    "multipleFacingsAnimate": true,
+    "heirRemainsVisible": true,
+    "pageErrors": true
+  },
+  "samples": 400,
+  "visiblePatterns": 19,
+  "facings": [
+    4,
+    1,
+    0,
+    7,
+    2,
+    3,
+    5
+  ],
+  "missingPetPaints": 0,
+  "errors": []
+}

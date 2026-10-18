@@ -1,0 +1,173 @@
+{
+  "sha256": "38364434c967c53c844236736c886708d3ac2ac31ef7c6069655a7184daeacef",
+  "fixtures": "Real SELECT actions on explicit terrain/inventory fixtures. No reaction\noutcome, timer, material edit or camera transfer is injected by the test.",
+  "results": {
+    "seed_consumes_one_finite_unit": true,
+    "sprout_consumes_one_finite_unit": true,
+    "tree_consumes_one_finite_unit": true,
+    "grown_tree_blocks_an_actual_projectile": true,
+    "grown_tree_blocks_real_movement": true,
+    "ash_consumes_one_finite_unit": true,
+    "replant_consumes_one_finite_unit": true,
+    "burn_has_embers_and_rising_smoke": true,
+    "distinct_sound_and_animated_states": true,
+    "tree_is_solid_and_ash_is_walkable": true,
+    "native_grid_and_oam_match": true,
+    "no_late_active_frame": true,
+    "stack_canary": true,
+    "concrete_keeps_seed_and_stamina": true,
+    "protected_route_keeps_seed_and_stamina": true,
+    "ice_freezes_a_bounded_shore_patch": true,
+    "lake_outside_patch_stays_water": true,
+    "ice_tool_recharges_and_stays_in_bag": true,
+    "reaction_is_stored_outside_active_view": true,
+    "returning_camera_restores_the_same_ice": true,
+    "lake_travel_keeps_frames_floor_body_and_banks": true
+  },
+  "details": {
+    "states": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        32
+      ],
+      [
+        0,
+        36
+      ],
+      [
+        15,
+        34
+      ],
+      [
+        0,
+        39
+      ],
+      [
+        0,
+        32
+      ]
+    ],
+    "fx_requests": 18,
+    "smoke_requests": 4,
+    "sfx_requests": 17,
+    "late_frames": [],
+    "grid": {
+      "native_quads": 400,
+      "distinct_cells": 224,
+      "attributes": [
+        0,
+        3,
+        4,
+        6,
+        8,
+        9,
+        10,
+        11,
+        13,
+        14,
+        35
+      ],
+      "max_masked_cycles": 964,
+      "all_map_and_attributes_match": true
+    },
+    "lake": {
+      "size": [
+        32,
+        18
+      ],
+      "vertical": false,
+      "nodes": [
+        [
+          0,
+          13,
+          7,
+          2,
+          0,
+          3
+        ],
+        [
+          0,
+          26,
+          12,
+          3,
+          1,
+          3
+        ]
+      ],
+      "preparation": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        16,
+        0,
+        64,
+        16,
+        1,
+        1
+      ],
+      "view": [
+        0,
+        0,
+        32,
+        18
+      ],
+      "camera": [
+        0,
+        73
+      ],
+      "incoming_pit_presentation_checks": 107,
+      "runtime_default_tile_queries": 0,
+      "maximum_pending_terrain": 12,
+      "maximum_animated_cards": 0,
+      "maximum_stream_wait_frames": 0,
+      "total_stream_wait_frames": 0,
+      "stream_wait_samples": [],
+      "native_heir_uploads": 88,
+      "heir_pixel_mismatches": [],
+      "seams": 6,
+      "windows": 5,
+      "warps": [],
+      "minimum_game_frames_per_120": 120,
+      "maximum_game_frames_per_120": 120,
+      "late_completions": [],
+      "raw_counter_minimum_at_lcd_boundary": 120,
+      "hitches": [],
+      "missing_floor": [],
+      "missing_body": [],
+      "oam_max": 10,
+      "oam_over": 0,
+      "grid": {
+        "native_quads": 708,
+        "distinct_cells": 184,
+        "attributes": [
+          0,
+          2,
+          6,
+          8,
+          9,
+          10,
+          11,
+          12,
+          14,
+          35
+        ],
+        "max_masked_cycles": 964,
+        "all_map_and_attributes_match": true
+      },
+      "presentation_window": {
+        "native_transfers": 6,
+        "vertical_transfers": 2,
+        "maximum_cycles": 26832,
+        "all_cards_spans_queues_and_bitmaps_match": true
+      },
+      "stack_canary": true
+    }
+  }
+}
