@@ -54,7 +54,7 @@ void resume_save(uint8_t state) BANKED {
   put(4u,run_seed);put(10u,family.generation);snap[12]=family.selected;put(13u,family.current.seed);
   snap[15]=resume_rest;put(16u,plan.seen);snap[23]=floor_no;put(24u,floor_seed);snap[26]=floor_tier;memcpy(snap+28u,&stamina,sizeof stamina);snap[34]=heart_shards;
   snap[64]=pl_hp;snap[65]=pl_hp_max;snap[66]=tokens;snap[67]=mods;snap[68]=kills_run;snap[69]=wmods;
-  snap[35]=tool_piece;
+  snap[35]=tool_piece;snap[36]=pl_quarter;
   snap[70]=pocket_n;memcpy(snap+71u,pocket,POCKET_CAP);
   memcpy(snap+95u,truth,sizeof truth);memcpy(snap+104u,standing,sizeof standing);
   run_resume_get(snap+110u);put(112u,meta.runs);snap[114]=meta.wins;put(115u,eg_rs);snap[117]=floor_resets;
@@ -70,6 +70,7 @@ static void apply(void) {
   heart_shards=snap[34]<4u ? snap[34] : 0u;
   if(stamina.cap<100u || stamina.cap>116u || stamina.value>stamina.cap) stamina_begin();
   pl_hp=snap[64];pl_hp_max=snap[65];tokens=snap[66];mods=snap[67];kills_run=snap[68];wmods=snap[69];
+  pl_quarter=snap[36]&1u;
   tool_piece=snap[35]<P_COUNT ? snap[35] : 0u;tool_cd=0u;
   pocket_n=snap[70];memcpy(pocket,snap+71u,POCKET_CAP);memcpy(truth,snap+95u,sizeof truth);
   memcpy(standing,snap+104u,sizeof standing);run_resume_set(snap+110u);eg_rs=word(115u);floor_resets=snap[117];
@@ -85,7 +86,7 @@ uint8_t resume_restore(void) BANKED {
 }
 void resume_damage(void) BANKED {
   if(dbg_heir || tutorial_on==2u || !resume_ready || resume_state!=RES_FLOOR) return;
-  snap[64]=pl_hp;memcpy(snap+28u,&stamina,sizeof stamina);narrator_store(snap+118u);write();
+  snap[64]=pl_hp;snap[36]=pl_quarter;memcpy(snap+28u,&stamina,sizeof stamina);narrator_store(snap+118u);write();
 }
 void resume_clear(void) BANKED {
   if(dbg_heir || tutorial_on==2u) return;

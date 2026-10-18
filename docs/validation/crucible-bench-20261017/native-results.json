@@ -1,0 +1,97 @@
+[
+  {
+    "case": "bench_scene-mbc5",
+    "exitCode": 0,
+    "seconds": 1.98
+  },
+  {
+    "case": "physical_bench-mbc5",
+    "exitCode": 0,
+    "seconds": 2.09
+  },
+  {
+    "case": "void_game-mbc5",
+    "exitCode": 0,
+    "seconds": 3.79
+  },
+  {
+    "case": "island_edges-mbc5",
+    "exitCode": 0,
+    "seconds": 2.09
+  },
+  {
+    "case": "element_slot-mbc5",
+    "exitCode": 0,
+    "seconds": 2.57
+  },
+  {
+    "case": "tutorial_course-mbc5",
+    "exitCode": 0,
+    "seconds": 2.05
+  },
+  {
+    "case": "resume_game-mbc5",
+    "exitCode": 0,
+    "seconds": 4.87
+  },
+  {
+    "case": "gameplay_rebuild-mbc5",
+    "exitCode": 0,
+    "seconds": 7.87
+  },
+  {
+    "case": "bench_scene-mbc3",
+    "exitCode": 0,
+    "seconds": 1.93
+  },
+  {
+    "case": "physical_bench-mbc3",
+    "exitCode": 0,
+    "seconds": 2.08
+  },
+  {
+    "case": "void_game-mbc3",
+    "exitCode": 0,
+    "seconds": 3.8
+  },
+  {
+    "case": "island_edges-mbc3",
+    "exitCode": 0,
+    "seconds": 2.15
+  },
+  {
+    "case": "element_slot-mbc3",
+    "exitCode": 0,
+    "seconds": 2.56
+  },
+  {
+    "case": "tutorial_course-mbc3",
+    "exitCode": 0,
+    "seconds": 2.1
+  },
+  {
+    "case": "resume_game-mbc3",
+    "exitCode": 0,
+    "seconds": 4.93
+  },
+  {
+    "case": "gameplay_rebuild-mbc3",
+    "exitCode": 0,
+    "seconds": 7.33
+  },
+  {
+    "case": "bench_catalogue",
+    "exitCode": 0,
+    "seconds": 2.03
+  },
+  {
+    "case": "tools_and_weapons",
+    "exitCode": 0,
+    "seconds": 12.57
+  },
+  {
+    "case": "terrain_effect",
+    "exitCode": 0,
+    "seconds": 4.12
+  }
+]

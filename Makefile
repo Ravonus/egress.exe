@@ -31,7 +31,8 @@ SRC += src/gen/world_art.c
 SRC += src/world.c src/core/eg_land.c src/core/eg_land_bind.c
 SRC += src/world_dead.c src/core/eg_land_dead.c
 SRC += src/world_play.c
-SRC += src/ui.c
+SRC += src/ui.c src/bench.c
+SRC += $(sort $(wildcard src/gen/bench_*.c))
 SRC += src/pose_cache.c
 SRC += src/core/eg_family.c
 SRC += src/items.c
@@ -577,6 +578,7 @@ test-runtime: all test-runtime-core test-native-overlap
 	$(PY) test/harness/seated.py build/egress.gbc build/sprints/seated-native
 	$(PY) test/harness/bench_scene.py build/egress.gbc build/sprints/bench-native
 	$(PY) test/harness/bench_scene.py build/egress-rtc.gbc build/sprints/bench-native-rtc
+	$(PY) test/harness/bench_catalogue.py build/egress.gbc build/sprints/bench-catalogue
 
 test-gameplay: build/egress.gbc build/egress-rtc.gbc build/host/egtool
 	$(PY) test/harness/gameplay_rebuild.py build/egress.gbc build/gameplay-rebuild/native

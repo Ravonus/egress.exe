@@ -338,7 +338,7 @@ void boss_update_all(void) BANKED {
         if (heart_shards >= 4u) {
           heart_shards = (uint8_t)(heart_shards - 4u);
           if (pl_hp_max < 20u) pl_hp_max = (uint8_t)(pl_hp_max + 2u);
-          pl_hp = pl_hp_max;
+          pl_hp = pl_hp_max;pl_quarter=0u;
           hud_msg("A NEW HEART");
         } else
           hud_msg(heart_shards == 1u ? "A HEART SHARD 1/4" : (heart_shards == 2u ? "A HEART SHARD 2/4" :

@@ -17,15 +17,20 @@ def run(rom,out):
  g.poke('enemies_alive',1);g.press('a',3)
  r['locked_bench_does_not_open']=not g.peek('bench_on')
  r['locked_bench_leaves_a_as_attack']=g.peek('pl_state')!=0
- g.poke('enemies_alive',0);g.tick(80);g.press('a',3);g.tick(8)
+ g.poke('enemies_alive',0);g.tick(80);g.press('a',3)
+ for _ in range(60):
+  g.tick()
+  if g.peek('bench_on')==1:break
  r['a_next_to_cleared_bench_opens_crafting']=g.peek('bench_on')==1 and g.peek('bench_mode')==1
  g.shot(out/'physical-bench.png');g.press('b',3);g.tick(12)
  g.poke('pocket_n',2);g.poke('pocket',1,0);g.poke('pocket',2,1)
  assert bench_open(g,log)
  r['start_inventory_has_no_crafting_mode']=not g.peek('bench_mode')
  before=pocket(g)
- for _ in range(3):g.press('a',3);g.tick(12)
- r['bag_cannot_make_a_recipe']=pocket(g)==before and g.peek('bench_on')==1 and not g.peek('bench_phase')
+ g.press('a',3);g.tick(12)
+ r['bag_cannot_make_a_recipe']=pocket(g)==before and g.peek('bench_on')==1 and g.peek('bench_phase')==5
+ g.press('b',3);g.tick(12)
+ r['discard_cancel_preserves_both_units']=pocket(g)==before and not g.peek('bench_phase')
  g.shot(out/'bag.png');g.press('select',3);g.tick(12)
  r['bag_equips_without_consuming_or_casting']=g.peek('tool_piece')==1 and pocket(g)==before and not g.peek('bench_on')
  r['bench_material_survives_open_and_close']=all(g.peek('room',i)==34 for i in benches)

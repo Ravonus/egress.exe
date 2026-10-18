@@ -59,13 +59,17 @@ def run(rom,out):
     bench_cursor(g,0);g.press('a',4);g.tick(12)
     bench_cursor(g,1);g.press('a',4);g.tick(12);g.press('a',4);g.tick(12)
     res['invalid_recipe_keeps_both_units']=pocket(g)==[5,2]
-    g.press('b',4);g.press('b',4);g.tick(20)
+    g.press('b',4);g.press('b',4);g.press('b',4);g.tick(20)
     for k in range(24):g.poke('pocket',5,k)
     g.poke('pocket_n',24)
     assert bench_open(g,log);g.hold({'right'});g.tick(45)
+    res['navigation_never_discards_materials']=g.peek('pocket_n')==24
+    g.hold(set());g.tick(4);g.press('a',4);g.tick(12)
+    res['discard_requires_confirmation']=g.peek('pocket_n')==24 and g.peek('bench_phase')==5
+    g.press('a',4);g.tick(12)
     res['full_bag_can_discard_one_unit']=g.peek('pocket_n')==23
-    g.tick(80);res['discard_requires_a_new_deliberate_hold']=g.peek('pocket_n')==23
-    g.hold(set());g.tick(4);g.shot(out/'finite-satchel.png');g.stop()
+    g.tick(80);res['discard_does_not_repeat']=g.peek('pocket_n')==23
+    g.shot(out/'finite-satchel.png');g.stop()
     # Renderer fixtures: real family art, idle/walk poses, attack tell, hurt and dead.
     # AI is paused explicitly; these prove state rendering, not that a player caused the transition.
     mob_frames=[Image.new('RGB',(7*48,48)) for _ in range(6)]

@@ -13,9 +13,12 @@ def run(rom,out):
         if g.peek('pl_state')==6:g.hold(set())
         if i%2==0:frames.append(g.pb.screen.image.convert('RGB'))
     r['walking_off_actual_edge_falls']=6 in states
-    r['real_edge_fall_is_lethal']=g.peek('pl_hp')==0
-    g.tick(180);r['lethal_fall_reaches_death_screen']=g.peek('game_mode')==4
-    frames[0].save(out/'generated-edge-fall.gif',save_all=True,append_images=frames[1:],duration=34,loop=0);g.stop()
+    r['real_edge_fall_costs_one_quarter']=g.peek('pl_hp')==hp and g.peek('pl_quarter')==1
+    g.tick(180);r['edge_fall_returns_to_safe_ground']=g.peek('game_mode')==2 and g.peek('pl_state')!=6 and g.room()[g.player()[1]//16*16+g.player()[0]//16]&31!=9
+    frames[0].save(out/'generated-edge-fall.gif',save_all=True,append_images=frames[1:],duration=34,loop=0);save=g.stop()
+    g=Game(rom,sram=save);assert start_run(g,False,True)
+    r['quarter_heart_cost_survives_poweroff']=g.peek('pl_hp')==hp and g.peek('pl_quarter')==1
+    g.stop()
     g=Game(rom);assert start_run(g,False,True,physical_fixture=1)
     crate=next(i for i,v in enumerate(g.room()[:224]) if v&31==21)
     assert walk(g,crate+1,log);g.hold({'left'})
