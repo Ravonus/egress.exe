@@ -47,7 +47,7 @@ try {
  await page.goto(base,{waitUntil:'networkidle'});await page.getByRole('button',{name:'Play now',exact:true}).click();
  await page.waitForFunction(()=>document.querySelector('.game-canvas')?.dataset.bootReady==='true',null,{timeout:120000});
  const peek=async name=>page.evaluate(address=>{const {m,id}=window.__egressNative;return m._emulator_read_mem(id,address);},sym['_'+name]);
- const state=async()=>page.evaluate(sym=>{const {m,id}=window.__egressNative,r=a=>m._emulator_read_mem(id,a);if((r(0xff70)&7)>1)return null;return Object.fromEntries(['game_mode','family_ready','family_page','pl_x','pl_y','bench_on','bench_mode','bench_cur','bench_phase','pocket_n','tool_piece','floor_no'].map(k=>[k,r(sym['_'+k])]).concat([['pocket',Array.from({length:r(sym._pocket_n)},(_,i)=>r(sym._pocket+i))],['room',Array.from({length:224},(_,i)=>r(sym._room+i))]]));},sym);
+ const state=async()=>page.evaluate(sym=>{const {m,id}=window.__egressNative,r=a=>m._emulator_read_mem(id,a);if((r(0xff70)&7)>1)return null;return Object.fromEntries(['game_mode','family_ready','family_page','pl_x','pl_y','bench_on','bench_mode','bench_page','bench_cur','bench_phase','pocket_n','tool_piece','floor_no'].map(k=>[k,r(sym['_'+k])]).concat([['pocket',Array.from({length:r(sym._pocket_n)},(_,i)=>r(sym._pocket+i))],['room',Array.from({length:224},(_,i)=>r(sym._room+i))]]));},sym);
  const wait=async(predicate,timeout=120000)=>{const end=Date.now()+timeout;while(Date.now()<end){const s=await state();if(s&&predicate(s))return s;await page.waitForTimeout(25);}throw new Error('Native state timed out: '+JSON.stringify(await state()));};
  await page.evaluate(()=>{
   const paint=CanvasRenderingContext2D.prototype.putImageData;let pending=null;
@@ -80,22 +80,25 @@ try {
  const before=await wait(s=>s.pocket_n===2);assert.deepEqual(before.pocket,[4,2]);console.log('Real floor materials collected');
  await press('Enter');await wait(s=>s.bench_on===4);await press('KeyX');await wait(s=>s.bench_on===1&&s.bench_mode===0);
  await press('KeyX');assert.deepEqual((await state()).pocket,[4,2]);
+ await press('KeyZ'); // cancel the explicit discard confirmation
  await press('ArrowDown');await press('ShiftLeft');await wait(s=>s.bench_on===0&&s.tool_piece===2);
  const equipped=await state();assert.deepEqual(equipped.pocket,[4,2]);
  const field=await wait(s=>s.bench_on===0),start=Math.floor(field.pl_y/16)*16+Math.floor(field.pl_x/16),queue=[start],previous=new Map([[start,null]]);let benchFloor;
  const dirs=[['ArrowUp','pl_y',-16,-16],['ArrowDown','pl_y',16,16],['ArrowLeft','pl_x',-16,-1],['ArrowRight','pl_x',16,1]];
  for(let h=0;h<queue.length&&benchFloor===undefined;h++)for(const d of dirs){const c=queue[h],n=c+d[3];if(n<0||n>=224||Math.abs(n%16-c%16)+Math.abs(Math.floor(n/16)-Math.floor(c/16))!==1)continue;if(field.room[n]===34){benchFloor=c;break;}if(!previous.has(n)&&[0,1,5,10,12].includes(field.room[n])){previous.set(n,[c,d]);queue.push(n);}}
  assert.notEqual(benchFloor,undefined,'A physical bench must be reachable');const route=[];for(let c=benchFloor;previous.get(c)!==null;){const [p,d]=previous.get(c);route.push(d);c=p;}for(const d of route.reverse())await walkStep(...d.slice(0,3));
- await press('KeyX');await wait(s=>s.bench_on===1&&s.bench_mode===1);await press('KeyX');await press('ArrowUp');await press('KeyX');await capture('recipe-ready.png');
+ await press('KeyX');await wait(s=>s.bench_on===1&&s.bench_mode===1);await press('ShiftLeft');await wait(s=>s.bench_page===1);await capture('inventory-page.png');await press('KeyX');await wait(s=>s.bench_page===0);await press('ShiftLeft');await press('ArrowLeft');await press('KeyX');await wait(s=>s.bench_page===0);await capture('recipe-ready.png');
  const phases=new Set(),images=new Set();let count=0;await page.evaluate(()=>window.__nativeInput('KeyX',60,0));
  const end=Date.now()+120000;
  while(Date.now()<end){const s=await state();if(s?.bench_on===3){phases.add(s.bench_phase);images.add(await capture('merge-'+String(count++).padStart(3,'0')+'.png'));}if(s?.bench_on===1&&count)break;await page.waitForTimeout(16);}
  const painted=await page.evaluate(()=>window.__benchPaints);
  for(const [p,url] of Object.entries(painted.images)){phases.add(Number(p));images.add(url);await writeFile(out+'/painted-phase-'+p+'.png',Buffer.from(url.split(',')[1],'base64'));}
  for(let i=0;i<painted.frames.length;i++){images.add(painted.frames[i]);await writeFile(out+'/painted-'+String(i).padStart(3,'0')+'.png',Buffer.from(painted.frames[i].split(',')[1],'base64'));}
+ const waiting=await state();assert.equal(waiting.bench_phase,4);assert.deepEqual(waiting.pocket,[4,2]);await capture('awaiting-collection.png');
+ await press('KeyX');
  const after=await state();assert.deepEqual(after.pocket,[8]);assert.equal(after.tool_piece,8);assert.ok([1,2,3,4].every(p=>painted.phases.includes(p)),JSON.stringify(painted.phases));assert.ok(images.size>=5);await capture('result.png');
  assert.ok((await Promise.all(loads)).includes(expected));assert.deepEqual(errors,[]);
- const report={base,viewport:page.viewportSize(),sha256:expected,source:'Current-ROM authored crafting checkpoint in the website; DOM keyboard events released at native paint boundaries, actual pickups, walking to a physical bench and A to craft; no RAM or inventory writes.',results:{exactRomFetch:true,realFloorPickups:true,bagCannotCraft:true,walkToPhysicalBench:true,aOpensClearedBench:true,fourMergePhases:true,visibleMergeFrames:images.size>=5,finiteRecipeConsumption:true,selectEquipsWithoutConsuming:true,recipeAutoEquips:true,pageErrors:errors.length===0},phases:painted.phases,frames:painted.frames.length,before:before.pocket,after:after.pocket};
+ const report={base,viewport:page.viewportSize(),sha256:expected,source:'Current-ROM authored crafting checkpoint in the website; DOM keyboard events released at native paint boundaries, actual pickups, walking to a physical bench and A to craft; no RAM or inventory writes.',results:{exactRomFetch:true,realFloorPickups:true,bagCannotCraft:true,walkToPhysicalBench:true,aOpensClearedBench:true,fourMergePhases:true,visibleMergeFrames:images.size>=5,resultWaitsForCollection:true,finiteRecipeConsumption:true,selectEquipsWithoutConsuming:true,recipeAutoEquips:true,pageErrors:errors.length===0},phases:painted.phases,frames:painted.frames.length,before:before.pocket,after:after.pocket};
  await writeFile(out+'/report.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));
  await press('KeyZ');await wait(s=>s.bench_on===0);
  for(const d of [...route].reverse()){const reverse=dirs.find(q=>q[3]===-d[3]);await walkStep(...reverse.slice(0,3));}

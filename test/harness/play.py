@@ -328,10 +328,12 @@ def bench_open(g: Game,log: list[str],*,craft: bool=False) -> bool:
 
 
 def bench_cursor(g: Game, slot: int) -> None:
+    if g.peek('bench_mode') and not g.peek('bench_page'):
+        g.press('select',4);g.tick(12)
     for _ in range(24):
         if g.peek("bench_cur") == slot:
             return
-        g.press("down", 4)
+        g.press("right", 4)
         g.tick(12)
 
 
@@ -376,9 +378,11 @@ def bench_act(g: Game, act: str, log: list[str], shot: Path | None = None, *, pr
             g.shot(shot)
         n0 = g.peek("pocket_n")
         g.press("a", 4)
-        for _ in range(180):
+        for _ in range(400):
             g.tick()
-            if g.peek('pocket_n')==n0-1 and g.peek('bench_on')==1:break
+            if g.peek('bench_on')==1 and g.peek('bench_phase')==4:break
+        g.press('a',4)  # explicitly collect the completed material
+        g.tick(16)
         ok = g.peek("pocket_n") == n0 - 1
         g.press("b", 4)  # close
         g.tick(12)

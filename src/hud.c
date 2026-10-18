@@ -23,7 +23,7 @@
 
 static uint8_t msg_t, top, shown_top = 0xffu, rows_dirty, vbl_on;
 static uint8_t narr_t,shown_stamina,shown_cap,shown_charge;
-static uint8_t counter_top,counter_hp,counter_max,counter_tokens,counter_keys,counter_total,counter_floor;
+static uint8_t counter_top,counter_hp,counter_quarter,counter_max,counter_tokens,counter_keys,counter_total,counter_floor;
 static volatile uint8_t vbl_rows, vbl_move, vbl_top; /* for hud_vbl: rows to copy, the window's new place */
 static uint8_t sh[3][20];   /* the window's rows 0..2, tiles */
 static uint8_t glyph[64];   /* ' ' .. '_' -> font tile (BT_FONT_ORDER); lower case folds to upper, but 'x' */
@@ -297,20 +297,27 @@ void hud_tick(void) BANKED {
   shown_top = top;
 }
 
+/* The single partial heart tile has three native fills; no extra VRAM tiles. */
+static const uint8_t partial_hearts[3][16]={
+{98,0,209,64,192,0,193,0,66,0,4,0,8,0,0,0},
+{98,0,241,64,240,0,241,0,114,0,52,0,24,0,0,0},
+{102,0,253,64,252,0,253,0,126,0,60,0,24,0,0,0},
+};
 static void draw_n(void) {
-  uint8_t i, n = (uint8_t)((pl_hp_max+1u) >> 1), hp = pl_hp, y = (uint8_t)(top + 1u);
+  uint8_t i, n = (uint8_t)((pl_hp_max+1u) >> 1), hp = (uint8_t)(pl_hp ? pl_hp*2u-pl_quarter : 0u), y = (uint8_t)(top + 1u);
   uint8_t force=(uint8_t)(counter_top!=top);
   uint8_t *d = sh[y];
-  if(force || counter_hp!=pl_hp || counter_max!=pl_hp_max) {
+  if(force || counter_hp!=pl_hp || counter_quarter!=pl_quarter || counter_max!=pl_hp_max) {
   if(pl_hp_max>10u) {
     /* Upgraded health still owns five cells; never overwrite the token count. */
     hud_num(0u,y,pl_hp,2u);sh[y][2]=glyph['/'-32];hud_num(3u,y,pl_hp_max,2u);
   } else {
     for(i=0u;i!=5u;i++) sh[y][i]=BT_FONT;
-    for (i = 0; i != n; i++, hp = hp > 2u ? (uint8_t)(hp - 2u) : 0u) /* two halves a heart */
-      *d++ = hp >= 2u ? BT_HEART2 : (hp ? BT_HEART1 : BT_HEART0);
+    if(hp&3u){VBK_REG=1u;set_bkg_data(BT_HEART1,1u,partial_hearts[(hp&3u)-1u]);VBK_REG=0u;}
+    for(i=0u;i!=n;i++,hp=hp>4u ? (uint8_t)(hp-4u) : 0u)
+      *d++ = hp>=4u ? BT_HEART2 : (hp ? BT_HEART1 : BT_HEART0);
   }
-  counter_hp=pl_hp;counter_max=pl_hp_max;
+  counter_hp=pl_hp;counter_quarter=pl_quarter;counter_max=pl_hp_max;
   }
   if(force || counter_tokens!=tokens) {
   sh[y][5] = BT_ICON_TOKEN;

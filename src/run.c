@@ -121,7 +121,7 @@ void run_begin(void) BANKED {
   save_load();
   if (!meta.unlocked) meta.unlocked = POOL_BASE;
   pl_hp_max = 6u;
-  pl_hp = 6u;
+  pl_hp = 6u;pl_quarter=0u;
   mods = 0;
   kills_run = 0;heart_shards=0u;
   landing_no = 0;

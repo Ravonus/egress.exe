@@ -25,6 +25,8 @@ void play_camera_warp(void) BANKED;
 #include "look.h"
 
 uint8_t pl_x, pl_y, pl_hp, pl_hp_max, pl_state, pl_face;
+/* Health remains in half-heart units; this bit subtracts one quarter. */
+uint8_t __at(0xDBA8) pl_quarter;
 uint8_t pl_t, pl_inv, pl_combo, pl_queue, pl_charge, roll_cd, push_t, hit_mask, walk_t, combo_gap;
 int8_t roll_dx, roll_dy, kb_dx, kb_dy;
 uint16_t psx, psy;
@@ -106,6 +108,7 @@ void player_hurt(uint8_t n, uint8_t fromx, uint8_t fromy) BANKED {
     return;
   }
   if (!dbg_god) pl_hp = pl_hp > n ? (uint8_t)(pl_hp - n) : 0u;
+  if(!pl_hp)pl_quarter=0u;
   if (!pl_hp && boss_floor) boss_death_record();
   if (acts.hits_taken != 255u) acts.hits_taken++;
   pl_inv = 60u;
@@ -128,12 +131,16 @@ void player_hurt(uint8_t n, uint8_t fromx, uint8_t fromy) BANKED {
   else if(!dbg_god) {if(pl_hp<=2u) narrator_event(NE_CLOSE,0u);resume_damage();}
 }
 
-/* A fall ignores guard/evade immunity. Open abyss is lethal; enclosed one-cell
- * pits cost a heart and return to the last firm tile. Damage is journaled first. */
+/* Ledges and interior holes share one forgiving cost: a quarter-heart,
+ * clamped at the last quarter. Respawn always uses the last firm tile. */
 void player_fall(uint8_t safe) BANKED {
   if(pl_state==PS_FALL || pl_state==PS_EXIT || !pl_hp) return;
   pl_inv=pl_iframe=0u;pin.flags=0u;pl_air=0u;pl_z=0;fall_safe=safe;
-  player_hurt(EG_ABYSS(room.c[cell_at(pl_x,pl_y)]) ? pl_hp : 1u,pl_x,pl_y);
+  if(!dbg_god && (pl_hp>1u || !pl_quarter)) {
+    if(pl_quarter){pl_hp--;pl_quarter=0u;}else pl_quarter=1u;
+  }
+  if(acts.hits_taken!=255u)acts.hits_taken++;
+  hud_dirty=1u;sfx(SFX_HURT);resume_damage();heir_idle_stop();heir_play(HA_HURT,1u);
   pl_state=PS_FALL;pl_t=0u;freeze=0u;pl_arc=pl_charge=0u;air_void=0u;
   narrator_event(NE_FALL,0u);
 }

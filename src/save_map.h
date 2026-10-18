@@ -23,6 +23,9 @@
 #define SAVE_CLOCK 0xB4C0u
 #define SAVE_HOST_CLOCK 0xB4E0u
 #define SAVE_RTC 0xB4F0u
+/* Volatile bench VRAM backup: 68 OBJ tiles, never a save record. */
+#define SAVE_BENCH_SCRATCH 0xB500u
+#define SAVE_BENCH_BYTES 1088u
 #define SAVE_STATS_A 0xBC00u
 #define SAVE_STATS_B 0xBD80u
 #define SAVE_STATS_BYTES 384u

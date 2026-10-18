@@ -31,6 +31,7 @@ typedef struct {
 } puff_t;
 
 /* the player */
+extern uint8_t __at(0xDBA8) pl_quarter; /* one missing quarter from rounded-up half-heart HP */
 extern uint8_t pl_x, pl_y, pl_hp, pl_hp_max, pl_state, pl_face;
 extern uint8_t pl_t, pl_inv, pl_combo, pl_queue, pl_charge, roll_cd, push_t, hit_mask, walk_t, combo_gap;
 extern int8_t roll_dx, roll_dy, kb_dx, kb_dy;

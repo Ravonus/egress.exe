@@ -203,7 +203,7 @@ void family_begin(void) BANKED {
     eg_family_choose(&family,family_cur); write_family(); fade_to(8u,0u); HIDE_SPRITES;
   }
   family_apply();
-  pl_hp_max=(uint8_t)(6u+family_stat[G_VIGOR]); pl_hp=pl_hp_max;
+  pl_hp_max=(uint8_t)(6u+family_stat[G_VIGOR]); pl_hp=pl_hp_max;pl_quarter=0u;
 }
 void family_end(uint8_t won) BANKED {
   if(dbg_heir) return;
