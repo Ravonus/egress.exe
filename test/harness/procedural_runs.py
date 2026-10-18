@@ -37,6 +37,10 @@ def fight(g,log,fatal=False):
     for turn in range(320 if fatal else 200):
         if fatal and g.peek('game_mode')==4:return True
         if not fatal and not g.peek('enemies_alive'):g.hold(set());g.tick(16);return True
+        # Use the real recovery rules instead of endlessly queuing attacks
+        # below their stamina cost. Enemies keep simulating during this rest.
+        if not fatal and g.peek('stamina')<24:
+            g.hold(set());g.tick(160);continue
         k=closest(g)
         if k is None:g.hold(set());g.tick(16);continue
         ex=g.peek16_at('en',16*k+8)//16;ey=g.peek16_at('en',16*k+10)//16
@@ -127,6 +131,12 @@ def run(rom,out,tool):
         for _ in range(n):tick();animation.observe()
     g.tick=record
     res['opening_enemies_defeated_by_normal_attacks']=fight(g,log) and g.peek('kills_run')>=entry['spawned_enemies']
+    # A short fight can end before one 120-update timing window exists.
+    # Observe its normal idle recovery too; never manufacture another enemy
+    # or relax the pose/deadline assertions when a fight ends quickly.
+    post_fight_frames=0;g.hold(set())
+    while (animation.samples<=180 or len(epochs)<=180) and post_fight_frames<240:
+        g.tick();post_fight_frames+=1
     windows=[epochs[i]-epochs[i-120] for i in range(120,len(epochs))]
     res['generated_world_combat_meets_frame_deadlines']=bool(windows) and min(windows)==max(windows)==120 and not late
     ar=animation.report();res['generated_world_combat_animation_advances']=ar['animation_keeps_advancing']
@@ -146,6 +156,7 @@ def run(rom,out,tool):
     g.tick=travel_tick;p.monitor=False;g.tick(240)
     rr=rim.report();res['ordinary_world_builds_ahead_and_falls_behind']=rr['build_and_fall_are_visible']
     res['ordinary_world_keeps_effects_at_the_edge']=rr['central_view_is_built'] and rr['construction_stays_at_rim']
+    (out/'ordinary-world-effects.json').write_text(json.dumps(rr,indent=2)+'\n')
     if images:images[0].save(out/'ordinary-world-travel.gif',save_all=True,append_images=images[1:],duration=68,loop=0)
     res['ordinary_progression_reaches_survival_stage']=g.peek('floor_no')==2 and g.peek('stage_type')==1
     arena=bytes(g.room()[:224]);res['survival_arena_has_generated_void_edges']=any((arena[y*16+x]&31)==9 for y in range(1,13) for x in range(1,15))
@@ -189,7 +200,7 @@ def run(rom,out,tool):
     g=Game(rom,sram=checkpoint);abandon(g);after=fingerprint(g);g.stop()
     res['new_run_cannot_restore_the_abandoned_seed']=after['run_seed']!=continued['run_seed'] and after['material_layout_sha256']!=continued['material_layout_sha256']
     report={'sha256':hashlib.sha256(rom.read_bytes()).hexdigest(),'results':res,'seeded_openings':sweep,
-            'ordinary_entry':entry,'next_floor':next_floor,'ordinary_world_effects':rr,'combat_animation':ar,'combat_late_completions':late,'combat_epoch_span':([min(windows),max(windows)] if windows else []),
+            'ordinary_entry':entry,'next_floor':next_floor,'ordinary_world_effects':rr,'combat_animation':ar,'post_fight_observation_frames':post_fight_frames,'combat_late_completions':late,'combat_epoch_span':([min(windows),max(windows)] if windows else []),
             'real_death_generations':deaths,'continued':continued,'new_run_after_abandon':after,'log':log}
     (out/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2),flush=True)
     return all(res.values())

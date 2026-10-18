@@ -86,7 +86,7 @@ static uint8_t generate_one(preparation *p,uint8_t vertical,uint8_t *packet) {
   if(!p->dir || p->n>=(vertical ? 16u : 14u))return 0u;
   chunk(p,vertical,&x,&y);
   if(!p->part && world_cached(x,y)) {p->n++;return 1u;}
-  if(!spare(50u))return 0u;
+  if(!spare(58u))return 0u;
   k=p->part;if(!k)packet[8]=0u;
   eg_land_at(&world_plan,(uint8_t)(x+k),y,&c);packet[k]=c.material;packet[k+4u]=world_skin(c.design,c.variant);
   if(c.flags&EL_PROTECTED)packet[8]|=look_bits[k];
@@ -225,6 +225,9 @@ void world_prefetch(void) BANKED {
   uint8_t n,did,axes=0u,mx,my;int8_t x,y;
   if(!world_on || !pl_hp || pl_state==PS_FALL || pl_state==PS_EXIT || enemies_alive)return;
   if(player_portal_pending())return;
+  /* A narrator turn may compose a caption or start a voice clip after the
+   * simulation. Reserve its budget instead of stacking a cold map query. */
+  if(!(frame_count&63u))return;
   /* Interaction/attack frames own their budget; do not stack speculative
    * seed queries on a fresh action. */
   if(((joy^joy_prev)&(J_A|J_B|J_START|J_SELECT)) || pl_state==PS_LASH || pl_state==PS_SPIN || push_t || pickup_ahead())return;
@@ -247,7 +250,7 @@ void world_prefetch(void) BANKED {
   }
   /* Resolve a ready transfer before spending its spare time on a different
    * strip. A tight vertical edge must not starve after a horizontal turn. */
-  if(spare(15u))bind_requested();
+  if(spare(32u))bind_requested();
   /* Finish both started strips across a direction change. New orthogonal
    * preparations still require movement on that axis (wanted() above). */
   if(axes==3u)axes=my<32u && my<mx ? 2u : mx<32u && mx<=my ? 1u : 3u;
@@ -255,7 +258,7 @@ void world_prefetch(void) BANKED {
    * before simulation; a late collision/render pass must not starve a seam. */
   /* A seed query near apparatus can consume roughly forty scanlines.
    * Admit it early enough to retain the mover, audio and complete actor list. */
-  for(n=0u;n<6u && spare(55u);n++) {
+  for(n=0u;n<6u && spare(60u);n++) {
     /* Once the requested strip is generated, warm the other axis while its
      * outgoing BG/save work finishes. A turn must not start from cold data. */
     if(axes==1u && px.dir && px.n==14u) {generate_one(&py,1u,world_pre_y);continue;}

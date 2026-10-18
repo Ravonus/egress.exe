@@ -858,6 +858,22 @@ static uint8_t anchor_at(uint8_t x,uint8_t y) {
   if(look_here(i) || !(roam_hidden[i>>3]&BIT(i)))return 0u;
   look_anchor(i);return 1u;
 }
+static uint8_t missing_column(uint8_t cell,uint8_t count) {
+  uint8_t at=cell>>3,mask=BIT(cell);
+  do {
+    if((roam_hidden[at] & (uint8_t)~look_present[at]) & mask)return cell;
+    cell+=EG_W;at+=2u;
+  } while(--count);
+  return 0xffu;
+}
+static uint8_t missing_row(uint8_t cell,uint8_t count) {
+  uint8_t at=cell>>3,mask=BIT(cell);
+  do {
+    if((roam_hidden[at] & (uint8_t)~look_present[at]) & mask)return cell;
+    cell++;mask<<=1;if(!mask) {mask=1u;at++;}
+  } while(--count);
+  return 0xffu;
+}
 static uint8_t ground_ahead(uint8_t essential) {
   int16_t x=pl_x,y=pl_y;int8_t dx=0,dy=0;uint8_t n=0u,k,c,x0,x1,y0,y1,vertical,limit,wide;
   /* A blink travels at most 6.5px/tick. Prepare the next 7px step's complete
@@ -879,9 +895,6 @@ static uint8_t ground_ahead(uint8_t essential) {
   if(n<2u && y1!=y0)n+=anchor_at(x0,y1);
   if(n<2u && y1!=y0 && x1!=x0)n+=anchor_at(x1,y1);
   if(n || video_epoch!=frame_epoch)return n;
-  /* Share pending-generation turns: one visible BG repair or resident card
-   * on presentation ticks, with the alternate tick reserved for seed work. */
-  if(essential && !(frame_count&1u))return n;
   if(enemies_alive>=2u && (pl_state==PS_LASH || pl_state==PS_SPIN))return n;
   if(LY_REG<144u && LY_REG>=(world_on ? 24u : 32u))return 0u;
   /* Easing continues after a turn. Prepare the camera's residual axis too. */
@@ -890,6 +903,32 @@ static uint8_t ground_ahead(uint8_t essential) {
   if(cam_y<96u && pl_y>cam_y+64u)dy=1;
   else if(cam_y && pl_y<cam_y+64u)dy=-1;
   if(!dx && !dy)return 0u;
+  /* A diagonal can cross a column boundary on the other axis's preparation
+   * tick. Inspect both imminent inner edges before yielding to generation;
+   * the 7px margin covers the next camera step. This reuses the two-anchor
+   * allowance and never uploads a cold animation card. */
+  {
+    x0=(uint8_t)(dy && (!dx || (frame_count&2u)));
+    for(k=0u;k<2u && n<2u;k++) {
+      vertical=(uint8_t)(x0^k);
+      if(vertical ? !dy : !dx)continue;
+      limit=vertical ? 11u : 9u;
+      x=vertical ? cam_x>>4 : ((uint16_t)cam_x+(dx>0 ? 143u : 17u))>>4;
+      y=vertical ? ((uint16_t)cam_y+(dy>0 ? 111u : 17u))>>4 : cam_y>>4;
+      if((uint16_t)x>=EG_W || (uint16_t)y>=EG_H)continue;
+      c=vertical ? (uint8_t)(EG_W-x) : (uint8_t)(EG_H-y);
+      if(limit>c)limit=c;
+      /* Walk the two bitmaps directly. Repeating coordinate conversion and
+       * two per-cell bounds checks here steals the next strip's query time. */
+      x1=EG_IDX(x,y);
+      while(n<2u) {
+        c=vertical ? missing_row(x1,limit) : missing_column(x1,limit);
+        if(c==0xffu)break;
+        look_anchor(c);n++;
+      }
+    }
+    if(n || (essential && !(frame_count&1u)))return n;
+  }
   /* A reversal can return a departing slab from the opposite edge. The
    * ordinary incoming-column sweep no longer visits that slab. Reuse the
    * same two-anchor allowance to finish pooled cards before the next eased
@@ -906,7 +945,9 @@ static uint8_t ground_ahead(uint8_t essential) {
   /* A slow/busy card must land before it leaves the edge band. This sweep is
    * a half slab INSIDE the approaching screen edge, after its visible entrance,
    * rather than two slabs outside the screen as in the previous release. */
-  vertical=(uint8_t)(dy && (!dx || (frame_count&1u)));
+  /* Pending generation uses odd presentation ticks. Alternate the next bit
+   * on those ticks, or diagonal travel would only ever repair vertical edges. */
+  vertical=(uint8_t)(dy && (!dx || (frame_count&(essential ? 2u : 1u))));
   limit=vertical ? 11u : 9u;
   if(near_cursor>=limit)near_cursor=0u;
   x=vertical ? cam_x>>4 : ((uint16_t)cam_x+(dx>0 ? 152u : 8u))>>4;
@@ -916,7 +957,7 @@ static uint8_t ground_ahead(uint8_t essential) {
    * complete edge and land up to two slabs; a single repair cannot cover all
    * nine rows during a fast reversal. Combat retains its smaller allowance. */
   wide=(uint8_t)(world_on || (stage_type==SG_PUZZLE && !enemies_alive));
-  x0=(uint8_t)(wide && !essential ? 2u : 1u);
+  x0=(uint8_t)(wide ? 2u : 1u);
   for(k=0u;k<(wide ? limit : 4u) && n<x0;k++) {
     c=near_cursor;if(++near_cursor==limit)near_cursor=0u;
     n+=anchor_at((uint8_t)(x+(vertical ? c : 0u)),(uint8_t)(y+(vertical ? 0u : c)));

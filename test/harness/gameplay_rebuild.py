@@ -18,6 +18,7 @@ def route(g, target):
         for d,delta in [('U',-16),('D',16),('L',-1),('R',1)]:
             n=c+delta
             if n<0 or n>=224 or n in prev or (cells[n]&31 not in PASSABLE and not (cells[n]&31==7 and g.peek('door_open'))): continue
+            if abs(c%16-n%16)+abs(c//16-n//16)!=1:continue
             prev[n]=c;dirs[n]=d;q.append(n)
     if target not in prev:
         target=min(prev,key=lambda c:abs(c%16-target%16)+abs(c//16-target//16))

@@ -315,7 +315,7 @@ static uint8_t floor_play(void) {
     }
     /* Visible construction gets its early allowance before speculative
      * backing-store queries; otherwise the world can starve its own rim. */
-    if(world_on && !streamed) {look_frame_begin();world_prefetch();}
+    if(world_on && !streamed)look_frame_begin();
     if(streamed) {}
     else if(late) {
       /* Combat renders actors before spending spare time on cosmetic terrain. */
@@ -329,6 +329,9 @@ static uint8_t floor_play(void) {
     scroll();
     sound_tick();
     hud_tick();
+    /* Admit speculative queries after variable BG, audio and HUD work, so
+     * their scanline limit reserves the actual remaining simulation budget. */
+    if(world_on && !streamed)world_prefetch();
     if (pl_state == PS_EXIT) {
       if(late) look_frame_end();
       sprites_budget();
