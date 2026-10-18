@@ -227,7 +227,7 @@ void world_prefetch(void) BANKED {
   if(player_portal_pending())return;
   /* Interaction/attack frames own their budget; do not stack speculative
    * seed queries on a fresh action. */
-  if(((joy^joy_prev)&(J_A|J_B|J_START|J_SELECT)) || pl_state==PS_LASH || pl_state==PS_SPIN || pickup_ahead())return;
+  if(((joy^joy_prev)&(J_A|J_B|J_START|J_SELECT)) || pl_state==PS_LASH || pl_state==PS_SPIN || push_t || pickup_ahead())return;
   x=wanted(0u);y=wanted(1u);choose(&px,x);choose(&py,y);
   if(joy&(J_LEFT|J_RIGHT))axes|=1u;
   if(joy&(J_UP|J_DOWN))axes|=2u;
