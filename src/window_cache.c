@@ -574,16 +574,31 @@ __asm
 push bc
 push de
 1$:
-ld hl,#_eg_window_packet
-push hl
+; Inline the same bounded nine-byte load: no stack-ABI setup per packet.
 ld hl,#_ew_in
 ld a,(hl+)
-ld d,(hl)
-ld e,a
-push de
+ld h,(hl)
+ld l,a
+ld a,h
+swap a
+and a,#15
+add a,#2
+ld c,a
+ld a,h
+and a,#15
+or a,#0xD0
+ld h,a
+ld de,#_eg_window_packet
 di
-call _view_get9
-add sp,#4
+ld a,c
+ldh (#0x70),a
+.rept 9
+ld a,(hl+)
+ld (de),a
+inc de
+.endm
+ld a,#1
+ldh (#0x70),a
 ei
 ld hl,#_ew_cells
 ld a,(hl+)

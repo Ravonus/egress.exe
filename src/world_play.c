@@ -8,6 +8,7 @@
 #include "world_play.h"
 #include "stage.h"
 #include "companion.h"
+#include "mob.h"
 #include "core/eg_move.h"
 extern eg_mover_t pmv;
 extern volatile uint8_t video_epoch;
@@ -44,9 +45,9 @@ static void bind_requested(void) {
 }
 uint8_t world_work_pending(void) BANKED {
   preparation *p;uint8_t n;
-  /* Presentation yields only to work that can run this frame. A fight or
-   * fall suspends prefetch; its pending strips must not starve rim arrivals. */
-  if(!world_on || !pl_hp || pl_state==PS_FALL || pl_state==PS_EXIT || enemies_alive || player_portal_pending())return 0u;
+  /* Existing terrain packets also serve combat travel. No encounter owns an
+   * invisible boundary inside otherwise walkable floor. */
+  if(!world_on || !pl_hp || pl_state==PS_FALL || pl_state==PS_EXIT || player_portal_pending())return 0u;
   if((px.dir && px.n<14u) || (py.dir && py.n<16u))return 1u;
   n=priority_axis();p=n ? &py : &px;
   if(!p->dir)return 0u;
@@ -193,16 +194,10 @@ uint8_t world_frame_begin(void) BANKED {
   /* Clock polling and pending VBlank uploads sometimes consume the start of
    * this frame. Publish a prepared seam only while its complete budget fits. */
   if(LY_REG<144u || LY_REG>149u)return 0u;
-  if((joy^joy_prev)&(J_A|J_B|J_START|J_SELECT))return 0u;
+  /* A fresh direction can change the heir's pose and start a move. Give that
+   * input its own actor budget; a held direction can transfer next tick. */
+  if(joy!=joy_prev)return 0u;
   if(companion.id && (companion.shown==255u || !(frame_count&7u)))return 0u;
-  /* A generated encounter owns this window until its native actor pool is
-   * cleared. Keep its art/physics budget ahead of speculative map work. */
-  if(enemies_alive) {
-    if(stage_goal[0]!='F' && (((joy&J_RIGHT) && pl_x>208u && world_view.x<world_view.width-EG_W) ||
-       ((joy&J_LEFT) && pl_x<48u && world_view.x) || ((joy&J_DOWN) && pl_y>176u && world_view.y<world_view.height-EG_H) ||
-       ((joy&J_UP) && pl_y<64u && world_view.y))) {hud_msg("CLEAR THIS FIGHT");stage_goal[0]='F';}
-    return 0u;
-  }
   mx=pl_x<128u ? pl_x : (uint8_t)(255u-pl_x);
   my=pl_y<112u ? pl_y : (uint8_t)(223u-pl_y);
   /* A warm orthogonal strip does not imply a requested camera move. Among
@@ -223,7 +218,9 @@ uint8_t world_frame_begin(void) BANKED {
   retained=dx ? py : px;
   room_origin_x=world_view.x;room_origin_y=world_view.y;
   cam_x=(uint8_t)(cam_x-dx*16);cam_y=(uint8_t)(cam_y-dy*16);
-  player_shift_view(dx,dy);puzzle_shift_view(dx,dy);effects(dx,dy);grid_shift_view(dx,dy);look_shift_view(dx,dy);
+  player_shift_view(dx,dy);puzzle_shift_view(dx,dy);
+  if(enemies_alive)mobs_shift_view(dx,dy);
+  effects(dx,dy);fx_shift_view(dx,dy);grid_shift_view(dx,dy);look_shift_view(dx,dy);
   memset(&px,0,sizeof px);memset(&py,0,sizeof py);
   if(retained.dir) {
     preparation *p=dx ? &py : &px;
@@ -238,7 +235,10 @@ static void goal_hint(void) {
   for(k=0u;k<world_plan.nnode;k++)if(!(told&look_bits[k]) && world_plan.node[k].at>=u && world_plan.node[k].at-u<=8u) {
     told|=look_bits[k];
     switch(world_plan.node[k].kind) {
-      case EL_LOAD:hud_msg("WEIGHT HOLDS GATE");break;
+      case EL_LOAD:
+        hud_msg(world_plan.node[k].condition==EL_BOTH ? "WEIGHT BOTH PLATES" :
+                world_plan.node[k].condition==EL_LATCH ? "STEP ON PLATE: OPEN" :
+                world_plan.node[k].condition==EL_EITHER ? "EITHER PLATE OPENS" : "WEIGHT HOLDS GATE");break;
       case EL_HEAT:hud_msg("HEAT BURNS PAPER");break;
       case EL_COLD:hud_msg("FREEZE, FILL, ROLL");break;
       case EL_POWER:hud_msg("SHOCK THE SOCKET");break;
@@ -271,7 +271,7 @@ static uint8_t pickup_ahead(void) {
 }
 void world_prefetch(void) BANKED {
   uint8_t n,did,axes=0u,mx,my,deadline=52u;int8_t x,y;
-  if(!world_on || !pl_hp || pl_state==PS_FALL || pl_state==PS_EXIT || enemies_alive)return;
+  if(!world_on || !pl_hp || pl_state==PS_FALL || pl_state==PS_EXIT)return;
   if(player_portal_pending())return;
   if(companion.id) {
     if(!(frame_count&7u))deadline=44u;
@@ -330,7 +330,7 @@ void world_prefetch(void) BANKED {
 }
 void world_frame_end(void) BANKED {
   uint8_t n,did,axis;
-  if(!world_on || !pl_hp || pl_state==PS_FALL || pl_state==PS_EXIT || enemies_alive)return;
+  if(!world_on || !pl_hp || pl_state==PS_FALL || pl_state==PS_EXIT)return;
   if(!spare(116u))return;
   axis=priority_axis();
   /* The completed actor list determines the actual remaining allowance.

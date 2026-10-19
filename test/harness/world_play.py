@@ -8,6 +8,7 @@ from heir import OamMeter
 from grid_observer import GridObserver
 from heir_pixels import Pixels
 from look_window import LookWindow
+from fx_window import FxWindow
 
 class WorldPlayer:
     def __init__(self,g,tool,rom=None):
@@ -49,6 +50,7 @@ class WorldPlayer:
         at=g.sym['_player_update'];g.pb.hook_register(at>>16,(at&65535)-offset+clamp,self.before_clamp,None)
         self.pixels=Pixels(g,rom) if rom is not None else None
         self.meter=OamMeter(g);self.grid=GridObserver(g);self.look_window=LookWindow(g)
+        self.fx_window=FxWindow(g) if '_fx_shift_view' in g.sym else None
         self.tick0=g.tick;g.tick=self.tick
         self.runtime_tile_queries=0
         at=g.sym['_eg_land_cached_at'];g.pb.hook_register(at>>16,at&65535,self.tile_query,None)
@@ -291,6 +293,7 @@ class WorldPlayer:
                 'missing_floor':self.missing[:30],'missing_body':self.body[:30],
                 'oam_max':self.meter.max_line,'oam_over':self.meter.over,'grid':self.grid.report(),
                 'presentation_window':self.look_window.report(),
+                'particle_window':self.fx_window.report() if self.fx_window else None,
                 'stack_canary':bytes(g.pb.memory[1,0xde78:0xde98])==bytes([0xa7]*32)}
 
 def run(rom,out,tool,seeds,rule=None,size=None,biome=0,floor=7,pet=0):
@@ -346,6 +349,7 @@ def run(rom,out,tool,seeds,rule=None,size=None,biome=0,floor=7,pet=0):
                r['grid']['all_map_and_attributes_match'] and
                r['presentation_window']['all_cards_spans_queues_and_bitmaps_match'] and
                r['presentation_window']['native_transfers']==r['seams'] and
+               r['particle_window']['all_retained_positions_and_state_match'] and
                r['runtime_default_tile_queries']==0 and
                0<r['stage_preparation_frames']<=1200 and r['loading_progress_visible'] and r['loading_has_no_stale_sprites'] and
                r['maximum_stream_wait_frames']<=12 for r in reports)

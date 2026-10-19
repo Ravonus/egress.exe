@@ -449,7 +449,7 @@ void look_stream_void(uint8_t i) BANKED {
   }
   draw_meta(i,M_VOID_A);
 }
-static void incoming_pits(uint8_t i) NONBANKED NAKED {
+static void incoming_pits(uint8_t i) NAKED {
   i;
   __asm
     push bc
@@ -582,7 +582,7 @@ static void shift_spans(int8_t dy) NAKED {
   __endasm;
 }
 void look_shift_view(int8_t dx,int8_t dy) BANKED {
-  uint8_t k,i,c,keep=0u,mask,lo,hi,delta;
+  uint8_t k,i,c,keep=0u,mask,lo,hi,delta,membership=(uint8_t)(q_n|n_flying);
   if(dx){mask=15u;lo=dx>0 ? 4u : 0u;hi=dx>0 ? 16u : 12u;delta=(uint8_t)dx;}
   else {mask=255u;lo=dy>0 ? 64u : 0u;hi=dy>0 ? 224u : 160u;delta=(uint8_t)(dy*16);}
   /* Each card is tested in its old coordinates. Recycle leaving slots and
@@ -601,7 +601,9 @@ void look_shift_view(int8_t dx,int8_t dy) BANKED {
   eg_view_bits(look_present,dx,dy,0u);eg_view_bits(roam_hidden,dx,dy,1u);eg_view_bits(redraw,dx,dy,1u);
   /* Membership is a spatial bit field too. Shift the existing pools instead
    * of clearing and rebuilding every queued/card membership individually. */
-  eg_view_bits(queued,dx,dy,0u);eg_view_bits(in_flight,dx,dy,0u);
+  if(membership) {
+    eg_view_bits(queued,dx,dy,0u);eg_view_bits(in_flight,dx,dy,0u);
+  }
   if(dx) {
     i=dx>0 ? 12u : 0u;k=14u;
     do {incoming_pits(i);i=(uint8_t)(i+16u);}while(--k);
@@ -869,6 +871,36 @@ static uint8_t anchor_at(uint8_t x,uint8_t y) {
   look_anchor(i);return 1u;
 }
 #include "look_scan.inc"
+/* A camera step must not reveal an unpainted backing cell after a reversal
+ * or knockback. Hold only the easing step while the existing early repair
+ * catches up; material movement and all controller inputs continue. */
+static uint8_t camera_edge_ready(uint8_t cell,uint8_t count,uint8_t vertical) {
+  uint8_t c,used;
+  while(count) {
+    c=vertical ? missing_column(cell,count) : missing_row(cell,count);
+    if(c==255u)return 1u;
+    if(cell_type(c)!=T_PIT && cell_type(c)!=T_GLITCH)return 0u;
+    used=(uint8_t)((vertical ? (c-cell)>>4 : c-cell)+1u);
+    count-=used;cell=(uint8_t)(c+(vertical ? EG_W : 1u));
+  }
+  return 1u;
+}
+uint8_t look_camera_ready(uint8_t x,uint8_t y) BANKED {
+  uint8_t at,count,a,b;
+  a=x;b=cam_x;if(x>cam_x){a--;b--;}
+  if((a^b)&240u) {
+    at=(uint8_t)(x+(x>cam_x ? 159u : 0u))>>4;
+    count=(uint8_t)(((y+127u)>>4)-(y>>4)+1u);
+    if(!camera_edge_ready(EG_IDX(at,y>>4),count,1u))return 0u;
+  }
+  a=y;b=cam_y;if(y>cam_y){a--;b--;}
+  if((a^b)&240u) {
+    at=(uint8_t)(y+(y>cam_y ? 127u : 0u))>>4;
+    count=(uint8_t)(((x+159u)>>4)-(x>>4)+1u);
+    if(!camera_edge_ready(EG_IDX(x>>4,at),count,0u))return 0u;
+  }
+  return 1u;
+}
 static uint8_t ground_contacts(int8_t dx,int8_t dy) {
   int16_t x=pl_x,y=pl_y;uint8_t n=0u,x0,x1,y0,y1;
   x+=dx*7;y+=dy*7;
@@ -903,18 +935,19 @@ static uint8_t ground_ahead(uint8_t essential) {
   if(cam_y<96u && pl_y>cam_y+64u)dy=1;
   else if(cam_y && pl_y<cam_y+64u)dy=-1;
   if(!dx && !dy)return 0u;
-  /* A diagonal can cross a column boundary on the other axis's preparation
-   * tick. Inspect both imminent inner edges before yielding to generation;
-   * the 7px margin covers the next camera step. This reuses the two-anchor
-   * allowance and never uploads a cold animation card. */
+  /* Prepare one whole slab beyond both approaching display edges. Camera
+   * readiness may hold a reveal at a tile boundary, so discovery must reach
+   * outside that boundary without requiring the camera to cross it first. */
   {
     x0=(uint8_t)(dy && (!dx || (frame_count&2u)));
     for(k=0u;k<2u && n<2u;k++) {
       vertical=(uint8_t)(x0^k);
       if(vertical ? !dy : !dx)continue;
       limit=vertical ? 11u : 9u;
-      x=vertical ? cam_x>>4 : (uint8_t)(cam_x+(dx>0 ? 143u : 17u))>>4;
-      y=vertical ? (uint8_t)(cam_y+(dy>0 ? 111u : 17u))>>4 : cam_y>>4;
+      x=vertical ? cam_x>>4 : dx>0 ? (cam_x>80u ? 15u : (cam_x+175u)>>4) :
+        (cam_x<16u ? 0u : (cam_x-16u)>>4);
+      y=vertical ? dy>0 ? (cam_y>80u ? 13u : (cam_y+143u)>>4) :
+        (cam_y<16u ? 0u : (cam_y-16u)>>4) : cam_y>>4;
       if(x>=EG_W || y>=EG_H)continue;
       c=vertical ? (uint8_t)(EG_W-x) : (uint8_t)(EG_H-y);
       if(limit>c)limit=c;
@@ -929,16 +962,16 @@ static uint8_t ground_ahead(uint8_t essential) {
     }
     if(n || (essential && !(frame_count&1u)))return n;
   }
-  /* A slow/busy card must land before it leaves the edge band. This sweep is
-   * a half slab INSIDE the approaching screen edge, after its visible entrance,
-   * rather than two slabs outside the screen as in the previous release. */
+  /* A second bounded sweep covers the half-slab just outside the display. */
   /* Pending generation uses odd presentation ticks. Alternate the next bit
    * on those ticks, or diagonal travel would only ever repair vertical edges. */
   vertical=(uint8_t)(dy && (!dx || (frame_count&(essential ? 2u : 1u))));
   limit=vertical ? 11u : 9u;
   if(near_cursor>=limit)near_cursor=0u;
-  x=vertical ? cam_x>>4 : (uint8_t)(cam_x+(dx>0 ? 152u : 8u))>>4;
-  y=vertical ? (uint8_t)(cam_y+(dy>0 ? 120u : 8u))>>4 : cam_y>>4;
+  x=vertical ? cam_x>>4 : dx>0 ? (cam_x>88u ? 15u : (cam_x+167u)>>4) :
+    (cam_x<8u ? 0u : (cam_x-8u)>>4);
+  y=vertical ? dy>0 ? (cam_y>88u ? 13u : (cam_y+135u)>>4) :
+    (cam_y<8u ? 0u : (cam_y-8u)>>4) : cam_y>>4;
   /* Visible BG readiness also runs while speculative generation is pending;
    * it needs no cold OBJ upload. Quiet puzzles can ease as fast as worlds. Inspect their
    * complete edge and land up to two slabs; a single repair cannot cover all

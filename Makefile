@@ -699,6 +699,10 @@ test-island-edges: build/host/test_edges
 test-runtime: all test-runtime-core test-native-overlap
 	$(PY) test/harness/spawn_only.py build/egress.gbc build/sprints/spawn-only-mbc5
 	$(PY) test/harness/spawn_only.py build/egress-rtc.gbc build/sprints/spawn-only-mbc3
+	$(PY) test/harness/opening_route.py build/egress.gbc build/sprints/opening-route-mbc5
+	$(PY) test/harness/opening_route.py build/egress-rtc.gbc build/sprints/opening-route-mbc3
+	$(PY) test/harness/combat_stream.py build/egress.gbc build/sprints/combat-stream-mbc5
+	$(PY) test/harness/combat_stream.py build/egress-rtc.gbc build/sprints/combat-stream-mbc3
 	$(PY) test/harness/element_slot.py build/egress.gbc build/sprints/element-slot-mbc5
 	$(PY) test/harness/element_slot.py build/egress-rtc.gbc build/sprints/element-slot-mbc3
 	$(PY) test/harness/terrain_effect.py build/egress.gbc build/sprints/terrain-effect-mbc5

@@ -1,0 +1,149 @@
+{
+  "sha256": "c04e9703b973173112911aa94769b1a6871803c0a33edb637960d897770e923d",
+  "results": {
+    "free_western_floor_has_no_combat_wall": false,
+    "original_enemies_survive_travel": true,
+    "inactive_enemies_freeze_and_resume": false,
+    "native_frame_and_oam_budgets": true
+  },
+  "cases": [
+    {
+      "seed": 105,
+      "initial_view": [
+        8,
+        0
+      ],
+      "original_enemies": 2,
+      "initial_actors": [
+        {
+          "slot": 0,
+          "x": 5988,
+          "y": 384,
+          "hp": 3,
+          "state": 0,
+          "parked": 0,
+          "flags": 0,
+          "timer": 0,
+          "anim": 40
+        },
+        {
+          "slot": 1,
+          "x": 5128,
+          "y": 896,
+          "hp": 3,
+          "state": 0,
+          "parked": 0,
+          "flags": 0,
+          "timer": 0,
+          "anim": 93
+        }
+      ],
+      "minimum_global_x": 152,
+      "previous_invisible_boundary_x": 152,
+      "crossed_free_floor_while_fight_alive": false,
+      "no_fight_clear_required": true,
+      "parked_actor_state_frozen": true,
+      "resumed_slots": [],
+      "seams": [],
+      "late_frames": [],
+      "oam_over": 0,
+      "timing": [
+        120,
+        120
+      ],
+      "final_actors": [
+        {
+          "slot": 0,
+          "x": 4224,
+          "y": 640,
+          "hp": 3,
+          "state": 1,
+          "parked": 0,
+          "flags": 0,
+          "timer": 4,
+          "anim": 232
+        },
+        {
+          "slot": 1,
+          "x": 3564,
+          "y": 900,
+          "hp": 3,
+          "state": 3,
+          "parked": 0,
+          "flags": 0,
+          "timer": 15,
+          "anim": 29
+        }
+      ]
+    },
+    {
+      "seed": 153,
+      "initial_view": [
+        4,
+        0
+      ],
+      "original_enemies": 2,
+      "initial_actors": [
+        {
+          "slot": 0,
+          "x": 4964,
+          "y": 640,
+          "hp": 3,
+          "state": 0,
+          "parked": 0,
+          "flags": 0,
+          "timer": 0,
+          "anim": 40
+        },
+        {
+          "slot": 1,
+          "x": 4224,
+          "y": 1032,
+          "hp": 3,
+          "state": 0,
+          "parked": 0,
+          "flags": 0,
+          "timer": 0,
+          "anim": 93
+        }
+      ],
+      "minimum_global_x": 88,
+      "previous_invisible_boundary_x": 88,
+      "crossed_free_floor_while_fight_alive": false,
+      "no_fight_clear_required": true,
+      "parked_actor_state_frozen": true,
+      "resumed_slots": [],
+      "seams": [],
+      "late_frames": [],
+      "oam_over": 0,
+      "timing": [
+        120,
+        120
+      ],
+      "final_actors": [
+        {
+          "slot": 0,
+          "x": 2064,
+          "y": 896,
+          "hp": 3,
+          "state": 0,
+          "parked": 0,
+          "flags": 0,
+          "timer": 0,
+          "anim": 228
+        },
+        {
+          "slot": 1,
+          "x": 2528,
+          "y": 640,
+          "hp": 3,
+          "state": 2,
+          "parked": 0,
+          "flags": 0,
+          "timer": 8,
+          "anim": 25
+        }
+      ]
+    }
+  ]
+}

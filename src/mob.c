@@ -208,7 +208,7 @@ static uint8_t affix_ok(mob_t *m, uint8_t a) { /* proto/matrix/mx_mob.c mx_affix
 static uint8_t free_en(void) {
   uint8_t k;
   for (k = 0; k != MAXE; k++)
-    if (k >= nen || en[k].st == ES_DEAD) return k;
+    if (k >= nen || (en[k].st == ES_DEAD && !(mob[k].flags&MOBF_PARKED))) return k;
   return 255u;
 }
 
@@ -313,9 +313,37 @@ uint8_t mob_spawn_ok(uint8_t cell) BANKED {
 uint8_t mobs_alive(void) BANKED {
   uint8_t k, n = 0;
   for (k = 0; k != nen; k++)
-    if (en[k].kind == SPAWN_MOB && en[k].st != ES_DEAD) n++;
+    if (en[k].kind == SPAWN_MOB && (en[k].st != ES_DEAD || (mob[k].flags&MOBF_PARKED))) n++;
   return n;
 }
+
+/* Positions remain relative 12.4 words. Off-window negatives deliberately
+ * retain their unsigned representation, so reversing a seam restores the
+ * exact position. Parked actors own their slots and never wrap into local AI,
+ * attacks or sprites. The generated encounter has at most two live actors. */
+void mobs_shift_view(int8_t dx,int8_t dy) BANKED {
+  uint8_t k,state,active;int16_t tx,ty;enemy_t *e=en;mob_t *m=mob;
+  for(k=0u;k<nen;k++,e++,m++) {
+    if(e->kind!=SPAWN_MOB || (e->st==ES_DEAD && !(m->flags&MOBF_PARKED)))continue;
+    e->x=(uint16_t)(e->x-(int16_t)dx*256);e->y=(uint16_t)(e->y-(int16_t)dy*256);
+    e->tx=(uint8_t)(e->tx-dx*16);e->ty=(uint8_t)(e->ty-dy*16);
+    state=m->flags&MOBF_PARKED;
+    active=(uint8_t)(e->x<4096u && e->y<3584u);
+    if(active) {
+      /* Targets are adjacent/nearby byte coordinates. Recover their signed
+       * offset before admitting AI; an off-window target must not wrap to
+       * the opposite edge while its actor is just inside this window. */
+      tx=(int16_t)(e->x>>4)+(int8_t)(e->tx-(uint8_t)(e->x>>4));
+      ty=(int16_t)(e->y>>4)+(int8_t)(e->ty-(uint8_t)(e->y>>4));
+      active=(uint8_t)((uint16_t)tx<256u && (uint16_t)ty<224u);
+    }
+    if(active) {
+      if(state) {e->st=(uint8_t)((state>>5)-1u);m->flags&=(uint8_t)~MOBF_PARKED;}
+      e->anim++;if(e->flash)e->flash--;
+    } else if(!state) {m->flags|=(uint8_t)((e->st+1u)<<5);e->st=ES_DEAD;}
+  }
+}
+typedef char parked_states_fit[(ES_WALK==0u && ES_FLOAT==5u && ES_DEAD==6u) ? 1 : -1];
 
 /* the floor's roster from the room's spawns */
 static uint8_t room_has(uint8_t type) {

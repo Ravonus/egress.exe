@@ -1,0 +1,343 @@
+{
+  "sha256": "c04e9703b973173112911aa94769b1a6871803c0a33edb637960d897770e923d",
+  "results": {
+    "left_floor_is_reachable": true,
+    "standing_weight_matches_actual_circuit": true,
+    "switch_response_is_visible_in_native_hud": false,
+    "all_routes_reach_next_floor": true,
+    "horizontal_and_vertical_stages_covered": true,
+    "all_four_switch_conditions_covered": true,
+    "native_frame_and_sprite_budgets": true,
+    "native_pixels_and_map_writes_match": true
+  },
+  "cases": [
+    {
+      "seed": 5,
+      "size": [
+        16,
+        14
+      ],
+      "nodes": [
+        [
+          0,
+          10,
+          7,
+          3,
+          0,
+          3
+        ]
+      ],
+      "left_floor": [
+        1,
+        6
+      ],
+      "left_floor_reached": true,
+      "left_position": [
+        25,
+        104
+      ],
+      "vertical": false,
+      "player_plate_gate": 11,
+      "caption": "FIND A BENCH TO MIX",
+      "weight_response_correct": true,
+      "weight_response_explained": false,
+      "input_reaches_next_floor": true,
+      "late_frames": [],
+      "oam_over": 0,
+      "missing_body": [],
+      "pixels_match": true,
+      "map_writes_match": true
+    },
+    {
+      "seed": 20738,
+      "size": [
+        16,
+        14
+      ],
+      "nodes": [
+        [
+          0,
+          10,
+          7,
+          1,
+          0,
+          3
+        ]
+      ],
+      "left_floor": [
+        1,
+        6
+      ],
+      "left_floor_reached": true,
+      "left_position": [
+        24,
+        104
+      ],
+      "vertical": false,
+      "player_plate_gate": 12,
+      "caption": "FIND A BENCH TO MIX",
+      "weight_response_correct": true,
+      "weight_response_explained": false,
+      "input_reaches_next_floor": true,
+      "late_frames": [],
+      "oam_over": 0,
+      "missing_body": [],
+      "pixels_match": true,
+      "map_writes_match": true
+    },
+    {
+      "seed": 20739,
+      "size": [
+        20,
+        14
+      ],
+      "nodes": [
+        [
+          0,
+          14,
+          7,
+          0,
+          0,
+          3
+        ]
+      ],
+      "left_floor": [
+        1,
+        7
+      ],
+      "left_floor_reached": true,
+      "left_position": [
+        25,
+        120
+      ],
+      "vertical": false,
+      "player_plate_gate": 12,
+      "caption": "FIND A BENCH TO MIX",
+      "weight_response_correct": true,
+      "weight_response_explained": false,
+      "input_reaches_next_floor": true,
+      "late_frames": [],
+      "oam_over": 0,
+      "missing_body": [],
+      "pixels_match": true,
+      "map_writes_match": true
+    },
+    {
+      "seed": 1,
+      "size": [
+        20,
+        14
+      ],
+      "nodes": [
+        [
+          0,
+          14,
+          8,
+          2,
+          0,
+          3
+        ]
+      ],
+      "left_floor": [
+        1,
+        8
+      ],
+      "left_floor_reached": true,
+      "left_position": [
+        25,
+        136
+      ],
+      "vertical": false,
+      "player_plate_gate": 12,
+      "caption": "FIND A BENCH TO MIX",
+      "weight_response_correct": true,
+      "weight_response_explained": false,
+      "input_reaches_next_floor": true,
+      "late_frames": [],
+      "oam_over": 0,
+      "missing_body": [],
+      "pixels_match": true,
+      "map_writes_match": true
+    },
+    {
+      "seed": 20740,
+      "size": [
+        48,
+        22
+      ],
+      "nodes": [
+        [
+          0,
+          21,
+          7,
+          2,
+          0,
+          3
+        ],
+        [
+          0,
+          42,
+          16,
+          3,
+          1,
+          3
+        ]
+      ],
+      "left_floor": [
+        1,
+        12
+      ],
+      "left_floor_reached": true,
+      "left_position": [
+        25,
+        200
+      ],
+      "vertical": false,
+      "player_plate_gate": 12,
+      "caption": "WEIGHT HOLDS GATE",
+      "weight_response_correct": true,
+      "weight_response_explained": false,
+      "input_reaches_next_floor": true,
+      "late_frames": [],
+      "oam_over": 0,
+      "missing_body": [],
+      "pixels_match": true,
+      "map_writes_match": true
+    },
+    {
+      "seed": 28,
+      "size": [
+        40,
+        26
+      ],
+      "nodes": [
+        [
+          0,
+          10,
+          27,
+          0,
+          0,
+          3
+        ],
+        [
+          0,
+          20,
+          30,
+          1,
+          1,
+          3
+        ]
+      ],
+      "left_floor": [
+        19,
+        1
+      ],
+      "left_floor_reached": true,
+      "left_position": [
+        310,
+        24
+      ],
+      "vertical": true,
+      "player_plate_gate": 12,
+      "caption": "FIND A BENCH TO MIX",
+      "weight_response_correct": true,
+      "weight_response_explained": false,
+      "input_reaches_next_floor": true,
+      "late_frames": [],
+      "oam_over": 0,
+      "missing_body": [],
+      "pixels_match": true,
+      "map_writes_match": true
+    },
+    {
+      "seed": 105,
+      "size": [
+        40,
+        26
+      ],
+      "nodes": [
+        [
+          0,
+          10,
+          13,
+          0,
+          0,
+          3
+        ],
+        [
+          0,
+          20,
+          10,
+          1,
+          1,
+          3
+        ]
+      ],
+      "left_floor": [
+        1,
+        7
+      ],
+      "left_floor_reached": true,
+      "left_position": [
+        22,
+        120
+      ],
+      "vertical": true,
+      "player_plate_gate": 12,
+      "caption": "??????S:--??????????",
+      "weight_response_correct": true,
+      "weight_response_explained": false,
+      "input_reaches_next_floor": true,
+      "late_frames": [],
+      "oam_over": 0,
+      "missing_body": [],
+      "pixels_match": true,
+      "map_writes_match": true
+    },
+    {
+      "seed": 153,
+      "size": [
+        40,
+        26
+      ],
+      "nodes": [
+        [
+          0,
+          10,
+          10,
+          0,
+          0,
+          3
+        ],
+        [
+          0,
+          20,
+          12,
+          1,
+          1,
+          3
+        ]
+      ],
+      "left_floor": [
+        1,
+        2
+      ],
+      "left_floor_reached": true,
+      "left_position": [
+        21,
+        40
+      ],
+      "vertical": true,
+      "player_plate_gate": 12,
+      "caption": "FIND A BENCH TO MIX",
+      "weight_response_correct": true,
+      "weight_response_explained": false,
+      "input_reaches_next_floor": true,
+      "late_frames": [],
+      "oam_over": 0,
+      "missing_body": [],
+      "pixels_match": true,
+      "map_writes_match": true
+    }
+  ]
+}

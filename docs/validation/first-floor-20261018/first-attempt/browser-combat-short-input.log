@@ -1,0 +1,50 @@
+{
+  "base": "http://127.0.0.1:3287",
+  "sha256": "d3f1a3a76645bba8719776e67b21d8de384ae8835688a20818f0a51d86bdd422",
+  "source": "Current-ROM first-floor save, ordinary website Continue and DOM keyboard movement; no RAM, map, health or actor writes.",
+  "seed": 105,
+  "before": {
+    "view": 8,
+    "x": 152,
+    "alive": 2,
+    "hp": 6,
+    "floor": 1,
+    "mode": 2
+  },
+  "after": {
+    "view": 8,
+    "x": 24,
+    "alive": 2,
+    "hp": 6,
+    "floor": 1,
+    "mode": 2
+  },
+  "results": {
+    "exactRomFetch": true,
+    "westFloorCrossedDuringFight": false,
+    "originalFightPreserved": true,
+    "playerStillAlive": true,
+    "pageErrors": true
+  },
+  "minimumGlobalX": 152,
+  "samples": 100,
+  "errors": []
+}
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(Object.values(results).every(Boolean))
+
+    at file:///Users/ravonus/dev/egress/test/browser/combat-stream.mjs:44:123 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v22.22.1

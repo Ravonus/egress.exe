@@ -38,6 +38,7 @@ extern uint8_t bench_on, bench_cur, last_rx;
 void pocket_reset(void) BANKED;
 void puzzle_shift_view(int8_t dx,int8_t dy) BANKED;
 void puzzle_pick(uint8_t cell) BANKED; /* the player walked into a T_ITEM cell */
+void puzzle_plate(uint8_t cell,const uint8_t *occ,uint8_t n) BANKED;
 uint8_t puzzle_meta(uint8_t i) BANKED;    /* the card a cell of type T_CRUMBLE and up shows */
 void bench_run(void) BANKED;           /* shared window: inventory from menu, crafting only through physical interaction */
 

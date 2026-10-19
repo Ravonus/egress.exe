@@ -1,0 +1,651 @@
+{
+  "sha256": "60ad1ff72f39b0ae2e6a369ddb571807f002ef36733316e60c8e0e2b723baa20",
+  "results": {
+    "free_western_floor_has_no_combat_wall": true,
+    "original_enemies_survive_travel": true,
+    "inactive_enemies_freeze_and_resume": true,
+    "native_frame_and_oam_budgets": true
+  },
+  "cases": [
+    {
+      "seed": 105,
+      "initial_view": [
+        8,
+        0
+      ],
+      "original_enemies": 2,
+      "initial_actors": [
+        {
+          "slot": 0,
+          "x": 5988,
+          "y": 384,
+          "hp": 3,
+          "state": 0,
+          "parked": 0,
+          "flags": 0,
+          "timer": 0,
+          "anim": 40
+        },
+        {
+          "slot": 1,
+          "x": 5140,
+          "y": 896,
+          "hp": 3,
+          "state": 0,
+          "parked": 0,
+          "flags": 0,
+          "timer": 0,
+          "anim": 93
+        }
+      ],
+      "minimum_global_x": 118,
+      "previous_invisible_boundary_x": 152,
+      "crossed_free_floor_while_fight_alive": true,
+      "no_fight_clear_required": true,
+      "parked_actor_state_frozen": true,
+      "resumed_slots": [
+        0,
+        1
+      ],
+      "seams": [
+        {
+          "frame": 1169,
+          "view": [
+            4,
+            0
+          ],
+          "alive": 2,
+          "actors": [
+            {
+              "slot": 0,
+              "x": 5568,
+              "y": 640,
+              "hp": 3,
+              "state": 6,
+              "parked": 1,
+              "flags": 0,
+              "timer": 0,
+              "anim": 112
+            },
+            {
+              "slot": 1,
+              "x": 4736,
+              "y": 896,
+              "hp": 3,
+              "state": 0,
+              "parked": 0,
+              "flags": 0,
+              "timer": 0,
+              "anim": 166
+            }
+          ]
+        },
+        {
+          "frame": 1313,
+          "view": [
+            8,
+            0
+          ],
+          "alive": 2,
+          "actors": [
+            {
+              "slot": 0,
+              "x": 5568,
+              "y": 640,
+              "hp": 3,
+              "state": 0,
+              "parked": 0,
+              "flags": 0,
+              "timer": 0,
+              "anim": 113
+            },
+            {
+              "slot": 1,
+              "x": 4004,
+              "y": 640,
+              "hp": 3,
+              "state": 2,
+              "parked": 0,
+              "flags": 0,
+              "timer": 11,
+              "anim": 50
+            }
+          ]
+        },
+        {
+          "frame": 1354,
+          "view": [
+            12,
+            0
+          ],
+          "alive": 2,
+          "actors": [
+            {
+              "slot": 0,
+              "x": 4848,
+              "y": 640,
+              "hp": 3,
+              "state": 3,
+              "parked": 0,
+              "flags": 0,
+              "timer": 35,
+              "anim": 154
+            },
+            {
+              "slot": 1,
+              "x": 3564,
+              "y": 640,
+              "hp": 3,
+              "state": 3,
+              "parked": 0,
+              "flags": 0,
+              "timer": 7,
+              "anim": 91
+            }
+          ]
+        },
+        {
+          "frame": 1390,
+          "view": [
+            16,
+            0
+          ],
+          "alive": 2,
+          "actors": [
+            {
+              "slot": 0,
+              "x": 4848,
+              "y": 640,
+              "hp": 3,
+              "state": 0,
+              "parked": 0,
+              "flags": 0,
+              "timer": 0,
+              "anim": 190
+            },
+            {
+              "slot": 1,
+              "x": 3252,
+              "y": 640,
+              "hp": 3,
+              "state": 6,
+              "parked": 1,
+              "flags": 0,
+              "timer": 0,
+              "anim": 126
+            }
+          ]
+        },
+        {
+          "frame": 1532,
+          "view": [
+            12,
+            0
+          ],
+          "alive": 2,
+          "actors": [
+            {
+              "slot": 0,
+              "x": 6016,
+              "y": 640,
+              "hp": 3,
+              "state": 0,
+              "parked": 0,
+              "flags": 0,
+              "timer": 0,
+              "anim": 72
+            },
+            {
+              "slot": 1,
+              "x": 3252,
+              "y": 640,
+              "hp": 3,
+              "state": 0,
+              "parked": 0,
+              "flags": 0,
+              "timer": 0,
+              "anim": 127
+            }
+          ]
+        },
+        {
+          "frame": 1569,
+          "view": [
+            8,
+            0
+          ],
+          "alive": 2,
+          "actors": [
+            {
+              "slot": 0,
+              "x": 6272,
+              "y": 532,
+              "hp": 3,
+              "state": 6,
+              "parked": 1,
+              "flags": 0,
+              "timer": 0,
+              "anim": 108
+            },
+            {
+              "slot": 1,
+              "x": 3420,
+              "y": 640,
+              "hp": 3,
+              "state": 2,
+              "parked": 0,
+              "flags": 0,
+              "timer": 11,
+              "anim": 164
+            }
+          ]
+        },
+        {
+          "frame": 1749,
+          "view": [
+            12,
+            0
+          ],
+          "alive": 2,
+          "actors": [
+            {
+              "slot": 0,
+              "x": 6272,
+              "y": 532,
+              "hp": 3,
+              "state": 0,
+              "parked": 0,
+              "flags": 0,
+              "timer": 0,
+              "anim": 109
+            },
+            {
+              "slot": 1,
+              "x": 4120,
+              "y": 640,
+              "hp": 3,
+              "state": 0,
+              "parked": 0,
+              "flags": 0,
+              "timer": 0,
+              "anim": 80
+            }
+          ]
+        },
+        {
+          "frame": 1788,
+          "view": [
+            16,
+            0
+          ],
+          "alive": 2,
+          "actors": [
+            {
+              "slot": 0,
+              "x": 6272,
+              "y": 552,
+              "hp": 3,
+              "state": 0,
+              "parked": 0,
+              "flags": 0,
+              "timer": 0,
+              "anim": 144
+            },
+            {
+              "slot": 1,
+              "x": 4380,
+              "y": 640,
+              "hp": 3,
+              "state": 0,
+              "parked": 0,
+              "flags": 0,
+              "timer": 0,
+              "anim": 115
+            }
+          ]
+        }
+      ],
+      "late_frames": [],
+      "oam_over": 0,
+      "timing": [
+        120,
+        120
+      ],
+      "final_actors": [
+        {
+          "slot": 0,
+          "x": 6528,
+          "y": 832,
+          "hp": 3,
+          "state": 0,
+          "parked": 0,
+          "flags": 0,
+          "timer": 0,
+          "anim": 196
+        },
+        {
+          "slot": 1,
+          "x": 4916,
+          "y": 640,
+          "hp": 3,
+          "state": 0,
+          "parked": 0,
+          "flags": 0,
+          "timer": 0,
+          "anim": 167
+        }
+      ],
+      "particles": {
+        "transfers": 8,
+        "live_particle_checks": 0,
+        "out_of_window_particles_clipped": 0,
+        "maximum_cycles": 620,
+        "all_retained_positions_and_state_match": true
+      }
+    },
+    {
+      "seed": 153,
+      "initial_view": [
+        4,
+        0
+      ],
+      "original_enemies": 2,
+      "initial_actors": [
+        {
+          "slot": 0,
+          "x": 4952,
+          "y": 640,
+          "hp": 3,
+          "state": 0,
+          "parked": 0,
+          "flags": 0,
+          "timer": 0,
+          "anim": 40
+        },
+        {
+          "slot": 1,
+          "x": 4224,
+          "y": 1032,
+          "hp": 3,
+          "state": 0,
+          "parked": 0,
+          "flags": 0,
+          "timer": 0,
+          "anim": 93
+        }
+      ],
+      "minimum_global_x": 52,
+      "previous_invisible_boundary_x": 88,
+      "crossed_free_floor_while_fight_alive": true,
+      "no_fight_clear_required": true,
+      "parked_actor_state_frozen": true,
+      "resumed_slots": [
+        0,
+        1
+      ],
+      "seams": [
+        {
+          "frame": 1167,
+          "view": [
+            0,
+            0
+          ],
+          "alive": 2,
+          "actors": [
+            {
+              "slot": 0,
+              "x": 4524,
+              "y": 1152,
+              "hp": 3,
+              "state": 6,
+              "parked": 1,
+              "flags": 0,
+              "timer": 0,
+              "anim": 109
+            },
+            {
+              "slot": 1,
+              "x": 4224,
+              "y": 640,
+              "hp": 3,
+              "state": 6,
+              "parked": 1,
+              "flags": 0,
+              "timer": 0,
+              "anim": 162
+            }
+          ]
+        },
+        {
+          "frame": 1310,
+          "view": [
+            4,
+            0
+          ],
+          "alive": 2,
+          "actors": [
+            {
+              "slot": 0,
+              "x": 4524,
+              "y": 1152,
+              "hp": 3,
+              "state": 6,
+              "parked": 1,
+              "flags": 0,
+              "timer": 0,
+              "anim": 109
+            },
+            {
+              "slot": 1,
+              "x": 4224,
+              "y": 640,
+              "hp": 3,
+              "state": 0,
+              "parked": 0,
+              "flags": 0,
+              "timer": 0,
+              "anim": 163
+            }
+          ]
+        },
+        {
+          "frame": 1373,
+          "view": [
+            8,
+            0
+          ],
+          "alive": 2,
+          "actors": [
+            {
+              "slot": 0,
+              "x": 4524,
+              "y": 1152,
+              "hp": 3,
+              "state": 0,
+              "parked": 0,
+              "flags": 0,
+              "timer": 0,
+              "anim": 110
+            },
+            {
+              "slot": 1,
+              "x": 3564,
+              "y": 640,
+              "hp": 3,
+              "state": 3,
+              "parked": 0,
+              "flags": 0,
+              "timer": 13,
+              "anim": 222
+            }
+          ]
+        },
+        {
+          "frame": 1551,
+          "view": [
+            4,
+            0
+          ],
+          "alive": 2,
+          "actors": [
+            {
+              "slot": 0,
+              "x": 4860,
+              "y": 384,
+              "hp": 3,
+              "state": 0,
+              "parked": 0,
+              "flags": 0,
+              "timer": 0,
+              "anim": 28
+            },
+            {
+              "slot": 1,
+              "x": 4736,
+              "y": 640,
+              "hp": 3,
+              "state": 0,
+              "parked": 0,
+              "flags": 0,
+              "timer": 0,
+              "anim": 140
+            }
+          ]
+        },
+        {
+          "frame": 1588,
+          "view": [
+            0,
+            0
+          ],
+          "alive": 2,
+          "actors": [
+            {
+              "slot": 0,
+              "x": 4952,
+              "y": 384,
+              "hp": 3,
+              "state": 6,
+              "parked": 1,
+              "flags": 0,
+              "timer": 0,
+              "anim": 64
+            },
+            {
+              "slot": 1,
+              "x": 4532,
+              "y": 640,
+              "hp": 3,
+              "state": 6,
+              "parked": 1,
+              "flags": 0,
+              "timer": 0,
+              "anim": 176
+            }
+          ]
+        },
+        {
+          "frame": 1730,
+          "view": [
+            4,
+            0
+          ],
+          "alive": 2,
+          "actors": [
+            {
+              "slot": 0,
+              "x": 4952,
+              "y": 384,
+              "hp": 3,
+              "state": 0,
+              "parked": 0,
+              "flags": 0,
+              "timer": 0,
+              "anim": 65
+            },
+            {
+              "slot": 1,
+              "x": 4532,
+              "y": 640,
+              "hp": 3,
+              "state": 0,
+              "parked": 0,
+              "flags": 0,
+              "timer": 0,
+              "anim": 177
+            }
+          ]
+        },
+        {
+          "frame": 1793,
+          "view": [
+            8,
+            0
+          ],
+          "alive": 2,
+          "actors": [
+            {
+              "slot": 0,
+              "x": 4420,
+              "y": 640,
+              "hp": 3,
+              "state": 2,
+              "parked": 0,
+              "flags": 0,
+              "timer": 3,
+              "anim": 124
+            },
+            {
+              "slot": 1,
+              "x": 3824,
+              "y": 640,
+              "hp": 3,
+              "state": 3,
+              "parked": 0,
+              "flags": 0,
+              "timer": 16,
+              "anim": 236
+            }
+          ]
+        }
+      ],
+      "late_frames": [],
+      "oam_over": 0,
+      "timing": [
+        120,
+        120
+      ],
+      "final_actors": [
+        {
+          "slot": 0,
+          "x": 4248,
+          "y": 640,
+          "hp": 3,
+          "state": 0,
+          "parked": 0,
+          "flags": 0,
+          "timer": 0,
+          "anim": 172
+        },
+        {
+          "slot": 1,
+          "x": 3712,
+          "y": 892,
+          "hp": 3,
+          "state": 0,
+          "parked": 0,
+          "flags": 0,
+          "timer": 0,
+          "anim": 28
+        }
+      ],
+      "particles": {
+        "transfers": 7,
+        "live_particle_checks": 0,
+        "out_of_window_particles_clipped": 0,
+        "maximum_cycles": 620,
+        "all_retained_positions_and_state_match": true
+      }
+    }
+  ]
+}
