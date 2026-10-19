@@ -1,0 +1,14 @@
+{
+  "mainMergeCommit": "3cf8164f8974c342cf962964a55677f0f5b5d3a6",
+  "worktrees": "worktree /Users/ravonus/dev/egress\nHEAD 3cf8164f8974c342cf962964a55677f0f5b5d3a6\nbranch refs/heads/main\n\n",
+  "unmergedLocalBranches": [],
+  "mergedFixBranchDeletedLocallyAndRemotely": true,
+  "privateBrowserOutputsArchived": true,
+  "ownedBrowserAndServerProcessesExited": true,
+  "temporaryBrowserDiagnosticRemoved": true,
+  "temporaryProductionTestDirectoryCreatedThisRun": false,
+  "priorProductionTestDirectoryAbsent": true,
+  "productionRollbackBackupPreserved": "/opt/velatis-gateway/backups/egress-discovery-20261019T000640Z",
+  "preexistingWebsitePathsPreserved": 65,
+  "gitStatusBeforeReceipt": "?? docs/chromatic/native-ui-20261015/\n"
+}

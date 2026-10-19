@@ -18,3 +18,9 @@ Source `0f4e0963cc2968959951b7fa9d1f7560d922c2d3` is frozen against 508 input ha
 | egress-rtc.gbc | 1572864 | `6a2f2cfc3528e6fe59722e52ba7a104cfe453b701915ab7b7a9f2b47a63411dc` |
 
 This remains the ten-floor office development campaign. Physical cartridge playback has not been tested for this pair. Publication is recorded separately.
+
+## Published release
+
+[PR #9](https://github.com/Ravonus/egress.exe/pull/9) merged as `3cf8164f8974c342cf962964a55677f0f5b5d3a6`. The [public player and downloads](https://egress.onkeel.io/) serve this exact pair. The live browser test moves from window x=8 to x=0 while the original 2 enemies remain alive, reaching global x=63. Actual ROM downloads and the browser player match the frozen standard/RTC hashes. Layouts at 1280/768/390/320 pass with no page errors or overflow.
+
+Website source is committed locally as `94b6fd2c3b17f79020d76efbd84b94e3fe334f03` in its checkout with no Git remote. All 65 pre-existing changed paths retain their status and bytes. Only the primary game worktree and main remain; the merged feature branch is deleted locally and remotely. Private test output is archived under the ignored candidate. No temporary production-host test checkout was created for this release; the prior temporary directory remains absent, and production rollback backups are preserved. See `site-release.json`, `cleanup.json`, `live-site/report.json` and `live-combat/report.json`.

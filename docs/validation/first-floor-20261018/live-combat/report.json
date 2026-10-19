@@ -1,0 +1,68 @@
+{
+  "base": "https://egress.onkeel.io",
+  "sha256": "60ad1ff72f39b0ae2e6a369ddb571807f002ef36733316e60c8e0e2b723baa20",
+  "source": "Current-ROM first-floor save, ordinary website Continue and DOM keyboard movement; no RAM, map, health or actor writes.",
+  "seed": 105,
+  "before": {
+    "view": 8,
+    "x": 152,
+    "alive": 2,
+    "hp": 6,
+    "floor": 1,
+    "mode": 2,
+    "frames": 531,
+    "camera": [
+      72,
+      0
+    ],
+    "preparation": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "line": 116
+  },
+  "after": {
+    "view": 0,
+    "x": 72,
+    "alive": 2,
+    "hp": 6,
+    "floor": 1,
+    "mode": 2,
+    "frames": 700,
+    "camera": [
+      0,
+      0
+    ],
+    "preparation": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "line": 151
+  },
+  "results": {
+    "exactRomFetch": true,
+    "westFloorCrossedDuringFight": true,
+    "originalFightPreserved": true,
+    "playerStillAlive": true,
+    "pageErrors": true
+  },
+  "minimumGlobalX": 63,
+  "samples": 174,
+  "errors": []
+}
