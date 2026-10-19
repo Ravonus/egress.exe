@@ -1,0 +1,34 @@
+{
+  "running": false,
+  "command": [
+    "make",
+    "-k",
+    "-j1",
+    "-o",
+    "src/puzzle.h",
+    "-o",
+    "src/mob.h",
+    "-o",
+    "build/t3d_bake/gen/chunks.mk",
+    "-o",
+    "build/egress.gbc",
+    "-o",
+    "build/egress-rtc.gbc",
+    "HOSTCC=clang",
+    "test"
+  ],
+  "sourceCommit": "a0f7debc13780674c4eb836e65cc506041c54074",
+  "roms": {
+    "egress.gbc": {
+      "bytes": 1572864,
+      "sha256": "d3f1a3a76645bba8719776e67b21d8de384ae8835688a20818f0a51d86bdd422"
+    },
+    "egress-rtc.gbc": {
+      "bytes": 1572864,
+      "sha256": "74ade1805207200eaa8c51275e8fc221c3eadcb7b708b43b66bd893ba80238a7"
+    }
+  },
+  "code": 2,
+  "seconds": 263.02,
+  "sourceAndRomHashesUnchanged": true
+}

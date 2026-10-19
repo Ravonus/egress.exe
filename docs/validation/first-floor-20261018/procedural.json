@@ -1,0 +1,634 @@
+{
+  "sha256": "60ad1ff72f39b0ae2e6a369ddb571807f002ef36733316e60c8e0e2b723baa20",
+  "results": {
+    "all_pinned_seeds_construct_different_openings": true,
+    "actual_complete_material_layouts_differ": true,
+    "actual_floor_and_void_outlines_vary": true,
+    "nonrectangular_playable_stages_are_common": true,
+    "all_opening_profiles_are_used": true,
+    "opening_dimensions_vary": true,
+    "all_geography_shapes_are_used": true,
+    "switch_conditions_vary": true,
+    "ordinary_opening_has_real_enemies": true,
+    "opening_enemies_defeated_by_normal_attacks": true,
+    "generated_world_combat_meets_frame_deadlines": true,
+    "generated_world_combat_animation_advances": true,
+    "ordinary_opening_puzzle_solved_by_input": true,
+    "ordinary_world_has_spawn_only_terrain_motion": true,
+    "ordinary_world_keeps_effects_at_the_edge": true,
+    "ordinary_progression_reaches_survival_stage": true,
+    "survival_arena_has_generated_void_edges": true,
+    "ordinary_survival_requires_and_accepts_player_kills": true,
+    "next_floor_deals_a_different_puzzle_family": true,
+    "real_deaths_advance_family": true,
+    "death_restarts_roll_new_run_seeds": true,
+    "death_restarts_construct_new_maps": true,
+    "continue_keeps_generated_plan": true,
+    "new_run_cannot_restore_the_abandoned_seed": true
+  },
+  "seeded_openings": [
+    {
+      "run_seed": 20736,
+      "plan_sha256": "8b9aaa1601a96be6f7e440835d9cae5dc26583e6c687445a76c3e1a34303f6a9",
+      "material_layout_sha256": "7b697c5629a1cbe5d00985fbcce42ce843c0076a5475fb7d7436edd20ac138fe",
+      "playable_outline_sha256": "bb2888dddf583d8a575db3484f7a88d3ee3b03b1b2f9a575dd47c31dd7bcadf9",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "e6ce90374a7a8138eec62beb22b954a832c4333b8604641b97e4bce6eeb504eb",
+      "size": [
+        24,
+        14
+      ],
+      "profile": 1,
+      "shape": 2,
+      "conditions": [
+        3
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20737,
+      "plan_sha256": "81e02f5c905aa0e458e6be27235388121dfb3aae4897763fda7206e7bcb73ad8",
+      "material_layout_sha256": "0075818c17062d3d5096e355e1ec57b491f9a6ba704c8a9e11b77d24804c149b",
+      "playable_outline_sha256": "bab02b0b732b79c0010678eadec291c2256b2bc121afc6f8b333fe32dfa3864b",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "85105bb4157ef151e0ffd96c4f88f2cd3b4468dda5fe100a0f4c7a34229b7bec",
+      "size": [
+        20,
+        14
+      ],
+      "profile": 0,
+      "shape": 3,
+      "conditions": [
+        2
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20738,
+      "plan_sha256": "d57036370a33ed576819a7fd20838fb36504ea7fe637b779e624ab872e83d986",
+      "material_layout_sha256": "5e625bae4c3d92f44e9a620edf68def1e163bcd7b83934da205c408bee8d354e",
+      "playable_outline_sha256": "67720cabfa2d4bf1ebf6c3a3f2cd28c35cd4bdc35d83b57a7dcc70d53e75f599",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "5e625bae4c3d92f44e9a620edf68def1e163bcd7b83934da205c408bee8d354e",
+      "size": [
+        16,
+        14
+      ],
+      "profile": 0,
+      "shape": 0,
+      "conditions": [
+        1
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20739,
+      "plan_sha256": "b79a673fd564e5e5385dfe49401d31bef2c014064451cebe42850dfdf9a45596",
+      "material_layout_sha256": "4f61e525bba433dc719a24db88b34c62ce0658e222a2459b20aac23d8be1a0ef",
+      "playable_outline_sha256": "56e0d065d5fd614e48d08b6dc4a18654e2eaffd8dc9e7ece4fab50d017ac6b39",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "9eefe54cef4a54fdaa69bd351605991be8613bbc3cd895fee60fd6398f27a70a",
+      "size": [
+        20,
+        14
+      ],
+      "profile": 0,
+      "shape": 1,
+      "conditions": [
+        0
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20740,
+      "plan_sha256": "b8898265114ff8ff05c3611da9754f25722894c38fc71f1f628e8893bdc7e858",
+      "material_layout_sha256": "7f0d3a44cac79c377e51d6a1163c434ee4f042add2dd9ef55acd3086e03b2818",
+      "playable_outline_sha256": "79fe91d4d1bcb5263616f1caabdebaa9f6b446a8b91f91e6662a923ca7842041",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "3ddc142a7c25c4a2213c131def9c18b51a20889a92db0ff1edd3de0b05b960b1",
+      "size": [
+        48,
+        22
+      ],
+      "profile": 2,
+      "shape": 3,
+      "conditions": [
+        2,
+        3
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20741,
+      "plan_sha256": "019b7017a5e2c59bea2899185b1cb5c923e9ab42ac0a7a6b9445183cc007ee16",
+      "material_layout_sha256": "4d4469387a7151b1b0ec2d051c662cffad75ceec9b1b3c6107913c049ef784f7",
+      "playable_outline_sha256": "d90b2245fae354e81695456b2b62e5a3ceda2ee1a55324f160ecf29404c150de",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "9ca20bf0543b36907328c2fa905b2807167acc2e9e5baea5a85ebf0dfd6aa0ed",
+      "size": [
+        24,
+        14
+      ],
+      "profile": 1,
+      "shape": 2,
+      "conditions": [
+        3
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20742,
+      "plan_sha256": "a724782cbd369fdeafa8a0f305b226f0b244b08df900e866b25cfbf7ce341fd0",
+      "material_layout_sha256": "a0ef084d4f48d708b6a2cb582303ca34efae0e85848f4006e6687c5205866b4c",
+      "playable_outline_sha256": "17a9c1e972cdc13b141445f0023c6faeeaf79ec5c4aae6fafdf22caace47f584",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "a2bfe752cbe3ba547554936d40baea08905f0fb46eda611ced00635de5c56dd1",
+      "size": [
+        32,
+        18
+      ],
+      "profile": 1,
+      "shape": 1,
+      "conditions": [
+        0,
+        1
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20743,
+      "plan_sha256": "ddb4c12b9c3a31c7f09a9b153bcfbc844a908b2ae1925ca201cc67ac733ad207",
+      "material_layout_sha256": "45fbd1368ec550565cc43527a2cbd3c713f738e5aff4ecd6ec47ef27b83ae6db",
+      "playable_outline_sha256": "8882824ec65307dab1be3aadc05037ed5d3ec9ceb022c7eb21d3af0466d9188b",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "09a3e529bb1a9339b30d724730b716f552786547ba83e0dae58345142973b306",
+      "size": [
+        36,
+        22
+      ],
+      "profile": 2,
+      "shape": 0,
+      "conditions": [
+        1
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20744,
+      "plan_sha256": "dad8d8f254912594bc26e8effcfaffbb43294ff6e081629fbe7f7c96c81bebe7",
+      "material_layout_sha256": "88ef3077a009d2fbc546627fb9e75b62a002dd3d44c3eae7e80024aa95f1e9ae",
+      "playable_outline_sha256": "cc7b9139145841dcf85bc4de99784971f176b5ba2a2b222ba6beb63253058d3e",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "2c5108cca622a731689bdc192f5c71ced7fc9af0d809e8d626fc26b595eba232",
+      "size": [
+        36,
+        18
+      ],
+      "profile": 2,
+      "shape": 0,
+      "conditions": [
+        1,
+        0
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20745,
+      "plan_sha256": "1942109d5126d39646b106b776238ba2120cc738257d6253e9ae814763b55bb4",
+      "material_layout_sha256": "c226fc604ca90a0e4c365d914f275d1b1964605b7d0046310d661ff55b84073f",
+      "playable_outline_sha256": "682dfc9e18771ddbef9877a4b12cc4ec9c2eff095dccdc0e037c44172a5401de",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "664d2562f81f301779f27e236b6ac19b0e1469ac4c718f16c7df56a7e9908c90",
+      "size": [
+        28,
+        18
+      ],
+      "profile": 1,
+      "shape": 1,
+      "conditions": [
+        0,
+        1
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20746,
+      "plan_sha256": "e4f86db10582a92884c15458fa5c46c3a1d7294068b66dcb6b22067df651a0f8",
+      "material_layout_sha256": "c22e523eeefe3823a136076e30b16713bd4c3a369671ae6f640cd5b3ee83fa96",
+      "playable_outline_sha256": "7bcbbb3c88f9ff76279221bd27216581f0d1dc8dbba31eed80d1e736923dd34f",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "d4fb4a24116c3507a0bdec005650d7009313b9adf5ea8729909f6125d5eff228",
+      "size": [
+        44,
+        26
+      ],
+      "profile": 2,
+      "shape": 2,
+      "conditions": [
+        3,
+        2
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20747,
+      "plan_sha256": "ad50d0be3883c0e7e00558df82ed8fd2d5710daddedd33679748d300e4e80d8c",
+      "material_layout_sha256": "93e00a9162850e5f9590b1e587f50ac61c93f020421e65dda6c222a4bce10cf7",
+      "playable_outline_sha256": "48a56e27a1d90c2b63c315388be675f14df5379288f0fd3b03d57bafc1918a3b",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "1bbe349445516261a7e60391c723fcb296debf8c73255f24bf529bed4ee9f0bc",
+      "size": [
+        48,
+        22
+      ],
+      "profile": 2,
+      "shape": 3,
+      "conditions": [
+        2,
+        3
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20748,
+      "plan_sha256": "3019748f5bd3a9c73567cf63cabf36b0c013bcbe8f89f21b4a908f4cdf7ecb7d",
+      "material_layout_sha256": "016f89935cae2a5d8332a17c8170e2f858f1ea4e01e8521eed81f68f94de84ea",
+      "playable_outline_sha256": "56e0d065d5fd614e48d08b6dc4a18654e2eaffd8dc9e7ece4fab50d017ac6b39",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "6bd18d51424db08a3bd445dfd40e1e431de2051de53448da16fa1a25ce3aa1f1",
+      "size": [
+        20,
+        14
+      ],
+      "profile": 0,
+      "shape": 1,
+      "conditions": [
+        0
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20749,
+      "plan_sha256": "e2375968470b97d2dc85a2f46ab2f59da19dfbab7f43bf7973da17a1e376c553",
+      "material_layout_sha256": "c900120fd66b3160431f32af0957c966f155ab662a227727fd5d44f380796b87",
+      "playable_outline_sha256": "a443f3e364d2aab2af9b16b490d2c9538a869af7d61b9b9c04a604a2ac1efda9",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "59c4cff009070ada78e4edcd2dfaeeaaa150dc0a0d08862a2e969dff59cf46f1",
+      "size": [
+        36,
+        18
+      ],
+      "profile": 2,
+      "shape": 0,
+      "conditions": [
+        1
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20750,
+      "plan_sha256": "1d73e15faa09b727730318fc6540c7449d9b61549f911906788ca5b9281b4565",
+      "material_layout_sha256": "22eb9d93d525ccf90b8fffdf2d914d5c3519c7ae2467219ea36262498f07ba52",
+      "playable_outline_sha256": "0238a984a392ea9aa9808bedabf45eae0c864624b254565d1dabc7f8b6609fda",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "b49c81d34fb0170662778cce1c4b9b8b1a1ffcea3cfe8c7183cae96b163793ab",
+      "size": [
+        48,
+        18
+      ],
+      "profile": 2,
+      "shape": 3,
+      "conditions": [
+        2,
+        3
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20751,
+      "plan_sha256": "5054ae983726eab781772f3f5e96f747f13b02b6b4eea1d80b16c38cc5933456",
+      "material_layout_sha256": "c24c91f388e267b766e8bad21c705a5a66b8e73b92260b29f20df2c72cfee0e1",
+      "playable_outline_sha256": "b272b1dcc5200268b8f056d6156c1b1642318dc197b71301ffab0793b57ab486",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "c24c91f388e267b766e8bad21c705a5a66b8e73b92260b29f20df2c72cfee0e1",
+      "size": [
+        16,
+        14
+      ],
+      "profile": 0,
+      "shape": 2,
+      "conditions": [
+        3
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20752,
+      "plan_sha256": "f59c22518c5eb6ec6909fdcc3214aaa9f1824189f94bdd4d027d448e1747c10c",
+      "material_layout_sha256": "afa0d81804723b012e9d17b7e6e8def31b2687dfa3ff96eea98dcf197e66e982",
+      "playable_outline_sha256": "ebc9f8f6cf8e95c9ce0f0692af468a46c9cbd32dd54048d072595069f8c9c64c",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "6dc44ce7fa601189a5af3343ec4c158355fffa179f6750181d428cf50319efdb",
+      "size": [
+        44,
+        18
+      ],
+      "profile": 2,
+      "shape": 2,
+      "conditions": [
+        3,
+        2
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20753,
+      "plan_sha256": "65240390904632a87024b901f3f69ada51ab3a9c2cb5eb0e246174c88d7b4abf",
+      "material_layout_sha256": "b9bfc78a61c1c37ec34a9ef52cf8d76d98b5fa9a075f3f4cd96efd9847f163d3",
+      "playable_outline_sha256": "e072c9c85ed7a0a042d77fdfdb1a45bdc32ff38a3c423fcbe45f5be266c2d511",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "240d63a79ecea6bd6ad62876c5e7847736898600079562727215b6a0f03d0dc3",
+      "size": [
+        24,
+        18
+      ],
+      "profile": 1,
+      "shape": 3,
+      "conditions": [
+        2
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20754,
+      "plan_sha256": "08f15a3c8351b18d5c8c2b223583b07e88745bcfe5986b50f033cd9e609f529c",
+      "material_layout_sha256": "107337ab7f17b2d0edbca0655720954d853d0754a651ed7a096437fd2e14f923",
+      "playable_outline_sha256": "e558499a06b0e64629bd33e94fe3c616ff28d9dd19e5199275aa110118be1d6a",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "be92990233897cfee1d08c6c499b59c104bf301c6e04d15c48d6a0d1da294e15",
+      "size": [
+        32,
+        14
+      ],
+      "profile": 1,
+      "shape": 0,
+      "conditions": [
+        1
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20755,
+      "plan_sha256": "9e9bc6fe66238ba72a464cff4fbeb95dabfb2c23188d6028e57eaf52d05460c6",
+      "material_layout_sha256": "0f14c5e024d4ba444b75c2e3eaadc7cb066c98db62025c9a94da38816a11d608",
+      "playable_outline_sha256": "e1496253062bca7184cb8714b2cbd1f99ddc72b0a6cea7ed84ffc7aa71c956ef",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "fbec9151537e09d48113b60256d923c8e9d83e4034b011389f05336a1b59fe13",
+      "size": [
+        24,
+        18
+      ],
+      "profile": 1,
+      "shape": 1,
+      "conditions": [
+        0
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20756,
+      "plan_sha256": "9b9c337c02869d578dfac154203402e109a628c129fc1281bb2a4f9e0f636e68",
+      "material_layout_sha256": "485264d61c8af6be8ba68a978a1ae5e1e1f1355825101e6a30505674fe744357",
+      "playable_outline_sha256": "48a56e27a1d90c2b63c315388be675f14df5379288f0fd3b03d57bafc1918a3b",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "a0f95613010e697016de778776ef2c9510445383ecbcb7dcf907d0413de81bbb",
+      "size": [
+        48,
+        22
+      ],
+      "profile": 2,
+      "shape": 3,
+      "conditions": [
+        2,
+        3
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20757,
+      "plan_sha256": "58ded1abcbd2729b11af02199259d188ecb9bae26dbc0fdf93b080986763fdb6",
+      "material_layout_sha256": "dd16f7fce537b36f2249d67b5c2fe9ab4326aa5b822b70b5754a65b8f5b48fb3",
+      "playable_outline_sha256": "4ea4323834072335d2c2b47ce8c57b593c5c6a050b84fa2f210601ee29cf2368",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "dd4185516cae34b38d8b0b964219e0e9620cd4e3387ca0ec1c174e3a134be145",
+      "size": [
+        28,
+        14
+      ],
+      "profile": 1,
+      "shape": 2,
+      "conditions": [
+        3
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20758,
+      "plan_sha256": "99be02441ad30005b2fb9f62d9a4ca673dbae70db66cff498d6875ec8a6dc4cd",
+      "material_layout_sha256": "23553800307204689ac9ce55014d987e3bff9333f9b96556cdc89de2b632d30b",
+      "playable_outline_sha256": "bf4b81da85a1713cb67682c8aac2d65027ae6e0597c44d9c1c8c9e6d53afae1d",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "b78171ec46df7e6b5f8dc3cebde71e0324d9985ddc0ac63f2215eaa1b4986508",
+      "size": [
+        24,
+        18
+      ],
+      "profile": 1,
+      "shape": 1,
+      "conditions": [
+        0
+      ],
+      "spawned_enemies": 0
+    },
+    {
+      "run_seed": 20759,
+      "plan_sha256": "267255f9d76deeb795099e23a8409d18b092cca0f4e5769c650d09850c993ab5",
+      "material_layout_sha256": "466bff1f89a0bbcd98963b947ceccf5974abc622fce0794b2f70bfefc849814b",
+      "playable_outline_sha256": "f1f7d8db0e2a28862c4c56d8af25feff186f518cbd3084f8189f2f6a4e05fd10",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "41c5a65365d7100d47744d59b3074763bda3f158f8400189c5a6263028aa1431",
+      "size": [
+        36,
+        22
+      ],
+      "profile": 2,
+      "shape": 0,
+      "conditions": [
+        1,
+        0
+      ],
+      "spawned_enemies": 0
+    }
+  ],
+  "ordinary_entry": {
+    "run_seed": 20736,
+    "plan_sha256": "8b9aaa1601a96be6f7e440835d9cae5dc26583e6c687445a76c3e1a34303f6a9",
+    "material_layout_sha256": "7b697c5629a1cbe5d00985fbcce42ce843c0076a5475fb7d7436edd20ac138fe",
+    "playable_outline_sha256": "bb2888dddf583d8a575db3484f7a88d3ee3b03b1b2f9a575dd47c31dd7bcadf9",
+    "irregular_playable_outline": true,
+    "native_entry_sha256": "e6ce90374a7a8138eec62beb22b954a832c4333b8604641b97e4bce6eeb504eb",
+    "size": [
+      24,
+      14
+    ],
+    "profile": 1,
+    "shape": 2,
+    "conditions": [
+      3
+    ],
+    "spawned_enemies": 1
+  },
+  "next_floor": {
+    "floor": 3,
+    "mode": 2,
+    "world": true,
+    "raw_rule": 130,
+    "physical": 2,
+    "rocks": 0,
+    "plates": 0
+  },
+  "ordinary_world_effects": {
+    "samples": 433,
+    "rim_animation_frames": 0,
+    "rim_pixels": 24,
+    "maximum_card_depth_from_edge": 0,
+    "visible_assembly_frames": 0,
+    "visible_collapse_frames": 0,
+    "ahead_build_frames": 0,
+    "behind_fall_frames": 0,
+    "build_and_fall_are_visible": false,
+    "construction_in_central_view": [],
+    "offscreen_restorations": 77,
+    "incoming_motion_during_play": [],
+    "prepared_offscreen_and_falls_behind": false,
+    "unbuilt_central_cells": [],
+    "construction_stays_at_rim": true,
+    "central_view_is_built": true
+  },
+  "combat_animation": {
+    "samples": 181,
+    "requested_poses": 29,
+    "compositions": 38,
+    "visible_sprite_buffers": 28,
+    "maximum_unserved_pose_frames": 2,
+    "cache_reads": 0,
+    "cache_hits": 0,
+    "starved": [],
+    "invalid_pose_or_direction": [],
+    "animation_keeps_advancing": true
+  },
+  "post_fight_observation_frames": 17,
+  "combat_late_completions": [],
+  "combat_epoch_span": [
+    120,
+    120
+  ],
+  "real_death_generations": [
+    {
+      "run_seed": 64375,
+      "plan_sha256": "ca5fd679efa12c94812cb0dae9d3c8c777d8711dbeb8afdef46887be15e191a6",
+      "material_layout_sha256": "cb1be662d8f9fff414a962f6772ddb2f5e35263991924e82901ac447a5523c73",
+      "playable_outline_sha256": "4d1638406f0e71e49f7bc174adb742c5c4793665156addaae87c89354bd88209",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "5648f92a41c287d7db7edbf9c9049830cf7f53f95e34e69e9044482a8763dc6e",
+      "size": [
+        40,
+        18
+      ],
+      "profile": 2,
+      "shape": 1,
+      "conditions": [
+        0
+      ],
+      "spawned_enemies": 2,
+      "generation": 1
+    },
+    {
+      "run_seed": 28058,
+      "plan_sha256": "9f0995b608e3757905fa6fa749f22a6a2f1a966155e4a061862a344089deee44",
+      "material_layout_sha256": "91116700256ee3fe0839da0e8d7db9bea8559f5d7b1da066fc13753cbce6d0e0",
+      "playable_outline_sha256": "dd4cbdb2f0fa60fd81a618b513b8112f2977dda1dbe77e13edfa281a78e2d77e",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "229df3cbd92ba9a1efdafa317b7a13a2b0fdccc1e32f932ecbbfd2f08abdeedb",
+      "size": [
+        28,
+        14
+      ],
+      "profile": 1,
+      "shape": 0,
+      "conditions": [
+        1
+      ],
+      "spawned_enemies": 1,
+      "generation": 2
+    },
+    {
+      "run_seed": 19731,
+      "plan_sha256": "cadd8d758a29491229bc587f00073d5882305897afc7dd98743049acfb4fca59",
+      "material_layout_sha256": "b35f971433dc02b138ee4b423ab50cf974ac484a25544c53629974b68d79e921",
+      "playable_outline_sha256": "2418e41764d316fbe2f05295347274de808569a424938c92d18fbb637131dc54",
+      "irregular_playable_outline": true,
+      "native_entry_sha256": "2e84fcd546158c232e6533b5b22a2dcdb486fdab47f210a80c203abbbc28fac6",
+      "size": [
+        32,
+        18
+      ],
+      "profile": 1,
+      "shape": 3,
+      "conditions": [
+        2,
+        3
+      ],
+      "spawned_enemies": 2,
+      "generation": 3
+    }
+  ],
+  "continued": {
+    "run_seed": 19731,
+    "plan_sha256": "cadd8d758a29491229bc587f00073d5882305897afc7dd98743049acfb4fca59",
+    "material_layout_sha256": "b35f971433dc02b138ee4b423ab50cf974ac484a25544c53629974b68d79e921",
+    "playable_outline_sha256": "2418e41764d316fbe2f05295347274de808569a424938c92d18fbb637131dc54",
+    "irregular_playable_outline": true,
+    "native_entry_sha256": "2e84fcd546158c232e6533b5b22a2dcdb486fdab47f210a80c203abbbc28fac6",
+    "size": [
+      32,
+      18
+    ],
+    "profile": 1,
+    "shape": 3,
+    "conditions": [
+      2,
+      3
+    ],
+    "spawned_enemies": 2
+  },
+  "new_run_after_abandon": {
+    "run_seed": 64953,
+    "plan_sha256": "acce83c694542605736b0e9361c2b09b1eb0455605135a2679b7ff143d6d71dd",
+    "material_layout_sha256": "c6e11ffd98e009a2271543b141c8397045500af5440b4aa3a4c3de8334143fc9",
+    "playable_outline_sha256": "bab02b0b732b79c0010678eadec291c2256b2bc121afc6f8b333fe32dfa3864b",
+    "irregular_playable_outline": true,
+    "native_entry_sha256": "6d55a791e1c281878fe59645c91612c4e4d8dd3b064074e2a8e91df55fbc21ec",
+    "size": [
+      20,
+      14
+    ],
+    "profile": 0,
+    "shape": 3,
+    "conditions": [
+      2
+    ],
+    "spawned_enemies": 2
+  },
+  "log": []
+}

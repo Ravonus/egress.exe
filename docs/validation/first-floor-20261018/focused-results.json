@@ -1,0 +1,77 @@
+[
+  {
+    "name": "opening-route-mbc5",
+    "code": 0,
+    "seconds": 3.12
+  },
+  {
+    "name": "combat-stream-mbc5",
+    "code": 0,
+    "seconds": 1.24
+  },
+  {
+    "name": "terrain-effect-mbc5",
+    "code": 0,
+    "seconds": 3.7
+  },
+  {
+    "name": "terrain-boundary-mbc5",
+    "code": 0,
+    "seconds": 3.5
+  },
+  {
+    "name": "combat-camera-mbc5",
+    "code": 0,
+    "seconds": 1.73
+  },
+  {
+    "name": "spawn-only-mbc5",
+    "code": 0,
+    "seconds": 0.44
+  },
+  {
+    "name": "heir-pixels-mbc5",
+    "code": 0,
+    "seconds": 2.09
+  },
+  {
+    "name": "opening-route-mbc3",
+    "code": 0,
+    "seconds": 2.98
+  },
+  {
+    "name": "combat-stream-mbc3",
+    "code": 0,
+    "seconds": 1.27
+  },
+  {
+    "name": "terrain-effect-mbc3",
+    "code": 0,
+    "seconds": 3.62
+  },
+  {
+    "name": "terrain-boundary-mbc3",
+    "code": 0,
+    "seconds": 3.49
+  },
+  {
+    "name": "combat-camera-mbc3",
+    "code": 0,
+    "seconds": 1.8
+  },
+  {
+    "name": "spawn-only-mbc3",
+    "code": 0,
+    "seconds": 0.46
+  },
+  {
+    "name": "heir-pixels-mbc3",
+    "code": 0,
+    "seconds": 2.16
+  },
+  {
+    "name": "procedural",
+    "code": 0,
+    "seconds": 7.12
+  }
+]

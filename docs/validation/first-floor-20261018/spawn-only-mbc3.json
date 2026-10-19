@@ -1,0 +1,48 @@
+{
+  "sha256": "6a2f2cfc3528e6fe59722e52ba7a104cfe453b701915ab7b7a9f2b47a63411dc",
+  "results": {
+    "spawn_has_real_animated_frames": true,
+    "camera_travel_has_no_assembly_or_departure": true,
+    "travel_preserves_materials": true,
+    "real_inputs_reach_left_and_right_floor": true
+  },
+  "spawnSamples": 756,
+  "spawnFrames": 116,
+  "activeMotion": [],
+  "travel": [
+    {
+      "cell": 194,
+      "player": [
+        40,
+        200
+      ],
+      "camera": [
+        0,
+        96
+      ]
+    },
+    {
+      "cell": 205,
+      "player": [
+        200,
+        200
+      ],
+      "camera": [
+        96,
+        96
+      ]
+    },
+    {
+      "cell": 194,
+      "player": [
+        40,
+        200
+      ],
+      "camera": [
+        0,
+        96
+      ]
+    }
+  ],
+  "log": []
+}
